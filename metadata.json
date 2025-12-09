@@ -1,0 +1,5 @@
+{
+  "name": "NovaRecruit - Modern Job Application System",
+  "description": "A comprehensive, clean, and modern job application platform featuring multi-role access (Applicant, Mod, Admin), multi-step application forms, dynamic QR code generation for tracking, and PDF export capabilities.",
+  "requestFramePermissions": []
+}
