@@ -41,6 +41,9 @@ export interface ApplicationForm {
   title: string;
   firstName: string;
   lastName: string;
+  titleEn: string;      // English prefix
+  firstNameEn: string;  // English first name
+  lastNameEn: string;   // English last name
   nickname: string;
   dateOfBirth: string;
   age: string;
@@ -49,16 +52,18 @@ export interface ApplicationForm {
   militaryStatus: string;
   email: string;
   phone: string;
-  
+
   // Step 3: Contact Info
   registeredAddress: string;
   registeredProvince: string;
   registeredDistrict: string;
   registeredSubDistrict: string;
+  registeredPostcode: string;
   currentAddress: string;
   currentProvince: string;
   currentDistrict: string;
   currentSubDistrict: string;
+  currentPostcode: string;
 
   // Step 4: Family
   maritalStatus: string;
@@ -66,7 +71,7 @@ export interface ApplicationForm {
   spouseAge?: string;
   spouseOccupation?: string;
   childrenCount: number;
-  
+
   fatherName: string;
   fatherAge: string;
   fatherOccupation: string;
@@ -89,7 +94,7 @@ export interface ApplicationForm {
   chineseSkill: string;
   chineseScore: string;
   otherLang: string;
-  
+
   driving: {
     motorcycle: boolean;
     motorcycleLicense: boolean;
@@ -107,7 +112,7 @@ export interface ApplicationForm {
     forms: SkillLevel;
     slides: SkillLevel;
   };
-  
+
   graphicsSkills: {
     canva: SkillLevel;
     videoEditor: SkillLevel;
@@ -149,6 +154,7 @@ export interface ApplicationForm {
   resumeUrl: string;
   certificateUrl: string;
   otherDocsUrl: string;
+  profileLinks: string; // LinkedIn, JobThai, etc.
 }
 
 export interface User {
@@ -169,11 +175,14 @@ export const INITIAL_FORM_STATE: ApplicationForm = {
   availability: '',
   sourceChannel: 'Direct',
   campaignTag: 'General',
-  
+
   isThaiNational: true,
   title: 'Mr.',
   firstName: '',
   lastName: '',
+  titleEn: 'Mr.',
+  firstNameEn: '',
+  lastNameEn: '',
   nickname: '',
   dateOfBirth: '',
   age: '',
@@ -187,10 +196,12 @@ export const INITIAL_FORM_STATE: ApplicationForm = {
   registeredProvince: '',
   registeredDistrict: '',
   registeredSubDistrict: '',
+  registeredPostcode: '',
   currentAddress: '',
   currentProvince: '',
   currentDistrict: '',
   currentSubDistrict: '',
+  currentPostcode: '',
 
   maritalStatus: 'Single',
   childrenCount: 0,
@@ -232,7 +243,7 @@ export const INITIAL_FORM_STATE: ApplicationForm = {
     forms: 'Fair',
     slides: 'Fair',
   },
-  
+
   graphicsSkills: {
     canva: 'No Skill',
     videoEditor: 'No Skill'
@@ -269,5 +280,6 @@ export const INITIAL_FORM_STATE: ApplicationForm = {
   photoUrl: '',
   resumeUrl: '',
   certificateUrl: '',
-  otherDocsUrl: ''
+  otherDocsUrl: '',
+  profileLinks: ''
 };

@@ -138,27 +138,30 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
   const [districts, setDistricts] = useState<any[]>([]);
   const [subdistricts, setSubdistricts] = useState<any[]>([]);
 
-  // Current Address State
+  // Current Address State (for cascading)
   const [currentDistricts, setCurrentDistricts] = useState<any[]>([]);
   const [currentSubdistricts, setCurrentSubdistricts] = useState<any[]>([]);
 
   const [universities, setUniversities] = useState<any[]>([]);
+  const [colleges, setColleges] = useState<any[]>([]);
   const [faculties, setFaculties] = useState<any[]>([]);
 
   // Fetch Initial Master Data
   useEffect(() => {
     const fetchMasterData = async () => {
-      const [deptData, buData, provData, uniData, facData] = await Promise.all([
+      const [deptData, buData, provData, uniData, collegeData, facData] = await Promise.all([
         api.master.getDepartments(),
         api.master.getBusinessUnits(),
         api.master.getProvinces(),
         api.master.getUniversities(),
+        api.master.getColleges(),
         api.master.getFaculties()
       ]);
       setDepartments(deptData);
       setBus(buData);
       setProvinces(provData);
       setUniversities(uniData);
+      setColleges(collegeData);
       setFaculties(facData);
     };
     fetchMasterData();
@@ -181,7 +184,20 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
     }
   }, [formData.department, departments]);
 
-  // Fetch Districts when Province changes
+  // Load ALL subdistricts for postcode search
+  const [allSubdistricts, setAllSubdistricts] = useState<any[]>([]);
+  const [postcodeSearch, setPostcodeSearch] = useState('');
+  const [postcodeResults, setPostcodeResults] = useState<any[]>([]);
+  const [currentPostcodeSearch, setCurrentPostcodeSearch] = useState('');
+  const [currentPostcodeResults, setCurrentPostcodeResults] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Clear cache to get fresh data
+    api.master.clearCache();
+    api.master.getAllSubdistricts().then(setAllSubdistricts);
+  }, []);
+
+  // Cascading: Fetch Districts when Province changes (Registered)
   useEffect(() => {
     if (formData.registeredProvince) {
       const prov = provinces.find(p => p.name_th === formData.registeredProvince);
@@ -195,7 +211,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
     }
   }, [formData.registeredProvince, provinces]);
 
-  // Fetch Subdistricts when District changes (Registered)
+  // Cascading: Fetch Subdistricts when District changes (Registered)
   useEffect(() => {
     if (formData.registeredDistrict) {
       const dist = districts.find(d => d.name_th === formData.registeredDistrict);
@@ -209,8 +225,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
     }
   }, [formData.registeredDistrict, districts]);
 
-  // --- Current Address Dependencies ---
-  // Fetch Current Districts when Current Province changes
+  // Cascading: Fetch Districts when Province changes (Current)
   useEffect(() => {
     if (formData.currentProvince) {
       const prov = provinces.find(p => p.name_th === formData.currentProvince);
@@ -224,7 +239,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
     }
   }, [formData.currentProvince, provinces]);
 
-  // Fetch Current Subdistricts when Current District changes
+  // Cascading: Fetch Subdistricts when District changes (Current)
   useEffect(() => {
     if (formData.currentDistrict) {
       const dist = currentDistricts.find(d => d.name_th === formData.currentDistrict);
@@ -237,6 +252,60 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
       setCurrentSubdistricts([]);
     }
   }, [formData.currentDistrict, currentDistricts]);
+
+  // Postcode search handler - search by typing postcode
+  const handlePostcodeSearch = (searchValue: string, addressType: 'registered' | 'current') => {
+    if (addressType === 'registered') {
+      setPostcodeSearch(searchValue);
+      if (searchValue.length >= 3) {
+        console.log('Total allSubdistricts:', allSubdistricts.length);
+        console.log('Searching for:', searchValue);
+        const results = allSubdistricts.filter(s =>
+          s.postcode?.toString().startsWith(searchValue)
+        );
+        console.log('Found results:', results.length, results);
+        setPostcodeResults(results.slice(0, 10));
+      } else {
+        setPostcodeResults([]);
+      }
+    } else {
+      setCurrentPostcodeSearch(searchValue);
+      if (searchValue.length >= 3) {
+        const results = allSubdistricts.filter(s =>
+          s.postcode?.toString().startsWith(searchValue)
+        ).slice(0, 10);
+        setCurrentPostcodeResults(results);
+      } else {
+        setCurrentPostcodeResults([]);
+      }
+    }
+  };
+
+  // Select postcode result and auto-fill address
+  const selectPostcodeResult = async (subdistrict: any, addressType: 'registered' | 'current') => {
+    // Find district from subdistrict
+    const allDistricts = await api.master.getAllDistricts();
+    const district = allDistricts.find((d: any) => d.id === subdistrict.district_id);
+
+    // Find province from district
+    const province = provinces.find(p => p.id === district?.province_id);
+
+    if (addressType === 'registered') {
+      updateField('registeredProvince', province?.name_th || '');
+      updateField('registeredDistrict', district?.name_th || '');
+      updateField('registeredSubDistrict', subdistrict.name_th);
+      updateField('registeredPostcode', subdistrict.postcode?.toString() || '');
+      setPostcodeSearch('');
+      setPostcodeResults([]);
+    } else {
+      updateField('currentProvince', province?.name_th || '');
+      updateField('currentDistrict', district?.name_th || '');
+      updateField('currentSubDistrict', subdistrict.name_th);
+      updateField('currentPostcode', subdistrict.postcode?.toString() || '');
+      setCurrentPostcodeSearch('');
+      setCurrentPostcodeResults([]);
+    }
+  };
 
 
   // Submission state
@@ -275,16 +344,21 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
 
     setUploadingState(prev => ({ ...prev, [stateKey]: true }));
 
-    // Use API service
-    const url = await api.uploadFile(file, stateKey);
+    try {
+      // Use API service
+      const url = await api.uploadFile(file, stateKey);
 
-    if (url) {
-      updateField(fieldName, url); // Store URL, not just filename
-    } else {
-      alert("Upload failed. Please try again.");
+      if (url) {
+        updateField(fieldName, url); // Store URL, not just filename
+      } else {
+        alert("Upload failed. Please try again.");
+      }
+    } catch (error: any) {
+      console.error('File upload error:', error);
+      alert(error.message || "Upload failed. Please try again.");
+    } finally {
+      setUploadingState(prev => ({ ...prev, [stateKey]: false }));
     }
-
-    setUploadingState(prev => ({ ...prev, [stateKey]: false }));
   };
 
   const handleFinalSubmit = () => {
@@ -298,8 +372,8 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
     setIsSubmitting(false);
 
     if (result.success) {
-      if (result.data && result.data.length > 0) {
-        setTrackingId(result.data[0].id);
+      if (result.data && result.data.id) {
+        setTrackingId(result.data.id);
       }
       setSubmitSuccess(true);
     } else {
@@ -399,7 +473,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
           isOpen={isConfirmModalOpen}
           onClose={() => setIsConfirmModalOpen(false)}
           title={t.actions.submit}
-          size="sm"
+          size="md"
         >
           <div className="space-y-6 p-2">
             <p className="text-gray-600 text-center">
@@ -494,19 +568,29 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
             </>
           )}
 
-          <h2 className="text-xl font-bold text-gray-900 mb-6 border-b pb-4">
+          <h2 className="text-xl font-bold text-gray-900 mb-4 border-b pb-4">
             {t.steps[currentStep as keyof typeof t.steps]}
           </h2>
+
+          {/* Top Navigation Buttons */}
+          <div className="flex justify-between mb-6">
+            <Button
+              variant="outline"
+              onClick={handleBack}
+              disabled={currentStep === 1}
+              className={currentStep === 1 ? 'opacity-50 cursor-not-allowed' : ''}
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" /> {t.actions.back}
+            </Button>
+            <Button onClick={handleNext} className="bg-indigo-600 text-white hover:bg-indigo-700">
+              {currentStep === steps.length ? 'Preview' : t.actions.next} <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
 
           {/* --- Step 1: Job Interest --- */}
           {currentStep === 1 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Select
-                label={t.labels.bu}
-                value={formData.businessUnit}
-                onChange={(e) => updateField('businessUnit', e.target.value)}
-                options={bus.map(bu => ({ label: bu.name, value: bu.name }))}
-              />
+              {/* BU/Channel/Tag come from URL params only - not selectable by user */}
               <Select
                 label={t.labels.department}
                 value={formData.department}
@@ -552,10 +636,24 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
 
               <Input label={formData.isThaiNational ? t.labels.idCard : t.labels.passport} value={formData.isThaiNational ? formData.nationalId : formData.passportNo} onChange={(e) => updateField(formData.isThaiNational ? 'nationalId' : 'passportNo', e.target.value)} maxLength={20} />
 
-              <div className="grid grid-cols-3 gap-4 md:col-span-2">
-                <div className="col-span-1"><Select label={t.labels.title} options={[{ label: 'Mr.', value: 'Mr.' }, { label: 'Ms.', value: 'Ms.' }, { label: 'Mrs.', value: 'Mrs.' }]} value={formData.title} onChange={(e) => updateField('title', e.target.value)} /></div>
-                <div className="col-span-1"><Input label={t.labels.firstName} value={formData.firstName} onChange={(e) => updateField('firstName', e.target.value)} /></div>
-                <div className="col-span-1"><Input label={t.labels.lastName} value={formData.lastName} onChange={(e) => updateField('lastName', e.target.value)} /></div>
+              {/* Thai Name */}
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">ชื่อภาษาไทย / Thai Name</label>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="col-span-1"><Select label={t.labels.title} options={[{ label: 'นาย', value: 'นาย' }, { label: 'นาง', value: 'นาง' }, { label: 'นางสาว', value: 'นางสาว' }]} value={formData.title} onChange={(e) => updateField('title', e.target.value)} /></div>
+                  <div className="col-span-1"><Input label={t.labels.firstName} value={formData.firstName} onChange={(e) => updateField('firstName', e.target.value)} placeholder="ชื่อ" /></div>
+                  <div className="col-span-1"><Input label={t.labels.lastName} value={formData.lastName} onChange={(e) => updateField('lastName', e.target.value)} placeholder="นามสกุล" /></div>
+                </div>
+              </div>
+
+              {/* English Name */}
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">ชื่อภาษาอังกฤษ / English Name</label>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="col-span-1"><Select label="Title (EN)" options={[{ label: 'Mr.', value: 'Mr.' }, { label: 'Ms.', value: 'Ms.' }, { label: 'Mrs.', value: 'Mrs.' }]} value={formData.titleEn} onChange={(e) => updateField('titleEn', e.target.value)} /></div>
+                  <div className="col-span-1"><Input label="First Name (EN)" value={formData.firstNameEn} onChange={(e) => updateField('firstNameEn', e.target.value)} placeholder="First Name" /></div>
+                  <div className="col-span-1"><Input label="Last Name (EN)" value={formData.lastNameEn} onChange={(e) => updateField('lastNameEn', e.target.value)} placeholder="Last Name" /></div>
+                </div>
               </div>
 
               <Input label={t.labels.nickname} value={formData.nickname} onChange={(e) => updateField('nickname', e.target.value)} />
@@ -576,102 +674,228 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
           {/* --- Step 3: Contact Info --- */}
           {currentStep === 3 && (
             <div className="space-y-6">
+              {/* Registered Address */}
               <div className="bg-gray-50 p-4 rounded-lg space-y-4">
                 <h3 className="font-semibold text-gray-800">{t.labels.registeredAddress}</h3>
-                <Input label={t.labels.registeredAddress} value={formData.registeredAddress} onChange={(e) => updateField('registeredAddress', e.target.value)} />
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="flex flex-col">
-                    <label className="text-sm text-gray-700 mb-1">{t.labels.province}</label>
-                    <select
-                      className="border border-gray-300 rounded-lg p-2"
-                      value={formData.registeredProvince}
-                      onChange={(e) => {
-                        updateField('registeredProvince', e.target.value);
-                        updateField('registeredDistrict', '');
-                        updateField('registeredSubDistrict', '');
-                      }}
-                    >
-                      <option value="">Select Province</option>
-                      {provinces.map(p => <option key={p.id} value={p.name_th}>{lang === 'en' ? p.name_en : p.name_th}</option>)}
-                    </select>
+                <Input label={t.labels.registeredAddress} value={formData.registeredAddress} onChange={(e) => updateField('registeredAddress', e.target.value)} placeholder="บ้านเลขที่ หมู่ ซอย ถนน" />
+
+                {/* Thai National: Cascading Dropdowns + Postcode Search */}
+                {formData.isThaiNational ? (
+                  <div className="space-y-4">
+                    {/* Postcode Search Box */}
+                    <div className="relative">
+                      <label className="text-sm text-gray-700 mb-1 block">🔍 ค้นหาจากรหัสไปรษณีย์</label>
+                      <input
+                        type="text"
+                        className="border border-gray-300 rounded-lg p-2 w-full"
+                        placeholder="พิมพ์รหัสไปรษณีย์ เช่น 10200"
+                        value={postcodeSearch}
+                        onChange={(e) => handlePostcodeSearch(e.target.value, 'registered')}
+                      />
+                      {postcodeResults.length > 0 && (
+                        <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
+                          {postcodeResults.map((sub, idx) => (
+                            <div
+                              key={idx}
+                              className="p-3 hover:bg-indigo-50 cursor-pointer border-b text-sm"
+                              onClick={() => selectPostcodeResult(sub, 'registered')}
+                            >
+                              <span className="font-semibold text-indigo-600">{sub.postcode}</span>
+                              <span className="mx-2">-</span>
+                              <span>{sub.name_th}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 4-Level Cascading Dropdowns */}
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                      <div className="flex flex-col">
+                        <label className="text-sm text-gray-700 mb-1">{t.labels.province}</label>
+                        <select
+                          className="border border-gray-300 rounded-lg p-2"
+                          value={formData.registeredProvince}
+                          onChange={(e) => {
+                            updateField('registeredProvince', e.target.value);
+                            updateField('registeredDistrict', '');
+                            updateField('registeredSubDistrict', '');
+                            updateField('registeredPostcode', '');
+                          }}
+                        >
+                          <option value="">เลือกจังหวัด</option>
+                          {provinces.map(p => <option key={p.id} value={p.name_th}>{lang === 'en' ? p.name_en : p.name_th}</option>)}
+                        </select>
+                      </div>
+                      <div className="flex flex-col">
+                        <label className="text-sm text-gray-700 mb-1">{t.labels.district}</label>
+                        <select
+                          className="border border-gray-300 rounded-lg p-2"
+                          value={formData.registeredDistrict}
+                          onChange={(e) => {
+                            updateField('registeredDistrict', e.target.value);
+                            updateField('registeredSubDistrict', '');
+                            updateField('registeredPostcode', '');
+                          }}
+                          disabled={!formData.registeredProvince}
+                        >
+                          <option value="">เลือกเขต/อำเภอ</option>
+                          {districts.map(d => <option key={d.id} value={d.name_th}>{lang === 'en' ? d.name_en : d.name_th}</option>)}
+                        </select>
+                      </div>
+                      <div className="flex flex-col">
+                        <label className="text-sm text-gray-700 mb-1">{t.labels.subDistrict}</label>
+                        <select
+                          className="border border-gray-300 rounded-lg p-2"
+                          value={formData.registeredSubDistrict}
+                          onChange={(e) => {
+                            const subdistrictName = e.target.value;
+                            updateField('registeredSubDistrict', subdistrictName);
+                            // Auto-fill postcode from subdistrict
+                            const selectedSub = subdistricts.find(s => s.name_th === subdistrictName);
+                            if (selectedSub?.postcode) {
+                              updateField('registeredPostcode', selectedSub.postcode.toString());
+                            }
+                          }}
+                          disabled={!formData.registeredDistrict}
+                        >
+                          <option value="">เลือกแขวง/ตำบล</option>
+                          {subdistricts.map(s => <option key={s.id} value={s.name_th}>{lang === 'en' ? s.name_en : s.name_th}</option>)}
+                        </select>
+                      </div>
+                      <div className="flex flex-col">
+                        <label className="text-sm text-gray-700 mb-1">รหัสไปรษณีย์</label>
+                        <input
+                          type="text"
+                          className="border border-gray-300 rounded-lg p-2 bg-gray-50"
+                          value={formData.registeredPostcode}
+                          readOnly
+                          placeholder="อัตโนมัติ"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex flex-col">
-                    <label className="text-sm text-gray-700 mb-1">{t.labels.district}</label>
-                    <select
-                      className="border border-gray-300 rounded-lg p-2"
-                      value={formData.registeredDistrict}
-                      onChange={(e) => {
-                        updateField('registeredDistrict', e.target.value);
-                        updateField('registeredSubDistrict', '');
-                      }}
-                      disabled={!formData.registeredProvince}
-                    >
-                      <option value="">Select District</option>
-                      {districts.map(d => <option key={d.id} value={d.name_th}>{lang === 'en' ? d.name_en : d.name_th}</option>)}
-                    </select>
+                ) : (
+                  /* Foreigner: Free text inputs */
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                    <Input label="Province / State" value={formData.registeredProvince} onChange={(e) => updateField('registeredProvince', e.target.value)} placeholder="Province/State" />
+                    <Input label="District / City" value={formData.registeredDistrict} onChange={(e) => updateField('registeredDistrict', e.target.value)} placeholder="City" />
+                    <Input label="Sub-District / Area" value={formData.registeredSubDistrict} onChange={(e) => updateField('registeredSubDistrict', e.target.value)} placeholder="Area" />
+                    <Input label="Postal Code" value={formData.registeredPostcode} onChange={(e) => updateField('registeredPostcode', e.target.value)} placeholder="Postal Code" />
                   </div>
-                  <div className="flex flex-col">
-                    <label className="text-sm text-gray-700 mb-1">{t.labels.subDistrict}</label>
-                    <select
-                      className="border border-gray-300 rounded-lg p-2"
-                      value={formData.registeredSubDistrict}
-                      onChange={(e) => updateField('registeredSubDistrict', e.target.value)}
-                      disabled={!formData.registeredDistrict}
-                    >
-                      <option value="">Select Subdistrict</option>
-                      {subdistricts.map(s => <option key={s.id} value={s.name_th}>{lang === 'en' ? s.name_en : s.name_th}</option>)}
-                    </select>
-                  </div>
-                </div>
+                )}
               </div>
 
+              {/* Current Address */}
               <div className="bg-white border p-4 rounded-lg space-y-4">
                 <h3 className="font-semibold text-gray-800">{t.labels.currentAddress}</h3>
-                <Input label={t.labels.currentAddress} value={formData.currentAddress} onChange={(e) => updateField('currentAddress', e.target.value)} />
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="flex flex-col">
-                    <label className="text-sm text-gray-700 mb-1">{t.labels.province}</label>
-                    <select
-                      className="border border-gray-300 rounded-lg p-2"
-                      value={formData.currentProvince}
-                      onChange={(e) => {
-                        updateField('currentProvince', e.target.value);
-                        updateField('currentDistrict', '');
-                        updateField('currentSubDistrict', '');
-                      }}
-                    >
-                      <option value="">Select Province</option>
-                      {provinces.map(p => <option key={p.id} value={p.name_th}>{lang === 'en' ? p.name_en : p.name_th}</option>)}
-                    </select>
+                <Input label={t.labels.currentAddress} value={formData.currentAddress} onChange={(e) => updateField('currentAddress', e.target.value)} placeholder="บ้านเลขที่ หมู่ ซอย ถนน" />
+
+                {/* Thai National: Cascading Dropdowns + Postcode Search */}
+                {formData.isThaiNational ? (
+                  <div className="space-y-4">
+                    {/* Postcode Search Box for Current Address */}
+                    <div className="relative">
+                      <label className="text-sm text-gray-700 mb-1 block">🔍 ค้นหาจากรหัสไปรษณีย์</label>
+                      <input
+                        type="text"
+                        className="border border-gray-300 rounded-lg p-2 w-full"
+                        placeholder="พิมพ์รหัสไปรษณีย์ เช่น 10200"
+                        value={currentPostcodeSearch}
+                        onChange={(e) => handlePostcodeSearch(e.target.value, 'current')}
+                      />
+                      {currentPostcodeResults.length > 0 && (
+                        <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
+                          {currentPostcodeResults.map((sub, idx) => (
+                            <div
+                              key={idx}
+                              className="p-3 hover:bg-indigo-50 cursor-pointer border-b text-sm"
+                              onClick={() => selectPostcodeResult(sub, 'current')}
+                            >
+                              <span className="font-semibold text-indigo-600">{sub.postcode}</span>
+                              <span className="mx-2">-</span>
+                              <span>{sub.name_th}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 4-Level Cascading Dropdowns */}
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                      <div className="flex flex-col">
+                        <label className="text-sm text-gray-700 mb-1">{t.labels.province}</label>
+                        <select
+                          className="border border-gray-300 rounded-lg p-2"
+                          value={formData.currentProvince}
+                          onChange={(e) => {
+                            updateField('currentProvince', e.target.value);
+                            updateField('currentDistrict', '');
+                            updateField('currentSubDistrict', '');
+                            updateField('currentPostcode', '');
+                          }}
+                        >
+                          <option value="">เลือกจังหวัด</option>
+                          {provinces.map(p => <option key={p.id} value={p.name_th}>{lang === 'en' ? p.name_en : p.name_th}</option>)}
+                        </select>
+                      </div>
+                      <div className="flex flex-col">
+                        <label className="text-sm text-gray-700 mb-1">{t.labels.district}</label>
+                        <select
+                          className="border border-gray-300 rounded-lg p-2"
+                          value={formData.currentDistrict}
+                          onChange={(e) => {
+                            updateField('currentDistrict', e.target.value);
+                            updateField('currentSubDistrict', '');
+                            updateField('currentPostcode', '');
+                          }}
+                          disabled={!formData.currentProvince}
+                        >
+                          <option value="">เลือกเขต/อำเภอ</option>
+                          {currentDistricts.map(d => <option key={d.id} value={d.name_th}>{lang === 'en' ? d.name_en : d.name_th}</option>)}
+                        </select>
+                      </div>
+                      <div className="flex flex-col">
+                        <label className="text-sm text-gray-700 mb-1">{t.labels.subDistrict}</label>
+                        <select
+                          className="border border-gray-300 rounded-lg p-2"
+                          value={formData.currentSubDistrict}
+                          onChange={(e) => {
+                            const subdistrictName = e.target.value;
+                            updateField('currentSubDistrict', subdistrictName);
+                            // Auto-fill postcode from subdistrict
+                            const selectedSub = currentSubdistricts.find(s => s.name_th === subdistrictName);
+                            if (selectedSub?.postcode) {
+                              updateField('currentPostcode', selectedSub.postcode.toString());
+                            }
+                          }}
+                          disabled={!formData.currentDistrict}
+                        >
+                          <option value="">เลือกแขวง/ตำบล</option>
+                          {currentSubdistricts.map(s => <option key={s.id} value={s.name_th}>{lang === 'en' ? s.name_en : s.name_th}</option>)}
+                        </select>
+                      </div>
+                      <div className="flex flex-col">
+                        <label className="text-sm text-gray-700 mb-1">รหัสไปรษณีย์</label>
+                        <input
+                          type="text"
+                          className="border border-gray-300 rounded-lg p-2 bg-gray-50"
+                          value={formData.currentPostcode}
+                          readOnly
+                          placeholder="อัตโนมัติ"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex flex-col">
-                    <label className="text-sm text-gray-700 mb-1">{t.labels.district}</label>
-                    <select
-                      className="border border-gray-300 rounded-lg p-2"
-                      value={formData.currentDistrict}
-                      onChange={(e) => {
-                        updateField('currentDistrict', e.target.value);
-                        updateField('currentSubDistrict', '');
-                      }}
-                      disabled={!formData.currentProvince}
-                    >
-                      <option value="">Select District</option>
-                      {currentDistricts.map(d => <option key={d.id} value={d.name_th}>{lang === 'en' ? d.name_en : d.name_th}</option>)}
-                    </select>
+                ) : (
+                  /* Foreigner: Free text inputs */
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                    <Input label="Province / State" value={formData.currentProvince} onChange={(e) => updateField('currentProvince', e.target.value)} placeholder="Province/State" />
+                    <Input label="District / City" value={formData.currentDistrict} onChange={(e) => updateField('currentDistrict', e.target.value)} placeholder="City" />
+                    <Input label="Sub-District / Area" value={formData.currentSubDistrict} onChange={(e) => updateField('currentSubDistrict', e.target.value)} placeholder="Area" />
+                    <Input label="Postal Code" value={formData.currentPostcode} onChange={(e) => updateField('currentPostcode', e.target.value)} placeholder="Postal Code" />
                   </div>
-                  <div className="flex flex-col">
-                    <label className="text-sm text-gray-700 mb-1">{t.labels.subDistrict}</label>
-                    <select
-                      className="border border-gray-300 rounded-lg p-2"
-                      value={formData.currentSubDistrict}
-                      onChange={(e) => updateField('currentSubDistrict', e.target.value)}
-                      disabled={!formData.currentDistrict}
-                    >
-                      <option value="">Select Subdistrict</option>
-                      {currentSubdistricts.map(s => <option key={s.id} value={s.name_th}>{lang === 'en' ? s.name_en : s.name_th}</option>)}
-                    </select>
-                  </div>
-                </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -734,17 +958,71 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
               {['High School', 'Vocational', 'Bachelor', 'Master'].map((level) => {
                 const key = level.toLowerCase().replace(' ', '') === 'highschool' ? 'highSchool' : level.toLowerCase() as keyof typeof formData.education;
                 const data = formData.education[key];
+                const currentYear = new Date().getFullYear();
+                const years = Array.from({ length: currentYear - 1940 + 11 }, (_, i) => currentYear + 10 - i);
+
+                // Determine which list to use for autocomplete
+                const instituteList = level === 'Bachelor' || level === 'Master' ? universities : level === 'Vocational' ? colleges : null;
+                const listId = level === 'Bachelor' || level === 'Master' ? 'universities-list' : level === 'Vocational' ? 'colleges-list' : null;
 
                 return (
                   <div key={level} className="bg-gray-50 p-4 rounded-lg">
                     <h3 className="font-bold text-gray-800 mb-3">{level} Degrees</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Input label={t.labels.institute} value={data.institute} onChange={(e) => updateNested('education', key as string, { ...data, institute: e.target.value })} />
+                      {/* Institute field - with autocomplete for Bachelor, Master, Vocational */}
+                      <div className="flex flex-col">
+                        <label className="text-sm font-medium text-gray-700 mb-1">{t.labels.institute}</label>
+                        {instituteList ? (
+                          <>
+                            <input
+                              type="text"
+                              list={listId}
+                              className="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                              value={data.institute}
+                              onChange={(e) => updateNested('education', key as string, { ...data, institute: e.target.value })}
+                              placeholder={`เลือกหรือพิมพ์ชื่อสถาบัน...`}
+                            />
+                            <datalist id={listId}>
+                              {instituteList.map((item: any) => (
+                                <option key={item.id} value={item.name}>{item.name_en || ''}</option>
+                              ))}
+                            </datalist>
+                          </>
+                        ) : (
+                          <input
+                            type="text"
+                            className="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            value={data.institute}
+                            onChange={(e) => updateNested('education', key as string, { ...data, institute: e.target.value })}
+                            placeholder="ชื่อสถาบัน..."
+                          />
+                        )}
+                      </div>
                       <Input label={level === 'High School' ? t.labels.program : t.labels.major} value={data.major} onChange={(e) => updateNested('education', key as string, { ...data, major: e.target.value })} />
                       <Input label={t.labels.gpa} value={data.gpa} onChange={(e) => updateNested('education', key as string, { ...data, gpa: e.target.value })} />
                       <div className="flex gap-2">
-                        <Input label={t.labels.yearStart} placeholder="YYYY" value={data.startDate} onChange={(e) => updateNested('education', key as string, { ...data, startDate: e.target.value })} />
-                        <Input label={t.labels.yearFinish} placeholder="YYYY" value={data.endDate} onChange={(e) => updateNested('education', key as string, { ...data, endDate: e.target.value })} />
+                        <div className="flex-1 flex flex-col">
+                          <label className="text-sm font-medium text-gray-700 mb-1">{t.labels.yearStart}</label>
+                          <select
+                            className="border border-gray-300 rounded-lg p-2"
+                            value={data.startDate}
+                            onChange={(e) => updateNested('education', key as string, { ...data, startDate: e.target.value })}
+                          >
+                            <option value="">เลือกปี</option>
+                            {years.map(year => <option key={year} value={year.toString()}>{year}</option>)}
+                          </select>
+                        </div>
+                        <div className="flex-1 flex flex-col">
+                          <label className="text-sm font-medium text-gray-700 mb-1">{t.labels.yearFinish}</label>
+                          <select
+                            className="border border-gray-300 rounded-lg p-2"
+                            value={data.endDate}
+                            onChange={(e) => updateNested('education', key as string, { ...data, endDate: e.target.value })}
+                          >
+                            <option value="">เลือกปี</option>
+                            {years.map(year => <option key={year} value={year.toString()}>{year}</option>)}
+                          </select>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1027,7 +1305,12 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                   onFileSelect={(file) => handleFileUpload(file, 'certificateUrl', 'certificate')}
                   uploading={uploadingState.certificate}
                 />
-                <Input label={t.labels.links} value={formData.otherDocsUrl} onChange={(e) => updateField('otherDocsUrl', e.target.value)} />
+                <Input
+                  label="Links (LinkedIn, JobThai, etc.)"
+                  value={formData.profileLinks}
+                  onChange={(e) => updateField('profileLinks', e.target.value)}
+                  placeholder="https://linkedin.com/in/yourprofile"
+                />
               </div>
             </div>
           )}
@@ -1064,7 +1347,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
         isOpen={isConfirmModalOpen}
         onClose={() => setIsConfirmModalOpen(false)}
         title={t.actions.submit}
-        size="sm"
+        size="md"
       >
         <div className="space-y-6 p-2">
           <p className="text-gray-600 text-center">

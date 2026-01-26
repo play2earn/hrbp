@@ -448,10 +448,13 @@ export const MOCK_APPLICATION_DATA: any = {
   // Step 2: Personal Info
   isThaiNational: true,
   nationalId: '1234567890123',
-  title: 'Mr.',
-  firstName: 'Somchai',
-  lastName: 'Dee',
-  nickname: 'Chai',
+  title: 'นาย',
+  firstName: 'สมชาย',
+  lastName: 'ดีมาก',
+  titleEn: 'Mr.',
+  firstNameEn: 'Somchai',
+  lastNameEn: 'Deemak',
+  nickname: 'ชาย',
   dateOfBirth: '1995-05-15',
   age: '29',
   weight: '70',
@@ -578,5 +581,8 @@ export const MOCK_APPLICATION_DATA: any = {
   hasSurgery: false,
   surgeryDetail: '',
   hasMedicalRecord: false,
-  medicalRecordDetail: ''
+  medicalRecordDetail: '',
+
+  // Step 10: Documents/Links
+  profileLinks: 'https://linkedin.com/in/somchai-test'
 };

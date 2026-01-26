@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>พิมพ์ใบสมัคร - NovaRecruit</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
+
+    body {
+      font-family: 'Sarabun', sans-serif;
+      font-size: 11px;
+    }
+
+    @page {
+      size: A4;
+      margin: 10mm;
+    }
+
+    @media print {
+      body {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .no-print {
+        display: none !important;
+      }
+
+      .print-break {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+
+      .page-break {
+        page-break-before: always;
+        break-before: page;
+      }
+
+      /* Prevent sections from breaking in the middle */
+      .section-wrapper {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+
+      /* Tables should not break */
+      table {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+
+      /* Section title + content should stay together */
+      .section-title {
+        page-break-after: avoid;
+        break-after: avoid;
+      }
+
+      /* Border boxes should not break */
+      .border {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+    }
+
+    .section-title {
+      background: #1f2937;
+      color: white;
+      padding: 6px 10px;
+      margin-top: 12px;
+      margin-bottom: 0;
+    }
+
+    .section-title h3 {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .box-field {
+      padding: 4px 6px;
+      border-right: 1px solid #374151;
+      border-bottom: 1px solid #374151;
+    }
+
+    .box-field:last-child {
+      border-right: none;
+    }
+
+    .box-label {
+      font-size: 8px;
+      color: #6b7280;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .box-value {
+      font-size: 11px;
+      font-weight: 500;
+      min-height: 14px;
+    }
+
+    .content-wrapper {
+      max-width: 210mm;
+      margin: 0 auto;
+    }
+
+    .a4-page {
+      width: 100%;
+      background: white;
+      padding: 8mm;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-200">
+  <div id="app" class="content-wrapper">
+    <!-- Action Bar -->
+    <div class="no-print flex gap-4 p-4 bg-white shadow-lg sticky top-0 z-50">
+      <button onclick="window.print()"
+        class="px-6 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700">
+        🖨️ พิมพ์ A4
+      </button>
+      <button onclick="window.close()" class="px-6 py-2 bg-gray-300 rounded-lg font-bold hover:bg-gray-400">
+        ปิด
+      </button>
+    </div>
+
+    <!-- Page 1 -->
+    <div class="a4-page">
+      <!-- Header with Photo and Position Info -->
+      <div class="flex items-start gap-4 border-b-2 border-black pb-4 mb-4">
+        <div id="photo-container"
+          class="w-24 h-32 border-2 border-dashed border-gray-400 flex items-center justify-center bg-gray-50 text-gray-400 text-xs overflow-hidden flex-shrink-0">
+          Photo
+        </div>
+        <!-- Position Section inline with photo -->
+        <div class="border border-gray-800 flex-1">
+          <div class="grid grid-cols-4 h-full">
+            <div class="box-field flex flex-col justify-center">
+              <div class="box-label">ตำแหน่งที่สมัคร</div>
+              <div class="box-value" id="position">-</div>
+            </div>
+            <div class="box-field flex flex-col justify-center">
+              <div class="box-label">แผนก</div>
+              <div class="box-value" id="department">-</div>
+            </div>
+            <div class="box-field flex flex-col justify-center">
+              <div class="box-label">เงินเดือนที่คาดหวัง</div>
+              <div class="box-value" id="salary">-</div>
+            </div>
+            <div class="box-field flex flex-col justify-center" style="border-right:none">
+              <div class="box-label">วันที่พร้อมเริ่มงาน</div>
+              <div class="box-value" id="availability">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Personal Info TH -->
+      <div class="section-title">
+        <h3>ข้อมูลส่วนตัว (ภาษาไทย)</h3>
+      </div>
+      <div class="border border-gray-800 border-t-0">
+        <div class="grid grid-cols-5">
+          <div class="box-field">
+            <div class="box-label">คำนำหน้า</div>
+            <div class="box-value" id="title">-</div>
+          </div>
+          <div class="box-field col-span-2">
+            <div class="box-label">ชื่อ</div>
+            <div class="box-value" id="firstName">-</div>
+          </div>
+          <div class="box-field col-span-2" style="border-right:none">
+            <div class="box-label">นามสกุล</div>
+            <div class="box-value" id="lastName">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Personal Info EN -->
+      <div class="section-title">
+        <h3>ข้อมูลส่วนตัว (English)</h3>
+      </div>
+      <div class="border border-gray-800 border-t-0">
+        <div class="grid grid-cols-5">
+          <div class="box-field">
+            <div class="box-label">Title</div>
+            <div class="box-value" id="titleEn">-</div>
+          </div>
+          <div class="box-field col-span-2">
+            <div class="box-label">First Name</div>
+            <div class="box-value" id="firstNameEn">-</div>
+          </div>
+          <div class="box-field col-span-2" style="border-right:none">
+            <div class="box-label">Last Name</div>
+            <div class="box-value" id="lastNameEn">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Basic Info -->
+      <div class="section-title">
+        <h3>ข้อมูลพื้นฐาน</h3>
+      </div>
+      <div class="border border-gray-800 border-t-0">
+        <div class="grid grid-cols-6">
+          <div class="box-field">
+            <div class="box-label">ชื่อเล่น</div>
+            <div class="box-value" id="nickname">-</div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">วันเกิด</div>
+            <div class="box-value" id="dateOfBirth">-</div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">อายุ</div>
+            <div class="box-value" id="age">-</div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">น้ำหนัก</div>
+            <div class="box-value" id="weight">-</div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">ส่วนสูง</div>
+            <div class="box-value" id="height">-</div>
+          </div>
+          <div class="box-field" style="border-right:none">
+            <div class="box-label">ทหาร</div>
+            <div class="box-value" id="militaryStatus">-</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-3">
+          <div class="box-field">
+            <div class="box-label">เลขบัตรประชาชน</div>
+            <div class="box-value" id="nationalId">-</div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">เบอร์โทรศัพท์</div>
+            <div class="box-value" id="phone">-</div>
+          </div>
+          <div class="box-field" style="border-right:none">
+            <div class="box-label">อีเมล</div>
+            <div class="box-value" id="email">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Address -->
+      <div class="section-title">
+        <h3>ที่อยู่</h3>
+      </div>
+      <div class="border border-gray-800 border-t-0">
+        <div class="grid grid-cols-1">
+          <div class="box-field">
+            <div class="box-label">ที่อยู่ตามทะเบียนบ้าน</div>
+            <div class="box-value" id="registeredAddress">-</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1">
+          <div class="box-field" style="border-right:none">
+            <div class="box-label">ที่อยู่ปัจจุบัน</div>
+            <div class="box-value" id="currentAddress">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Family -->
+      <div class="section-title print-break">
+        <h3>ข้อมูลครอบครัว</h3>
+      </div>
+      <div class="border border-gray-800 border-t-0">
+        <div class="grid grid-cols-4">
+          <div class="box-field">
+            <div class="box-label">สถานภาพ</div>
+            <div class="box-value" id="maritalStatus">-</div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">จำนวนบุตร</div>
+            <div class="box-value" id="childrenCount">-</div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">จำนวนพี่น้อง</div>
+            <div class="box-value" id="siblingCount">-</div>
+          </div>
+          <div class="box-field" style="border-right:none">
+            <div class="box-label">คู่สมรส</div>
+            <div class="box-value" id="spouseName">-</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-3">
+          <div class="box-field">
+            <div class="box-label">อายุคู่สมรส</div>
+            <div class="box-value" id="spouseAge">-</div>
+          </div>
+          <div class="box-field col-span-2" style="border-right:none">
+            <div class="box-label">อาชีพคู่สมรส</div>
+            <div class="box-value" id="spouseOccupation">-</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-4">
+          <div class="box-field">
+            <div class="box-label">ชื่อบิดา</div>
+            <div class="box-value" id="fatherName">-</div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">อายุ/อาชีพ</div>
+            <div class="box-value" id="fatherInfo">-</div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">ชื่อมารดา</div>
+            <div class="box-value" id="motherName">-</div>
+          </div>
+          <div class="box-field" style="border-right:none">
+            <div class="box-label">อายุ/อาชีพ</div>
+            <div class="box-value" id="motherInfo">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Education -->
+      <div class="section-wrapper">
+        <div class="section-title">
+          <h3>ประวัติการศึกษา</h3>
+        </div>
+        <div class="border border-gray-800 border-t-0">
+          <div class="grid grid-cols-5 bg-gray-200 text-[9px] font-bold">
+            <div class="box-field py-1">ระดับ</div>
+            <div class="box-field py-1">สถาบัน</div>
+            <div class="box-field py-1">สาขา</div>
+            <div class="box-field py-1">GPA</div>
+            <div class="box-field py-1" style="border-right:none">ปี</div>
+          </div>
+          <div id="education-rows"></div>
+        </div>
+      </div>
+
+      <!-- Experience -->
+      <div class="section-wrapper">
+        <div class="section-title">
+          <h3>ประวัติการทำงาน</h3>
+        </div>
+        <div class="border border-gray-800 border-t-0">
+          <div class="grid grid-cols-5 bg-gray-200 text-[9px] font-bold">
+            <div class="box-field py-1">ช่วงเวลา</div>
+            <div class="box-field py-1">บริษัท</div>
+            <div class="box-field py-1">ตำแหน่ง</div>
+            <div class="box-field py-1">เงินเดือน</div>
+            <div class="box-field py-1" style="border-right:none">รายละเอียด</div>
+          </div>
+          <div id="experience-rows"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Continued Content -->
+    <div class="a4-page">
+      <!-- Skills Language -->
+      <div class="section-title">
+        <h3>ทักษะภาษา</h3>
+      </div>
+      <div class="border border-gray-800 border-t-0">
+        <div class="grid grid-cols-4">
+          <div class="box-field">
+            <div class="box-label">ภาษาอังกฤษ</div>
+            <div class="box-value" id="englishSkill">-</div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">คะแนนสอบ</div>
+            <div class="box-value" id="englishScore">-</div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">ภาษาจีน</div>
+            <div class="box-value" id="chineseSkill">-</div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">คะแนนสอบจีน</div>
+            <div class="box-value" id="chineseScore">-</div>
+          </div>
+          <div class="box-field" style="border-right:none">
+            <div class="box-label">ภาษาอื่นๆ</div>
+            <div class="box-value" id="otherLang">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Computer Skills -->
+      <div class="section-title">
+        <h3>ทักษะคอมพิวเตอร์</h3>
+      </div>
+      <div class="border border-gray-800 border-t-0">
+        <div class="grid grid-cols-7">
+          <div class="box-field">
+            <div class="box-label">Word</div>
+            <div class="box-value" id="skillWord">-</div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">Excel</div>
+            <div class="box-value" id="skillExcel">-</div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">PowerPoint</div>
+            <div class="box-value" id="skillPpt">-</div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">Sheets</div>
+            <div class="box-value" id="skillSheets">-</div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">Docs</div>
+            <div class="box-value" id="skillDocs">-</div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">Canva</div>
+            <div class="box-value" id="skillCanva">-</div>
+          </div>
+          <div class="box-field" style="border-right:none">
+            <div class="box-label">Video</div>
+            <div class="box-value" id="skillVideo">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Driving -->
+      <div class="section-title">
+        <h3>การขับขี่</h3>
+      </div>
+      <div class="border border-gray-800 border-t-0">
+        <div class="grid grid-cols-4">
+          <div class="box-field">
+            <div class="box-label">มอเตอร์ไซค์</div>
+            <div class="box-value" id="motorcycle">-</div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">ใบขับขี่มอเตอร์ไซค์</div>
+            <div class="box-value" id="motorcycleLicense">-</div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">รถยนต์</div>
+            <div class="box-value" id="car">-</div>
+          </div>
+          <div class="box-field" style="border-right:none">
+            <div class="box-label">ใบขับขี่รถยนต์</div>
+            <div class="box-value" id="carLicense">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Other Skills -->
+      <div class="section-title">
+        <h3>ความสามารถอื่นๆ</h3>
+      </div>
+      <div class="border border-gray-800 border-t-0">
+        <div class="grid grid-cols-1">
+          <div class="box-field">
+            <div class="box-label">ความสามารถพิเศษ</div>
+            <div class="box-value" id="specialAbility">-</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1">
+          <div class="box-field" style="border-right:none">
+            <div class="box-label">งานอดิเรก</div>
+            <div class="box-value" id="hobbies">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Questionnaire -->
+      <div class="section-title print-break">
+        <h3>แบบสอบถาม</h3>
+      </div>
+      <div class="border border-gray-800 border-t-0">
+        <div class="grid grid-cols-1">
+          <div class="box-field">
+            <div class="box-label">พื้นที่ไปปฏิบัติงานต่างจังหวัด</div>
+            <div class="box-value text-[10px]" id="upcountryLocations">-</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2">
+          <div class="box-field">
+            <div class="box-label">จุดแข็ง</div>
+            <div class="box-value text-[10px]" id="strength">-</div>
+          </div>
+          <div class="box-field" style="border-right:none">
+            <div class="box-label">จุดอ่อน</div>
+            <div class="box-value text-[10px]" id="weakness">-</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1">
+          <div class="box-field">
+            <div class="box-label">งานที่ไม่ถนัด</div>
+            <div class="box-value text-[10px]" id="lessFitTask">-</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1">
+          <div class="box-field">
+            <div class="box-label">หลักการทำงาน</div>
+            <div class="box-value text-[10px]" id="principles">-</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1">
+          <div class="box-field">
+            <div class="box-label">วิธีแก้ปัญหา</div>
+            <div class="box-value text-[10px]" id="troubleResolve">-</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1">
+          <div class="box-field">
+            <div class="box-label">เกณฑ์เลือกงาน</div>
+            <div class="box-value text-[10px]" id="jobCriteria">-</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1">
+          <div class="box-field">
+            <div class="box-label">ความสนใจ</div>
+            <div class="box-value text-[10px]" id="interests">-</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1">
+          <div class="box-field" style="border-right:none">
+            <div class="box-label">Digital Transform</div>
+            <div class="box-value text-[10px]" id="digitalTransformOpinion">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Health -->
+      <div class="section-title print-break">
+        <h3>สุขภาพ</h3>
+      </div>
+      <div class="border border-gray-800 border-t-0">
+        <div class="grid grid-cols-3">
+          <div class="box-field">
+            <div class="box-label">โรคประจำตัว</div>
+            <div class="box-value" id="chronicDisease">-</div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">ประวัติผ่าตัด</div>
+            <div class="box-value" id="surgery">-</div>
+          </div>
+          <div class="box-field" style="border-right:none">
+            <div class="box-label">ประวัติการรักษา</div>
+            <div class="box-value" id="medicalRecord">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Emergency Contact -->
+      <div class="section-title">
+        <h3>ผู้ติดต่อฉุกเฉิน</h3>
+      </div>
+      <div class="border border-gray-800 border-t-0">
+        <div class="grid grid-cols-5">
+          <div class="box-field">
+            <div class="box-label">ชื่อ-สกุล</div>
+            <div class="box-value" id="emergencyName">-</div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">ความสัมพันธ์</div>
+            <div class="box-value" id="emergencyRelation">-</div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">เบอร์โทร</div>
+            <div class="box-value" id="emergencyPhone">-</div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">บริษัท</div>
+            <div class="box-value" id="emergencyCompany">-</div>
+          </div>
+          <div class="box-field" style="border-right:none">
+            <div class="box-label">ตำแหน่ง</div>
+            <div class="box-value" id="emergencyPosition">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Source Tags -->
+      <div class="section-title">
+        <h3>ช่องทางที่มา & Links</h3>
+      </div>
+      <div class="border border-gray-800 border-t-0 p-2">
+        <div class="flex flex-wrap gap-2" id="source-tags"></div>
+        <div id="profile-links-row" class="hidden mt-2 pt-2 border-t">
+          <span class="text-[9px] text-gray-500">Profile Link:</span>
+          <a id="profileLinksValue" href="#" target="_blank" class="text-blue-600 underline text-[10px] ml-1">-</a>
+        </div>
+      </div>
+
+      <!-- Signature Area -->
+      <div class="mt-8 grid grid-cols-2 gap-8">
+        <div class="text-center">
+          <div class="border-b border-gray-400 h-16"></div>
+          <p class="text-xs mt-1">ลงชื่อผู้สมัคร</p>
+          <p class="text-[9px] text-gray-500">วันที่: ____/____/____</p>
+        </div>
+        <div class="text-center">
+          <div class="border-b border-gray-400 h-16"></div>
+          <p class="text-xs mt-1">ลงชื่อผู้รับสมัคร</p>
+          <p class="text-[9px] text-gray-500">วันที่: ____/____/____</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const dataStr = localStorage.getItem('printPreviewData');
+    if (dataStr) {
+      try {
+        const d = JSON.parse(dataStr);
+
+        // Set document title for PDF filename: ชื่อ-สกุล-ตำแหน่ง-วันเดือนปี
+        const today = new Date();
+        const dateStr = `${today.getDate().toString().padStart(2, '0')}${(today.getMonth() + 1).toString().padStart(2, '0')}${today.getFullYear() + 543}`;
+        const fullName = [d.firstName, d.lastName].filter(Boolean).join('-') || 'Unknown';
+        const position = d.position || 'Position';
+        document.title = `${fullName}-${position}-${dateStr}`;
+
+        // Helper
+        const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '-'; };
+        const yn = (v) => v ? 'ได้' : 'ไม่ได้';
+
+        // Position
+        set('position', d.position);
+        set('department', d.department);
+        set('salary', d.expectedSalary ? `${d.expectedSalary}${d.isSalaryNegotiable ? ' (ต่อรองได้)' : ''}` : '-');
+        set('availability', d.availability);
+
+        // Personal TH
+        set('title', d.title);
+        set('firstName', d.firstName);
+        set('lastName', d.lastName);
+
+        // Personal EN
+        set('titleEn', d.titleEn);
+        set('firstNameEn', d.firstNameEn);
+        set('lastNameEn', d.lastNameEn);
+
+        // Basic
+        set('nickname', d.nickname);
+        set('dateOfBirth', d.dateOfBirth);
+        set('age', d.age ? `${d.age} ปี` : '-');
+        set('weight', d.weight ? `${d.weight} กก.` : '-');
+        set('height', d.height ? `${d.height} ซม.` : '-');
+        set('militaryStatus', d.militaryStatus);
+        set('nationalId', d.nationalId || (d.passportNo ? `Passport: ${d.passportNo}` : '-'));
+        set('phone', d.phone);
+        set('email', d.email);
+
+        // Address
+        const regAddr = [d.registeredAddress, d.registeredSubDistrict, d.registeredDistrict, d.registeredProvince, d.registeredPostcode].filter(Boolean).join(' ');
+        const curAddr = [d.currentAddress, d.currentSubDistrict, d.currentDistrict, d.currentProvince, d.currentPostcode].filter(Boolean).join(' ');
+        set('registeredAddress', regAddr);
+        set('currentAddress', curAddr);
+
+        // Family
+        set('maritalStatus', d.maritalStatus);
+        set('childrenCount', d.childrenCount !== undefined ? d.childrenCount : '-');
+        set('siblingCount', d.siblingCount !== undefined ? d.siblingCount : '-');
+        set('spouseName', d.spouseName || '-');
+        set('spouseAge', d.spouseAge ? `${d.spouseAge} ปี` : '-');
+        set('spouseOccupation', d.spouseOccupation || '-');
+        set('fatherName', d.fatherName);
+        set('fatherInfo', [d.fatherAge ? `${d.fatherAge} ปี` : '', d.fatherOccupation].filter(Boolean).join(' / '));
+        set('motherName', d.motherName);
+        set('motherInfo', [d.motherAge ? `${d.motherAge} ปี` : '', d.motherOccupation].filter(Boolean).join(' / '));
+
+        // Photo
+        if (d.photoUrl) {
+          document.getElementById('photo-container').innerHTML = `<img src="${d.photoUrl}" class="w-full h-full object-cover"/>`;
+        }
+
+        // Education
+        const eduRows = document.getElementById('education-rows');
+        const eduLevels = { highSchool: 'มัธยม', vocational: 'ปวช./ปวส.', bachelor: 'ป.ตรี', master: 'ป.โท' };
+        if (d.education) {
+          let html = '';
+          for (const [lvl, info] of Object.entries(d.education)) {
+            if (info && info.institute) {
+              html += `<div class="grid grid-cols-5">
+                <div class="box-field text-[9px]">${eduLevels[lvl] || lvl}</div>
+                <div class="box-field text-[9px]">${info.institute || '-'}</div>
+                <div class="box-field text-[9px]">${info.major || '-'}</div>
+                <div class="box-field text-[9px]">${info.gpa || '-'}</div>
+                <div class="box-field text-[9px]" style="border-right:none">${info.startDate || ''}-${info.endDate || ''}</div>
+              </div>`;
+            }
+          }
+          eduRows.innerHTML = html || '<div class="p-2 text-[9px] text-gray-400">ไม่มีข้อมูล</div>';
+        }
+
+        // Experience
+        const expRows = document.getElementById('experience-rows');
+        if (d.experience && d.experience.length > 0) {
+          let html = '';
+          for (const exp of d.experience) {
+            html += `<div class="grid grid-cols-5">
+              <div class="box-field text-[9px]">${exp.dateFrom || exp.from || '-'} - ${exp.dateTo || exp.to || '-'}</div>
+              <div class="box-field text-[9px]">${exp.companyName || exp.company || '-'}</div>
+              <div class="box-field text-[9px]">${exp.position || '-'}</div>
+              <div class="box-field text-[9px]">${exp.salary || '-'}</div>
+              <div class="box-field text-[9px]" style="border-right:none">${exp.jobDescription || exp.description || '-'}</div>
+            </div>`;
+          }
+          expRows.innerHTML = html;
+        } else {
+          expRows.innerHTML = '<div class="p-2 text-[9px] text-gray-400">ไม่มีข้อมูล</div>';
+        }
+
+        // Skills
+        set('englishSkill', d.englishSkill);
+        set('englishScore', d.englishScore);
+        set('chineseSkill', d.chineseSkill);
+        set('chineseScore', d.chineseScore);
+        set('otherLang', d.otherLang);
+
+        // Computer
+        if (d.computerSkills) {
+          set('skillWord', d.computerSkills.word);
+          set('skillExcel', d.computerSkills.excel);
+          set('skillPpt', d.computerSkills.powerpoint);
+          set('skillSheets', d.computerSkills.sheets);
+          set('skillDocs', d.computerSkills.docs);
+        }
+        if (d.graphicsSkills) {
+          set('skillCanva', d.graphicsSkills.canva);
+          set('skillVideo', d.graphicsSkills.videoEditor);
+        }
+
+        // Driving
+        if (d.driving) {
+          set('motorcycle', yn(d.driving.motorcycle));
+          set('motorcycleLicense', yn(d.driving.motorcycleLicense));
+          set('car', yn(d.driving.car));
+          set('carLicense', yn(d.driving.carLicense));
+        }
+
+        // Other skills
+        set('specialAbility', d.specialAbility);
+        set('hobbies', d.hobbies);
+
+        // Questionnaire
+        set('upcountryLocations', d.upcountryLocations && d.upcountryLocations.length > 0 ? d.upcountryLocations.join(', ') : '-');
+        set('strength', d.strength);
+        set('weakness', d.weakness);
+        set('lessFitTask', d.lessFitTask);
+        set('principles', d.principles);
+        set('troubleResolve', d.troubleResolve);
+        set('jobCriteria', d.jobCriteria);
+        set('interests', d.interests);
+        set('digitalTransformOpinion', d.digitalTransformOpinion);
+
+        // Health
+        set('chronicDisease', d.hasChronicDisease ? d.chronicDiseaseDetail || 'มี' : 'ไม่มี');
+        set('surgery', d.hasSurgery ? d.surgeryDetail || 'มี' : 'ไม่มี');
+        set('medicalRecord', d.hasMedicalRecord ? d.medicalRecordDetail || 'มี' : 'ไม่มี');
+
+        // Emergency
+        set('emergencyName', d.emergencyContactName);
+        set('emergencyRelation', d.emergencyContactRelation);
+        set('emergencyPhone', d.emergencyContactPhone);
+        set('emergencyCompany', d.emergencyContactCompany);
+        set('emergencyPosition', d.emergencyContactPosition);
+
+        // Tags
+        const tags = document.getElementById('source-tags');
+        let tagHtml = '';
+        if (d.businessUnit) tagHtml += `<span class="px-2 py-0.5 text-[9px] rounded-full bg-indigo-100 text-indigo-700 font-medium">BU: ${d.businessUnit}</span>`;
+        if (d.sourceChannel) tagHtml += `<span class="px-2 py-0.5 text-[9px] rounded-full bg-blue-100 text-blue-700 font-medium">CH: ${d.sourceChannel}</span>`;
+        if (d.campaignTag) tagHtml += `<span class="px-2 py-0.5 text-[9px] rounded-full bg-purple-100 text-purple-700 font-medium">Tag: ${d.campaignTag}</span>`;
+        tags.innerHTML = tagHtml || '<span class="text-[9px] text-gray-400">-</span>';
+
+        // Links
+        if (d.profileLinks) {
+          document.getElementById('profile-links-row').classList.remove('hidden');
+          const linkEl = document.getElementById('profileLinksValue');
+          linkEl.href = d.profileLinks;
+          linkEl.textContent = d.profileLinks;
+        }
+
+      } catch (e) {
+        console.error('Parse error:', e);
+        document.getElementById('app').innerHTML = '<div class="text-center py-20 text-red-500"><h2 class="text-xl font-bold">Error loading data</h2></div>';
+      }
+    } else {
+      document.getElementById('app').innerHTML = '<div class="text-center py-20 text-gray-500"><h2 class="text-xl font-bold">ไม่พบข้อมูล</h2><button onclick="window.close()" class="mt-4 px-4 py-2 bg-gray-200 rounded">ปิด</button></div>';
+    }
+  </script>
+</body>
+
+</html>
