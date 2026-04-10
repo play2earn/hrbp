@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { MOCK_BU } from '../constants';
 import { Card, Button, Input, Select, Modal } from './UIComponents';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { LucideIcon, Home, FileText, QrCode, Settings, LogOut, CheckCircle, XCircle, Search, Filter, Download, ExternalLink, Calendar, Menu, X, ChevronRight, ChevronLeft, User, Shield, Users, Copy, Check, Database, Plus, Edit, Trash2, Building2, Tag, GraduationCap, MapPin } from 'lucide-react';
+import { LucideIcon, Home, FileText, QrCode, Settings, LogOut, CheckCircle, XCircle, Search, Filter, Download, ExternalLink, Calendar, Menu, X, ChevronRight, ChevronLeft, User, Shield, Users, Copy, Check, Database, Plus, Edit, Trash2, Building2, Tag, GraduationCap, MapPin, Phone } from 'lucide-react';
 import { api } from '../services/api';
 import { supabase } from '../supabaseClient';
 import { Role } from '../types';
@@ -63,8 +63,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
   const [approvingApp, setApprovingApp] = useState<any | null>(null);
   const [editingApp, setEditingApp] = useState<any | null>(null);
   const [editForm, setEditForm] = useState({
-    position: '', department: '', departmentId: 0, expectedSalary: '', phone: '', email: '',
-    status: 'Pending', businessUnit: '', sourceChannel: '', campaignTag: ''
+    position: '',
+    department: '',
+    departmentId: 0,
+    expectedSalary: '',
+    phone: '',
+    email: '',
+    status: 'Pending',
+    businessUnit: '',
+    sourceChannel: '',
+    campaignTag: '',
+    height: '',
+    weight: ''
   });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editFilteredPositions, setEditFilteredPositions] = useState<any[]>([]);
@@ -93,6 +103,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
         businessUnit: fd.businessUnit || editingApp.business_unit || '',
         sourceChannel: fd.sourceChannel || editingApp.source_channel || '',
         campaignTag: fd.campaignTag || editingApp.campaign_tag || '',
+        height: fd.height || '',
+        weight: fd.weight || '',
       });
     }
   }, [editingApp, departments]);
@@ -446,14 +458,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                         placeholder="ค้นหาชื่อ, เบอร์โทร..."
                         className="pl-9 pr-4 py-2 border rounded-lg text-sm w-full lg:w-56 focus:ring-2 focus:ring-indigo-500 outline-none"
                         value={appFilters.search}
-                        onChange={(e) => setAppFilters(f => ({ ...f, search: e.target.value }))}
+                        onChange={(e) => { setAppFilters(f => ({ ...f, search: e.target.value })); setAppPage(1); }}
                       />
                     </div>
                     {/* Position Filter */}
                     <select
                       className="border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
                       value={appFilters.position}
-                      onChange={(e) => setAppFilters(f => ({ ...f, position: e.target.value }))}
+                      onChange={(e) => { setAppFilters(f => ({ ...f, position: e.target.value })); setAppPage(1); }}
                     >
                       <option value="">ตำแหน่งทั้งหมด</option>
                       {positions.filter(p => p.is_active !== false).map(p => (
@@ -464,7 +476,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                     <select
                       className="border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
                       value={appFilters.bu}
-                      onChange={(e) => setAppFilters(f => ({ ...f, bu: e.target.value }))}
+                      onChange={(e) => { setAppFilters(f => ({ ...f, bu: e.target.value })); setAppPage(1); }}
                     >
                       <option value="">BU ทั้งหมด</option>
                       {businessUnits.map(b => (
@@ -475,7 +487,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                     <select
                       className="border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
                       value={appFilters.channel}
-                      onChange={(e) => setAppFilters(f => ({ ...f, channel: e.target.value }))}
+                      onChange={(e) => { setAppFilters(f => ({ ...f, channel: e.target.value })); setAppPage(1); }}
                     >
                       <option value="">ช่องทางทั้งหมด</option>
                       {channels.filter(c => c.is_active !== false).map(c => (
@@ -486,7 +498,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                     <select
                       className="border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
                       value={appFilters.status}
-                      onChange={(e) => setAppFilters(f => ({ ...f, status: e.target.value }))}
+                      onChange={(e) => { setAppFilters(f => ({ ...f, status: e.target.value })); setAppPage(1); }}
                     >
                       <option value="all">สถานะทั้งหมด</option>
                       <option value="Pending">รอดำเนินการ</option>
@@ -520,20 +532,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                         <table className="min-w-full divide-y divide-gray-200">
                           <thead className="bg-gray-50">
                             <tr>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ชื่อ-สกุล</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">เบอร์โทร</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">แผนก</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ตำแหน่ง</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">BU</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Channel</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">สถานะ</th>
-                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-16">ลำดับ</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID / วันที่</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ผู้สมัคร (ติดต่อ)</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ตำแหน่ง / แผนก</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">แหล่งที่มา</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-28 whitespace-nowrap">สถานะ</th>
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-28 whitespace-nowrap">Actions</th>
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
-                            {paginated.map((app: any) => {
+                            {paginated.map((app: any, idx: number) => {
+                              const rowIndex = (appPage - 1) * appPerPage + idx + 1;
                               const fd = app.form_data || {};
                               const fullName = app.full_name || `${fd.prefix || ''} ${fd.firstName || ''} ${fd.lastName || ''}`.trim() || 'ไม่ระบุ';
                               const phone = app.phone || fd.phone || '-';
@@ -545,46 +555,70 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
 
                               return (
                                 <tr key={app.id} className="hover:bg-gray-50 transition-colors">
-                                  <td
-                                    className="px-4 py-3 text-xs font-mono text-gray-400 cursor-pointer hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-                                    title={`Click to copy: ${app.id}`}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigator.clipboard.writeText(app.id);
-                                      // Show brief feedback on the cell itself
-                                      const target = e.currentTarget;
-                                      const original = target.innerText;
-                                      target.innerText = '✓ Copied!';
-                                      target.style.color = '#059669';
-                                      setTimeout(() => {
-                                        target.innerText = original;
-                                        target.style.color = '';
-                                      }, 1000);
-                                    }}
-                                  >
-                                    {app.id?.slice(-5).toUpperCase()}
-                                  </td>
-                                  <td className="px-4 py-3 text-sm text-gray-500">{new Date(app.created_at).toLocaleDateString('th-TH')}</td>
-                                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{fullName}</td>
-                                  <td className="px-4 py-3 text-sm text-gray-500">{phone}</td>
-                                  <td className="px-4 py-3 text-sm text-gray-500">{dept}</td>
-                                  <td className="px-4 py-3 text-sm text-gray-500">{pos}</td>
-                                  <td className="px-4 py-3 text-sm">
-                                    {bu ? <span className="px-1.5 py-0.5 text-xs rounded bg-indigo-100 text-indigo-700">{bu}</span> : <span className="text-gray-400">-</span>}
-                                  </td>
-                                  <td className="px-4 py-3 text-sm">
-                                    {ch ? <span className="px-1.5 py-0.5 text-xs rounded bg-blue-100 text-blue-700">{ch}</span> : <span className="text-gray-400">-</span>}
-                                  </td>
+                                  {/* ลำดับ */}
+                                  <td className="px-4 py-3 text-sm text-gray-500 text-center font-medium bg-gray-50/50 w-16">{rowIndex}</td>
+                                  
+                                  {/* ID / วันที่ */}
                                   <td className="px-4 py-3">
-                                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${app.status === 'Hired' ? 'bg-green-100 text-green-800' :
+                                    <div
+                                      className="text-xs font-mono font-medium text-gray-500 cursor-pointer hover:text-indigo-600 transition-colors mb-1 inline-block"
+                                      title={`Click to copy: ${app.id}`}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigator.clipboard.writeText(app.id);
+                                        const target = e.currentTarget;
+                                        const original = target.innerText;
+                                        target.innerText = 'Copied!';
+                                        target.style.color = '#059669';
+                                        setTimeout(() => {
+                                          target.innerText = original;
+                                          target.style.color = '';
+                                        }, 1000);
+                                      }}
+                                    >
+                                      {app.id?.slice(-5).toUpperCase()}
+                                    </div>
+                                    <div className="text-xs text-gray-400 whitespace-nowrap">
+                                      {new Date(app.created_at).toLocaleDateString('th-TH')}
+                                    </div>
+                                  </td>
+
+                                  {/* ผู้สมัคร (ติดต่อ) */}
+                                  <td className="px-4 py-3">
+                                    <div className="text-sm font-semibold text-gray-900 whitespace-nowrap">{fullName}</div>
+                                    <div className="text-xs text-gray-500 flex items-center mt-0.5 whitespace-nowrap">
+                                      <Phone className="w-3 h-3 mr-1" /> {phone}
+                                    </div>
+                                  </td>
+
+                                  {/* ตำแหน่ง / แผนก */}
+                                  <td className="px-4 py-3">
+                                    <div className="text-sm font-medium text-gray-800 whitespace-nowrap">{pos}</div>
+                                    <div className="text-xs text-gray-500 mt-0.5 whitespace-nowrap">{dept}</div>
+                                  </td>
+
+                                  {/* แหล่งที่มา (BU + Channel) */}
+                                  <td className="px-4 py-3">
+                                    <div className="flex flex-col items-start gap-1">
+                                      {bu ? <span className="px-1.5 py-0.5 text-[10px] rounded bg-indigo-50 text-indigo-700 font-medium whitespace-nowrap border border-indigo-100 placeholder-transparent" title="Business Unit">BU: {bu}</span> : null}
+                                      {ch ? <span className="px-1.5 py-0.5 text-[10px] rounded bg-blue-50 text-blue-700 font-medium whitespace-nowrap border border-blue-100 placeholder-transparent" title="Channel">CH: {ch}</span> : null}
+                                      {!bu && !ch && <span className="text-gray-400 text-xs">-</span>}
+                                    </div>
+                                  </td>
+
+                                  {/* สถานะ */}
+                                  <td className="px-4 py-3 w-28 whitespace-nowrap">
+                                    <span className={`px-2 py-1 text-xs font-semibold rounded-full inline-block ${app.status === 'Hired' ? 'bg-green-100 text-green-800' :
                                       app.status === 'Rejected' ? 'bg-red-100 text-red-800' :
                                         'bg-yellow-100 text-yellow-800'
                                       }`}>
                                       {app.status === 'Pending' ? 'รอดำเนินการ' : app.status === 'Hired' ? 'รับแล้ว' : 'ไม่ผ่าน'}
                                     </span>
                                   </td>
-                                  <td className="px-4 py-3">
-                                    <div className="flex justify-center gap-1">
+
+                                  {/* Actions */}
+                                  <td className="px-4 py-3 w-28 text-center whitespace-nowrap">
+                                    <div className="flex justify-center gap-1.5 flex-nowrap">
                                       <Button size="sm" variant="ghost" className="h-9 w-9 p-0" onClick={() => setViewingApp(app)} title="ดูรายละเอียด">
                                         <ExternalLink className="w-5 h-5 text-indigo-600" />
                                       </Button>
@@ -604,7 +638,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                               );
                             })}
                             {paginated.length === 0 && (
-                              <tr><td colSpan={10} className="px-6 py-8 text-center text-sm text-gray-500">ไม่พบข้อมูลผู้สมัคร</td></tr>
+                              <tr><td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500">ไม่พบข้อมูลผู้สมัคร</td></tr>
                             )}
                           </tbody>
                         </table>
@@ -623,7 +657,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                             <option value={50}>50</option>
                             <option value={100}>100</option>
                           </select>
-                          <span>รายการ | {(appPage - 1) * appPerPage + 1}-{Math.min(appPage * appPerPage, filtered.length)} จาก {filtered.length}</span>
+                          <span>รายการ | {filtered.length === 0 ? 0 : (appPage - 1) * appPerPage + 1}-{Math.min(appPage * appPerPage, filtered.length)} จาก {filtered.length}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Button size="sm" variant="outline" disabled={appPage === 1} onClick={() => setAppPage(1)}>«</Button>
@@ -1204,7 +1238,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                   <h3 className="text-xl font-bold text-gray-900">
                     {fd.title || fd.prefix || ''} {fd.firstName || viewingApp.full_name?.split(' ')[0] || ''} {fd.lastName || viewingApp.full_name?.split(' ')[1] || ''}
                   </h3>
-                  <p className="text-sm text-gray-600">{fd.nickname ? `(${fd.nickname})` : ''}</p>
+                  <p className="text-sm text-gray-600">{fd.nickname || fd.nicknameEn ? `(${[fd.nickname, fd.nicknameEn].filter(Boolean).join(' / ')})` : ''}</p>
                   <p className="text-sm text-indigo-600 font-medium mt-1">{fd.position || viewingApp.position || 'ไม่ระบุตำแหน่ง'}</p>
                   <p className="text-sm text-gray-500">{fd.department || viewingApp.department || ''}</p>
                   <div className="flex flex-wrap gap-2 mt-2">
@@ -1229,7 +1263,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               <SectionHeader title="ข้อมูลส่วนตัว" icon={User} />
               <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                 <InfoRow label="คำนำหน้า" value={fd.title || fd.prefix} />
-                <InfoRow label="ชื่อเล่น" value={fd.nickname} />
+                <InfoRow label="ชื่อเล่น (ไทย)" value={fd.nickname} />
+                <InfoRow label="ชื่อเล่น (อังกฤษ)" value={fd.nicknameEn} />
                 <InfoRow label="ชื่อ" value={fd.firstName} />
                 <InfoRow label="นามสกุล" value={fd.lastName} />
                 <InfoRow label="สัญชาติ" value={fd.isThaiNational ? 'ไทย' : 'ต่างชาติ'} />
@@ -1726,6 +1761,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               </div>
             </div>
 
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">ส่วนสูง (ซม.)</label>
+                <input
+                  type="text"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  value={editForm.height || ''}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, height: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">น้ำหนัก (กก.)</label>
+                <input
+                  type="text"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  value={editForm.weight || ''}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, weight: e.target.value }))}
+                />
+              </div>
+            </div>
+
             <div className="border-t pt-4">
               <h4 className="text-sm font-semibold text-gray-700 mb-3">ข้อมูลช่องทาง</h4>
               <div className="grid grid-cols-3 gap-4">
@@ -1789,6 +1845,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                       businessUnit: editForm.businessUnit,
                       sourceChannel: editForm.sourceChannel,
                       campaignTag: editForm.campaignTag,
+                      height: editForm.height,
+                      weight: editForm.weight,
                     };
                     // Only update columns that definitely exist in the database
                     const { error } = await supabase

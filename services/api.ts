@@ -176,6 +176,43 @@ export const api = {
   },
 
   /**
+   * Track application(s) by National ID or Passport Number (searches in form_data JSONB)
+   */
+  trackByIdOrPassport: async (searchValue: string): Promise<ApiResponse<any[]>> => {
+    try {
+      const trimmed = searchValue.trim();
+      if (!trimmed) {
+        return { success: false, error: { message: 'Please enter a National ID or Passport number.' } };
+      }
+
+      // Search by nationalId OR passportNo in form_data
+      const { data: byNationalId } = await supabase
+        .from('applications')
+        .select('id, full_name, position, department, status, created_at')
+        .eq('form_data->>nationalId', trimmed)
+        .order('created_at', { ascending: false });
+
+      const { data: byPassport } = await supabase
+        .from('applications')
+        .select('id, full_name, position, department, status, created_at')
+        .eq('form_data->>passportNo', trimmed)
+        .order('created_at', { ascending: false });
+
+      // Merge and deduplicate by id
+      const all = [...(byNationalId || []), ...(byPassport || [])];
+      const unique = Array.from(new Map(all.map(item => [item.id, item])).values());
+
+      if (unique.length === 0) {
+        return { success: false, error: { message: 'No applications found.' } };
+      }
+
+      return { success: true, data: unique };
+    } catch (error) {
+      return handleError(error, 'trackByIdOrPassport');
+    }
+  },
+
+  /**
    * Fetch all applications for Dashboard
    */
   getApplications: async (): Promise<any[]> => {

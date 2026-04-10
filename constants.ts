@@ -60,7 +60,8 @@ export const TRANSLATIONS = {
       title: 'Title',
       firstName: 'First Name',
       lastName: 'Last Name',
-      nickname: 'Nickname',
+      nickname: 'Nickname (TH)',
+      nicknameEn: 'Nickname (EN)',
       dob: 'Date of Birth',
       age: 'Age',
       weight: 'Weight (kg)',
@@ -163,6 +164,7 @@ export const TRANSLATIONS = {
       conscripted: 'Conscripted',
       reserved: 'Reserved',
       pending: 'Pending',
+      female: 'Female (Exempt)',
       fluent: 'Fluent',
       good: 'Good',
       fair: 'Fair',
@@ -176,7 +178,20 @@ export const TRANSLATIONS = {
       noIcannot: 'No, I cannot',
       yesIdo: 'Yes, I do',
       noIdont: 'No, I don\'t',
-      notHave: 'Not have license'
+      notHave: 'Not have license',
+      privateCar: 'Private Car',
+      privateMotorcycle: 'Private Motorcycle',
+      publicVehicle2: 'Public Vehicle Class 2',
+      publicVehicle3: 'Public Vehicle Class 3',
+      fatherInfo: "Father's Information",
+      motherInfo: "Mother's Information",
+      highSchool: 'High School',
+      vocational: 'Vocational',
+      bachelor: 'Bachelor',
+      master: 'Master',
+      addExperience: 'Add Experience',
+      removeExperience: 'Remove',
+      noExperienceYet: 'No experience added yet. Click "Add Experience" if applicable.'
     }
   },
   th: {
@@ -237,7 +252,8 @@ export const TRANSLATIONS = {
       title: 'คำนำหน้า',
       firstName: 'ชื่อจริง',
       lastName: 'นามสกุล',
-      nickname: 'ชื่อเล่น',
+      nickname: 'ชื่อเล่น (ไทย)',
+      nicknameEn: 'ชื่อเล่น (อังกฤษ)',
       dob: 'วันเกิด',
       age: 'อายุ',
       weight: 'น้ำหนัก (กก.)',
@@ -340,6 +356,7 @@ export const TRANSLATIONS = {
       conscripted: 'ผ่านการเกณฑ์ทหารแล้ว',
       reserved: 'นักศึกษาวิชาทหาร',
       pending: 'อยู่ระหว่างการผ่อนผัน',
+      female: 'เพศหญิง (ได้รับการยกเว้น)',
       fluent: 'คล่องแคล่ว / ดีมาก',
       good: 'ดี',
       fair: 'พอใช้',
@@ -353,7 +370,20 @@ export const TRANSLATIONS = {
       noIcannot: 'ไม่ได้',
       yesIdo: 'มี',
       noIdont: 'ไม่มี',
-      notHave: 'ไม่มีใบขับขี่'
+      notHave: 'ไม่มีใบขับขี่',
+      privateCar: 'รถยนต์ส่วนบุคคล',
+      privateMotorcycle: 'รถจักรยานยนต์ส่วนบุคคล',
+      publicVehicle2: 'รถสาธารณะ ประเภท 2',
+      publicVehicle3: 'รถสาธารณะ ประเภท 3',
+      fatherInfo: 'ข้อมูลบิดา',
+      motherInfo: 'ข้อมูลมารดา',
+      highSchool: 'มัธยมศึกษา',
+      vocational: 'ปวช. / ปวส.',
+      bachelor: 'ปริญญาตรี',
+      master: 'ปริญญาโท',
+      addExperience: 'เพิ่มประสบการณ์',
+      removeExperience: 'ลบ',
+      noExperienceYet: 'ยังไม่ได้เพิ่มประสบการณ์ กด "เพิ่มประสบการณ์" หากมี'
     }
   }
 };
@@ -421,18 +451,22 @@ export const MILITARY_STATUS_OPTIONS = [
   'Exempted',
   'Conscripted',
   'Reserved',
-  'Pending'
+  'Pending',
+  'Female'
 ];
 
-export const UPCOUNTRY_LOCATIONS = [
-  'Chachoengsao : Bangna Trat km.42 (DAP)',
-  'Chachoengsao : Bangprakong (IP5)',
-  'Chachoengsao : Phanom Sarakham (IP2)',
-  'Prachin Buri : 304 Double A (IP1)',
-  'Chonburi : Si Racha',
-  'Bangkok : Silom Edge Office',
-  "I'm unable to work in a different province"
+export const UPCOUNTRY_LOCATIONS_DATA = [
+  { key: 'dap', en: 'Chachoengsao : Bangna Trat km.42 (DAP)', th: 'ฉะเชิงเทรา : บางนา-ตราด กม.42 (DAP)' },
+  { key: 'ip5', en: 'Chachoengsao : Bangprakong (IP5)', th: 'ฉะเชิงเทรา : บางปะกง (IP5)' },
+  { key: 'ip2', en: 'Chachoengsao : Phanom Sarakham (IP2)', th: 'ฉะเชิงเทรา : พนมสารคาม (IP2)' },
+  { key: 'ip1', en: 'Prachin Buri : 304 Double A (IP1)', th: 'ปราจีนบุรี : 304 ดับเบิ้ล เอ (IP1)' },
+  { key: 'sriracha', en: 'Chonburi : Si Racha', th: 'ชลบุรี : ศรีราชา' },
+  { key: 'silom', en: 'Bangkok : Silom Edge Office', th: 'กรุงเทพฯ : สีลม เอดจ์ ออฟฟิศ' },
+  { key: 'onebkk', en: 'Bangkok : One Bangkok', th: 'กรุงเทพฯ : One Bangkok' },
+  { key: 'unable', en: "I'm unable to work in a different province", th: 'ไม่สามารถไปทำงานต่างจังหวัดได้' }
 ];
+
+export const UPCOUNTRY_LOCATIONS = UPCOUNTRY_LOCATIONS_DATA.map(l => l.en);
 
 export const MOCK_APPLICATION_DATA: any = {
   // Step 1: Job Interest
@@ -455,6 +489,7 @@ export const MOCK_APPLICATION_DATA: any = {
   firstNameEn: 'Somchai',
   lastNameEn: 'Deemak',
   nickname: 'ชาย',
+  nicknameEn: 'Chai',
   dateOfBirth: '1995-05-15',
   age: '29',
   weight: '70',

@@ -45,6 +45,7 @@ export interface ApplicationForm {
   firstNameEn: string;  // English first name
   lastNameEn: string;   // English last name
   nickname: string;
+  nicknameEn: string;
   dateOfBirth: string;
   age: string;
   weight: string;
@@ -184,6 +185,7 @@ export const INITIAL_FORM_STATE: ApplicationForm = {
   firstNameEn: '',
   lastNameEn: '',
   nickname: '',
+  nicknameEn: '',
   dateOfBirth: '',
   age: '',
   weight: '',

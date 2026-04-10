@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ApplicationForm, INITIAL_FORM_STATE, Language, SkillLevel, EducationEntry, WorkEntry } from '../types';
-import { TRANSLATIONS, MOCK_BU, MOCK_DEPARTMENTS, MOCK_POSITIONS, MILITARY_STATUS_OPTIONS, UPCOUNTRY_LOCATIONS, MOCK_APPLICATION_DATA } from '../constants';
+import { TRANSLATIONS, MOCK_BU, MOCK_DEPARTMENTS, MOCK_POSITIONS, MILITARY_STATUS_OPTIONS, UPCOUNTRY_LOCATIONS, UPCOUNTRY_LOCATIONS_DATA, MOCK_APPLICATION_DATA } from '../constants';
 import { Button, Input, Select, TextArea, Card, DatePicker, FileUpload, Modal } from './UIComponents';
 import { Check, ChevronRight, ChevronLeft } from 'lucide-react';
 import { PDFPreview } from './PDFPreview';
@@ -420,7 +420,58 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
   const totalSteps = steps.length;
   const progressPercentage = ((currentStep / totalSteps) * 100);
 
+  // Validation state
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+  const validateStep = (step: number): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (step === 2) {
+      // National ID: 13 digits
+      if (formData.isThaiNational && formData.nationalId) {
+        const cleaned = formData.nationalId.replace(/\D/g, '');
+        if (cleaned.length !== 13) {
+          errors.nationalId = lang === 'th' ? 'เลขบัตรประชาชนต้องมี 13 หลัก' : 'National ID must be 13 digits';
+        }
+      }
+      // Phone: 10 digits
+      if (formData.phone) {
+        const cleaned = formData.phone.replace(/\D/g, '');
+        if (cleaned.length !== 10) {
+          errors.phone = lang === 'th' ? 'เบอร์โทรศัพท์ต้องมี 10 หลัก' : 'Phone number must be 10 digits';
+        }
+      }
+      // Email format
+      if (formData.email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formData.email)) {
+          errors.email = lang === 'th' ? 'รูปแบบอีเมลไม่ถูกต้อง' : 'Invalid email format';
+        }
+      }
+    }
+
+    // Step 3 also has phone/email
+    if (step === 3) {
+      if (formData.phone) {
+        const cleaned = formData.phone.replace(/\D/g, '');
+        if (cleaned.length !== 10) {
+          errors.phone = lang === 'th' ? 'เบอร์โทรศัพท์ต้องมี 10 หลัก' : 'Phone number must be 10 digits';
+        }
+      }
+      if (formData.email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formData.email)) {
+          errors.email = lang === 'th' ? 'รูปแบบอีเมลไม่ถูกต้อง' : 'Invalid email format';
+        }
+      }
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleNext = () => {
+    if (!validateStep(currentStep)) return;
     if (currentStep < totalSteps) setCurrentStep(prev => prev + 1);
     else setShowPreview(true);
   };
@@ -634,7 +685,10 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                 </div>
               </div>
 
-              <Input label={formData.isThaiNational ? t.labels.idCard : t.labels.passport} value={formData.isThaiNational ? formData.nationalId : formData.passportNo} onChange={(e) => updateField(formData.isThaiNational ? 'nationalId' : 'passportNo', e.target.value)} maxLength={20} />
+              <div>
+                <Input label={formData.isThaiNational ? t.labels.idCard : t.labels.passport} value={formData.isThaiNational ? formData.nationalId : formData.passportNo} onChange={(e) => updateField(formData.isThaiNational ? 'nationalId' : 'passportNo', e.target.value)} maxLength={formData.isThaiNational ? 13 : 20} />
+                {validationErrors.nationalId && <p className="text-red-500 text-xs mt-1">{validationErrors.nationalId}</p>}
+              </div>
 
               {/* Thai Name */}
               <div className="md:col-span-2">
@@ -656,7 +710,12 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                 </div>
               </div>
 
-              <Input label={t.labels.nickname} value={formData.nickname} onChange={(e) => updateField('nickname', e.target.value)} />
+              <div className="md:col-span-2">
+                <div className="grid grid-cols-2 gap-4">
+                  <Input label={t.labels.nickname} value={formData.nickname} onChange={(e) => updateField('nickname', e.target.value)} placeholder={lang === 'th' ? 'ชื่อเล่นภาษาไทย' : 'Thai nickname'} />
+                  <Input label={t.labels.nicknameEn} value={formData.nicknameEn} onChange={(e) => updateField('nicknameEn', e.target.value)} placeholder={lang === 'th' ? 'ชื่อเล่นภาษาอังกฤษ' : 'English nickname'} />
+                </div>
+              </div>
               <div className="flex gap-4">
                 <div className="flex-1"><DatePicker label={t.labels.dob} value={formData.dateOfBirth} onChange={handleDateOfBirthChange} /></div>
                 <div className="w-24"><Input label={t.labels.age} type="number" value={formData.age} readOnly className="bg-gray-50 text-gray-500" /></div>
@@ -899,8 +958,14 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input label={t.labels.phone} value={formData.phone} onChange={(e) => updateField('phone', e.target.value)} />
-                <Input label={t.labels.email} value={formData.email} onChange={(e) => updateField('email', e.target.value)} />
+                <div>
+                  <Input label={t.labels.phone} value={formData.phone} onChange={(e) => updateField('phone', e.target.value)} maxLength={10} />
+                  {validationErrors.phone && <p className="text-red-500 text-xs mt-1">{validationErrors.phone}</p>}
+                </div>
+                <div>
+                  <Input label={t.labels.email} value={formData.email} onChange={(e) => updateField('email', e.target.value)} />
+                  {validationErrors.email && <p className="text-red-500 text-xs mt-1">{validationErrors.email}</p>}
+                </div>
               </div>
             </div>
           )}
@@ -933,7 +998,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
               </div>
 
               <div className="space-y-4">
-                <h4 className="font-medium text-gray-900">Father's Information</h4>
+                <h4 className="font-medium text-gray-900">{t.options.fatherInfo}</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Input label={t.labels.fatherName} value={formData.fatherName} onChange={(e) => updateField('fatherName', e.target.value)} />
                   <Input label={t.labels.fatherAge} value={formData.fatherAge} onChange={(e) => updateField('fatherAge', e.target.value)} />
@@ -941,7 +1006,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                 </div>
               </div>
               <div className="space-y-4">
-                <h4 className="font-medium text-gray-900">Mother's Information</h4>
+                <h4 className="font-medium text-gray-900">{t.options.motherInfo}</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Input label={t.labels.motherName} value={formData.motherName} onChange={(e) => updateField('motherName', e.target.value)} />
                   <Input label={t.labels.motherAge} value={formData.motherAge} onChange={(e) => updateField('motherAge', e.target.value)} />
@@ -965,9 +1030,11 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                 const instituteList = level === 'Bachelor' || level === 'Master' ? universities : level === 'Vocational' ? colleges : null;
                 const listId = level === 'Bachelor' || level === 'Master' ? 'universities-list' : level === 'Vocational' ? 'colleges-list' : null;
 
+                const eduLabelKey: Record<string, string> = { 'High School': 'highSchool', 'Vocational': 'vocational', 'Bachelor': 'bachelor', 'Master': 'master' };
+
                 return (
                   <div key={level} className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-bold text-gray-800 mb-3">{level} Degrees</h3>
+                    <h3 className="font-bold text-gray-800 mb-3">{t.options[eduLabelKey[level] as keyof typeof t.options] || level} {lang === 'th' ? '' : 'Degrees'}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Institute field - with autocomplete for Bachelor, Master, Vocational */}
                       <div className="flex flex-col">
@@ -1110,14 +1177,19 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                       checked={formData.driving.licenseClasses.length === 0}
                       onChange={() => updateNested('driving', 'licenseClasses', [])}
                     />
-                    {['Private Car', 'Private Motorcycle', 'Public Vehicle Class 2', 'Public Vehicle Class 3'].map(c => (
+                    {[
+                      { value: 'Private Car', labelKey: 'privateCar' },
+                      { value: 'Private Motorcycle', labelKey: 'privateMotorcycle' },
+                      { value: 'Public Vehicle Class 2', labelKey: 'publicVehicle2' },
+                      { value: 'Public Vehicle Class 3', labelKey: 'publicVehicle3' }
+                    ].map(c => (
                       <CheckboxOption
-                        key={c}
-                        label={c}
-                        checked={formData.driving.licenseClasses.includes(c)}
+                        key={c.value}
+                        label={t.options[c.labelKey as keyof typeof t.options] || c.value}
+                        checked={formData.driving.licenseClasses.includes(c.value)}
                         onChange={(checked) => {
                           const current = formData.driving.licenseClasses;
-                          const updated = checked ? [...current, c] : current.filter(x => x !== c);
+                          const updated = checked ? [...current, c.value] : current.filter(x => x !== c.value);
                           updateNested('driving', 'licenseClasses', updated);
                         }}
                       />
@@ -1155,18 +1227,18 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <h3 className="font-bold text-lg">{t.sections.experience}</h3>
-                <Button size="sm" onClick={addExperience} variant="outline">Add Experience</Button>
+                <Button size="sm" onClick={addExperience} variant="outline">{t.options.addExperience}</Button>
               </div>
 
               {formData.experience.length === 0 && (
                 <div className="text-center py-8 text-gray-400 bg-gray-50 rounded-lg border-2 border-dashed">
-                  No experience added yet. Click "Add Experience" if applicable.
+                  {t.options.noExperienceYet}
                 </div>
               )}
 
               {formData.experience.map((exp, idx) => (
                 <div key={idx} className="bg-gray-50 p-4 rounded-lg border border-gray-200 relative animate-in fade-in slide-in-from-bottom-2">
-                  <button onClick={() => removeExperience(idx)} className="absolute top-2 right-2 text-red-500 text-xs hover:underline">Remove</button>
+                  <button onClick={() => removeExperience(idx)} className="absolute top-2 right-2 text-red-500 text-xs hover:underline">{t.options.removeExperience}</button>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <DatePicker label={t.labels.from} value={exp.from} onChange={(val) => updateExperience(idx, 'from', val)} />
                     <DatePicker label={t.labels.to} value={exp.to} onChange={(val) => updateExperience(idx, 'to', val)} />
@@ -1189,18 +1261,22 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                   {t.labels.upcountry}
                 </label>
                 <div className="space-y-3">
-                  {UPCOUNTRY_LOCATIONS.map(loc => (
-                    <CheckboxOption
-                      key={loc}
-                      label={loc}
-                      checked={formData.upcountryLocations.includes(loc)}
-                      onChange={(checked) => {
-                        const current = formData.upcountryLocations;
-                        const updated = checked ? [...current, loc] : current.filter(x => x !== loc);
-                        updateField('upcountryLocations', updated);
-                      }}
-                    />
-                  ))}
+                  {UPCOUNTRY_LOCATIONS_DATA.map(locData => {
+                    const loc = locData.en;
+                    const displayLabel = lang === 'th' ? locData.th : locData.en;
+                    return (
+                      <CheckboxOption
+                        key={loc}
+                        label={displayLabel}
+                        checked={formData.upcountryLocations.includes(loc)}
+                        onChange={(checked) => {
+                          const current = formData.upcountryLocations;
+                          const updated = checked ? [...current, loc] : current.filter(x => x !== loc);
+                          updateField('upcountryLocations', updated);
+                        }}
+                      />
+                    );
+                  })}
                 </div>
               </div>
 

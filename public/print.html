@@ -208,10 +208,14 @@
         <h3>ข้อมูลพื้นฐาน</h3>
       </div>
       <div class="border border-gray-800 border-t-0">
-        <div class="grid grid-cols-6">
+        <div class="grid grid-cols-7">
           <div class="box-field">
-            <div class="box-label">ชื่อเล่น</div>
+            <div class="box-label">ชื่อเล่น (ไทย)</div>
             <div class="box-value" id="nickname">-</div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">ชื่อเล่น (อังกฤษ)</div>
+            <div class="box-value" id="nicknameEn">-</div>
           </div>
           <div class="box-field">
             <div class="box-label">วันเกิด</div>
@@ -641,6 +645,7 @@
 
         // Basic
         set('nickname', d.nickname);
+        set('nicknameEn', d.nicknameEn);
         set('dateOfBirth', d.dateOfBirth);
         set('age', d.age ? `${d.age} ปี` : '-');
         set('weight', d.weight ? `${d.weight} กก.` : '-');

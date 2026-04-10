@@ -64,17 +64,22 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
       {/* A4 Printable Area */}
       <div className="bg-white shadow-2xl mx-auto p-[10mm] min-h-[297mm] print:shadow-none print:p-0 print:w-full text-black font-sans">
 
-        {/* Header */}
-        <div className="flex justify-between items-start border-b-4 border-black pb-6 mb-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-black text-white flex items-center justify-center font-bold text-3xl rounded-lg">N</div>
-            <div>
-              <h1 className="text-3xl font-black uppercase tracking-widest leading-none mb-1">{t.appTitle}</h1>
-              <p className="text-sm font-bold tracking-[0.2em] text-gray-600">APPLICATION FORM</p>
+        {/* Header - Position Info + Photo */}
+        <div className="flex justify-between items-start mb-6">
+          {/* Position Details Table */}
+          <div className="flex-1 border-2 border-black">
+            <div className="grid grid-cols-2">
+              <BoxField label={t.labels.position} value={data.position} />
+              <BoxField label={t.labels.salary} value={`${data.expectedSalary || '-'} ${data.isSalaryNegotiable ? '(Negotiable)' : ''}`} className="border-r-0" />
+            </div>
+            <div className="grid grid-cols-2">
+              <BoxField label={t.labels.department} value={data.department} className="border-b-0" />
+              <BoxField label={t.labels.startDate} value={data.availability} className="border-r-0 border-b-0" />
             </div>
           </div>
-          <div className="flex flex-col items-center">
-            <div className="w-32 h-40 border-2 border-dashed border-gray-400 flex flex-col items-center justify-center bg-gray-50 text-gray-400 mb-2 overflow-hidden relative">
+          {/* Photo */}
+          <div className="flex flex-col items-center ml-4">
+            <div className="w-32 h-40 border-2 border-dashed border-gray-400 flex flex-col items-center justify-center bg-gray-50 text-gray-400 overflow-hidden relative">
               {data.photoUrl ? (
                 <img src={data.photoUrl} alt="Applicant" className="w-full h-full object-cover" />
               ) : (
@@ -85,18 +90,6 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
                 </>
               )}
             </div>
-          </div>
-        </div>
-
-        {/* 1. Position Applied */}
-        <div className="border-2 border-black mb-6">
-          <div className="grid grid-cols-2">
-            <BoxField label={t.labels.position} value={data.position} />
-            <BoxField label={t.labels.salary} value={`${data.expectedSalary || '-'} ${data.isSalaryNegotiable ? '(Negotiable)' : ''}`} className="border-r-0" />
-          </div>
-          <div className="grid grid-cols-2">
-            <BoxField label={t.labels.department} value={data.department} className="border-b-0" />
-            <BoxField label={t.labels.startDate} value={data.availability} className="border-r-0 border-b-0" />
           </div>
         </div>
 
@@ -124,11 +117,12 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
         {/* 2. Personal Information */}
         <SectionTitle title={t.sections.personal} />
         <div className="border-2 border-t-0 border-black">
-          <div className="grid grid-cols-4">
+          <div className="grid grid-cols-5">
             <BoxField label={t.labels.title} value={data.title} />
             <BoxField label={t.labels.firstName} value={data.firstName} />
             <BoxField label={t.labels.lastName} value={data.lastName} />
-            <BoxField label={t.labels.nickname} value={data.nickname} className="border-r-0" />
+            <BoxField label={t.labels.nickname} value={data.nickname} />
+            <BoxField label={t.labels.nicknameEn} value={data.nicknameEn} className="border-r-0" />
           </div>
           <div className="grid grid-cols-4">
             <BoxField label={t.labels.nationality} value={data.isThaiNational ? t.labels.thai : t.labels.foreigner} />
