@@ -466,6 +466,21 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
       }
     }
 
+    if (step === 8) {
+      if (formData.upcountryLocations.length === 0) {
+        errors.upcountryLocations = lang === 'th' ? 'กรุณาเลือกพื้นที่' : 'Please select location';
+      }
+      const qFields = ['strength', 'weakness', 'lessFitTask', 'principles', 'troubleResolve', 'jobCriteria', 'interests', 'digitalTransformOpinion'] as const;
+      for (const field of qFields) {
+        const val = formData[field];
+        if (!val || val.trim() === '') {
+          errors[field] = lang === 'th' ? 'กรุณากรอกข้อมูลให้ครบถ้วน' : 'Please complete this field';
+        } else if (val.length > 250) {
+          errors[field] = lang === 'th' ? 'ห้ามเกิน 250 ตัวอักษร' : 'Max 250 characters exceeded';
+        }
+      }
+    }
+
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -1257,8 +1272,8 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
           {currentStep === 8 && (
             <div className="space-y-6">
               <div className="bg-gray-50 p-6 rounded-lg">
-                <label className="block text-sm font-bold text-gray-900 mb-4">
-                  {t.labels.upcountry}
+                <label className="block text-sm font-bold text-gray-900 mb-4 flex items-center">
+                  {t.labels.upcountry} <span className="text-red-500 ml-1">*</span>
                 </label>
                 <div className="space-y-3">
                   {UPCOUNTRY_LOCATIONS_DATA.map(locData => {
@@ -1278,17 +1293,18 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                     );
                   })}
                 </div>
+                {validationErrors.upcountryLocations && <p className="mt-2 text-xs text-red-500">{validationErrors.upcountryLocations}</p>}
               </div>
 
               <div className="grid grid-cols-1 gap-6">
-                <TextArea label={t.labels.strength} value={formData.strength} onChange={(e) => updateField('strength', e.target.value)} maxLength={250} />
-                <TextArea label={t.labels.weakness} value={formData.weakness} onChange={(e) => updateField('weakness', e.target.value)} maxLength={250} />
-                <TextArea label={t.labels.lessFit} value={formData.lessFitTask} onChange={(e) => updateField('lessFitTask', e.target.value)} />
-                <TextArea label={t.labels.principles} value={formData.principles} onChange={(e) => updateField('principles', e.target.value)} />
-                <TextArea label={t.labels.troubleResolve} value={formData.troubleResolve} onChange={(e) => updateField('troubleResolve', e.target.value)} />
-                <TextArea label={t.labels.jobCriteria} value={formData.jobCriteria} onChange={(e) => updateField('jobCriteria', e.target.value)} />
-                <TextArea label={t.labels.interests} value={formData.interests} onChange={(e) => updateField('interests', e.target.value)} />
-                <TextArea label={t.labels.digitalTransform} value={formData.digitalTransformOpinion} onChange={(e) => updateField('digitalTransformOpinion', e.target.value)} />
+                <TextArea label={`${t.labels.strength} ${lang === 'th' ? '(สูงสุด 250 ตัวอักษร)' : '(Max 250 characters)'}`} error={validationErrors.strength} value={formData.strength} onChange={(e) => updateField('strength', e.target.value)} maxLength={250} />
+                <TextArea label={`${t.labels.weakness} ${lang === 'th' ? '(สูงสุด 250 ตัวอักษร)' : '(Max 250 characters)'}`} error={validationErrors.weakness} value={formData.weakness} onChange={(e) => updateField('weakness', e.target.value)} maxLength={250} />
+                <TextArea label={`${t.labels.lessFit} ${lang === 'th' ? '(สูงสุด 250 ตัวอักษร)' : '(Max 250 characters)'}`} error={validationErrors.lessFitTask} value={formData.lessFitTask} onChange={(e) => updateField('lessFitTask', e.target.value)} maxLength={250} />
+                <TextArea label={`${t.labels.principles} ${lang === 'th' ? '(สูงสุด 250 ตัวอักษร)' : '(Max 250 characters)'}`} error={validationErrors.principles} value={formData.principles} onChange={(e) => updateField('principles', e.target.value)} maxLength={250} />
+                <TextArea label={`${t.labels.troubleResolve} ${lang === 'th' ? '(สูงสุด 250 ตัวอักษร)' : '(Max 250 characters)'}`} error={validationErrors.troubleResolve} value={formData.troubleResolve} onChange={(e) => updateField('troubleResolve', e.target.value)} maxLength={250} />
+                <TextArea label={`${t.labels.jobCriteria} ${lang === 'th' ? '(สูงสุด 250 ตัวอักษร)' : '(Max 250 characters)'}`} error={validationErrors.jobCriteria} value={formData.jobCriteria} onChange={(e) => updateField('jobCriteria', e.target.value)} maxLength={250} />
+                <TextArea label={`${t.labels.interests} ${lang === 'th' ? '(สูงสุด 250 ตัวอักษร)' : '(Max 250 characters)'}`} error={validationErrors.interests} value={formData.interests} onChange={(e) => updateField('interests', e.target.value)} maxLength={250} />
+                <TextArea label={`${t.labels.digitalTransform} ${lang === 'th' ? '(สูงสุด 250 ตัวอักษร)' : '(Max 250 characters)'}`} error={validationErrors.digitalTransformOpinion} value={formData.digitalTransformOpinion} onChange={(e) => updateField('digitalTransformOpinion', e.target.value)} maxLength={250} />
               </div>
             </div>
           )}

@@ -137,6 +137,8 @@
       }
       /* Remove shadows for all themes on print */
       .content-wrapper * { box-shadow: none !important; }
+      /* Ensure q-rows keep borders across page breaks */
+      .q-row { page-break-inside: avoid; break-inside: avoid; }
     }
 
     .section-title {
@@ -172,6 +174,35 @@
       border: var(--main-border);
       border-top: none;
       transition: all 0.3s ease;
+    }
+
+    /* Self-bordered rows for questionnaire - prevents broken borders on page breaks */
+    .q-row {
+      border: var(--main-border);
+      border-top: none;
+      margin-top: -1px;
+      transition: all 0.3s ease;
+    }
+    .q-row:first-child {
+      margin-top: 0;
+      border-top: none;
+    }
+    [data-theme="modern"] .q-row:last-child,
+    [data-theme="doublea"] .q-row:last-child,
+    [data-theme="nps"] .q-row:last-child,
+    [data-theme="relo"] .q-row:last-child {
+      border-bottom-left-radius: var(--section-radius);
+      border-bottom-right-radius: var(--section-radius);
+    }
+    [data-theme="modern"] .q-row,
+    [data-theme="doublea"] .q-row,
+    [data-theme="nps"] .q-row,
+    [data-theme="relo"] .q-row {
+      background-color: white;
+    }
+    [data-theme="minimal"] .q-row {
+      border-left: none;
+      border-right: none;
     }
     
     .top-section-body {
@@ -283,13 +314,17 @@
         <button onclick="setTheme('relo')" id="btn-theme-relo" class="px-3 py-1.5 text-xs font-medium rounded-md text-gray-600 hover:text-gray-800 transition-all">🏡 ReLo</button>
       </div>
     </div>
-    <div class="flex gap-2">
+    <div class="flex gap-2 items-center">
+      <div class="flex bg-gray-100 rounded-lg p-1 mr-2">
+        <button onclick="setLang('th')" id="btn-lang-th" class="px-3 py-1.5 text-xs font-bold rounded-md bg-white shadow-sm text-gray-800 transition-all">🇹🇭 TH</button>
+        <button onclick="setLang('en')" id="btn-lang-en" class="px-3 py-1.5 text-xs font-bold rounded-md text-gray-600 hover:text-gray-800 transition-all">🇺🇸 EN</button>
+      </div>
       <button onclick="window.print()" class="px-5 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 text-sm flex items-center shadow-sm transition-all">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-        พิมพ์ PDF
+        <span data-i18n="printPdf">พิมพ์ PDF</span>
       </button>
       <button onclick="window.close()" class="px-5 py-2 border border-gray-300 text-gray-700 rounded-lg font-bold hover:bg-gray-50 text-sm transition-all">
-        ปิดหน้าต่าง
+        <span data-i18n="closeWindow">ปิดหน้าต่าง</span>
       </button>
     </div>
   </div>
@@ -300,12 +335,12 @@
       <!-- Document Title -->
       <div class="flex justify-between items-end mb-4">
         <div>
-          <h1 class="text-2xl font-extrabold tracking-tight text-gray-900 leading-none" id="doc-title-th">ใบสมัครงาน</h1>
-          <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1.5" id="doc-title-en">Application for Employment</p>
+          <h1 class="text-2xl font-extrabold tracking-tight text-gray-900 leading-none" id="doc-title-th" data-i18n="docTitle">ใบสมัครงาน</h1>
+          <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1.5" id="doc-title-en" data-i18n="docSubtitle">Application for Employment</p>
         </div>
         <div class="text-right">
           <p class="text-[11px] font-bold text-gray-700">App ID: <span id="app-id" class="font-normal text-gray-600">-</span></p>
-          <p class="text-[10px] text-gray-400 mt-0.5">เอกสารใช้เป็นการภายใน (Internal Use Only)</p>
+          <p class="text-[10px] text-gray-400 mt-0.5" data-i18n="internalUse">เอกสารใช้เป็นการภายใน (Internal Use Only)</p>
         </div>
       </div>
 
@@ -319,34 +354,34 @@
         <div class="section-body flex-1 top-section-body flex flex-col min-h-[8rem]">
           <div class="grid grid-cols-5 flex-1">
             <div class="box-field flex flex-col justify-center">
-              <div class="box-label">ตำแหน่งที่สมัคร</div>
+              <div class="box-label" data-i18n="position">ตำแหน่งที่สมัคร</div>
               <div class="box-value" id="position">-</div>
             </div>
             <div class="box-field flex flex-col justify-center">
-              <div class="box-label">แผนก</div>
+              <div class="box-label" data-i18n="department">แผนก</div>
               <div class="box-value" id="department">-</div>
             </div>
             <div class="box-field flex flex-col justify-center">
-              <div class="box-label">เงินเดือนที่คาดหวัง</div>
+              <div class="box-label" data-i18n="expectedSalary">เงินเดือนที่คาดหวัง</div>
               <div class="box-value" id="salary">-</div>
             </div>
             <div class="box-field flex flex-col justify-center">
-              <div class="box-label">วันที่พร้อมเริ่มงาน</div>
+              <div class="box-label" data-i18n="startDate">วันที่พร้อมเริ่มงาน</div>
               <div class="box-value" id="availability">-</div>
             </div>
             <div class="box-field flex flex-col justify-center no-border-right">
-              <div class="box-label">วันที่สมัคร</div>
+              <div class="box-label" data-i18n="applyDate">วันที่สมัคร</div>
               <div class="box-value" id="applyDate">-</div>
             </div>
           </div>
           <!-- Source Tags as second row -->
           <div class="grid grid-cols-1 flex-1">
             <div class="box-field flex flex-col justify-center no-border-right border-b-0" style="border-bottom: none;">
-              <div class="box-label">ช่องทางที่มา & Links</div>
+              <div class="box-label" data-i18n="sourceLinks">ช่องทางที่มา & Links</div>
               <div class="flex items-center flex-wrap gap-x-4 gap-y-1">
                 <div class="flex flex-wrap gap-2" id="source-tags"></div>
                 <div id="profile-links-row" class="hidden flex items-center">
-                  <span class="text-[11px] text-gray-500">Profile Link:</span>
+                  <span class="text-[11px] text-gray-500" data-i18n="profileLink">Profile Link:</span>
                   <a id="profileLinksValue" href="#" target="_blank" class="text-blue-600 underline text-[12px] ml-1 overflow-hidden text-ellipsis whitespace-nowrap max-w-[200px]">-</a>
                 </div>
               </div>
@@ -357,20 +392,20 @@
 
       <!-- Personal Info TH -->
       <div class="section-title">
-        <h3>ข้อมูลส่วนตัว (ภาษาไทย)</h3>
+        <h3 data-i18n="secPersonalTh">ข้อมูลส่วนตัว (ภาษาไทย)</h3>
       </div>
       <div class="section-body">
         <div class="grid grid-cols-5">
           <div class="box-field">
-            <div class="box-label">คำนำหน้า</div>
+            <div class="box-label" data-i18n="prefix">คำนำหน้า</div>
             <div class="box-value" id="title">-</div>
           </div>
           <div class="box-field col-span-2">
-            <div class="box-label">ชื่อ</div>
+            <div class="box-label" data-i18n="firstName">ชื่อ</div>
             <div class="box-value" id="firstName">-</div>
           </div>
           <div class="box-field col-span-2" style="border-right:none">
-            <div class="box-label">นามสกุล</div>
+            <div class="box-label" data-i18n="lastName">นามสกุล</div>
             <div class="box-value" id="lastName">-</div>
           </div>
         </div>
@@ -378,7 +413,7 @@
 
       <!-- Personal Info EN -->
       <div class="section-title">
-        <h3>ข้อมูลส่วนตัว (English)</h3>
+        <h3 data-i18n="secPersonalEn">ข้อมูลส่วนตัว (English)</h3>
       </div>
       <div class="section-body">
         <div class="grid grid-cols-5">
@@ -399,50 +434,50 @@
 
       <!-- Basic Info -->
       <div class="section-title">
-        <h3>ข้อมูลพื้นฐาน</h3>
+        <h3 data-i18n="secBasicInfo">ข้อมูลพื้นฐาน</h3>
       </div>
       <div class="section-body">
         <div class="grid grid-cols-7">
           <div class="box-field">
-            <div class="box-label">ชื่อเล่น (ไทย)</div>
+            <div class="box-label" data-i18n="nicknameTh">ชื่อเล่น (ไทย)</div>
             <div class="box-value" id="nickname">-</div>
           </div>
           <div class="box-field">
-            <div class="box-label">ชื่อเล่น (อังกฤษ)</div>
+            <div class="box-label" data-i18n="nicknameEn">ชื่อเล่น (อังกฤษ)</div>
             <div class="box-value" id="nicknameEn">-</div>
           </div>
           <div class="box-field">
-            <div class="box-label">วันเกิด</div>
+            <div class="box-label" data-i18n="dob">วันเกิด</div>
             <div class="box-value" id="dateOfBirth">-</div>
           </div>
           <div class="box-field">
-            <div class="box-label">อายุ</div>
+            <div class="box-label" data-i18n="age">อายุ</div>
             <div class="box-value" id="age">-</div>
           </div>
           <div class="box-field">
-            <div class="box-label">น้ำหนัก</div>
+            <div class="box-label" data-i18n="weight">น้ำหนัก</div>
             <div class="box-value" id="weight">-</div>
           </div>
           <div class="box-field">
-            <div class="box-label">ส่วนสูง</div>
+            <div class="box-label" data-i18n="height">ส่วนสูง</div>
             <div class="box-value" id="height">-</div>
           </div>
           <div class="box-field" style="border-right:none">
-            <div class="box-label">ทหาร</div>
+            <div class="box-label" data-i18n="military">ทหาร</div>
             <div class="box-value" id="militaryStatus">-</div>
           </div>
         </div>
         <div class="grid grid-cols-3">
           <div class="box-field">
-            <div class="box-label">เลขบัตรประชาชน</div>
+            <div class="box-label" data-i18n="nationalId">เลขบัตรประชาชน</div>
             <div class="box-value" id="nationalId">-</div>
           </div>
           <div class="box-field">
-            <div class="box-label">เบอร์โทรศัพท์</div>
+            <div class="box-label" data-i18n="phone">เบอร์โทรศัพท์</div>
             <div class="box-value" id="phone">-</div>
           </div>
           <div class="box-field" style="border-right:none">
-            <div class="box-label">อีเมล</div>
+            <div class="box-label" data-i18n="email">อีเมล</div>
             <div class="box-value" id="email">-</div>
           </div>
         </div>
@@ -450,18 +485,18 @@
 
       <!-- Address -->
       <div class="section-title">
-        <h3>ที่อยู่</h3>
+        <h3 data-i18n="secAddress">ที่อยู่</h3>
       </div>
       <div class="section-body">
         <div class="grid grid-cols-1">
           <div class="box-field">
-            <div class="box-label">ที่อยู่ตามทะเบียนบ้าน</div>
+            <div class="box-label" data-i18n="registeredAddr">ที่อยู่ตามทะเบียนบ้าน</div>
             <div class="box-value" id="registeredAddress">-</div>
           </div>
         </div>
         <div class="grid grid-cols-1">
           <div class="box-field" style="border-right:none">
-            <div class="box-label">ที่อยู่ปัจจุบัน</div>
+            <div class="box-label" data-i18n="currentAddr">ที่อยู่ปัจจุบัน</div>
             <div class="box-value" id="currentAddress">-</div>
           </div>
         </div>
@@ -469,52 +504,52 @@
 
       <!-- Family -->
       <div class="section-title print-break">
-        <h3>ข้อมูลครอบครัว</h3>
+        <h3 data-i18n="secFamily">ข้อมูลครอบครัว</h3>
       </div>
       <div class="section-body">
         <div class="grid grid-cols-4">
           <div class="box-field">
-            <div class="box-label">สถานภาพ</div>
+            <div class="box-label" data-i18n="marital">สถานภาพ</div>
             <div class="box-value" id="maritalStatus">-</div>
           </div>
           <div class="box-field">
-            <div class="box-label">จำนวนบุตร</div>
+            <div class="box-label" data-i18n="children">จำนวนบุตร</div>
             <div class="box-value" id="childrenCount">-</div>
           </div>
           <div class="box-field">
-            <div class="box-label">จำนวนพี่น้อง</div>
+            <div class="box-label" data-i18n="siblings">จำนวนพี่น้อง</div>
             <div class="box-value" id="siblingCount">-</div>
           </div>
           <div class="box-field" style="border-right:none">
-            <div class="box-label">คู่สมรส</div>
+            <div class="box-label" data-i18n="spouse">คู่สมรส</div>
             <div class="box-value" id="spouseName">-</div>
           </div>
         </div>
         <div class="grid grid-cols-3">
           <div class="box-field">
-            <div class="box-label">อายุคู่สมรส</div>
+            <div class="box-label" data-i18n="spouseAge">อายุคู่สมรส</div>
             <div class="box-value" id="spouseAge">-</div>
           </div>
           <div class="box-field col-span-2" style="border-right:none">
-            <div class="box-label">อาชีพคู่สมรส</div>
+            <div class="box-label" data-i18n="spouseJob">อาชีพคู่สมรส</div>
             <div class="box-value" id="spouseOccupation">-</div>
           </div>
         </div>
         <div class="grid grid-cols-4">
           <div class="box-field">
-            <div class="box-label">ชื่อบิดา</div>
+            <div class="box-label" data-i18n="fatherName">ชื่อบิดา</div>
             <div class="box-value" id="fatherName">-</div>
           </div>
           <div class="box-field">
-            <div class="box-label">อายุ/อาชีพ</div>
+            <div class="box-label" data-i18n="ageJob">อายุ/อาชีพ</div>
             <div class="box-value" id="fatherInfo">-</div>
           </div>
           <div class="box-field">
-            <div class="box-label">ชื่อมารดา</div>
+            <div class="box-label" data-i18n="motherName">ชื่อมารดา</div>
             <div class="box-value" id="motherName">-</div>
           </div>
           <div class="box-field" style="border-right:none">
-            <div class="box-label">อายุ/อาชีพ</div>
+            <div class="box-label" data-i18n="ageJob">อายุ/อาชีพ</div>
             <div class="box-value" id="motherInfo">-</div>
           </div>
         </div>
@@ -523,15 +558,15 @@
       <!-- Education -->
       <div class="section-wrapper">
         <div class="section-title">
-          <h3>ประวัติการศึกษา</h3>
+          <h3 data-i18n="secEducation">ประวัติการศึกษา</h3>
         </div>
         <div class="section-body">
           <div class="grid grid-cols-5 bg-gray-200 text-[11px] font-bold print-break">
-            <div class="box-field py-1">ระดับ</div>
-            <div class="box-field py-1">สถาบัน</div>
-            <div class="box-field py-1">สาขา</div>
+            <div class="box-field py-1" data-i18n="eduLevel">ระดับ</div>
+            <div class="box-field py-1" data-i18n="eduInstitute">สถาบัน</div>
+            <div class="box-field py-1" data-i18n="eduMajor">สาขา</div>
             <div class="box-field py-1">GPA</div>
-            <div class="box-field py-1" style="border-right:none">ปี</div>
+            <div class="box-field py-1" style="border-right:none" data-i18n="eduYear">ปี</div>
           </div>
           <div id="education-rows"></div>
         </div>
@@ -540,15 +575,15 @@
       <!-- Experience -->
       <div class="section-wrapper">
         <div class="section-title">
-          <h3>ประวัติการทำงาน</h3>
+          <h3 data-i18n="secExperience">ประวัติการทำงาน (Experience)</h3>
         </div>
         <div class="section-body">
           <div class="grid grid-cols-5 bg-gray-200 text-[11px] font-bold print-break">
-            <div class="box-field py-1">ช่วงเวลา</div>
-            <div class="box-field py-1">บริษัท</div>
-            <div class="box-field py-1">ตำแหน่ง</div>
-            <div class="box-field py-1">เงินเดือน</div>
-            <div class="box-field py-1" style="border-right:none">รายละเอียด</div>
+            <div class="box-field py-1" data-i18n="expPeriod">ช่วงเวลา</div>
+            <div class="box-field py-1" data-i18n="expCompany">บริษัท</div>
+            <div class="box-field py-1" data-i18n="expPosition">ตำแหน่ง</div>
+            <div class="box-field py-1" data-i18n="expSalary">เงินเดือน</div>
+            <div class="box-field py-1" style="border-right:none" data-i18n="expDuty">หน้าที่รับผิดชอบ</div>
           </div>
           <div id="experience-rows"></div>
         </div>
@@ -559,28 +594,28 @@
     <div class="a4-page">
       <!-- Skills Language -->
       <div class="section-title">
-        <h3>ทักษะภาษา</h3>
+        <h3 data-i18n="secLangSkill">ทักษะภาษา</h3>
       </div>
       <div class="section-body">
         <div class="grid grid-cols-4">
           <div class="box-field">
-            <div class="box-label">ภาษาอังกฤษ</div>
+            <div class="box-label" data-i18n="english">ภาษาอังกฤษ</div>
             <div class="box-value" id="englishSkill">-</div>
           </div>
           <div class="box-field">
-            <div class="box-label">คะแนนสอบ</div>
+            <div class="box-label" data-i18n="testScore">คะแนนสอบ</div>
             <div class="box-value" id="englishScore">-</div>
           </div>
           <div class="box-field">
-            <div class="box-label">ภาษาจีน</div>
+            <div class="box-label" data-i18n="chinese">ภาษาจีน</div>
             <div class="box-value" id="chineseSkill">-</div>
           </div>
           <div class="box-field">
-            <div class="box-label">คะแนนสอบจีน</div>
+            <div class="box-label" data-i18n="chineseScore">คะแนนสอบจีน</div>
             <div class="box-value" id="chineseScore">-</div>
           </div>
           <div class="box-field" style="border-right:none">
-            <div class="box-label">ภาษาอื่นๆ</div>
+            <div class="box-label" data-i18n="otherLang">ภาษาอื่นๆ</div>
             <div class="box-value" id="otherLang">-</div>
           </div>
         </div>
@@ -588,7 +623,7 @@
 
       <!-- Computer Skills -->
       <div class="section-title">
-        <h3>ทักษะคอมพิวเตอร์</h3>
+        <h3 data-i18n="secComputer">ทักษะคอมพิวเตอร์</h3>
       </div>
       <div class="section-body">
         <div class="grid grid-cols-7">
@@ -625,24 +660,24 @@
 
       <!-- Driving -->
       <div class="section-title">
-        <h3>การขับขี่</h3>
+        <h3 data-i18n="secDriving">การขับขี่</h3>
       </div>
       <div class="section-body">
         <div class="grid grid-cols-4">
           <div class="box-field">
-            <div class="box-label">มอเตอร์ไซค์</div>
+            <div class="box-label" data-i18n="motorcycle">มอเตอร์ไซค์</div>
             <div class="box-value" id="motorcycle">-</div>
           </div>
           <div class="box-field">
-            <div class="box-label">ใบขับขี่มอเตอร์ไซค์</div>
+            <div class="box-label" data-i18n="motoLicense">ใบขับขี่มอเตอร์ไซค์</div>
             <div class="box-value" id="motorcycleLicense">-</div>
           </div>
           <div class="box-field">
-            <div class="box-label">รถยนต์</div>
+            <div class="box-label" data-i18n="car">รถยนต์</div>
             <div class="box-value" id="car">-</div>
           </div>
           <div class="box-field" style="border-right:none">
-            <div class="box-label">ใบขับขี่รถยนต์</div>
+            <div class="box-label" data-i18n="carLicense">ใบขับขี่รถยนต์</div>
             <div class="box-value" id="carLicense">-</div>
           </div>
         </div>
@@ -650,76 +685,87 @@
 
       <!-- Other Skills -->
       <div class="section-title">
-        <h3>ความสามารถอื่นๆ</h3>
+        <h3 data-i18n="secOtherSkill">ความสามารถอื่นๆ</h3>
       </div>
       <div class="section-body">
         <div class="grid grid-cols-1">
           <div class="box-field">
-            <div class="box-label">ความสามารถพิเศษ</div>
+            <div class="box-label" data-i18n="specialAbility">ความสามารถพิเศษ</div>
             <div class="box-value" id="specialAbility">-</div>
           </div>
         </div>
         <div class="grid grid-cols-1">
           <div class="box-field" style="border-right:none">
-            <div class="box-label">งานอดิเรก</div>
+            <div class="box-label" data-i18n="hobbies">งานอดิเรก</div>
             <div class="box-value" id="hobbies">-</div>
           </div>
         </div>
       </div>
 
-      <!-- Questionnaire -->
+      <!-- Questionnaire Group 1 -->
       <div class="section-title print-break">
-        <h3>แบบสอบถาม</h3>
+        <h3 data-i18n="secQuestionnaire">แบบสอบถาม</h3>
       </div>
-      <div class="section-body">
+      <div class="q-row">
         <div class="grid grid-cols-1">
-          <div class="box-field">
-            <div class="box-label">พื้นที่ไปปฏิบัติงานต่างจังหวัด</div>
+          <div class="box-field" style="border-bottom:none">
+            <div class="box-label" data-i18n="upcountry">พื้นที่ไปปฏิบัติงานต่างจังหวัด</div>
             <div class="box-value text-[12px]" id="upcountryLocations">-</div>
           </div>
         </div>
+      </div>
+      <div class="q-row">
         <div class="grid grid-cols-2">
-          <div class="box-field">
-            <div class="box-label">จุดแข็ง</div>
+          <div class="box-field" style="border-bottom:none">
+            <div class="box-label" data-i18n="strength">จุดแข็ง</div>
             <div class="box-value text-[12px]" id="strength">-</div>
           </div>
-          <div class="box-field" style="border-right:none">
-            <div class="box-label">จุดอ่อน</div>
+          <div class="box-field" style="border-right:none; border-bottom:none">
+            <div class="box-label" data-i18n="weakness">จุดอ่อน</div>
             <div class="box-value text-[12px]" id="weakness">-</div>
           </div>
         </div>
-        <div class="grid grid-cols-1">
-          <div class="box-field">
-            <div class="box-label">งานที่ไม่ถนัด</div>
+      </div>
+      <div class="q-row">
+        <div class="grid grid-cols-2">
+          <div class="box-field" style="border-bottom:none">
+            <div class="box-label" data-i18n="lessFit">งานที่ไม่ถนัด</div>
             <div class="box-value text-[12px]" id="lessFitTask">-</div>
           </div>
-        </div>
-        <div class="grid grid-cols-1">
-          <div class="box-field">
-            <div class="box-label">หลักการทำงาน</div>
+          <div class="box-field" style="border-right:none; border-bottom:none">
+            <div class="box-label" data-i18n="principles">หลักการทำงาน</div>
             <div class="box-value text-[12px]" id="principles">-</div>
           </div>
         </div>
+      </div>
+      <div class="q-row">
         <div class="grid grid-cols-1">
-          <div class="box-field">
-            <div class="box-label">วิธีแก้ปัญหา</div>
+          <div class="box-field" style="border-bottom:none; border-right:none">
+            <div class="box-label" data-i18n="troubleResolve">วิธีแก้ปัญหา</div>
             <div class="box-value text-[12px]" id="troubleResolve">-</div>
           </div>
         </div>
-        <div class="grid grid-cols-1">
-          <div class="box-field">
-            <div class="box-label">เกณฑ์เลือกงาน</div>
+      </div>
+
+      <!-- Questionnaire Group 2 (ต่อ) -->
+      <div class="section-title print-break">
+        <h3 data-i18n="secQuestCont">แบบสอบถาม (ต่อ)</h3>
+      </div>
+      <div class="q-row">
+        <div class="grid grid-cols-2">
+          <div class="box-field" style="border-bottom:none">
+            <div class="box-label" data-i18n="jobCriteria">เกณฑ์เลือกงาน</div>
             <div class="box-value text-[12px]" id="jobCriteria">-</div>
           </div>
-        </div>
-        <div class="grid grid-cols-1">
-          <div class="box-field">
-            <div class="box-label">ความสนใจ</div>
+          <div class="box-field" style="border-right:none; border-bottom:none">
+            <div class="box-label" data-i18n="interests">ความสนใจ</div>
             <div class="box-value text-[12px]" id="interests">-</div>
           </div>
         </div>
+      </div>
+      <div class="q-row">
         <div class="grid grid-cols-1">
-          <div class="box-field" style="border-right:none">
+          <div class="box-field" style="border-right:none; border-bottom:none">
             <div class="box-label">Digital Transform</div>
             <div class="box-value text-[12px]" id="digitalTransformOpinion">-</div>
           </div>
@@ -728,20 +774,20 @@
 
       <!-- Health -->
       <div class="section-title print-break">
-        <h3>สุขภาพ</h3>
+        <h3 data-i18n="secHealth">สุขภาพ</h3>
       </div>
       <div class="section-body">
         <div class="grid grid-cols-3">
           <div class="box-field">
-            <div class="box-label">โรคประจำตัว</div>
+            <div class="box-label" data-i18n="chronic">โรคประจำตัว</div>
             <div class="box-value" id="chronicDisease">-</div>
           </div>
           <div class="box-field">
-            <div class="box-label">ประวัติผ่าตัด</div>
+            <div class="box-label" data-i18n="surgery">ประวัติผ่าตัด</div>
             <div class="box-value" id="surgery">-</div>
           </div>
           <div class="box-field" style="border-right:none">
-            <div class="box-label">ประวัติการรักษา</div>
+            <div class="box-label" data-i18n="medical">ประวัติการรักษา</div>
             <div class="box-value" id="medicalRecord">-</div>
           </div>
         </div>
@@ -749,28 +795,28 @@
 
       <!-- Emergency Contact -->
       <div class="section-title">
-        <h3>ผู้ติดต่อฉุกเฉิน</h3>
+        <h3 data-i18n="secEmergency">ผู้ติดต่อฉุกเฉิน</h3>
       </div>
       <div class="section-body">
         <div class="grid grid-cols-5">
           <div class="box-field">
-            <div class="box-label">ชื่อ-สกุล</div>
+            <div class="box-label" data-i18n="emName">ชื่อ-สกุล</div>
             <div class="box-value" id="emergencyName">-</div>
           </div>
           <div class="box-field">
-            <div class="box-label">ความสัมพันธ์</div>
+            <div class="box-label" data-i18n="emRelation">ความสัมพันธ์</div>
             <div class="box-value" id="emergencyRelation">-</div>
           </div>
           <div class="box-field">
-            <div class="box-label">เบอร์โทร</div>
+            <div class="box-label" data-i18n="emPhone">เบอร์โทร</div>
             <div class="box-value" id="emergencyPhone">-</div>
           </div>
           <div class="box-field">
-            <div class="box-label">บริษัท</div>
+            <div class="box-label" data-i18n="emCompany">บริษัท</div>
             <div class="box-value" id="emergencyCompany">-</div>
           </div>
           <div class="box-field" style="border-right:none">
-            <div class="box-label">ตำแหน่ง</div>
+            <div class="box-label" data-i18n="emPosition">ตำแหน่ง</div>
             <div class="box-value" id="emergencyPosition">-</div>
           </div>
         </div>
@@ -780,13 +826,13 @@
       <div class="mt-8 grid grid-cols-2 gap-8">
         <div class="text-center">
           <div class="border-b border-gray-400 h-16"></div>
-          <p class="text-xs mt-1">ลงชื่อผู้สมัคร</p>
-          <p class="text-[11px] text-gray-500">วันที่: ____/____/____</p>
+          <p class="text-xs mt-1" data-i18n="sigApplicant">ลงชื่อผู้สมัคร</p>
+          <p class="text-[11px] text-gray-500" data-i18n="sigDate">วันที่: ____/____/____</p>
         </div>
         <div class="text-center">
           <div class="border-b border-gray-400 h-16"></div>
-          <p class="text-xs mt-1">ลงชื่อผู้รับสมัคร</p>
-          <p class="text-[11px] text-gray-500">วันที่: ____/____/____</p>
+          <p class="text-xs mt-1" data-i18n="sigRecruiter">ลงชื่อผู้รับสมัคร</p>
+          <p class="text-[11px] text-gray-500" data-i18n="sigDate">วันที่: ____/____/____</p>
         </div>
       </div>
     </div>
@@ -821,6 +867,109 @@
     // Initialize Theme
     const savedTheme = localStorage.getItem('hrbp-print-theme') || 'basic';
     setTheme(savedTheme);
+
+    // i18n Language Management
+    const I18N = {
+      th: {
+        docTitle: 'ใบสมัครงาน', docSubtitle: 'Application for Employment',
+        internalUse: 'เอกสารใช้เป็นการภายใน (Internal Use Only)',
+        printPdf: 'พิมพ์ PDF', closeWindow: 'ปิดหน้าต่าง',
+        position: 'ตำแหน่งที่สมัคร', department: 'แผนก', expectedSalary: 'เงินเดือนที่คาดหวัง',
+        startDate: 'วันที่พร้อมเริ่มงาน', applyDate: 'วันที่สมัคร',
+        sourceLinks: 'ช่องทางที่มา & Links', profileLink: 'Profile Link:',
+        secPersonalTh: 'ข้อมูลส่วนตัว (ภาษาไทย)', secPersonalEn: 'ข้อมูลส่วนตัว (English)',
+        prefix: 'คำนำหน้า', firstName: 'ชื่อ', lastName: 'นามสกุล',
+        secBasicInfo: 'ข้อมูลพื้นฐาน',
+        nicknameTh: 'ชื่อเล่น (ไทย)', nicknameEn: 'ชื่อเล่น (อังกฤษ)',
+        dob: 'วันเกิด', age: 'อายุ', weight: 'น้ำหนัก', height: 'ส่วนสูง', military: 'ทหาร',
+        nationalId: 'เลขบัตรประชาชน', phone: 'เบอร์โทรศัพท์', email: 'อีเมล',
+        secAddress: 'ที่อยู่', registeredAddr: 'ที่อยู่ตามทะเบียนบ้าน', currentAddr: 'ที่อยู่ปัจจุบัน',
+        secFamily: 'ข้อมูลครอบครัว', marital: 'สถานภาพ', children: 'จำนวนบุตร', siblings: 'จำนวนพี่น้อง',
+        spouse: 'คู่สมรส', spouseAge: 'อายุคู่สมรส', spouseJob: 'อาชีพคู่สมรส',
+        fatherName: 'ชื่อบิดา', motherName: 'ชื่อมารดา', ageJob: 'อายุ/อาชีพ',
+        secEducation: 'ประวัติการศึกษา', eduLevel: 'ระดับ', eduInstitute: 'สถาบัน', eduMajor: 'สาขา', eduYear: 'ปี',
+        secExperience: 'ประวัติการทำงาน (Experience)', expPeriod: 'ช่วงเวลา', expCompany: 'บริษัท',
+        expPosition: 'ตำแหน่ง', expSalary: 'เงินเดือน', expDuty: 'หน้าที่รับผิดชอบ',
+        secLangSkill: 'ทักษะภาษา', english: 'ภาษาอังกฤษ', testScore: 'คะแนนสอบ',
+        chinese: 'ภาษาจีน', chineseScore: 'คะแนนสอบจีน', otherLang: 'ภาษาอื่นๆ',
+        secComputer: 'ทักษะคอมพิวเตอร์',
+        secDriving: 'การขับขี่', motorcycle: 'มอเตอร์ไซค์', motoLicense: 'ใบขับขี่มอเตอร์ไซค์',
+        car: 'รถยนต์', carLicense: 'ใบขับขี่รถยนต์',
+        secOtherSkill: 'ความสามารถอื่นๆ', specialAbility: 'ความสามารถพิเศษ', hobbies: 'งานอดิเรก',
+        secQuestionnaire: 'แบบสอบถาม', upcountry: 'พื้นที่ไปปฏิบัติงานต่างจังหวัด',
+        strength: 'จุดแข็ง', weakness: 'จุดอ่อน', lessFit: 'งานที่ไม่ถนัด',
+        principles: 'หลักการทำงาน', troubleResolve: 'วิธีแก้ปัญหา',
+        jobCriteria: 'เกณฑ์เลือกงาน', interests: 'ความสนใจ',
+        secHealth: 'สุขภาพ', chronic: 'โรคประจำตัว', surgery: 'ประวัติผ่าตัด', medical: 'ประวัติการรักษา',
+        secEmergency: 'ผู้ติดต่อฉุกเฉิน', emName: 'ชื่อ-สกุล', emRelation: 'ความสัมพันธ์',
+        emPhone: 'เบอร์โทร', emCompany: 'บริษัท', emPosition: 'ตำแหน่ง',
+        sigApplicant: 'ลงชื่อผู้สมัคร', sigRecruiter: 'ลงชื่อผู้รับสมัคร', sigDate: 'วันที่: ____/____/____',
+        secQuestCont: 'แบบสอบถาม (ต่อ)',
+      },
+      en: {
+        docTitle: 'Job Application', docSubtitle: 'Application for Employment',
+        internalUse: 'Internal Use Only',
+        printPdf: 'Print PDF', closeWindow: 'Close',
+        position: 'Position Applied', department: 'Department', expectedSalary: 'Expected Salary',
+        startDate: 'Available Date', applyDate: 'Apply Date',
+        sourceLinks: 'Source & Links', profileLink: 'Profile Link:',
+        secPersonalTh: 'Personal Info (Thai)', secPersonalEn: 'Personal Info (English)',
+        prefix: 'Title', firstName: 'First Name', lastName: 'Last Name',
+        secBasicInfo: 'Basic Information',
+        nicknameTh: 'Nickname (TH)', nicknameEn: 'Nickname (EN)',
+        dob: 'Date of Birth', age: 'Age', weight: 'Weight', height: 'Height', military: 'Military',
+        nationalId: 'National ID', phone: 'Phone', email: 'Email',
+        secAddress: 'Address', registeredAddr: 'Registered Address', currentAddr: 'Current Address',
+        secFamily: 'Family Information', marital: 'Marital Status', children: 'Children', siblings: 'Siblings',
+        spouse: 'Spouse', spouseAge: 'Spouse Age', spouseJob: 'Spouse Occupation',
+        fatherName: "Father's Name", motherName: "Mother's Name", ageJob: 'Age/Occupation',
+        secEducation: 'Education', eduLevel: 'Level', eduInstitute: 'Institute', eduMajor: 'Major', eduYear: 'Year',
+        secExperience: 'Work Experience', expPeriod: 'Period', expCompany: 'Company',
+        expPosition: 'Position', expSalary: 'Salary', expDuty: 'Responsibilities',
+        secLangSkill: 'Language Skills', english: 'English', testScore: 'Test Score',
+        chinese: 'Chinese', chineseScore: 'Chinese Score', otherLang: 'Other Languages',
+        secComputer: 'Computer Skills',
+        secDriving: 'Driving', motorcycle: 'Motorcycle', motoLicense: 'Motorcycle License',
+        car: 'Car', carLicense: 'Car License',
+        secOtherSkill: 'Other Skills', specialAbility: 'Special Ability', hobbies: 'Hobbies',
+        secQuestionnaire: 'Questionnaire', upcountry: 'Upcountry Work Location',
+        strength: 'Strengths', weakness: 'Weaknesses', lessFit: 'Least Preferred Tasks',
+        principles: 'Work Principles', troubleResolve: 'Problem Solving',
+        jobCriteria: 'Job Selection Criteria', interests: 'Interests',
+        secHealth: 'Health', chronic: 'Chronic Disease', surgery: 'Surgery History', medical: 'Medical Record',
+        secEmergency: 'Emergency Contact', emName: 'Full Name', emRelation: 'Relationship',
+        emPhone: 'Phone', emCompany: 'Company', emPosition: 'Position',
+        sigApplicant: 'Applicant Signature', sigRecruiter: 'Recruiter Signature', sigDate: 'Date: ____/____/____',
+        secQuestCont: 'Questionnaire (Continue)',
+      }
+    };
+
+    let currentLang = 'th';
+
+    function setLang(lang) {
+      currentLang = lang;
+      const map = I18N[lang] || I18N.th;
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (map[key]) el.textContent = map[key];
+      });
+      // Update toggle buttons
+      ['th', 'en'].forEach(l => {
+        const btn = document.getElementById('btn-lang-' + l);
+        if (!btn) return;
+        if (l === lang) {
+          btn.classList.add('bg-white', 'shadow-sm', 'text-gray-800');
+          btn.classList.remove('text-gray-600', 'hover:text-gray-800');
+        } else {
+          btn.classList.remove('bg-white', 'shadow-sm', 'text-gray-800');
+          btn.classList.add('text-gray-600', 'hover:text-gray-800');
+        }
+      });
+      localStorage.setItem('hrbp-print-lang', lang);
+    }
+
+    const savedLang = localStorage.getItem('hrbp-print-lang') || 'th';
+    setLang(savedLang);
 
     const dataStr = localStorage.getItem('printPreviewData');
     if (dataStr) {
