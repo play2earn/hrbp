@@ -578,7 +578,7 @@
           <h3 data-i18n="secExperience">ประวัติการทำงาน (Experience)</h3>
         </div>
         <div class="section-body">
-          <div class="grid grid-cols-5 bg-gray-200 text-[11px] font-bold print-break">
+          <div class="grid bg-gray-200 text-[11px] font-bold print-break" style="grid-template-columns: 13% 15% 15% 12% 45%;">
             <div class="box-field py-1" data-i18n="expPeriod">ช่วงเวลา</div>
             <div class="box-field py-1" data-i18n="expCompany">บริษัท</div>
             <div class="box-field py-1" data-i18n="expPosition">ตำแหน่ง</div>
@@ -889,7 +889,7 @@
         fatherName: 'ชื่อบิดา', motherName: 'ชื่อมารดา', ageJob: 'อายุ/อาชีพ',
         secEducation: 'ประวัติการศึกษา', eduLevel: 'ระดับ', eduInstitute: 'สถาบัน', eduMajor: 'สาขา', eduYear: 'ปี',
         secExperience: 'ประวัติการทำงาน (Experience)', expPeriod: 'ช่วงเวลา', expCompany: 'บริษัท',
-        expPosition: 'ตำแหน่ง', expSalary: 'เงินเดือน', expDuty: 'หน้าที่รับผิดชอบ',
+        expPosition: 'ตำแหน่ง', expSalary: 'เงินเดือน', expDuty: 'หน้าที่รับผิดชอบ', expStart: 'เริ่ม', expEnd: 'จบ',
         secLangSkill: 'ทักษะภาษา', english: 'ภาษาอังกฤษ', testScore: 'คะแนนสอบ',
         chinese: 'ภาษาจีน', chineseScore: 'คะแนนสอบจีน', otherLang: 'ภาษาอื่นๆ',
         secComputer: 'ทักษะคอมพิวเตอร์',
@@ -925,7 +925,7 @@
         fatherName: "Father's Name", motherName: "Mother's Name", ageJob: 'Age/Occupation',
         secEducation: 'Education', eduLevel: 'Level', eduInstitute: 'Institute', eduMajor: 'Major', eduYear: 'Year',
         secExperience: 'Work Experience', expPeriod: 'Period', expCompany: 'Company',
-        expPosition: 'Position', expSalary: 'Salary', expDuty: 'Responsibilities',
+        expPosition: 'Position', expSalary: 'Salary', expDuty: 'Responsibilities', expStart: 'Start', expEnd: 'End',
         secLangSkill: 'Language Skills', english: 'English', testScore: 'Test Score',
         chinese: 'Chinese', chineseScore: 'Chinese Score', otherLang: 'Other Languages',
         secComputer: 'Computer Skills',
@@ -1087,11 +1087,21 @@
 
         // Experience
         const expRows = document.getElementById('experience-rows');
+        const formatYrMo = (val) => {
+          if (!val || val === '-') return '-';
+          if (val.length >= 7 && val[4] === '-') return val.substring(0, 7);
+          return val;
+        };
+
         if (d.experience && d.experience.length > 0) {
           let html = '';
+          const map = I18N[currentLang] || I18N.th;
           for (const exp of d.experience) {
-            html += `<div class="grid grid-cols-5 print-break">
-              <div class="box-field text-[11px]">${exp.dateFrom || exp.from || '-'} - ${exp.dateTo || exp.to || '-'}</div>
+            html += `<div class="grid print-break" style="grid-template-columns: 13% 15% 15% 12% 45%;">
+              <div class="box-field text-[11px] leading-[1.6]">
+                <div class="whitespace-nowrap"><span class="text-gray-500 mr-1" data-i18n="expStart">${map.expStart}</span>${formatYrMo(exp.dateFrom || exp.from || '-')}</div>
+                <div class="whitespace-nowrap"><span class="text-gray-500 mr-1" data-i18n="expEnd">${map.expEnd}</span>${formatYrMo(exp.dateTo || exp.to || '-')}</div>
+              </div>
               <div class="box-field text-[11px]">${exp.companyName || exp.company || '-'}</div>
               <div class="box-field text-[11px]">${exp.position || '-'}</div>
               <div class="box-field text-[11px]">${formatMoney(exp.salary)}</div>
