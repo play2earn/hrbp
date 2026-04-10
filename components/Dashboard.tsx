@@ -1556,7 +1556,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               <div className="flex flex-wrap gap-3 pt-4 mt-4 border-t sticky bottom-0 bg-white pb-2">
                 <Button variant="outline" onClick={() => {
                   // Store form_data in localStorage and open print.html
-                  const fd = viewingApp.form_data || {};
+                  const fd = viewingApp.form_data ? { ...viewingApp.form_data } : {};
+                  fd.created_at = viewingApp.created_at;
+                  fd.id = viewingApp.id;
                   localStorage.setItem('printPreviewData', JSON.stringify(fd));
                   window.open('/print.html', '_blank');
                 }}>

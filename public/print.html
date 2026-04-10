@@ -9,9 +9,104 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
 
+    /* Theme Variables */
+    :root {
+      /* Basic Theme (Default) */
+      --th-bg: #1f2937;
+      --th-text: white;
+      --border-color: #374151;
+      --box-border: 1px solid var(--border-color);
+      --section-margin: 12px;
+      --box-padding: 4px 6px;
+      --photo-radius: 0;
+      --main-border: 1px solid var(--border-color);
+      --header-border: 2px solid black;
+      --body-bg: #e5e7eb;
+      --paper-bg: white;
+      --paper-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      --app-font: 'Sarabun', sans-serif;
+    }
+
+    [data-theme="modern"] {
+      --th-bg: #e0e7ff; /* indigo-100 */
+      --th-text: #3730a3; /* indigo-800 */
+      --border-color: #c7d2fe; /* indigo-200 */
+      --box-border: 1px solid var(--border-color);
+      --section-margin: 16px;
+      --box-padding: 6px 8px;
+      --photo-radius: 8px;
+      --main-border: 1px solid var(--border-color);
+      --header-border: 2px solid #4f46e5;
+      --body-bg: #f3f4f6;
+      --paper-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+      --section-radius: 6px;
+    }
+
+    [data-theme="minimal"] {
+      --th-bg: transparent;
+      --th-text: black;
+      --border-color: #d1d5db;
+      --box-border: 1px solid var(--border-color);
+      --section-margin: 16px;
+      --box-padding: 4px 2px;
+      --photo-radius: 0;
+      --main-border: none;
+      --header-border: 1px solid black;
+      --body-bg: #f9fafb;
+      --paper-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+      --section-radius: 0;
+    }
+
+    [data-theme="doublea"] {
+      --th-bg: #002D72;
+      --th-text: white;
+      --border-color: #93C5FD;
+      --box-border: 1px solid var(--border-color);
+      --section-margin: 16px;
+      --box-padding: 6px 8px;
+      --photo-radius: 0;
+      --main-border: 1px solid var(--border-color);
+      --header-border: 3px solid #002D72;
+      --body-bg: #EFF6FF;
+      --paper-shadow: 0 10px 25px -5px rgb(0 45 114 / 0.1);
+      --section-radius: 0;
+    }
+
+    [data-theme="nps"] {
+      --th-bg: #FFD500;
+      --th-text: #111827;
+      --border-color: #E5E7EB;
+      --box-border: 1px solid var(--border-color);
+      --section-margin: 16px;
+      --box-padding: 6px 8px;
+      --photo-radius: 4px;
+      --main-border: 1px solid var(--border-color);
+      --header-border: 4px solid #FFD500;
+      --body-bg: #FEFCE8;
+      --paper-shadow: 0 10px 25px -5px rgb(255 213 0 / 0.15);
+      --section-radius: 4px;
+    }
+
+    [data-theme="relo"] {
+      --th-bg: #5A963E;
+      --th-text: white;
+      --border-color: #C8E6C9;
+      --box-border: 1px solid var(--border-color);
+      --section-margin: 16px;
+      --box-padding: 6px 8px;
+      --photo-radius: 8px;
+      --main-border: 1px solid var(--border-color);
+      --header-border: 3px solid #5A963E;
+      --body-bg: #F2F7F2;
+      --paper-shadow: 0 10px 25px -5px rgb(90 150 62 / 0.1);
+      --section-radius: 8px;
+    }
+
     body {
-      font-family: 'Sarabun', sans-serif;
-      font-size: 11px;
+      font-family: var(--app-font);
+      font-size: 13px;
+      background-color: var(--body-bg);
+      transition: background-color 0.3s ease;
     }
 
     @page {
@@ -21,86 +116,128 @@
 
     @media print {
       body {
+        background-color: transparent !important;
         print-color-adjust: exact;
         -webkit-print-color-adjust: exact;
       }
-
-      .no-print {
-        display: none !important;
+      .no-print { display: none !important; }
+      .print-break { page-break-inside: avoid; break-inside: avoid; }
+      .section-body > .grid { page-break-inside: avoid; break-inside: avoid; }
+      .page-break { page-break-before: always; break-before: page; }
+      .section-wrapper { page-break-inside: avoid; break-inside: avoid; }
+      table { page-break-inside: avoid; break-inside: avoid; }
+      .section-title { page-break-after: avoid; break-after: avoid; }
+      .a4-page {
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
       }
-
-      .print-break {
-        page-break-inside: avoid;
-        break-inside: avoid;
+      [data-theme="modern"] .a4-page {
+        border-radius: 0 !important;
       }
-
-      .page-break {
-        page-break-before: always;
-        break-before: page;
-      }
-
-      /* Prevent sections from breaking in the middle */
-      .section-wrapper {
-        page-break-inside: avoid;
-        break-inside: avoid;
-      }
-
-      /* Tables should not break */
-      table {
-        page-break-inside: avoid;
-        break-inside: avoid;
-      }
-
-      /* Section title + content should stay together */
-      .section-title {
-        page-break-after: avoid;
-        break-after: avoid;
-      }
-
-      /* Border boxes should not break */
-      .border {
-        page-break-inside: avoid;
-        break-inside: avoid;
-      }
+      /* Remove shadows for all themes on print */
+      .content-wrapper * { box-shadow: none !important; }
     }
 
     .section-title {
-      background: #1f2937;
-      color: white;
+      background: var(--th-bg);
+      color: var(--th-text);
       padding: 6px 10px;
-      margin-top: 12px;
+      margin-top: var(--section-margin);
       margin-bottom: 0;
+      transition: all 0.3s ease;
+    }
+    
+    [data-theme="minimal"] .section-title {
+      border-bottom: 2px solid black;
+      padding-left: 0;
+    }
+    
+    [data-theme="modern"] .section-title,
+    [data-theme="doublea"] .section-title,
+    [data-theme="nps"] .section-title,
+    [data-theme="relo"] .section-title {
+      border-top-left-radius: var(--section-radius);
+      border-top-right-radius: var(--section-radius);
     }
 
     .section-title h3 {
-      font-size: 11px;
+      font-size: 14px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
 
-    .box-field {
-      padding: 4px 6px;
-      border-right: 1px solid #374151;
-      border-bottom: 1px solid #374151;
+    .section-body {
+      border: var(--main-border);
+      border-top: none;
+      transition: all 0.3s ease;
+    }
+    
+    .top-section-body {
+      border-top: var(--main-border);
+    }
+    
+    [data-theme="minimal"] .section-body {
+      border-bottom: 1px solid black;
     }
 
-    .box-field:last-child {
+    [data-theme="minimal"] .top-section-body {
+      border: 1px solid black;
+      border-bottom: 1px solid black !important;
+    }
+    
+    [data-theme="modern"] .section-body,
+    [data-theme="doublea"] .section-body,
+    [data-theme="nps"] .section-body,
+    [data-theme="relo"] .section-body {
+      border-bottom-left-radius: var(--section-radius);
+      border-bottom-right-radius: var(--section-radius);
+      background-color: white;
+    }
+    
+    [data-theme="modern"] .top-section-body,
+    [data-theme="doublea"] .top-section-body,
+    [data-theme="nps"] .top-section-body,
+    [data-theme="relo"] .top-section-body {
+      border-top-left-radius: var(--section-radius);
+      border-top-right-radius: var(--section-radius);
+    }
+
+    .box-field {
+      padding: var(--box-padding);
+      border-right: var(--box-border);
+      border-bottom: var(--box-border);
+      transition: all 0.3s ease;
+    }
+    
+    [data-theme="minimal"] .box-field {
       border-right: none;
+      border-bottom: none;
+    }
+
+    .box-field:last-child, .no-border-right {
+      border-right: none !important;
     }
 
     .box-label {
-      font-size: 8px;
+      font-size: 10px;
       color: #6b7280;
       font-weight: 600;
       text-transform: uppercase;
       margin-bottom: 2px;
     }
+    
+    [data-theme="modern"] .box-label { color: #4f46e5; }
+    [data-theme="doublea"] .box-label { color: #002D72; }
+    [data-theme="nps"] .box-label { color: #4B5563; }
+    [data-theme="relo"] .box-label { color: #2E7D32; }
 
     .box-value {
-      font-size: 11px;
+      font-size: 13px;
       font-weight: 500;
       min-height: 14px;
+      color: #111827;
     }
 
     .content-wrapper {
@@ -110,37 +247,77 @@
 
     .a4-page {
       width: 100%;
-      background: white;
+      background: var(--paper-bg);
       padding: 8mm;
       box-sizing: border-box;
+      box-shadow: var(--paper-shadow);
+      margin-bottom: 24px;
+      transition: all 0.3s ease;
     }
+    
+    .header-style {
+      border-bottom: var(--header-border);
+    }
+    
+    .photo-style {
+      border-radius: var(--photo-radius);
+      border-color: var(--border-color);
+    }
+    
+    .print-p-2 { padding: 8px; }
   </style>
 </head>
 
-<body class="bg-gray-200">
-  <div id="app" class="content-wrapper">
-    <!-- Action Bar -->
-    <div class="no-print flex gap-4 p-4 bg-white shadow-lg sticky top-0 z-50">
-      <button onclick="window.print()"
-        class="px-6 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700">
-        🖨️ พิมพ์ A4
+<body>
+  <!-- Action Bar -->
+  <div class="no-print flex flex-col sm:flex-row justify-between items-center gap-4 p-4 bg-white shadow-md sticky top-0 z-50">
+    <div class="flex items-center gap-3 w-full sm:w-auto">
+      <span class="text-sm font-semibold text-gray-700 whitespace-nowrap">เลือกรูปแบบ (Theme):</span>
+      <div class="flex flex-wrap gap-1 bg-gray-100 rounded-lg p-1">
+        <button onclick="setTheme('basic')" id="btn-theme-basic" class="px-3 py-1.5 text-xs font-medium rounded-md bg-white shadow-sm text-gray-800 transition-all">📄 คลาสสิก</button>
+        <button onclick="setTheme('modern')" id="btn-theme-modern" class="px-3 py-1.5 text-xs font-medium rounded-md text-gray-600 hover:text-gray-800 transition-all">✨ ทันสมัย</button>
+        <button onclick="setTheme('minimal')" id="btn-theme-minimal" class="px-3 py-1.5 text-xs font-medium rounded-md text-gray-600 hover:text-gray-800 transition-all">📝 มินิมอล</button>
+        <div class="w-px h-5 bg-gray-300 mx-1 self-center hidden sm:block"></div>
+        <button onclick="setTheme('doublea')" id="btn-theme-doublea" class="px-3 py-1.5 text-xs font-medium rounded-md text-gray-600 hover:text-gray-800 transition-all">📘 Double A</button>
+        <button onclick="setTheme('nps')" id="btn-theme-nps" class="px-3 py-1.5 text-xs font-medium rounded-md text-gray-600 hover:text-gray-800 transition-all">🟡 NPS</button>
+        <button onclick="setTheme('relo')" id="btn-theme-relo" class="px-3 py-1.5 text-xs font-medium rounded-md text-gray-600 hover:text-gray-800 transition-all">🏡 ReLo</button>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="window.print()" class="px-5 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 text-sm flex items-center shadow-sm transition-all">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+        พิมพ์ PDF
       </button>
-      <button onclick="window.close()" class="px-6 py-2 bg-gray-300 rounded-lg font-bold hover:bg-gray-400">
-        ปิด
+      <button onclick="window.close()" class="px-5 py-2 border border-gray-300 text-gray-700 rounded-lg font-bold hover:bg-gray-50 text-sm transition-all">
+        ปิดหน้าต่าง
       </button>
     </div>
+  </div>
 
+  <div id="app" class="content-wrapper mt-6">
     <!-- Page 1 -->
     <div class="a4-page">
+      <!-- Document Title -->
+      <div class="flex justify-between items-end mb-4">
+        <div>
+          <h1 class="text-2xl font-extrabold tracking-tight text-gray-900 leading-none" id="doc-title-th">ใบสมัครงาน</h1>
+          <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1.5" id="doc-title-en">Application for Employment</p>
+        </div>
+        <div class="text-right">
+          <p class="text-[11px] font-bold text-gray-700">App ID: <span id="app-id" class="font-normal text-gray-600">-</span></p>
+          <p class="text-[10px] text-gray-400 mt-0.5">เอกสารใช้เป็นการภายใน (Internal Use Only)</p>
+        </div>
+      </div>
+
       <!-- Header with Photo and Position Info -->
-      <div class="flex items-start gap-4 border-b-2 border-black pb-4 mb-4">
+      <div class="flex items-start gap-4 header-style pb-4 mb-4">
         <div id="photo-container"
-          class="w-24 h-32 border-2 border-dashed border-gray-400 flex items-center justify-center bg-gray-50 text-gray-400 text-xs overflow-hidden flex-shrink-0">
+          class="w-24 h-32 border-2 border-dashed flex items-center justify-center bg-gray-50 text-gray-400 text-xs overflow-hidden flex-shrink-0 photo-style">
           Photo
         </div>
         <!-- Position Section inline with photo -->
-        <div class="border border-gray-800 flex-1">
-          <div class="grid grid-cols-4 h-full">
+        <div class="section-body flex-1 top-section-body flex flex-col min-h-[8rem]">
+          <div class="grid grid-cols-5 flex-1">
             <div class="box-field flex flex-col justify-center">
               <div class="box-label">ตำแหน่งที่สมัคร</div>
               <div class="box-value" id="position">-</div>
@@ -153,9 +330,26 @@
               <div class="box-label">เงินเดือนที่คาดหวัง</div>
               <div class="box-value" id="salary">-</div>
             </div>
-            <div class="box-field flex flex-col justify-center" style="border-right:none">
+            <div class="box-field flex flex-col justify-center">
               <div class="box-label">วันที่พร้อมเริ่มงาน</div>
               <div class="box-value" id="availability">-</div>
+            </div>
+            <div class="box-field flex flex-col justify-center no-border-right">
+              <div class="box-label">วันที่สมัคร</div>
+              <div class="box-value" id="applyDate">-</div>
+            </div>
+          </div>
+          <!-- Source Tags as second row -->
+          <div class="grid grid-cols-1 flex-1">
+            <div class="box-field flex flex-col justify-center no-border-right border-b-0" style="border-bottom: none;">
+              <div class="box-label">ช่องทางที่มา & Links</div>
+              <div class="flex items-center flex-wrap gap-x-4 gap-y-1">
+                <div class="flex flex-wrap gap-2" id="source-tags"></div>
+                <div id="profile-links-row" class="hidden flex items-center">
+                  <span class="text-[11px] text-gray-500">Profile Link:</span>
+                  <a id="profileLinksValue" href="#" target="_blank" class="text-blue-600 underline text-[12px] ml-1 overflow-hidden text-ellipsis whitespace-nowrap max-w-[200px]">-</a>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -165,7 +359,7 @@
       <div class="section-title">
         <h3>ข้อมูลส่วนตัว (ภาษาไทย)</h3>
       </div>
-      <div class="border border-gray-800 border-t-0">
+      <div class="section-body">
         <div class="grid grid-cols-5">
           <div class="box-field">
             <div class="box-label">คำนำหน้า</div>
@@ -186,7 +380,7 @@
       <div class="section-title">
         <h3>ข้อมูลส่วนตัว (English)</h3>
       </div>
-      <div class="border border-gray-800 border-t-0">
+      <div class="section-body">
         <div class="grid grid-cols-5">
           <div class="box-field">
             <div class="box-label">Title</div>
@@ -207,7 +401,7 @@
       <div class="section-title">
         <h3>ข้อมูลพื้นฐาน</h3>
       </div>
-      <div class="border border-gray-800 border-t-0">
+      <div class="section-body">
         <div class="grid grid-cols-7">
           <div class="box-field">
             <div class="box-label">ชื่อเล่น (ไทย)</div>
@@ -258,7 +452,7 @@
       <div class="section-title">
         <h3>ที่อยู่</h3>
       </div>
-      <div class="border border-gray-800 border-t-0">
+      <div class="section-body">
         <div class="grid grid-cols-1">
           <div class="box-field">
             <div class="box-label">ที่อยู่ตามทะเบียนบ้าน</div>
@@ -277,7 +471,7 @@
       <div class="section-title print-break">
         <h3>ข้อมูลครอบครัว</h3>
       </div>
-      <div class="border border-gray-800 border-t-0">
+      <div class="section-body">
         <div class="grid grid-cols-4">
           <div class="box-field">
             <div class="box-label">สถานภาพ</div>
@@ -331,8 +525,8 @@
         <div class="section-title">
           <h3>ประวัติการศึกษา</h3>
         </div>
-        <div class="border border-gray-800 border-t-0">
-          <div class="grid grid-cols-5 bg-gray-200 text-[9px] font-bold">
+        <div class="section-body">
+          <div class="grid grid-cols-5 bg-gray-200 text-[11px] font-bold print-break">
             <div class="box-field py-1">ระดับ</div>
             <div class="box-field py-1">สถาบัน</div>
             <div class="box-field py-1">สาขา</div>
@@ -348,8 +542,8 @@
         <div class="section-title">
           <h3>ประวัติการทำงาน</h3>
         </div>
-        <div class="border border-gray-800 border-t-0">
-          <div class="grid grid-cols-5 bg-gray-200 text-[9px] font-bold">
+        <div class="section-body">
+          <div class="grid grid-cols-5 bg-gray-200 text-[11px] font-bold print-break">
             <div class="box-field py-1">ช่วงเวลา</div>
             <div class="box-field py-1">บริษัท</div>
             <div class="box-field py-1">ตำแหน่ง</div>
@@ -367,7 +561,7 @@
       <div class="section-title">
         <h3>ทักษะภาษา</h3>
       </div>
-      <div class="border border-gray-800 border-t-0">
+      <div class="section-body">
         <div class="grid grid-cols-4">
           <div class="box-field">
             <div class="box-label">ภาษาอังกฤษ</div>
@@ -396,7 +590,7 @@
       <div class="section-title">
         <h3>ทักษะคอมพิวเตอร์</h3>
       </div>
-      <div class="border border-gray-800 border-t-0">
+      <div class="section-body">
         <div class="grid grid-cols-7">
           <div class="box-field">
             <div class="box-label">Word</div>
@@ -433,7 +627,7 @@
       <div class="section-title">
         <h3>การขับขี่</h3>
       </div>
-      <div class="border border-gray-800 border-t-0">
+      <div class="section-body">
         <div class="grid grid-cols-4">
           <div class="box-field">
             <div class="box-label">มอเตอร์ไซค์</div>
@@ -458,7 +652,7 @@
       <div class="section-title">
         <h3>ความสามารถอื่นๆ</h3>
       </div>
-      <div class="border border-gray-800 border-t-0">
+      <div class="section-body">
         <div class="grid grid-cols-1">
           <div class="box-field">
             <div class="box-label">ความสามารถพิเศษ</div>
@@ -477,57 +671,57 @@
       <div class="section-title print-break">
         <h3>แบบสอบถาม</h3>
       </div>
-      <div class="border border-gray-800 border-t-0">
+      <div class="section-body">
         <div class="grid grid-cols-1">
           <div class="box-field">
             <div class="box-label">พื้นที่ไปปฏิบัติงานต่างจังหวัด</div>
-            <div class="box-value text-[10px]" id="upcountryLocations">-</div>
+            <div class="box-value text-[12px]" id="upcountryLocations">-</div>
           </div>
         </div>
         <div class="grid grid-cols-2">
           <div class="box-field">
             <div class="box-label">จุดแข็ง</div>
-            <div class="box-value text-[10px]" id="strength">-</div>
+            <div class="box-value text-[12px]" id="strength">-</div>
           </div>
           <div class="box-field" style="border-right:none">
             <div class="box-label">จุดอ่อน</div>
-            <div class="box-value text-[10px]" id="weakness">-</div>
+            <div class="box-value text-[12px]" id="weakness">-</div>
           </div>
         </div>
         <div class="grid grid-cols-1">
           <div class="box-field">
             <div class="box-label">งานที่ไม่ถนัด</div>
-            <div class="box-value text-[10px]" id="lessFitTask">-</div>
+            <div class="box-value text-[12px]" id="lessFitTask">-</div>
           </div>
         </div>
         <div class="grid grid-cols-1">
           <div class="box-field">
             <div class="box-label">หลักการทำงาน</div>
-            <div class="box-value text-[10px]" id="principles">-</div>
+            <div class="box-value text-[12px]" id="principles">-</div>
           </div>
         </div>
         <div class="grid grid-cols-1">
           <div class="box-field">
             <div class="box-label">วิธีแก้ปัญหา</div>
-            <div class="box-value text-[10px]" id="troubleResolve">-</div>
+            <div class="box-value text-[12px]" id="troubleResolve">-</div>
           </div>
         </div>
         <div class="grid grid-cols-1">
           <div class="box-field">
             <div class="box-label">เกณฑ์เลือกงาน</div>
-            <div class="box-value text-[10px]" id="jobCriteria">-</div>
+            <div class="box-value text-[12px]" id="jobCriteria">-</div>
           </div>
         </div>
         <div class="grid grid-cols-1">
           <div class="box-field">
             <div class="box-label">ความสนใจ</div>
-            <div class="box-value text-[10px]" id="interests">-</div>
+            <div class="box-value text-[12px]" id="interests">-</div>
           </div>
         </div>
         <div class="grid grid-cols-1">
           <div class="box-field" style="border-right:none">
             <div class="box-label">Digital Transform</div>
-            <div class="box-value text-[10px]" id="digitalTransformOpinion">-</div>
+            <div class="box-value text-[12px]" id="digitalTransformOpinion">-</div>
           </div>
         </div>
       </div>
@@ -536,7 +730,7 @@
       <div class="section-title print-break">
         <h3>สุขภาพ</h3>
       </div>
-      <div class="border border-gray-800 border-t-0">
+      <div class="section-body">
         <div class="grid grid-cols-3">
           <div class="box-field">
             <div class="box-label">โรคประจำตัว</div>
@@ -557,7 +751,7 @@
       <div class="section-title">
         <h3>ผู้ติดต่อฉุกเฉิน</h3>
       </div>
-      <div class="border border-gray-800 border-t-0">
+      <div class="section-body">
         <div class="grid grid-cols-5">
           <div class="box-field">
             <div class="box-label">ชื่อ-สกุล</div>
@@ -582,35 +776,52 @@
         </div>
       </div>
 
-      <!-- Source Tags -->
-      <div class="section-title">
-        <h3>ช่องทางที่มา & Links</h3>
-      </div>
-      <div class="border border-gray-800 border-t-0 p-2">
-        <div class="flex flex-wrap gap-2" id="source-tags"></div>
-        <div id="profile-links-row" class="hidden mt-2 pt-2 border-t">
-          <span class="text-[9px] text-gray-500">Profile Link:</span>
-          <a id="profileLinksValue" href="#" target="_blank" class="text-blue-600 underline text-[10px] ml-1">-</a>
-        </div>
-      </div>
-
       <!-- Signature Area -->
       <div class="mt-8 grid grid-cols-2 gap-8">
         <div class="text-center">
           <div class="border-b border-gray-400 h-16"></div>
           <p class="text-xs mt-1">ลงชื่อผู้สมัคร</p>
-          <p class="text-[9px] text-gray-500">วันที่: ____/____/____</p>
+          <p class="text-[11px] text-gray-500">วันที่: ____/____/____</p>
         </div>
         <div class="text-center">
           <div class="border-b border-gray-400 h-16"></div>
           <p class="text-xs mt-1">ลงชื่อผู้รับสมัคร</p>
-          <p class="text-[9px] text-gray-500">วันที่: ____/____/____</p>
+          <p class="text-[11px] text-gray-500">วันที่: ____/____/____</p>
         </div>
       </div>
     </div>
   </div>
 
   <script>
+    // Theme Management
+    const THEMES = ['basic', 'modern', 'minimal', 'doublea', 'nps', 'relo'];
+    
+    function setTheme(theme) {
+      if (!THEMES.includes(theme)) theme = 'basic';
+      
+      // Update body theme
+      document.body.setAttribute('data-theme', theme);
+      
+      // Update buttons UI
+      THEMES.forEach(t => {
+        const btn = document.getElementById('btn-theme-' + t);
+        if (!btn) return;
+        if (t === theme) {
+          btn.classList.add('bg-white', 'shadow-sm', 'text-gray-800');
+          btn.classList.remove('text-gray-600', 'hover:text-gray-800');
+        } else {
+          btn.classList.remove('bg-white', 'shadow-sm', 'text-gray-800');
+          btn.classList.add('text-gray-600', 'hover:text-gray-800');
+        }
+      });
+      
+      localStorage.setItem('hrbp-print-theme', theme);
+    }
+    
+    // Initialize Theme
+    const savedTheme = localStorage.getItem('hrbp-print-theme') || 'basic';
+    setTheme(savedTheme);
+
     const dataStr = localStorage.getItem('printPreviewData');
     if (dataStr) {
       try {
@@ -626,12 +837,40 @@
         // Helper
         const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '-'; };
         const yn = (v) => v ? 'ได้' : 'ไม่ได้';
+        const formatMoney = (val) => {
+          if (!val) return '-';
+          const strVal = String(val).replace(/,/g, '').trim();
+          if (!isNaN(strVal) && strVal !== '') return Number(strVal).toLocaleString();
+          return val;
+        };
+        const formatDateValue = (val, includeTime = false) => {
+          if (!val) return '-';
+          try {
+            const dObj = new Date(val);
+            if (isNaN(dObj)) return val;
+            const dd = String(dObj.getDate()).padStart(2, '0');
+            const mm = String(dObj.getMonth() + 1).padStart(2, '0');
+            const yyyy = dObj.getFullYear();
+            let res = `${dd}/${mm}/${yyyy}`;
+            if (includeTime) {
+              const hh = String(dObj.getHours()).padStart(2, '0');
+              const mins = String(dObj.getMinutes()).padStart(2, '0');
+              res += ` ${hh}:${mins}`;
+            }
+            return res;
+          } catch(e) {
+            return val;
+          }
+        };
+
+        set('app-id', d.id || `${dateStr}-${Math.floor(Math.random() * 1000)}`);
 
         // Position
         set('position', d.position);
         set('department', d.department);
-        set('salary', d.expectedSalary ? `${d.expectedSalary}${d.isSalaryNegotiable ? ' (ต่อรองได้)' : ''}` : '-');
-        set('availability', d.availability);
+        set('salary', d.expectedSalary ? `${formatMoney(d.expectedSalary)}${d.isSalaryNegotiable ? ' (ต่อรองได้)' : ''}` : '-');
+        set('availability', formatDateValue(d.availability));
+        set('applyDate', formatDateValue(d.created_at, true));
 
         // Personal TH
         set('title', d.title);
@@ -685,16 +924,16 @@
           let html = '';
           for (const [lvl, info] of Object.entries(d.education)) {
             if (info && info.institute) {
-              html += `<div class="grid grid-cols-5">
-                <div class="box-field text-[9px]">${eduLevels[lvl] || lvl}</div>
-                <div class="box-field text-[9px]">${info.institute || '-'}</div>
-                <div class="box-field text-[9px]">${info.major || '-'}</div>
-                <div class="box-field text-[9px]">${info.gpa || '-'}</div>
-                <div class="box-field text-[9px]" style="border-right:none">${info.startDate || ''}-${info.endDate || ''}</div>
+              html += `<div class="grid grid-cols-5 print-break">
+                <div class="box-field text-[11px]">${eduLevels[lvl] || lvl}</div>
+                <div class="box-field text-[11px]">${info.institute || '-'}</div>
+                <div class="box-field text-[11px]">${info.major || '-'}</div>
+                <div class="box-field text-[11px]">${info.gpa || '-'}</div>
+                <div class="box-field text-[11px]" style="border-right:none">${info.startDate || ''}-${info.endDate || ''}</div>
               </div>`;
             }
           }
-          eduRows.innerHTML = html || '<div class="p-2 text-[9px] text-gray-400">ไม่มีข้อมูล</div>';
+          eduRows.innerHTML = html || '<div class="p-2 text-[11px] text-gray-400">ไม่มีข้อมูล</div>';
         }
 
         // Experience
@@ -702,17 +941,17 @@
         if (d.experience && d.experience.length > 0) {
           let html = '';
           for (const exp of d.experience) {
-            html += `<div class="grid grid-cols-5">
-              <div class="box-field text-[9px]">${exp.dateFrom || exp.from || '-'} - ${exp.dateTo || exp.to || '-'}</div>
-              <div class="box-field text-[9px]">${exp.companyName || exp.company || '-'}</div>
-              <div class="box-field text-[9px]">${exp.position || '-'}</div>
-              <div class="box-field text-[9px]">${exp.salary || '-'}</div>
-              <div class="box-field text-[9px]" style="border-right:none">${exp.jobDescription || exp.description || '-'}</div>
+            html += `<div class="grid grid-cols-5 print-break">
+              <div class="box-field text-[11px]">${exp.dateFrom || exp.from || '-'} - ${exp.dateTo || exp.to || '-'}</div>
+              <div class="box-field text-[11px]">${exp.companyName || exp.company || '-'}</div>
+              <div class="box-field text-[11px]">${exp.position || '-'}</div>
+              <div class="box-field text-[11px]">${formatMoney(exp.salary)}</div>
+              <div class="box-field text-[11px]" style="border-right:none">${exp.jobDescription || exp.description || '-'}</div>
             </div>`;
           }
           expRows.innerHTML = html;
         } else {
-          expRows.innerHTML = '<div class="p-2 text-[9px] text-gray-400">ไม่มีข้อมูล</div>';
+          expRows.innerHTML = '<div class="p-2 text-[11px] text-gray-400">ไม่มีข้อมูล</div>';
         }
 
         // Skills
@@ -773,10 +1012,10 @@
         // Tags
         const tags = document.getElementById('source-tags');
         let tagHtml = '';
-        if (d.businessUnit) tagHtml += `<span class="px-2 py-0.5 text-[9px] rounded-full bg-indigo-100 text-indigo-700 font-medium">BU: ${d.businessUnit}</span>`;
-        if (d.sourceChannel) tagHtml += `<span class="px-2 py-0.5 text-[9px] rounded-full bg-blue-100 text-blue-700 font-medium">CH: ${d.sourceChannel}</span>`;
-        if (d.campaignTag) tagHtml += `<span class="px-2 py-0.5 text-[9px] rounded-full bg-purple-100 text-purple-700 font-medium">Tag: ${d.campaignTag}</span>`;
-        tags.innerHTML = tagHtml || '<span class="text-[9px] text-gray-400">-</span>';
+        if (d.businessUnit) tagHtml += `<span class="px-2 py-0.5 text-[11px] rounded-full bg-indigo-100 text-indigo-700 font-medium">BU: ${d.businessUnit}</span>`;
+        if (d.sourceChannel) tagHtml += `<span class="px-2 py-0.5 text-[11px] rounded-full bg-blue-100 text-blue-700 font-medium">CH: ${d.sourceChannel}</span>`;
+        if (d.campaignTag) tagHtml += `<span class="px-2 py-0.5 text-[11px] rounded-full bg-purple-100 text-purple-700 font-medium">Tag: ${d.campaignTag}</span>`;
+        tags.innerHTML = tagHtml || '<span class="text-[11px] text-gray-400">-</span>';
 
         // Links
         if (d.profileLinks) {
