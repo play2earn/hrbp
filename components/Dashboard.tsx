@@ -830,6 +830,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                           <th className="text-left px-4 py-3 font-semibold text-gray-700">Channel</th>
                           <th className="text-left px-4 py-3 font-semibold text-gray-700">Tags</th>
                           <th className="text-left px-4 py-3 font-semibold text-gray-700">URL</th>
+                          <th className="text-center px-4 py-3 font-semibold text-gray-700">QR Code</th>
                           <th className="text-left px-4 py-3 font-semibold text-gray-700">Created By</th>
                         </tr>
                       </thead>
@@ -862,6 +863,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                               >
                                 {log.generated_url}
                               </button>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 w-8 p-0 inline-flex items-center justify-center border-gray-200 hover:bg-indigo-50 hover:text-indigo-600"
+                                onClick={() => window.open(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(log.generated_url)}`, '_blank')}
+                                title="เปิด QR Code เพื่อบันทึก"
+                              >
+                                <QrCode className="w-4 h-4" />
+                              </Button>
                             </td>
                             <td className="px-4 py-3 text-gray-600">{log.created_by}</td>
                           </tr>
