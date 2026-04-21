@@ -92,7 +92,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
   const handleProfilePhotoError = () => {
     if (!profileEmpId) { setProfilePhotoUrl(null); return; }
     const fallbackUrls = [
-      `https://intranet.advanceagro.net/EmployeeCard/empimages/${profileEmpId}.jpg`,
       `https://wms.advanceagro.net/WSVIS/api/Face/GetImage?CardID=${profileEmpId}`,
     ];
     const nextUrl = fallbackUrls.find(url => url !== profilePhotoUrl && !profilePhotoUrl?.startsWith('blob:'));
@@ -187,9 +186,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
           setProfilePhotoUrl(url);
         })
         .catch(err => {
-          console.warn('IDMS photo unavailable, using intranet fallback:', err.message);
-          // Fallback #2: Intranet employee card image
-          setProfilePhotoUrl(`https://intranet.advanceagro.net/EmployeeCard/empimages/${empId}.jpg`);
+          console.warn('IDMS photo unavailable, trying WMS fallback:', err.message);
+          // Fallback #2: WMS Face API
+          setProfilePhotoUrl(`https://wms.advanceagro.net/WSVIS/api/Face/GetImage?CardID=${empId}`);
         });
     }
     fetchQrLogs();
