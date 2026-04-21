@@ -23,6 +23,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
   // Current User Info
   const [currentUser, setCurrentUser] = useState<{ full_name: string; email: string; role: string; emp_id?: string } | null>(null);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
+  const [profileEmpId, setProfileEmpId] = useState<string | null>(null);
 
   // Data State
   const [applications, setApplications] = useState<any[]>([]);
@@ -148,6 +149,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     // Fetch profile photo from IDMS, fallback to intranet empimages
     const empId = storedUser ? (() => { try { return JSON.parse(storedUser).emp_id; } catch { return null; } })() : null;
     if (empId) {
+      setProfileEmpId(empId);
       fetch(`https://api-idms.advanceagro.net/hrms/employee/${empId}/photocard/?size=120`)
         .then(res => {
           if (!res.ok) throw new Error('Photo not found');
@@ -164,7 +166,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
         })
         .catch(err => {
           console.warn('IDMS photo unavailable, using intranet fallback:', err.message);
-          // Fallback #2: Intranet employee card image (set directly, let <img onError> handle failures)
+          // Fallback #2: Intranet employee card image
           setProfilePhotoUrl(`https://intranet.advanceagro.net/EmployeeCard/empimages/${empId}.jpg`);
         });
     }
@@ -405,7 +407,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
           {currentUser && !sidebarCollapsed && (
             <div className="flex items-center gap-3 mb-3 p-2 rounded-xl bg-slate-800/60">
               {profilePhotoUrl ? (
-                <img src={profilePhotoUrl} alt="Profile" className="w-10 h-10 rounded-full object-cover border-2 border-indigo-500/50 shadow-md flex-shrink-0" onError={() => setProfilePhotoUrl(null)} />
+                <img src={profilePhotoUrl} alt="Profile" className="w-10 h-10 rounded-full object-cover border-2 border-indigo-500/50 shadow-md flex-shrink-0" onError={() => {
+                    // If current URL is not the intranet fallback, try intranet first
+                    const intranetUrl = profileEmpId ? `https://intranet.advanceagro.net/EmployeeCard/empimages/${profileEmpId}.jpg` : null;
+                    if (intranetUrl && profilePhotoUrl !== intranetUrl) {
+                      setProfilePhotoUrl(intranetUrl);
+                    } else {
+                      setProfilePhotoUrl(null);
+                    }
+                  }} />
               ) : (
                 <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                   {currentUser.full_name?.charAt(0).toUpperCase() || 'U'}
@@ -420,7 +430,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
           {currentUser && sidebarCollapsed && (
             <div className="flex justify-center mb-2">
               {profilePhotoUrl ? (
-                <img src={profilePhotoUrl} alt="Profile" className="w-9 h-9 rounded-full object-cover border-2 border-indigo-500/50 shadow-md" onError={() => setProfilePhotoUrl(null)} />
+                <img src={profilePhotoUrl} alt="Profile" className="w-9 h-9 rounded-full object-cover border-2 border-indigo-500/50 shadow-md" onError={() => {
+                    // If current URL is not the intranet fallback, try intranet first
+                    const intranetUrl = profileEmpId ? `https://intranet.advanceagro.net/EmployeeCard/empimages/${profileEmpId}.jpg` : null;
+                    if (intranetUrl && profilePhotoUrl !== intranetUrl) {
+                      setProfilePhotoUrl(intranetUrl);
+                    } else {
+                      setProfilePhotoUrl(null);
+                    }
+                  }} />
               ) : (
                 <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-xs">
                   {currentUser.full_name?.charAt(0).toUpperCase() || 'U'}
@@ -1230,7 +1248,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                     {/* Profile Header */}
                     <div className="flex items-center gap-4 pb-6 border-b">
                       {profilePhotoUrl ? (
-                        <img src={profilePhotoUrl} alt="Profile" className="w-20 h-20 rounded-full object-cover border-4 border-indigo-200 shadow-lg flex-shrink-0" onError={() => setProfilePhotoUrl(null)} />
+                        <img src={profilePhotoUrl} alt="Profile" className="w-20 h-20 rounded-full object-cover border-4 border-indigo-200 shadow-lg flex-shrink-0" onError={() => {
+                    const intranetUrl = profileEmpId ? `https://intranet.advanceagro.net/EmployeeCard/empimages/${profileEmpId}.jpg` : null;
+                    if (intranetUrl && profilePhotoUrl !== intranetUrl) {
+                      setProfilePhotoUrl(intranetUrl);
+                    } else {
+                      setProfilePhotoUrl(null);
+                    }
+                  }} />
                       ) : (
                         <div className={`w-20 h-20 rounded-full flex items-center justify-center font-bold text-3xl text-white shadow-lg
                           ${currentUser.role === 'admin' ? 'bg-gradient-to-br from-purple-500 to-purple-700' : 'bg-gradient-to-br from-indigo-500 to-indigo-700'}`}>
