@@ -1,8 +1,7 @@
 
 import { supabase } from '../supabaseClient';
 import { ApplicationForm } from '../types';
-import * as md5Module from 'js-md5';
-const md5 = (md5Module as any).default || md5Module;
+import md5 from 'js-md5';
 
 // ============================================================
 // API Response Types
@@ -339,7 +338,7 @@ export const api = {
         // Hash password with MD5
         let passwordMd5: string;
         try {
-          passwordMd5 = typeof md5 === 'function' ? md5(password) : (md5 as any)(password);
+          passwordMd5 = md5(password);
         } catch (hashErr) {
           console.error('MD5 hashing failed:', hashErr);
           return { user: null, error: { message: 'Internal error: password hashing failed.' } };
