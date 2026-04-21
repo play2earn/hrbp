@@ -335,17 +335,38 @@ export const api = {
         }
 
         const normalizedUsername = username.trim();
-        const passwordMd5 = md5(password);
+
+        // Hash password with MD5
+        let passwordMd5: string;
+        try {
+          passwordMd5 = typeof md5 === 'function' ? md5(password) : (md5 as any)(password);
+        } catch (hashErr) {
+          console.error('MD5 hashing failed:', hashErr);
+          return { user: null, error: { message: 'Internal error: password hashing failed.' } };
+        }
 
         // 1. Call IDMS API
         const idmsUrl = `https://mobiledev.advanceagro.net/ws/api/idms/authentication/?account=${encodeURIComponent(normalizedUsername)}&password=${encodeURIComponent(passwordMd5)}&Service=0000&AgentId=SystemMango&AgentCode=Np4kfRh5`;
         
-        const response = await fetch(idmsUrl, {
+        let response: Response;
+        try {
+          response = await fetch(idmsUrl, {
             method: 'GET',
             headers: { 'Accept': 'application/json' },
-        });
+          });
+        } catch (fetchErr: any) {
+          console.error('IDMS fetch failed:', fetchErr);
+          return { user: null, error: { message: `ไม่สามารถเชื่อมต่อระบบ IDMS ได้: ${fetchErr.message || 'Network error'}` } };
+        }
         
-        const data = await response.json();
+        let data: any;
+        try {
+          const textBody = await response.text();
+          data = JSON.parse(textBody);
+        } catch (parseErr) {
+          console.error('IDMS response parse failed:', parseErr);
+          return { user: null, error: { message: 'ระบบ IDMS ตอบกลับข้อมูลผิดรูปแบบ กรุณาลองใหม่' } };
+        }
 
         if (!data || data.Result !== 'OK') {
             const msg = data?.Result?.replace('Error : ', '') || 'Invalid HRMS credentials';
@@ -377,7 +398,7 @@ export const api = {
         };
       } catch (error: any) {
         console.error('Login error:', error);
-        return { user: null, error: { message: 'Login failed. Please check internet connection or CORS settings.' } };
+        return { user: null, error: { message: `Login failed: ${error.message || 'Unknown error'}` } };
       }
     },
 
