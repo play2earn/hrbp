@@ -145,7 +145,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     fetchData();
     fetchQrMasterData();
 
-    // Fetch profile photo from IDMS
+    // Fetch profile photo from IDMS, fallback to intranet empimages
     const empId = storedUser ? (() => { try { return JSON.parse(storedUser).emp_id; } catch { return null; } })() : null;
     if (empId) {
       fetch(`https://api-idms.advanceagro.net/hrms/employee/${empId}/photocard/?size=120`)
@@ -163,8 +163,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
           setProfilePhotoUrl(url);
         })
         .catch(err => {
-          console.warn('Profile photo unavailable, using default avatar:', err.message);
-          setProfilePhotoUrl(null);
+          console.warn('IDMS photo unavailable, trying intranet fallback:', err.message);
+          // Fallback #2: Intranet employee card image
+          const intranetUrl = `https://intranet.advanceagro.net/EmployeeCard/empimages/${empId}.jpg`;
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            setProfilePhotoUrl(intranetUrl);
+          };
+          img.onerror = () => {
+            console.warn('Intranet photo also unavailable, using default avatar');
+            setProfilePhotoUrl(null);
+          };
+          img.src = intranetUrl;
         });
     }
     fetchQrLogs();
