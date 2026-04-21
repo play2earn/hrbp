@@ -88,6 +88,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
   };
 
+  // Profile photo fallback chain: IDMS API → Intranet empimages → WMS Face API → Initials
+  const handleProfilePhotoError = () => {
+    if (!profileEmpId) { setProfilePhotoUrl(null); return; }
+    const fallbackUrls = [
+      `https://intranet.advanceagro.net/EmployeeCard/empimages/${profileEmpId}.jpg`,
+      `https://wms.advanceagro.net/WSVIS/api/Face/GetImage?CardID=${profileEmpId}`,
+    ];
+    const nextUrl = fallbackUrls.find(url => url !== profilePhotoUrl && !profilePhotoUrl?.startsWith('blob:'));
+    if (nextUrl && profilePhotoUrl !== nextUrl) {
+      // Check if we already tried a fallback that's earlier in the list
+      const currentIndex = fallbackUrls.indexOf(profilePhotoUrl || '');
+      const nextIndex = currentIndex >= 0 ? currentIndex + 1 : 0;
+      if (nextIndex < fallbackUrls.length) {
+        setProfilePhotoUrl(fallbackUrls[nextIndex]);
+      } else {
+        setProfilePhotoUrl(null);
+      }
+    } else {
+      setProfilePhotoUrl(null);
+    }
+  };
+
   // Initialize edit form when editingApp changes
   useEffect(() => {
     if (editingApp) {
@@ -407,15 +429,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
           {currentUser && !sidebarCollapsed && (
             <div className="flex items-center gap-3 mb-3 p-2 rounded-xl bg-slate-800/60">
               {profilePhotoUrl ? (
-                <img src={profilePhotoUrl} alt="Profile" className="w-10 h-10 rounded-full object-cover border-2 border-indigo-500/50 shadow-md flex-shrink-0" onError={() => {
-                    // If current URL is not the intranet fallback, try intranet first
-                    const intranetUrl = profileEmpId ? `https://intranet.advanceagro.net/EmployeeCard/empimages/${profileEmpId}.jpg` : null;
-                    if (intranetUrl && profilePhotoUrl !== intranetUrl) {
-                      setProfilePhotoUrl(intranetUrl);
-                    } else {
-                      setProfilePhotoUrl(null);
-                    }
-                  }} />
+                <img src={profilePhotoUrl} alt="Profile" className="w-10 h-10 rounded-full object-cover border-2 border-indigo-500/50 shadow-md flex-shrink-0" onError={handleProfilePhotoError} />
               ) : (
                 <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                   {currentUser.full_name?.charAt(0).toUpperCase() || 'U'}
@@ -430,15 +444,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
           {currentUser && sidebarCollapsed && (
             <div className="flex justify-center mb-2">
               {profilePhotoUrl ? (
-                <img src={profilePhotoUrl} alt="Profile" className="w-9 h-9 rounded-full object-cover border-2 border-indigo-500/50 shadow-md" onError={() => {
-                    // If current URL is not the intranet fallback, try intranet first
-                    const intranetUrl = profileEmpId ? `https://intranet.advanceagro.net/EmployeeCard/empimages/${profileEmpId}.jpg` : null;
-                    if (intranetUrl && profilePhotoUrl !== intranetUrl) {
-                      setProfilePhotoUrl(intranetUrl);
-                    } else {
-                      setProfilePhotoUrl(null);
-                    }
-                  }} />
+                <img src={profilePhotoUrl} alt="Profile" className="w-9 h-9 rounded-full object-cover border-2 border-indigo-500/50 shadow-md" onError={handleProfilePhotoError} />
               ) : (
                 <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-xs">
                   {currentUser.full_name?.charAt(0).toUpperCase() || 'U'}
@@ -1248,14 +1254,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                     {/* Profile Header */}
                     <div className="flex items-center gap-4 pb-6 border-b">
                       {profilePhotoUrl ? (
-                        <img src={profilePhotoUrl} alt="Profile" className="w-20 h-20 rounded-full object-cover border-4 border-indigo-200 shadow-lg flex-shrink-0" onError={() => {
-                    const intranetUrl = profileEmpId ? `https://intranet.advanceagro.net/EmployeeCard/empimages/${profileEmpId}.jpg` : null;
-                    if (intranetUrl && profilePhotoUrl !== intranetUrl) {
-                      setProfilePhotoUrl(intranetUrl);
-                    } else {
-                      setProfilePhotoUrl(null);
-                    }
-                  }} />
+                        <img src={profilePhotoUrl} alt="Profile" className="w-20 h-20 rounded-full object-cover border-4 border-indigo-200 shadow-lg flex-shrink-0" onError={handleProfilePhotoError} />
                       ) : (
                         <div className={`w-20 h-20 rounded-full flex items-center justify-center font-bold text-3xl text-white shadow-lg
                           ${currentUser.role === 'admin' ? 'bg-gradient-to-br from-purple-500 to-purple-700' : 'bg-gradient-to-br from-indigo-500 to-indigo-700'}`}>
