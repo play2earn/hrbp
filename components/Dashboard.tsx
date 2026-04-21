@@ -847,7 +847,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                             <td className="px-4 py-3 text-gray-900">{log.channel || '-'}</td>
                             <td className="px-4 py-3">
                               {log.campaign_tag ? (
-                                <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2 py-1 rounded-full">
+                                <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2 py-1 rounded-lg inline-block whitespace-nowrap max-w-[150px] truncate" title={log.campaign_tag}>
                                   {log.campaign_tag}
                                 </span>
                               ) : '-'}
@@ -865,15 +865,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                               </button>
                             </td>
                             <td className="px-4 py-3 text-center">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 w-8 p-0 inline-flex items-center justify-center border-gray-200 hover:bg-indigo-50 hover:text-indigo-600"
-                                onClick={() => window.open(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(log.generated_url)}`, '_blank')}
-                                title="เปิด QR Code เพื่อบันทึก"
+                              <div
+                                onClick={() => window.open(`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(log.generated_url)}`, '_blank')}
+                                title="เปิด QR Code ขนาดเต็ม"
+                                className="group relative inline-flex items-center justify-center w-10 h-10 bg-white border border-gray-200 rounded-lg cursor-pointer hover:border-indigo-400 hover:shadow-md transition-all overflow-hidden"
                               >
-                                <QrCode className="w-4 h-4" />
-                              </Button>
+                                <img
+                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(log.generated_url)}`}
+                                  alt="QR Thumbnail"
+                                  className="w-8 h-8 object-contain transition-transform group-hover:scale-110"
+                                />
+                                <div className="absolute inset-0 bg-gray-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                                    <path d="M15 3h6v6"></path>
+                                    <polyline points="10 14 21 3"></polyline>
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                  </svg>
+                                </div>
+                              </div>
                             </td>
                             <td className="px-4 py-3 text-gray-600">{log.created_by}</td>
                           </tr>
