@@ -828,8 +828,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                           <th className="text-left px-4 py-3 font-semibold text-gray-700">วันที่สร้าง</th>
                           <th className="text-left px-4 py-3 font-semibold text-gray-700">BU</th>
                           <th className="text-left px-4 py-3 font-semibold text-gray-700">Channel</th>
-                          <th className="text-left px-4 py-3 font-semibold text-gray-700">Tags</th>
-                          <th className="text-left px-4 py-3 font-semibold text-gray-700">URL</th>
+                          <th className="text-left px-4 py-3 font-semibold text-gray-700 w-64">URL / Tags</th>
                           <th className="text-center px-4 py-3 font-semibold text-gray-700">QR Code</th>
                           <th className="text-left px-4 py-3 font-semibold text-gray-700">Created By</th>
                         </tr>
@@ -845,24 +844,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                             </td>
                             <td className="px-4 py-3 text-gray-900">{log.business_unit || '-'}</td>
                             <td className="px-4 py-3 text-gray-900">{log.channel || '-'}</td>
-                            <td className="px-4 py-3">
-                              {log.campaign_tag ? (
-                                <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2 py-1 rounded-lg inline-block whitespace-nowrap max-w-[150px] truncate" title={log.campaign_tag}>
-                                  {log.campaign_tag}
-                                </span>
-                              ) : '-'}
-                            </td>
-                            <td className="px-4 py-3">
-                              <button
-                                onClick={async () => {
-                                  await navigator.clipboard.writeText(log.generated_url);
-                                  showToast('คัดลอก URL แล้ว!', 'success');
-                                }}
-                                className="text-indigo-600 hover:underline font-mono text-xs truncate block max-w-[200px] text-left cursor-pointer"
-                                title={`คลิกเพื่อคัดลอก: ${log.generated_url}`}
-                              >
-                                {log.generated_url}
-                              </button>
+                            <td className="px-4 py-3 w-64">
+                              <div className="flex flex-col items-start gap-1.5">
+                                <button
+                                  onClick={async () => {
+                                    await navigator.clipboard.writeText(log.generated_url);
+                                    showToast('คัดลอก URL แล้ว!', 'success');
+                                  }}
+                                  className="text-indigo-600 hover:underline font-mono text-[11px] truncate w-full max-w-[240px] text-left cursor-pointer block bg-indigo-50/50 px-1 py-0.5 rounded"
+                                  title={`คลิกเพื่อคัดลอก: ${log.generated_url}`}
+                                >
+                                  {log.generated_url}
+                                </button>
+                                {log.campaign_tag ? (
+                                  <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2 py-1 rounded-lg inline-block whitespace-normal break-words max-w-full leading-snug">
+                                    {log.campaign_tag}
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-400 text-xs">-</span>
+                                )}
+                              </div>
                             </td>
                             <td className="px-4 py-3 text-center">
                               <div
