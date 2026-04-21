@@ -163,19 +163,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
           setProfilePhotoUrl(url);
         })
         .catch(err => {
-          console.warn('IDMS photo unavailable, trying intranet fallback:', err.message);
-          // Fallback #2: Intranet employee card image
-          const intranetUrl = `https://intranet.advanceagro.net/EmployeeCard/empimages/${empId}.jpg`;
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          img.onload = () => {
-            setProfilePhotoUrl(intranetUrl);
-          };
-          img.onerror = () => {
-            console.warn('Intranet photo also unavailable, using default avatar');
-            setProfilePhotoUrl(null);
-          };
-          img.src = intranetUrl;
+          console.warn('IDMS photo unavailable, using intranet fallback:', err.message);
+          // Fallback #2: Intranet employee card image (set directly, let <img onError> handle failures)
+          setProfilePhotoUrl(`https://intranet.advanceagro.net/EmployeeCard/empimages/${empId}.jpg`);
         });
     }
     fetchQrLogs();
@@ -788,7 +778,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
           )}
 
           {activeTab === 'qr' && (
-            <div className="max-w-4xl form-step-enter">
+            <div className="form-step-enter">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">QR Code & Link Generator</h2>
               <p className="text-gray-500 mb-6">สร้าง QR Code และ Link สำหรับติดตามช่องทางการรับสมัคร</p>
 
@@ -956,7 +946,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
           )}
 
           {activeTab === 'settings' && role === 'admin' && (
-            <div className="max-w-4xl form-step-enter">
+            <div className="form-step-enter">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">System Settings</h2>
 
               {/* Pending Users Management */}
@@ -1230,7 +1220,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
           )}
 
           {activeTab === 'profile' && (
-            <div className="max-w-2xl form-step-enter">
+            <div className="form-step-enter">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">My Profile</h2>
               <p className="text-gray-500 mb-6">ข้อมูลบัญชีผู้ใช้งานของคุณ</p>
 
