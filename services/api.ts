@@ -344,17 +344,17 @@ export const api = {
           return { user: null, error: { message: 'Internal error: password hashing failed.' } };
         }
 
-        // 1. Call IDMS API
-        const idmsUrl = `https://mobiledev.advanceagro.net/ws/api/idms/authentication/?account=${encodeURIComponent(normalizedUsername)}&password=${encodeURIComponent(passwordMd5)}&Service=0000&AgentId=SystemMango&AgentCode=Np4kfRh5`;
+        // 1. Call IDMS API via server-side proxy (avoids CORS issues)
+        const proxyUrl = `/api/idms-auth?account=${encodeURIComponent(normalizedUsername)}&password=${encodeURIComponent(passwordMd5)}`;
         
         let response: Response;
         try {
-          response = await fetch(idmsUrl, {
+          response = await fetch(proxyUrl, {
             method: 'GET',
             headers: { 'Accept': 'application/json' },
           });
         } catch (fetchErr: any) {
-          console.error('IDMS fetch failed:', fetchErr);
+          console.error('IDMS proxy fetch failed:', fetchErr);
           return { user: null, error: { message: `ไม่สามารถเชื่อมต่อระบบ IDMS ได้: ${fetchErr.message || 'Network error'}` } };
         }
         

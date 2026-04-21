@@ -12,7 +12,16 @@ import { Globe, Lock, User as UserIcon, ArrowRight, Briefcase, TrendingUp, Heart
 import TrackingSystem from './components/TrackingSystem';
 
 export default function App() {
-  const [role, setRole] = useState<Role>('guest');
+  const [role, setRole] = useState<Role>(() => {
+    try {
+      const stored = localStorage.getItem('currentUser');
+      if (stored) {
+        const user = JSON.parse(stored);
+        if (user.role === 'admin' || user.role === 'mod') return user.role;
+      }
+    } catch {}
+    return 'guest';
+  });
   const [lang, setLang] = useState<Language>('en');
   const [pdpaAccepted, setPdpaAccepted] = useState(false);
   const [isPdpaModalOpen, setIsPdpaModalOpen] = useState(false);
@@ -43,6 +52,7 @@ export default function App() {
     setRole('guest');
     setPdpaAccepted(false);
     setSelectedJob(undefined);
+    localStorage.removeItem('currentUser');
   };
 
   const toggleLang = () => {
