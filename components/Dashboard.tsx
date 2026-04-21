@@ -21,7 +21,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Current User Info
-  const [currentUser, setCurrentUser] = useState<{ full_name: string; email: string; role: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ full_name: string; email: string; role: string; emp_id?: string } | null>(null);
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
 
   // Data State
   const [applications, setApplications] = useState<any[]>([]);
@@ -34,7 +35,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
 
   // Add New User State
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
-  const [newUserForm, setNewUserForm] = useState({ full_name: '', email: '', phone: '', role: 'mod', password: '' });
+  const [newUserForm, setNewUserForm] = useState({ full_name: '', email: '', phone: '', role: 'mod', emp_id: '', hrms_username: '' });
   const [isCreatingUser, setIsCreatingUser] = useState(false);
 
   // QR Generator State
@@ -143,6 +144,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
 
     fetchData();
     fetchQrMasterData();
+
+    // Fetch profile photo from IDMS
+    const empId = storedUser ? (() => { try { return JSON.parse(storedUser).emp_id; } catch { return null; } })() : null;
+    if (empId) {
+      fetch(`https://api-idms.advanceagro.net/hrms/employee/${empId}/photocard/?size=120`)
+        .then(res => {
+          if (!res.ok) throw new Error('Photo not found');
+          return res.blob();
+        })
+        .then(blob => {
+          // Validate: must be an image and have actual content (> 500 bytes to filter empty/error responses)
+          if (blob.size < 500) throw new Error('Photo too small, likely invalid');
+          const imageBlob = blob.type && blob.type.startsWith('image/')
+            ? blob
+            : new Blob([blob], { type: 'image/jpeg' }); // Force MIME if server doesn't set it
+          const url = URL.createObjectURL(imageBlob);
+          setProfilePhotoUrl(url);
+        })
+        .catch(err => {
+          console.warn('Profile photo unavailable, using default avatar:', err.message);
+          setProfilePhotoUrl(null);
+        });
+    }
     fetchQrLogs();
     if (role === 'admin') {
       fetchPendingUsers();
@@ -375,7 +399,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
           </button>
         </nav>
 
-        <div className={`border-t border-slate-800 bg-slate-900 ${sidebarCollapsed ? 'p-2' : 'p-6'}`}>
+        <div className={`border-t border-slate-800 bg-slate-900/80 ${sidebarCollapsed ? 'p-2' : 'p-4'}`}>
+          {/* User Info Card */}
+          {currentUser && !sidebarCollapsed && (
+            <div className="flex items-center gap-3 mb-3 p-2 rounded-xl bg-slate-800/60">
+              {profilePhotoUrl ? (
+                <img src={profilePhotoUrl} alt="Profile" className="w-10 h-10 rounded-full object-cover border-2 border-indigo-500/50 shadow-md flex-shrink-0" onError={() => setProfilePhotoUrl(null)} />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                  {currentUser.full_name?.charAt(0).toUpperCase() || 'U'}
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-white truncate">{currentUser.full_name}</p>
+                <p className="text-xs text-slate-400 truncate">{currentUser.email}</p>
+              </div>
+            </div>
+          )}
+          {currentUser && sidebarCollapsed && (
+            <div className="flex justify-center mb-2">
+              {profilePhotoUrl ? (
+                <img src={profilePhotoUrl} alt="Profile" className="w-9 h-9 rounded-full object-cover border-2 border-indigo-500/50 shadow-md" onError={() => setProfilePhotoUrl(null)} />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-xs">
+                  {currentUser.full_name?.charAt(0).toUpperCase() || 'U'}
+                </div>
+              )}
+            </div>
+          )}
           <Button
             variant="secondary"
             className={`${sidebarCollapsed ? 'w-full p-2 justify-center' : 'w-full justify-start'} bg-slate-800 hover:bg-slate-700 border border-slate-700`}
@@ -585,7 +636,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
 
                                   {/* ผู้สมัคร (ติดต่อ) */}
                                   <td className="px-4 py-3">
-                                    <div className="text-sm font-semibold text-gray-900 whitespace-nowrap">{fullName}</div>
+                                    <div
+                                      className="text-sm font-semibold text-indigo-700 whitespace-nowrap cursor-pointer hover:text-indigo-900 hover:underline transition-colors"
+                                      onClick={() => setViewingApp(app)}
+                                      title="คลิกเพื่อดูรายละเอียด"
+                                    >
+                                      {fullName}
+                                    </div>
                                     <div className="text-xs text-gray-500 flex items-center mt-0.5 whitespace-nowrap">
                                       <Phone className="w-3 h-3 mr-1" /> {phone}
                                     </div>
@@ -821,75 +878,66 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                 {qrLogs.length === 0 ? (
                   <p className="text-gray-500 text-sm p-4 bg-gray-50 rounded-lg text-center">ยังไม่มีประวัติการสร้าง QR Code</p>
                 ) : (
-                  <div className="overflow-x-auto border rounded-lg">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-100 border-b">
-                        <tr>
-                          <th className="text-left px-4 py-3 font-semibold text-gray-700">วันที่สร้าง</th>
-                          <th className="text-left px-4 py-3 font-semibold text-gray-700">BU</th>
-                          <th className="text-left px-4 py-3 font-semibold text-gray-700">Channel</th>
-                          <th className="text-left px-4 py-3 font-semibold text-gray-700 w-64">URL / Tags</th>
-                          <th className="text-center px-4 py-3 font-semibold text-gray-700">QR Code</th>
-                          <th className="text-left px-4 py-3 font-semibold text-gray-700">Created By</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {qrLogs.map((log: any) => (
-                          <tr key={log.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                              {new Date(log.created_at).toLocaleString('th-TH', {
-                                year: 'numeric', month: 'short', day: 'numeric',
-                                hour: '2-digit', minute: '2-digit'
-                              })}
-                            </td>
-                            <td className="px-4 py-3 text-gray-900">{log.business_unit || '-'}</td>
-                            <td className="px-4 py-3 text-gray-900">{log.channel || '-'}</td>
-                            <td className="px-4 py-3 w-64">
-                              <div className="flex flex-col items-start gap-1.5">
-                                <button
-                                  onClick={async () => {
-                                    await navigator.clipboard.writeText(log.generated_url);
-                                    showToast('คัดลอก URL แล้ว!', 'success');
-                                  }}
-                                  className="text-indigo-600 hover:underline font-mono text-[11px] truncate w-full max-w-[240px] text-left cursor-pointer block bg-indigo-50/50 px-1 py-0.5 rounded"
-                                  title={`คลิกเพื่อคัดลอก: ${log.generated_url}`}
-                                >
-                                  {log.generated_url}
-                                </button>
-                                {log.campaign_tag ? (
-                                  <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2 py-1 rounded-lg inline-block whitespace-normal break-words max-w-full leading-snug">
-                                    {log.campaign_tag}
+                  <div className="space-y-3">
+                    {qrLogs.map((log: any) => {
+                      const urlObj = (() => { try { return new URL(log.generated_url); } catch { return null; } })();
+                      const params = urlObj ? Object.fromEntries(urlObj.searchParams.entries()) : {};
+                      return (
+                        <div key={log.id} className="border border-gray-200 rounded-xl p-4 hover:border-indigo-300 hover:shadow-sm transition-all bg-white">
+                          <div className="flex items-start gap-4">
+                            {/* QR Thumbnail */}
+                            <div
+                              onClick={() => window.open(`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(log.generated_url)}`, '_blank')}
+                              title="คลิกเพื่อเปิด QR ขนาดเต็ม"
+                              className="group flex-shrink-0 w-14 h-14 bg-white border-2 border-gray-100 rounded-xl cursor-pointer hover:border-indigo-400 hover:shadow-md transition-all overflow-hidden flex items-center justify-center"
+                            >
+                              <img
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(log.generated_url)}`}
+                                alt="QR"
+                                className="w-11 h-11 object-contain transition-transform group-hover:scale-110"
+                              />
+                            </div>
+
+                            {/* Main Info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                                <span className="inline-flex items-center gap-1 bg-indigo-100 text-indigo-700 text-xs font-bold px-2.5 py-1 rounded-full">
+                                  {log.business_unit || '-'}
+                                </span>
+                                <span className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+                                  {log.channel || '-'}
+                                </span>
+                                {log.campaign_tag && (
+                                  <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-xs font-semibold px-2.5 py-1 rounded-full">
+                                    🏷️ {log.campaign_tag}
                                   </span>
-                                ) : (
-                                  <span className="text-gray-400 text-xs">-</span>
                                 )}
                               </div>
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              <div
-                                onClick={() => window.open(`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(log.generated_url)}`, '_blank')}
-                                title="เปิด QR Code ขนาดเต็ม"
-                                className="group relative inline-flex items-center justify-center w-10 h-10 bg-white border border-gray-200 rounded-lg cursor-pointer hover:border-indigo-400 hover:shadow-md transition-all overflow-hidden"
-                              >
-                                <img
-                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(log.generated_url)}`}
-                                  alt="QR Thumbnail"
-                                  className="w-8 h-8 object-contain transition-transform group-hover:scale-110"
-                                />
-                                <div className="absolute inset-0 bg-gray-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
-                                    <path d="M15 3h6v6"></path>
-                                    <polyline points="10 14 21 3"></polyline>
-                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                                  </svg>
-                                </div>
+
+                              {/* Compact meta row */}
+                              <div className="flex items-center gap-3 text-xs text-gray-500">
+                                <span>{new Date(log.created_at).toLocaleString('th-TH', { day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                                <span className="text-gray-300">|</span>
+                                <span title={log.created_by}>{log.created_by || '-'}</span>
                               </div>
-                            </td>
-                            <td className="px-4 py-3 text-gray-600">{log.created_by}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                            </div>
+
+                            {/* Copy URL Button */}
+                            <button
+                              onClick={async () => {
+                                await navigator.clipboard.writeText(log.generated_url);
+                                showToast('คัดลอก URL แล้ว!', 'success');
+                              }}
+                              title={log.generated_url}
+                              className="flex-shrink-0 inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-2 rounded-lg transition-colors"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                              Copy URL
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </Card>
@@ -1060,7 +1108,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               {/* Add New User Modal */}
               <Modal
                 isOpen={isAddUserOpen}
-                onClose={() => { setIsAddUserOpen(false); setNewUserForm({ full_name: '', email: '', phone: '', role: 'mod', password: '' }); }}
+                onClose={() => { setIsAddUserOpen(false); setNewUserForm({ full_name: '', email: '', phone: '', role: 'mod', emp_id: '', hrms_username: '' }); }}
                 title="Add New User"
                 footer={null}
               >
@@ -1068,11 +1116,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                   e.preventDefault();
                   setIsCreatingUser(true);
                   try {
-                    const result = await api.auth.signUp(newUserForm);
+                    const result = await api.auth.registerHrmsUser(newUserForm);
                     if (result.success) {
                       showToast('สร้างผู้ใช้สำเร็จ!', 'success');
                       setIsAddUserOpen(false);
-                      setNewUserForm({ full_name: '', email: '', phone: '', role: 'mod', password: '' });
+                      setNewUserForm({ full_name: '', email: '', phone: '', role: 'mod', emp_id: '', hrms_username: '' });
                       fetchPendingUsers();
                       fetchActiveUsers();
                     } else {
@@ -1130,16 +1178,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                         <option value="admin">Admin</option>
                       </select>
                     </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน <span className="text-red-500">*</span></label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Emp ID <span className="text-red-500">*</span></label>
                       <input
-                        type="password"
+                        type="text"
                         required
-                        minLength={6}
-                        value={newUserForm.password}
-                        onChange={(e) => setNewUserForm(prev => ({ ...prev, password: e.target.value }))}
+                        value={newUserForm.emp_id}
+                        onChange={(e) => setNewUserForm(prev => ({ ...prev, emp_id: e.target.value }))}
                         className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                        placeholder="อย่างน้อย 6 ตัว"
+                        placeholder="e.g. 12345"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">HRMS Username <span className="text-red-500">*</span></label>
+                      <input
+                        type="text"
+                        required
+                        value={newUserForm.hrms_username}
+                        onChange={(e) => setNewUserForm(prev => ({ ...prev, hrms_username: e.target.value }))}
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                        placeholder="e.g. somchai_ka"
                       />
                     </div>
                   </div>
@@ -1168,10 +1228,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                   <div className="space-y-6">
                     {/* Profile Header */}
                     <div className="flex items-center gap-4 pb-6 border-b">
-                      <div className={`w-20 h-20 rounded-full flex items-center justify-center font-bold text-3xl text-white shadow-lg
-                        ${currentUser.role === 'admin' ? 'bg-gradient-to-br from-purple-500 to-purple-700' : 'bg-gradient-to-br from-indigo-500 to-indigo-700'}`}>
-                        {currentUser.full_name?.charAt(0).toUpperCase() || 'U'}
-                      </div>
+                      {profilePhotoUrl ? (
+                        <img src={profilePhotoUrl} alt="Profile" className="w-20 h-20 rounded-full object-cover border-4 border-indigo-200 shadow-lg flex-shrink-0" onError={() => setProfilePhotoUrl(null)} />
+                      ) : (
+                        <div className={`w-20 h-20 rounded-full flex items-center justify-center font-bold text-3xl text-white shadow-lg
+                          ${currentUser.role === 'admin' ? 'bg-gradient-to-br from-purple-500 to-purple-700' : 'bg-gradient-to-br from-indigo-500 to-indigo-700'}`}>
+                          {currentUser.full_name?.charAt(0).toUpperCase() || 'U'}
+                        </div>
+                      )}
                       <div>
                         <h3 className="text-2xl font-bold text-gray-900">{currentUser.full_name}</h3>
                         <span className={`inline-block mt-1 text-sm font-semibold px-3 py-1 rounded-full

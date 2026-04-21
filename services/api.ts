@@ -1,6 +1,8 @@
 
 import { supabase } from '../supabaseClient';
 import { ApplicationForm } from '../types';
+import * as md5Module from 'js-md5';
+const md5 = (md5Module as any).default || md5Module;
 
 // ============================================================
 // API Response Types
@@ -22,6 +24,8 @@ export interface AuthUser {
   phone?: string;
   status: 'Active' | 'Pending' | 'Inactive' | 'Rejected';
   created_at: string;
+  emp_id?: string;
+  hrms_username?: string;
 }
 
 // ============================================================
@@ -322,142 +326,108 @@ export const api = {
   // ============================================================
   auth: {
     /**
-     * Sign in with email and password using Supabase Auth
-     * Falls back to custom users table for backward compatibility
+     * Sign in via HRMS IDMS endpoint
      */
-    signIn: async (email: string, password: string): Promise<{ user: AuthUser | null; error: any }> => {
+    signIn: async (username: string, password: string): Promise<{ user: AuthUser | null; error: any, needsRegistration?: boolean, empId?: string }> => {
       try {
-        // Validate inputs
-        if (!email || !password) {
-          return { user: null, error: { message: 'Email and password are required.' } };
+        if (!username || !password) {
+          return { user: null, error: { message: 'Username and password are required.' } };
         }
 
-        const normalizedEmail = email.toLowerCase().trim();
+        const normalizedUsername = username.trim();
+        const passwordMd5 = md5(password);
 
-        // 1. Try Supabase Auth first (preferred, secure method)
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: normalizedEmail,
-          password,
+        // 1. Call IDMS API
+        const idmsUrl = `https://mobiledev.advanceagro.net/ws/api/idms/authentication/?account=${encodeURIComponent(normalizedUsername)}&password=${encodeURIComponent(passwordMd5)}&Service=0000&AgentId=SystemMango&AgentCode=Np4kfRh5`;
+        
+        const response = await fetch(idmsUrl, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
         });
+        
+        const data = await response.json();
 
-        if (authData?.user) {
-          // Fetch user profile from users table
-          const { data: profile } = await supabase
-            .from('users')
-            .select('*')
-            .eq('email', normalizedEmail)
-            .single();
-
-          if (profile && profile.status !== 'Active') {
-            await supabase.auth.signOut();
-            return { user: null, error: { message: 'Account is pending approval. Please contact the administrator.' } };
-          }
-
-          return {
-            user: profile || {
-              id: authData.user.id,
-              email: authData.user.email!,
-              role: 'mod' as const,
-              full_name: authData.user.user_metadata?.full_name || '',
-              status: 'Active' as const,
-              created_at: authData.user.created_at
-            },
-            error: null
-          };
+        if (!data || data.Result !== 'OK') {
+            const msg = data?.Result?.replace('Error : ', '') || 'Invalid HRMS credentials';
+            return { user: null, error: { message: msg } };
         }
 
-        // 2. Fallback to custom table (for migration period - will be deprecated)
-        // ⚠️ WARNING: This uses plaintext password comparison - should be migrated to Supabase Auth
-        console.warn('Using legacy auth - please migrate users to Supabase Auth');
+        const empId = data.EmpId;
 
-        const { data: legacyUser, error: legacyError } = await supabase
+        // 2. Check in our Supabase users table
+        const { data: profile, error: dbError } = await supabase
           .from('users')
           .select('*')
-          .eq('email', normalizedEmail)
+          .or(`hrms_username.eq.${normalizedUsername},emp_id.eq.${empId}`)
           .single();
 
-        if (legacyUser) {
-          // Simple comparison (legacy - insecure)
-          if (legacyUser.password === password) {
-            if (legacyUser.status !== 'Active') {
-              return { user: null, error: { message: 'Account is pending approval. Please contact the administrator.' } };
-            }
-            return { user: legacyUser, error: null };
+        if (profile) {
+          if (profile.status !== 'Active') {
+            return { user: null, error: { message: 'Account is pending approval. Please contact the administrator.' } };
           }
-          return { user: null, error: { message: 'Invalid email or password.' } };
+          return { user: profile, error: null };
         }
 
-        return { user: null, error: authError || { message: 'Invalid email or password.' } };
+        // 3. Not found - needs registration
+        return { 
+          user: null, 
+          error: { message: 'Not registered' }, 
+          needsRegistration: true, 
+          empId 
+        };
       } catch (error: any) {
         console.error('Login error:', error);
-        return { user: null, error: { message: 'Login failed. Please try again.' } };
+        return { user: null, error: { message: 'Login failed. Please check internet connection or CORS settings.' } };
       }
     },
 
     /**
-     * Register new staff user with Supabase Auth
+     * Register new staff user (Complete Profile for IDMS)
      */
-    signUp: async (userData: { email: string; password: string; full_name: string; phone?: string; role?: string }): Promise<ApiResponse<AuthUser>> => {
+    registerHrmsUser: async (userData: { email: string; full_name: string; phone?: string; role?: string; emp_id: string; hrms_username: string }): Promise<ApiResponse<AuthUser>> => {
       try {
         // Validate inputs
-        if (!userData.email || !userData.password || !userData.full_name) {
-          return { success: false, error: { message: 'Email, password, and name are required.' } };
-        }
-
-        if (userData.password.length < 6) {
-          return { success: false, error: { message: 'Password must be at least 6 characters.' } };
+        if (!userData.email || !userData.full_name || !userData.emp_id || !userData.hrms_username) {
+          return { success: false, error: { message: 'All fields are required.' } };
         }
 
         const normalizedEmail = userData.email.toLowerCase().trim();
 
-        // 1. Create Supabase Auth user
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: normalizedEmail,
-          password: userData.password,
-          options: {
-            data: {
-              full_name: userData.full_name,
-              role: userData.role || 'mod'
-            }
-          }
-        });
+        // Check if email already exists
+        const { data: existingUser } = await supabase
+           .from('users')
+           .select('id')
+           .eq('email', normalizedEmail)
+           .maybeSingle();
 
-        if (authError) return handleError(authError, 'signUp');
+        if (existingUser) {
+           return { success: false, error: { message: 'This email is already in use.' } };
+        }
 
-        // 2. Create profile in users table
+        // Create profile in users table (No passwords needed anymore)
         const { data: profile, error: profileError } = await supabase
           .from('users')
           .insert([{
-            id: authData.user?.id,
             email: normalizedEmail,
             full_name: userData.full_name,
             phone: userData.phone || '',
-            password: userData.password, // Required by users table (NOT NULL)
             role: userData.role || 'mod',
             status: 'Pending',
+            emp_id: userData.emp_id,
+            hrms_username: userData.hrms_username,
             created_at: new Date().toISOString()
           }])
           .select()
           .single();
 
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
-          // Don't fail completely if profile creation fails
-        }
+        if (profileError) return handleError(profileError, 'registerHrmsUser');
 
         return {
           success: true,
-          data: profile || {
-            id: authData.user?.id || '',
-            email: normalizedEmail,
-            full_name: userData.full_name,
-            role: (userData.role || 'mod') as 'admin' | 'mod',
-            status: 'Pending',
-            created_at: new Date().toISOString()
-          }
+          data: profile
         };
       } catch (error) {
-        return handleError(error, 'signUp');
+        return handleError(error, 'registerHrmsUser');
       }
     },
 

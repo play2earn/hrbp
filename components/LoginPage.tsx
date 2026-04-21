@@ -14,13 +14,22 @@ interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onBack, lang, onToggleLang }) => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const t = TRANSLATIONS[lang];
+
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [regData, setRegData] = useState({
+    full_name: '',
+    phone: '',
+    email: '',
+    emp_id: '',
+    hrms_username: ''
+  });
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,40 +38,45 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onBack, lang, onT
     setSuccess('');
 
     try {
-      const { user, error } = await api.auth.signIn(email, password);
+      const response = await api.auth.signIn(username, password);
 
-      if (error) {
-        throw error;
+      if (response.needsRegistration) {
+        // Prepare registration data
+        setRegData({
+          ...regData,
+          emp_id: response.empId || '',
+          hrms_username: username
+        });
+        setIsRegistering(true);
+        setError('บัญชีของคุณยังไม่ได้ลงทะเบียนในระบบ กรุณากรอกข้อมูลเพิ่มเติม');
+        setIsLoading(false);
+        return;
       }
 
-      if (user) {
-        setSuccess('Login successful! Redirecting...');
+      if (response.error) {
+        throw response.error;
+      }
+
+      if (response.user) {
+        setSuccess('เชื่อมต่อระบบ HRMS สำเร็จ!');
         // Store user info for use in Dashboard
         localStorage.setItem('currentUser', JSON.stringify({
-          full_name: user.full_name,
-          email: user.email,
-          role: user.role
+          full_name: response.user.full_name,
+          email: response.user.email,
+          role: response.user.role,
+          emp_id: response.user.emp_id || ''
         }));
         setTimeout(() => {
-          onLogin(user.role as Role);
+          onLogin(response.user.role as Role);
         }, 500);
       }
     } catch (err: any) {
       console.error('Login error:', err);
-      setError(err.message || 'Invalid email or password');
+      setError(err.message || 'Invalid username or password');
     } finally {
       setIsLoading(false);
     }
   };
-
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [regData, setRegData] = useState({
-    full_name: '',
-    phone: '',
-    role: 'mod',
-    email: '',
-    password: ''
-  });
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,16 +85,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onBack, lang, onT
     setSuccess('');
 
     try {
-      const result = await api.auth.signUp(regData);
+      const result = await api.auth.registerHrmsUser(regData as any);
       if (!result.success) {
         throw result.error;
       }
 
-      setSuccess('Registration successful! Your account is pending approval.');
+      setSuccess('บันทึกข้อมูลสำเร็จ! บัญชีของคุณอยู่ในสถานะรอแอดมินอนุมัติ');
       setTimeout(() => {
         setIsRegistering(false);
-        setRegData({ full_name: '', phone: '', role: 'mod', email: '', password: '' });
-      }, 2000);
+        setRegData({ full_name: '', phone: '', email: '', emp_id: '', hrms_username: '' });
+        setUsername('');
+        setPassword('');
+      }, 3000);
     } catch (err: any) {
       console.error('Registration error:', err);
       setError(err.message || 'Registration failed');
@@ -125,10 +141,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onBack, lang, onT
                 <Lock className="w-8 h-8 text-white" />
               </div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                {isRegistering ? 'Create Account' : 'Welcome Back'}
+                {isRegistering ? 'Complete Profile' : 'HRMS Login'}
               </h1>
               <p className="text-gray-500">
-                {isRegistering ? 'Join the NovaRecruit team' : 'Sign in to your staff account'}
+                {isRegistering ? 'กรุณากรอกข้อมูลเพิ่มเติมเพื่อขอสิทธิ์ใช้งาน' : 'Sign in using your corporate account'}
               </p>
             </div>
 
@@ -152,24 +168,24 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onBack, lang, onT
             {!isRegistering ? (
               <form onSubmit={handleLoginSubmit} className="space-y-5">
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-semibold text-gray-700">Email Address</label>
+                  <label className="block text-sm font-semibold text-gray-700">HRMS Username</label>
                   <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-indigo-500 transition-colors">
-                      <Mail className="w-5 h-5" />
+                      <User className="w-5 h-5" />
                     </div>
                     <input
-                      type="email"
+                      type="text"
                       required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
                       className="block w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-xl bg-white/50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-all placeholder:text-gray-400"
-                      placeholder="name@novarecruit.com"
+                      placeholder="e.g. somchai_ka"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-semibold text-gray-700">Password</label>
+                  <label className="block text-sm font-semibold text-gray-700">HRMS Password</label>
                   <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-indigo-500 transition-colors">
                       <Lock className="w-5 h-5" />
@@ -195,7 +211,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onBack, lang, onT
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full animated-gradient text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-300/50 hover:shadow-xl hover:shadow-indigo-400/50 transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0 btn-shine"
+                  className="w-full animated-gradient text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-300/50 hover:shadow-xl hover:shadow-indigo-400/50 transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0 btn-shine mt-4"
                 >
                   {isLoading ? (
                     <span className="flex items-center justify-center gap-2">
@@ -203,32 +219,36 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onBack, lang, onT
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                       </svg>
-                      Signing in...
+                      Authenticating...
                     </span>
                   ) : 'Sign In'}
-                </button>
-
-                <div className="relative my-6">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-200"></div>
-                  </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-4 bg-white text-gray-500">New to NovaRecruit?</span>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setIsRegistering(true)}
-                  className="w-full py-3.5 border-2 border-indigo-200 text-indigo-600 font-semibold rounded-xl hover:bg-indigo-50 hover:border-indigo-300 transition-all"
-                >
-                  Create Staff Account
                 </button>
               </form>
 
             ) : (
-              /* Registration Form */
+              /* Registration Form (Complete Profile) */
               <form onSubmit={handleRegister} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-semibold text-gray-700">Emp ID</label>
+                    <input
+                      type="text"
+                      disabled
+                      value={regData.emp_id}
+                      className="block w-full px-4 py-3.5 border border-gray-200 rounded-xl bg-gray-100 text-gray-500 cursor-not-allowed"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-semibold text-gray-700">HRMS Username</label>
+                    <input
+                      type="text"
+                      disabled
+                      value={regData.hrms_username}
+                      className="block w-full px-4 py-3.5 border border-gray-200 rounded-xl bg-gray-100 text-gray-500 cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-1.5">
                   <label className="block text-sm font-semibold text-gray-700">Full Name</label>
                   <div className="relative group">
@@ -246,36 +266,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onBack, lang, onT
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="block text-sm font-semibold text-gray-700">Role</label>
-                    <select
-                      value={regData.role}
-                      onChange={(e) => setRegData({ ...regData, role: e.target.value })}
-                      className="block w-full px-4 py-3.5 border border-gray-200 rounded-xl bg-white/50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-all"
-                    >
-                      <option value="mod">Moderator</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-sm font-semibold text-gray-700">Phone</label>
-                    <div className="relative group">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-indigo-500 transition-colors">
-                        <Phone className="w-5 h-5" />
-                      </div>
-                      <input
-                        type="tel"
-                        value={regData.phone}
-                        onChange={(e) => setRegData({ ...regData, phone: e.target.value })}
-                        placeholder="081-XXX-XXXX"
-                        className="block w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-xl bg-white/50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-all"
-                      />
-                    </div>
-                  </div>
-                </div>
-
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-semibold text-gray-700">Email Address</label>
+                  <label className="block text-sm font-semibold text-gray-700">Company Email Address</label>
                   <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-indigo-500 transition-colors">
                       <Mail className="w-5 h-5" />
@@ -285,35 +277,26 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onBack, lang, onT
                       value={regData.email}
                       onChange={(e) => setRegData({ ...regData, email: e.target.value })}
                       required
-                      placeholder="email@example.com"
+                      placeholder="email@advanceagro.net"
                       className="block w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-xl bg-white/50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-all"
                     />
                   </div>
                 </div>
-
+                
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-semibold text-gray-700">Password</label>
+                  <label className="block text-sm font-semibold text-gray-700">Phone</label>
                   <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-indigo-500 transition-colors">
-                      <Lock className="w-5 h-5" />
+                      <Phone className="w-5 h-5" />
                     </div>
                     <input
-                      type={showPassword ? "text" : "password"}
-                      value={regData.password}
-                      onChange={(e) => setRegData({ ...regData, password: e.target.value })}
-                      required
-                      placeholder="Min. 6 characters"
-                      className="block w-full pl-12 pr-12 py-3.5 border border-gray-200 rounded-xl bg-white/50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-all"
+                      type="tel"
+                      value={regData.phone}
+                      onChange={(e) => setRegData({ ...regData, phone: e.target.value })}
+                      placeholder="081-XXX-XXXX"
+                      className="block w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-xl bg-white/50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-all"
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-indigo-600 transition-colors"
-                    >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">Password must be at least 6 characters</p>
                 </div>
 
                 <button
@@ -327,9 +310,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onBack, lang, onT
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                       </svg>
-                      Creating Account...
+                      Submitting...
                     </span>
-                  ) : 'Create Account'}
+                  ) : 'Submit Request'}
                 </button>
 
                 <button
@@ -337,7 +320,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onBack, lang, onT
                   onClick={() => { setIsRegistering(false); setError(''); setSuccess(''); }}
                   className="w-full py-3 text-gray-500 hover:text-indigo-600 font-medium flex items-center justify-center gap-2 transition-colors"
                 >
-                  <ArrowLeft className="w-4 h-4" /> Back to Sign In
+                  <ArrowLeft className="w-4 h-4" /> Cancel
                 </button>
               </form>
             )}
