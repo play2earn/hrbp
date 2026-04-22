@@ -1373,7 +1373,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FileUpload
                   label={t.labels.photo}
-                  description="Drag & drop or click to upload your photo"
+                  description={lang === 'th' ? "อัปโหลดรูปถ่าย (JPG/PNG จะถูกบีบอัดอัตโนมัติ)" : "Upload photo (JPG/PNG will be auto-compressed)"}
                   value={formData.photoUrl}
                   onChange={() => { }} // Controlled via onFileSelect
                   onFileSelect={(file) => handleFileUpload(file, 'photoUrl', 'photo')}
@@ -1382,20 +1382,22 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                 />
                 <FileUpload
                   label={t.labels.resume}
-                  description="Drag & drop or click to upload PDF resume"
+                  description={lang === 'th' ? "อัปโหลด Resume (PDF เท่านั้น, ขนาดไม่เกิน 10MB)" : "Upload resume (PDF only, max 10MB)"}
                   value={formData.resumeUrl}
                   onChange={() => { }}
                   onFileSelect={(file) => handleFileUpload(file, 'resumeUrl', 'resume')}
                   uploading={uploadingState.resume}
                   accept=".pdf"
+                  maxSizeMB={10}
                 />
                 <FileUpload
                   label={t.labels.otherDocs}
-                  description="Upload any supporting documents here"
+                  description={lang === 'th' ? "เอกสารประกอบอื่นๆ (PDF/JPG/PNG, ขนาดไม่เกิน 10MB)" : "Other documents (PDF/JPG/PNG, max 10MB)"}
                   value={formData.certificateUrl}
                   onChange={() => { }}
                   onFileSelect={(file) => handleFileUpload(file, 'certificateUrl', 'certificate')}
                   uploading={uploadingState.certificate}
+                  maxSizeMB={10}
                 />
                 <Input
                   label="Links (LinkedIn, JobThai, etc.)"

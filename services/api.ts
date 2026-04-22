@@ -52,6 +52,8 @@ const handleError = (error: any, context: string): ApiResponse<never> => {
   };
 };
 
+import imageCompression from 'browser-image-compression';
+
 // ============================================================
 // File Upload Service
 // ============================================================
@@ -73,13 +75,29 @@ export const api = {
         throw { message: 'File type not allowed. Please use JPG, PNG, WebP, or PDF.' };
       }
 
+      let fileToUpload = file;
+
+      // Compress image if it's an image file type
+      if (file.type.startsWith('image/')) {
+        const options = {
+          maxSizeMB: 1, // Compress to max 1MB
+          maxWidthOrHeight: 1920, // Resize if larger than 1920px
+          useWebWorker: true,
+        };
+        try {
+          fileToUpload = await imageCompression(file, options);
+        } catch (error) {
+          console.error('Image compression failed. Proceeding with original file.', error);
+        }
+      }
+
       // Generate safe filename
-      const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const safeFileName = fileToUpload.name.replace(/[^a-zA-Z0-9.-]/g, '_');
       const fileName = `${folder}/${Date.now()}_${safeFileName}`;
 
       const { data, error } = await supabase.storage
         .from('applicants')
-        .upload(fileName, file, {
+        .upload(fileName, fileToUpload, {
           cacheControl: '3600',
           upsert: false
         });
@@ -260,6 +278,61 @@ export const api = {
       return { success: true, data };
     } catch (error) {
       return handleError(error, 'updateApplicationStatus');
+    }
+  },
+
+  /**
+   * Delete application and associated files in storage
+   */
+  deleteApplication: async (id: string): Promise<ApiResponse<any>> => {
+    try {
+      const { data: appData, error: fetchError } = await supabase
+        .from('applications')
+        .select('form_data')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const filesToDelete: string[] = [];
+      const formData = appData?.form_data;
+
+      if (formData) {
+        const extractPathFromUrl = (url: string | undefined | null) => {
+          if (!url) return null;
+          const matches = url.match(/\/public\/applicants\/(.+)$/);
+          return matches ? matches[1] : null;
+        };
+
+        const photoPath = extractPathFromUrl(formData.photoUrl);
+        const resumePath = extractPathFromUrl(formData.resumeUrl);
+        const certPath = extractPathFromUrl(formData.certificateUrl);
+
+        if (photoPath) filesToDelete.push(photoPath);
+        if (resumePath) filesToDelete.push(resumePath);
+        if (certPath) filesToDelete.push(certPath);
+      }
+
+      if (filesToDelete.length > 0) {
+        const { error: storageError } = await supabase.storage
+          .from('applicants')
+          .remove(filesToDelete);
+
+        if (storageError) {
+          console.error("Warning: Failed to delete some storage files:", storageError);
+        }
+      }
+
+      const { error: deleteError } = await supabase
+        .from('applications')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) return handleError(deleteError, 'deleteApplication');
+
+      return { success: true };
+    } catch (error) {
+      return handleError(error, 'deleteApplication');
     }
   },
 

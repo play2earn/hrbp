@@ -63,6 +63,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
   const [rejectingApp, setRejectingApp] = useState<any | null>(null);
   const [rejectComment, setRejectComment] = useState('');
   const [approvingApp, setApprovingApp] = useState<any | null>(null);
+  const [deletingApp, setDeletingApp] = useState<any | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [editingApp, setEditingApp] = useState<any | null>(null);
   const [editForm, setEditForm] = useState({
     position: '',
@@ -255,6 +257,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
   const handleAppAction = async (id: string, status: string) => {
     await api.updateApplicationStatus(id, status);
     fetchData(); // Refresh list
+  };
+
+  const handleDeleteApplication = async () => {
+    if (!deletingApp) return;
+    setIsDeleting(true);
+    const result = await api.deleteApplication(deletingApp.id);
+    setIsDeleting(false);
+    setDeletingApp(null);
+    
+    if (result.success) {
+      showToast('Application deleted successfully');
+      fetchData(); // Refresh list
+    } else {
+      showToast(result.error?.message || 'Failed to delete application', 'error');
+    }
   };
 
   const fetchQrLogs = async () => {
@@ -712,6 +729,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                                             <XCircle className="w-5 h-5 text-red-500" />
                                           </Button>
                                         </>
+                                      )}
+                                      {role === 'admin' && (
+                                        <Button size="sm" variant="ghost" className="h-9 w-9 p-0 hover:bg-red-50" onClick={() => setDeletingApp(app)} title="ลบข้อมูล">
+                                          <Trash2 className="w-5 h-5 text-red-500" />
+                                        </Button>
                                       )}
                                     </div>
                                   </td>
@@ -2461,7 +2483,6 @@ const MasterDataConfig = () => {
         </div>
       </Modal>
 
-      {/* Confirmation Modal */}
       <Modal
         isOpen={!!confirmAction}
         onClose={() => setConfirmAction(null)}
@@ -2478,6 +2499,29 @@ const MasterDataConfig = () => {
           <div className="flex gap-3 justify-center">
             <Button variant="outline" onClick={() => setConfirmAction(null)}>Cancel</Button>
             <Button onClick={confirmToggle}>{confirmAction?.current ? 'Deactivate' : 'Activate'}</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Application Modal */}
+      <Modal
+        isOpen={!!deletingApp}
+        onClose={() => !isDeleting && setDeletingApp(null)}
+        title="ลบใบสมัคร"
+        size="md"
+      >
+        <div className="text-center py-4 px-2">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Trash2 className="w-8 h-8 text-red-600" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">ยืนยันการลบใบสมัคร</h3>
+          <p className="text-gray-500 mb-6">
+            คุณแน่ใจหรือไม่ที่จะลบใบสมัครของ <span className="font-bold text-gray-800">{deletingApp?.full_name || deletingApp?.form_data?.firstName}</span>?<br />
+            <span className="text-red-500 font-medium">คำเตือน: ไฟล์แนบ (รูป, Resume) จะถูกลบออกจาก Storage ทันทีเพื่อประหยัดพื้นที่ และไม่สามารถกู้คืนได้</span>
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Button variant="outline" onClick={() => setDeletingApp(null)} disabled={isDeleting}>ยกเลิก</Button>
+            <Button onClick={handleDeleteApplication} isLoading={isDeleting} className="bg-red-600 text-white hover:bg-red-700 border-none shadow-md">ยืนยันการลบ</Button>
           </div>
         </div>
       </Modal>
