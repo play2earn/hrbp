@@ -48,6 +48,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
   const [positions, setPositions] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [qrLogs, setQrLogs] = useState<any[]>([]);
+  const [qrLogCreatorFilter, setQrLogCreatorFilter] = useState<string>('all');
 
   // Applications Table State
   const [appFilters, setAppFilters] = useState({
@@ -275,9 +276,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
   };
 
   const fetchQrLogs = async () => {
-    const logs = await api.getQrLogs(25);
+    const logs = await api.getQrLogs(50);
     setQrLogs(logs);
   };
+
+  // Derived: unique creators from logs + filtered logs
+  const qrLogCreators = Array.from(new Set(qrLogs.map(l => l.created_by).filter(Boolean)));
+  const filteredQrLogs = qrLogCreatorFilter === 'all'
+    ? qrLogs
+    : qrLogs.filter(l => l.created_by === qrLogCreatorFilter);
 
   const generateLink = async () => {
     const baseUrl = window.location.href.split('?')[0]; // Current base
@@ -625,8 +632,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                           <thead className="bg-gray-50">
                             <tr>
                               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-16">ลำดับ</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID / วันที่</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ผู้สมัคร (ติดต่อ)</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่สมัคร</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ผู้สมัคร</th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ตำแหน่ง / แผนก</th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">แหล่งที่มา</th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-28 whitespace-nowrap">สถานะ</th>
@@ -650,42 +657,56 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                                   {/* ลำดับ */}
                                   <td className="px-4 py-3 text-sm text-gray-500 text-center font-medium bg-gray-50/50 w-16">{rowIndex}</td>
                                   
-                                  {/* ID / วันที่ */}
+                                  {/* วันที่สมัคร */}
                                   <td className="px-4 py-3">
-                                    <div
-                                      className="text-xs font-mono font-medium text-gray-500 cursor-pointer hover:text-indigo-600 transition-colors mb-1 inline-block"
-                                      title={`Click to copy: ${app.id}`}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        navigator.clipboard.writeText(app.id);
-                                        const target = e.currentTarget;
-                                        const original = target.innerText;
-                                        target.innerText = 'Copied!';
-                                        target.style.color = '#059669';
-                                        setTimeout(() => {
-                                          target.innerText = original;
-                                          target.style.color = '';
-                                        }, 1000);
-                                      }}
-                                    >
-                                      {app.id?.slice(-5).toUpperCase()}
+                                    <div className="text-sm text-gray-800 whitespace-nowrap">
+                                      {new Date(app.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
                                     </div>
-                                    <div className="text-xs text-gray-400 whitespace-nowrap">
-                                      {new Date(app.created_at).toLocaleDateString('th-TH')}
+                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                      <span className="text-xs text-gray-400 whitespace-nowrap">
+                                        {new Date(app.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                                      </span>
+                                      <button
+                                        className="text-gray-300 hover:text-indigo-500 transition-colors p-0.5 rounded"
+                                        title={`Copy ID: ${app.id}`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigator.clipboard.writeText(app.id);
+                                          const target = e.currentTarget;
+                                          target.classList.add('text-green-500');
+                                          setTimeout(() => target.classList.remove('text-green-500'), 1000);
+                                        }}
+                                      >
+                                        <Copy className="w-3 h-3" />
+                                      </button>
                                     </div>
                                   </td>
 
-                                  {/* ผู้สมัคร (ติดต่อ) */}
+                                  {/* ผู้สมัคร */}
                                   <td className="px-4 py-3">
-                                    <div
-                                      className="text-sm font-semibold text-indigo-700 whitespace-nowrap cursor-pointer hover:text-indigo-900 hover:underline transition-colors"
-                                      onClick={() => setViewingApp(app)}
-                                      title="คลิกเพื่อดูรายละเอียด"
-                                    >
-                                      {fullName}
-                                    </div>
-                                    <div className="text-xs text-gray-500 flex items-center mt-0.5 whitespace-nowrap">
-                                      <Phone className="w-3 h-3 mr-1" /> {phone}
+                                    <div className="flex items-center gap-3">
+                                      {/* Profile Thumbnail */}
+                                      <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-br from-indigo-100 to-purple-100 border border-gray-200 flex items-center justify-center">
+                                        {fd.photoUrl ? (
+                                          <img src={fd.photoUrl} alt="" className="w-full h-full object-cover" />
+                                        ) : (
+                                          <span className="text-xs font-bold text-indigo-400">
+                                            {(fullName.charAt(0) || '?').toUpperCase()}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <div
+                                          className="text-sm font-semibold text-indigo-700 whitespace-nowrap cursor-pointer hover:text-indigo-900 hover:underline transition-colors truncate max-w-[180px]"
+                                          onClick={() => setViewingApp(app)}
+                                          title={`${fullName} — คลิกเพื่อดูรายละเอียด`}
+                                        >
+                                          {fullName}
+                                        </div>
+                                        <div className="text-xs text-gray-500 flex items-center mt-0.5 whitespace-nowrap">
+                                          <Phone className="w-3 h-3 mr-1" /> {phone}
+                                        </div>
+                                      </div>
                                     </div>
                                   </td>
 
@@ -918,14 +939,31 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
                     <FileText className="w-5 h-5 text-indigo-500" /> Recent Transactions
+                    <span className="text-xs font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                      {filteredQrLogs.length}{qrLogCreatorFilter !== 'all' ? ` / ${qrLogs.length}` : ''} records
+                    </span>
                   </h3>
-                  <Button size="sm" variant="outline" onClick={fetchQrLogs}>Refresh</Button>
+                  <div className="flex items-center gap-2">
+                    <select
+                      className="border rounded-lg px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none max-w-[220px] truncate"
+                      value={qrLogCreatorFilter}
+                      onChange={(e) => setQrLogCreatorFilter(e.target.value)}
+                    >
+                      <option value="all">ทั้งหมด (All)</option>
+                      {qrLogCreators.map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                    <Button size="sm" variant="outline" onClick={fetchQrLogs}>Refresh</Button>
+                  </div>
                 </div>
-                {qrLogs.length === 0 ? (
-                  <p className="text-gray-500 text-sm p-4 bg-gray-50 rounded-lg text-center">ยังไม่มีประวัติการสร้าง QR Code</p>
+                {filteredQrLogs.length === 0 ? (
+                  <p className="text-gray-500 text-sm p-4 bg-gray-50 rounded-lg text-center">
+                    {qrLogs.length === 0 ? 'ยังไม่มีประวัติการสร้าง QR Code' : 'ไม่พบรายการที่ตรงกับตัวกรอง'}
+                  </p>
                 ) : (
                   <div className="space-y-3">
-                    {qrLogs.map((log: any) => {
+                    {filteredQrLogs.map((log: any) => {
                       const urlObj = (() => { try { return new URL(log.generated_url); } catch { return null; } })();
                       const params = urlObj ? Object.fromEntries(urlObj.searchParams.entries()) : {};
                       return (
