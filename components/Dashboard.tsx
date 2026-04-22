@@ -2450,8 +2450,16 @@ const MasterDataConfig = () => {
           {/* Most tables have name_th/name_en OR name. Some have parent IDs. */}
 
           {/* Generic Name Field (for tables with 'name') */}
-          {['business_units', 'universities', 'faculties', 'channels'].includes(activeTable) && (
+          {['business_units', 'channels'].includes(activeTable) && (
             <Input label="Name" value={formData.name || ''} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+          )}
+
+          {/* Name/Name_EN Fields (where TH is name and EN is name_en) */}
+          {['universities', 'colleges', 'faculties'].includes(activeTable) && (
+             <>
+              <Input label="Name (TH)" value={formData.name || ''} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+              <Input label="Name (EN)" value={formData.name_en || ''} onChange={(e) => setFormData({ ...formData, name_en: e.target.value })} />
+            </>
           )}
 
           {/* TH/EN Fields */}
