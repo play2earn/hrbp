@@ -2019,6 +2019,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
       </Modal>
 
       {/* Toast Notification */}
+      {/* Delete Application Modal */}
+      <Modal
+        isOpen={!!deletingApp}
+        onClose={() => !isDeleting && setDeletingApp(null)}
+        title="ลบใบสมัคร"
+        size="md"
+      >
+        <div className="text-center py-4 px-2">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Trash2 className="w-8 h-8 text-red-600" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">ยืนยันการลบใบสมัคร</h3>
+          <p className="text-gray-500 mb-6">
+            คุณแน่ใจหรือไม่ที่จะลบใบสมัครของ <span className="font-bold text-gray-800">{deletingApp?.full_name || deletingApp?.form_data?.firstName}</span>?<br />
+            <span className="text-red-500 font-medium">คำเตือน: ไฟล์แนบ (รูป, Resume) จะถูกลบออกจาก Storage ทันทีเพื่อประหยัดพื้นที่ และไม่สามารถกู้คืนได้</span>
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Button variant="outline" onClick={() => setDeletingApp(null)} disabled={isDeleting}>ยกเลิก</Button>
+            <Button onClick={handleDeleteApplication} isLoading={isDeleting} className="bg-red-600 text-white hover:bg-red-700 border-none shadow-md">ยืนยันการลบ</Button>
+          </div>
+        </div>
+      </Modal>
+
       {toast.show && (
         <div className={`fixed top-20 right-6 z-[100] flex items-center gap-3 px-5 py-4 rounded-xl shadow-2xl transform transition-all duration-300 ${toast.type === 'success'
           ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white'
@@ -2503,28 +2526,6 @@ const MasterDataConfig = () => {
         </div>
       </Modal>
 
-      {/* Delete Application Modal */}
-      <Modal
-        isOpen={!!deletingApp}
-        onClose={() => !isDeleting && setDeletingApp(null)}
-        title="ลบใบสมัคร"
-        size="md"
-      >
-        <div className="text-center py-4 px-2">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Trash2 className="w-8 h-8 text-red-600" />
-          </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">ยืนยันการลบใบสมัคร</h3>
-          <p className="text-gray-500 mb-6">
-            คุณแน่ใจหรือไม่ที่จะลบใบสมัครของ <span className="font-bold text-gray-800">{deletingApp?.full_name || deletingApp?.form_data?.firstName}</span>?<br />
-            <span className="text-red-500 font-medium">คำเตือน: ไฟล์แนบ (รูป, Resume) จะถูกลบออกจาก Storage ทันทีเพื่อประหยัดพื้นที่ และไม่สามารถกู้คืนได้</span>
-          </p>
-          <div className="flex gap-3 justify-center">
-            <Button variant="outline" onClick={() => setDeletingApp(null)} disabled={isDeleting}>ยกเลิก</Button>
-            <Button onClick={handleDeleteApplication} isLoading={isDeleting} className="bg-red-600 text-white hover:bg-red-700 border-none shadow-md">ยืนยันการลบ</Button>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 };
