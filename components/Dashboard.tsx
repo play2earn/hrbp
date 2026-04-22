@@ -49,6 +49,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
   const [departments, setDepartments] = useState<any[]>([]);
   const [qrLogs, setQrLogs] = useState<any[]>([]);
   const [qrLogCreatorFilter, setQrLogCreatorFilter] = useState<string>('all');
+  const [confirmQrAction, setConfirmQrAction] = useState<'empty' | 'filled' | null>(null);
 
   // Applications Table State
   const [appFilters, setAppFilters] = useState({
@@ -286,18 +287,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     ? qrLogs
     : qrLogs.filter(l => l.created_by === qrLogCreatorFilter);
 
-  const generateLink = async () => {
+  const generateLink = () => {
     if (!qrParams.bu || !qrParams.ch) {
-      const confirmMsg = 'คุณยังไม่ได้เลือก Business Unit หรือ Channel\nยืนยันที่จะสร้าง QR Code แบบไม่ระบุช่องทางหรือไม่?';
-      if (!window.confirm(confirmMsg)) {
-        return;
-      }
+      setConfirmQrAction('empty');
     } else {
-      if (!window.confirm('ยืนยันการสร้าง QR Code ด้วยข้อมูลที่เลือก?')) {
-        return;
-      }
+      setConfirmQrAction('filled');
     }
+  };
 
+  const executeGenerateLink = async () => {
+    setConfirmQrAction(null);
     const baseUrl = window.location.href.split('?')[0]; // Current base
     const params = new URLSearchParams();
     if (qrParams.bu) params.append('bu', qrParams.bu);
@@ -2113,6 +2112,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
           </button>
         </div>
       )}
+
+      <Modal
+        isOpen={!!confirmQrAction}
+        onClose={() => setConfirmQrAction(null)}
+        title="ยืนยันการสร้าง QR Code"
+        footer={null}
+      >
+        <div className="text-center py-4">
+          <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600">
+            <QrCode className="w-6 h-6" />
+          </div>
+          <p className="mb-6 text-gray-600">
+            {confirmQrAction === 'empty'
+              ? 'คุณยังไม่ได้เลือก Business Unit หรือ Channel ยืนยันที่จะสร้าง QR Code แบบไม่ระบุช่องทางหรือไม่?'
+              : 'ยืนยันการสร้าง QR Code ด้วยข้อมูลที่เลือก?'}
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Button variant="outline" onClick={() => setConfirmQrAction(null)}>ยกเลิก</Button>
+            <Button onClick={executeGenerateLink}>ยืนยัน</Button>
+          </div>
+        </div>
+      </Modal>
+
     </div>
   );
 };
