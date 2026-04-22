@@ -287,6 +287,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     : qrLogs.filter(l => l.created_by === qrLogCreatorFilter);
 
   const generateLink = async () => {
+    if (!qrParams.bu || !qrParams.ch) {
+      const confirmMsg = 'คุณยังไม่ได้เลือก Business Unit หรือ Channel\nยืนยันที่จะสร้าง QR Code แบบไม่ระบุช่องทางหรือไม่?';
+      if (!window.confirm(confirmMsg)) {
+        return;
+      }
+    } else {
+      if (!window.confirm('ยืนยันการสร้าง QR Code ด้วยข้อมูลที่เลือก?')) {
+        return;
+      }
+    }
+
     const baseUrl = window.location.href.split('?')[0]; // Current base
     const params = new URLSearchParams();
     if (qrParams.bu) params.append('bu', qrParams.bu);
