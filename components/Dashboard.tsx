@@ -637,7 +637,91 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
 
                   return (
                     <>
-                      <div className="overflow-x-auto">
+                      {/* ===== MOBILE: Card List ===== */}
+                      <div className="lg:hidden">
+                        {paginated.length === 0 ? (
+                          <div className="py-12 text-center text-sm text-gray-500">ไม่พบข้อมูลผู้สมัคร</div>
+                        ) : (
+                          <div className="divide-y divide-gray-100">
+                            {paginated.map((app: any, idx: number) => {
+                              const rowIndex = (appPage - 1) * appPerPage + idx + 1;
+                              const fd = app.form_data || {};
+                              const fullName = app.full_name || `${fd.prefix || ''} ${fd.firstName || ''} ${fd.lastName || ''}`.trim() || 'ไม่ระบุ';
+                              const phone = app.phone || fd.phone || '-';
+                              const dept = app.department || fd.department || '-';
+                              const pos = app.position || fd.position || '-';
+                              const bu = fd.businessUnit || app.business_unit || '';
+                              const ch = fd.sourceChannel || app.source_channel || '';
+
+                              return (
+                                <div key={app.id} className="py-3 px-1 hover:bg-gray-50/50 transition-colors" onClick={() => setViewingApp(app)}>
+                                  <div className="flex items-start gap-3">
+                                    {/* Photo */}
+                                    <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-br from-indigo-100 to-purple-100 border border-gray-200 flex items-center justify-center mt-0.5">
+                                      {fd.photoUrl ? (
+                                        <img src={fd.photoUrl} alt="" className="w-full h-full object-cover" />
+                                      ) : (
+                                        <span className="text-sm font-bold text-indigo-400">
+                                          {(fullName.charAt(0) || '?').toUpperCase()}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    {/* Content */}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center justify-between gap-2">
+                                        <h4 className="text-sm font-semibold text-gray-900 truncate">{fullName}</h4>
+                                        <span className={`px-2 py-0.5 text-[11px] font-semibold rounded-full flex-shrink-0 ${app.status === 'Hired' ? 'bg-green-100 text-green-800' :
+                                          app.status === 'Rejected' ? 'bg-red-100 text-red-800' :
+                                            'bg-yellow-100 text-yellow-800'
+                                          }`}>
+                                          {app.status === 'Pending' ? 'รอดำเนินการ' : app.status === 'Hired' ? 'รับแล้ว' : 'ไม่ผ่าน'}
+                                        </span>
+                                      </div>
+                                      <div className="text-xs text-gray-600 mt-0.5 font-medium">{pos}</div>
+                                      <div className="text-xs text-gray-400">{dept}</div>
+                                      <div className="flex items-center justify-between mt-1.5">
+                                        <div className="flex items-center gap-3 text-xs text-gray-400">
+                                          <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> {phone}</span>
+                                          <span>{new Date(app.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}</span>
+                                        </div>
+                                        {/* Action Buttons */}
+                                        <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                                          {app.status === 'Pending' && (
+                                            <>
+                                              <button className="p-1.5 rounded-full hover:bg-green-50 transition-colors" onClick={() => setApprovingApp(app)} title="รับเข้าทำงาน">
+                                                <CheckCircle className="w-4.5 h-4.5 text-green-600" />
+                                              </button>
+                                              <button className="p-1.5 rounded-full hover:bg-red-50 transition-colors" onClick={() => { setRejectingApp(app); setRejectComment(''); }} title="ไม่รับ">
+                                                <XCircle className="w-4.5 h-4.5 text-red-500" />
+                                              </button>
+                                            </>
+                                          )}
+                                          {role === 'admin' && (
+                                            <button className="p-1.5 rounded-full hover:bg-red-50 transition-colors" onClick={() => setDeletingApp(app)} title="ลบข้อมูล">
+                                              <Trash2 className="w-4 h-4 text-red-400" />
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
+                                      {/* Tags */}
+                                      {(bu || ch) && (
+                                        <div className="flex flex-wrap gap-1 mt-1.5">
+                                          {bu && <span className="px-1.5 py-0.5 text-[10px] rounded bg-indigo-50 text-indigo-600 font-medium border border-indigo-100">BU: {bu}</span>}
+                                          {ch && <span className="px-1.5 py-0.5 text-[10px] rounded bg-blue-50 text-blue-600 font-medium border border-blue-100">CH: {ch}</span>}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* ===== DESKTOP: Table ===== */}
+                      <div className="hidden lg:block overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                           <thead className="bg-gray-50">
                             <tr>
