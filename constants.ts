@@ -286,7 +286,7 @@ export const TRANSLATIONS = {
       // Step 5
       institute: 'ชื่อสถาบัน',
       major: 'สาขาวิชา',
-      program: 'โปรแกรม/แผนการเรียน',
+      program: 'โปรแกรม/สาขาวิชา',
       gpa: 'เกรดเฉลี่ย',
       yearStart: 'ปีที่เริ่ม',
       yearFinish: 'ปีที่จบ',
