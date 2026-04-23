@@ -2274,8 +2274,15 @@ const MasterDataConfig = () => {
 
   const confirmToggle = async () => {
     if (!confirmAction) return;
-    await api.master.toggleActive(activeTable, confirmAction.id, confirmAction.current);
-    fetchTableData();
+    try {
+      const result = await api.master.toggleActive(activeTable, confirmAction.id, confirmAction.current);
+      if (!result.success) {
+        alert(`Failed to update: ${result.error?.message || 'Unknown error'}`);
+      }
+      fetchTableData();
+    } catch (err: any) {
+      alert(`Error: ${err.message || 'Unknown error'}`);
+    }
     setConfirmAction(null);
   };
 
