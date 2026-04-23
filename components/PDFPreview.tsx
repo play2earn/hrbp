@@ -211,9 +211,10 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
             <tbody className="divide-y divide-gray-400">
               {['highSchool', 'vocational', 'bachelor', 'master'].map((key) => {
                 const edu = data.education[key as keyof typeof data.education];
+                const levelDisplayNames: Record<string, string> = { highSchool: 'High School / Voc.Cert.', vocational: 'Higher Vocational', bachelor: 'Bachelor', master: 'Master' };
                 return (
                   <tr key={key}>
-                    <td className="py-2 px-2 border-r border-gray-400 font-bold bg-gray-50 capitalize text-black">{key.replace(/([A-Z])/g, ' $1').trim()}</td>
+                    <td className="py-2 px-2 border-r border-gray-400 font-bold bg-gray-50 capitalize text-black">{levelDisplayNames[key] || key}</td>
                     <td className="py-2 px-2 border-r border-gray-400 text-black">{edu.institute || '-'}</td>
                     <td className="py-2 px-2 border-r border-gray-400 text-black">{edu.major || '-'}</td>
                     <td className="py-2 px-2 border-r border-gray-400 text-black">{edu.gpa || '-'}</td>

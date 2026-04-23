@@ -1042,8 +1042,8 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                 const years = Array.from({ length: currentYear - 1940 + 11 }, (_, i) => currentYear + 10 - i);
 
                 // Determine which list to use for autocomplete
-                const instituteList = level === 'Bachelor' || level === 'Master' ? universities : level === 'Vocational' ? colleges : null;
-                const listId = level === 'Bachelor' || level === 'Master' ? 'universities-list' : level === 'Vocational' ? 'colleges-list' : null;
+                const instituteList = level === 'Bachelor' || level === 'Master' ? universities : (level === 'Vocational' || level === 'High School') ? colleges : null;
+                const listId = level === 'Bachelor' || level === 'Master' ? 'universities-list' : (level === 'Vocational' || level === 'High School') ? 'colleges-list' : null;
 
                 const eduLabelKey: Record<string, string> = { 'High School': 'highSchool', 'Vocational': 'vocational', 'Bachelor': 'bachelor', 'Master': 'master' };
 

@@ -1531,8 +1531,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                         const edu = fd.education?.[key];
                         if (!edu?.institute) return null;
                         const levelNames: Record<string, string> = {
-                          highSchool: 'มัธยม',
-                          vocational: 'ปวช./ปวส.',
+                          highSchool: 'มัธยม/ปวช.',
+                          vocational: 'ปวส.',
                           bachelor: 'ปริญญาตรี',
                           master: 'ปริญญาโท'
                         };
