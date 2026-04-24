@@ -1143,7 +1143,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                 {pendingUsers.length === 0 ? (
                   <p className="text-gray-500 text-sm p-4 bg-gray-50 rounded-lg">No pending account requests.</p>
                 ) : (
-                  <div className="overflow-x-auto border rounded-lg">
+                  <>
+                  {/* Desktop Table */}
+                  <div className="hidden sm:block overflow-x-auto border rounded-lg">
                     <table className="w-full text-sm">
                       <thead className="bg-gray-100 border-b">
                         <tr>
@@ -1178,6 +1180,32 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                       </tbody>
                     </table>
                   </div>
+
+                  {/* Mobile Cards */}
+                  <div className="sm:hidden space-y-3">
+                    {pendingUsers.map(user => (
+                      <div key={user.id} className="bg-white border rounded-xl p-4 shadow-sm flex flex-col gap-2">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="font-bold text-gray-900">{user.full_name}</div>
+                            <div className="text-sm text-gray-500">{user.email}</div>
+                            <div className="text-xs text-gray-400 mt-0.5">{user.phone || '-'}</div>
+                          </div>
+                          <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                            {user.role === 'admin' ? 'Admin' : 'Moderator'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center mt-2 border-t pt-3">
+                           <span className="text-xs text-gray-400">{new Date(user.created_at).toLocaleDateString('th-TH')}</span>
+                           <div className="flex gap-2">
+                              <Button size="sm" className="bg-green-600 hover:bg-green-700 h-8 px-3 text-xs" onClick={() => handleUserAction(user.id, 'Active')}>Approve</Button>
+                              <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 h-8 px-3 text-xs" onClick={() => handleUserAction(user.id, 'Rejected')}>Reject</Button>
+                           </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  </>
                 )}
               </Card>
 
@@ -1191,7 +1219,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                 {activeUsers.length === 0 ? (
                   <p className="text-gray-500 text-sm p-4 text-center">No active users found.</p>
                 ) : (
-                  <div className="overflow-x-auto border rounded-lg">
+                  <>
+                  {/* Desktop Table */}
+                  <div className="hidden sm:block overflow-x-auto border rounded-lg">
                     <table className="w-full text-sm">
                       <thead className="bg-gray-100 border-b">
                         <tr>
@@ -1227,6 +1257,32 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                       </tbody>
                     </table>
                   </div>
+                  
+                  {/* Mobile Cards */}
+                  <div className="sm:hidden space-y-3">
+                    {activeUsers.map(user => (
+                      <div key={user.id} className="bg-white border rounded-xl p-4 shadow-sm flex flex-col gap-2">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="font-bold text-gray-900">{user.full_name}</div>
+                            <div className="text-sm text-gray-500">{user.email}</div>
+                            <div className="text-xs text-gray-400 mt-0.5">{user.phone || '-'}</div>
+                          </div>
+                          <div className="flex flex-col items-end gap-1.5">
+                            <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                              {user.role === 'admin' ? 'Admin' : 'Moderator'}
+                            </span>
+                            <span className="text-[10px] font-semibold bg-green-100 text-green-700 px-2 py-1 rounded-full">Active</span>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center mt-2 border-t pt-3">
+                           <span className="text-xs text-gray-400">{new Date(user.created_at).toLocaleDateString('th-TH')}</span>
+                           <Button size="sm" variant="outline" className="h-8 px-4 text-xs" onClick={() => { setEditingUser(user); setIsConfirmingDisable(false); }}>Manage</Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  </>
                 )}
               </Card>
 
@@ -1326,7 +1382,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                       placeholder="ชื่อ นามสกุล"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">อีเมล <span className="text-red-500">*</span></label>
                       <input
@@ -1349,7 +1405,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Role <span className="text-red-500">*</span></label>
                       <select
@@ -1362,7 +1418,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                       </select>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Emp ID <span className="text-red-500">*</span></label>
                       <input
