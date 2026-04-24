@@ -941,8 +941,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
 
           {activeTab === 'qr' && (
             <div className="form-step-enter">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">QR Code & Link Generator</h2>
-              <p className="text-gray-500 mb-6">สร้าง QR Code และ Link สำหรับติดตามช่องทางการรับสมัคร</p>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1 sm:mb-2">QR Code & Link Generator</h2>
+              <p className="text-gray-500 text-sm sm:text-base mb-4 sm:mb-6">สร้าง QR Code และ Link สำหรับติดตามช่องทางการรับสมัคร</p>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Configuration Panel */}
@@ -1032,16 +1032,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
 
               {/* Recent Transactions Log */}
               <Card className="mt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-indigo-500" /> Recent Transactions
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                  <h3 className="font-bold text-base sm:text-lg text-gray-800 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-indigo-500 flex-shrink-0" /> Recent Transactions
                     <span className="text-xs font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
                       {filteredQrLogs.length}{qrLogCreatorFilter !== 'all' ? ` / ${qrLogs.length}` : ''} records
                     </span>
                   </h3>
                   <div className="flex items-center gap-2">
                     <select
-                      className="border rounded-lg px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none max-w-[220px] truncate"
+                      className="border rounded-lg px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none flex-1 sm:flex-none sm:max-w-[220px] truncate"
                       value={qrLogCreatorFilter}
                       onChange={(e) => setQrLogCreatorFilter(e.target.value)}
                     >
@@ -1063,42 +1063,42 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                       const urlObj = (() => { try { return new URL(log.generated_url); } catch { return null; } })();
                       const params = urlObj ? Object.fromEntries(urlObj.searchParams.entries()) : {};
                       return (
-                        <div key={log.id} className="border border-gray-200 rounded-xl p-4 hover:border-indigo-300 hover:shadow-sm transition-all bg-white">
-                          <div className="flex items-start gap-4">
+                        <div key={log.id} className="border border-gray-200 rounded-xl p-3 sm:p-4 hover:border-indigo-300 hover:shadow-sm transition-all bg-white">
+                          <div className="flex items-start gap-3 sm:gap-4">
                             {/* QR Thumbnail */}
                             <div
                               onClick={() => window.open(`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(log.generated_url)}`, '_blank')}
                               title="คลิกเพื่อเปิด QR ขนาดเต็ม"
-                              className="group flex-shrink-0 w-14 h-14 bg-white border-2 border-gray-100 rounded-xl cursor-pointer hover:border-indigo-400 hover:shadow-md transition-all overflow-hidden flex items-center justify-center"
+                              className="group flex-shrink-0 w-11 h-11 sm:w-14 sm:h-14 bg-white border-2 border-gray-100 rounded-xl cursor-pointer hover:border-indigo-400 hover:shadow-md transition-all overflow-hidden flex items-center justify-center"
                             >
                               <img
                                 src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(log.generated_url)}`}
                                 alt="QR"
-                                className="w-11 h-11 object-contain transition-transform group-hover:scale-110"
+                                className="w-8 h-8 sm:w-11 sm:h-11 object-contain transition-transform group-hover:scale-110"
                               />
                             </div>
 
                             {/* Main Info */}
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                                <span className="inline-flex items-center gap-1 bg-indigo-100 text-indigo-700 text-xs font-bold px-2.5 py-1 rounded-full">
+                              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap mb-1.5">
+                                <span className="inline-flex items-center gap-1 bg-indigo-100 text-indigo-700 text-[11px] sm:text-xs font-bold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full">
                                   {log.business_unit || '-'}
                                 </span>
-                                <span className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+                                <span className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 text-[11px] sm:text-xs font-semibold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full">
                                   {log.channel || '-'}
                                 </span>
                                 {log.campaign_tag && (
-                                  <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-xs font-semibold px-2.5 py-1 rounded-full">
+                                  <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-[11px] sm:text-xs font-semibold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full">
                                     🏷️ {log.campaign_tag}
                                   </span>
                                 )}
                               </div>
 
                               {/* Compact meta row */}
-                              <div className="flex items-center gap-3 text-xs text-gray-500">
+                              <div className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-gray-500">
                                 <span>{new Date(log.created_at).toLocaleString('th-TH', { day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
                                 <span className="text-gray-300">|</span>
-                                <span title={log.created_by}>{log.created_by || '-'}</span>
+                                <span title={log.created_by} className="truncate">{log.created_by || '-'}</span>
                               </div>
                             </div>
 
@@ -1109,10 +1109,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                                 showToast('คัดลอก URL แล้ว!', 'success');
                               }}
                               title={log.generated_url}
-                              className="flex-shrink-0 inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-2 rounded-lg transition-colors"
+                              className="flex-shrink-0 inline-flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-colors"
                             >
                               <Copy className="w-3.5 h-3.5" />
-                              Copy URL
+                              <span className="hidden sm:inline">Copy URL</span>
+                              <span className="sm:hidden">Copy</span>
                             </button>
                           </div>
                         </div>
