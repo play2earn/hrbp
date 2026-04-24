@@ -1518,7 +1518,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               </div>
 
               {/* 1. Position Applied */}
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1 bg-indigo-50 p-3 rounded-lg mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 bg-indigo-50 p-3 rounded-lg mb-4">
                 <InfoRow label="ตำแหน่งที่สมัคร" value={fd.position || viewingApp.position} />
                 <InfoRow label="เงินเดือนที่ต้องการ" value={fd.expectedSalary ? `${fd.expectedSalary} ${fd.isSalaryNegotiable ? '(ต่อรองได้)' : ''}` : '-'} />
                 <InfoRow label="แผนก/ฝ่าย" value={fd.department} />
@@ -1527,7 +1527,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
 
               {/* 2. Personal Info */}
               <SectionHeader title="ข้อมูลส่วนตัว" icon={User} />
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
                 <InfoRow label="คำนำหน้า" value={fd.title || fd.prefix} />
                 <InfoRow label="ชื่อเล่น (ไทย)" value={fd.nickname} />
                 <InfoRow label="ชื่อเล่น (อังกฤษ)" value={fd.nicknameEn} />
@@ -1559,19 +1559,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
 
               {/* 4. Family Info */}
               <SectionHeader title="ข้อมูลครอบครัว" icon={Users} />
-              <div className="grid grid-cols-3 gap-x-4 gap-y-1 mb-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-1 mb-3">
                 <InfoRow label="สถานภาพ" value={fd.maritalStatus} />
                 <InfoRow label="จำนวนบุตร" value={fd.childrenCount} />
                 <InfoRow label="จำนวนพี่น้อง" value={fd.siblingCount} />
               </div>
               {fd.maritalStatus === 'สมรส' && (
-                <div className="grid grid-cols-3 gap-x-4 gap-y-1 mb-3 bg-gray-50 p-2 rounded">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-1 mb-3 bg-gray-50 p-2 rounded">
                   <InfoRow label="ชื่อคู่สมรส" value={fd.spouseName} />
                   <InfoRow label="อาชีพคู่สมรส" value={fd.spouseOccupation} />
                   <InfoRow label="อายุคู่สมรส" value={fd.spouseAge} />
                 </div>
               )}
-              <div className="border rounded-lg overflow-hidden">
+              {/* Desktop: Table | Mobile: Cards */}
+              <div className="hidden sm:block border rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-100">
                     <tr>
@@ -1597,11 +1598,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                   </tbody>
                 </table>
               </div>
+              <div className="sm:hidden space-y-2">
+                {[{ rel: 'บิดา', name: fd.fatherName, age: fd.fatherAge, occ: fd.fatherOccupation }, { rel: 'มารดา', name: fd.motherName, age: fd.motherAge, occ: fd.motherOccupation }].map((p) => (
+                  <div key={p.rel} className="bg-gray-50 rounded-lg p-3 text-sm">
+                    <div className="font-semibold text-gray-800 mb-1">{p.rel}</div>
+                    <div className="text-gray-600">ชื่อ: <span className="text-gray-900 font-medium">{p.name || '-'}</span></div>
+                    <div className="flex gap-4 text-gray-600"><span>อายุ: <span className="text-gray-900 font-medium">{p.age || '-'}</span></span><span>อาชีพ: <span className="text-gray-900 font-medium">{p.occ || '-'}</span></span></div>
+                  </div>
+                ))}
+              </div>
 
               {/* 5. Education */}
               <SectionHeader title="การศึกษา" icon={GraduationCap} />
               {fd.education ? (
-                <div className="border rounded-lg overflow-hidden">
+                <>
+                {/* Desktop: Table */}
+                <div className="hidden sm:block border rounded-lg overflow-hidden">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-100">
                       <tr>
@@ -1635,6 +1647,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                     </tbody>
                   </table>
                 </div>
+                {/* Mobile: Cards */}
+                <div className="sm:hidden space-y-2">
+                  {['highSchool', 'vocational', 'bachelor', 'master'].map((key) => {
+                    const edu = fd.education?.[key];
+                    if (!edu?.institute) return null;
+                    const levelNames: Record<string, string> = { highSchool: 'มัธยม/ปวช.', vocational: 'ปวส.', bachelor: 'ปริญญาตรี', master: 'ปริญญาโท' };
+                    return (
+                      <div key={key} className="bg-gray-50 rounded-lg p-3 text-sm">
+                        <div className="font-semibold text-gray-800">{levelNames[key]}</div>
+                        <div className="text-gray-600 mt-0.5">{edu.institute || '-'}</div>
+                        <div className="flex flex-wrap gap-x-4 gap-y-0 text-xs text-gray-500 mt-1">
+                          <span>สาขา: {edu.major || '-'}</span>
+                          <span>GPA: {edu.gpa || '-'}</span>
+                          {edu.startDate && edu.endDate && <span>{edu.startDate}-{edu.endDate}</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                </>
               ) : (
                 <p className="text-sm text-gray-500">ไม่มีข้อมูล</p>
               )}
@@ -1642,7 +1674,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               {/* 6. Work Experience */}
               <SectionHeader title="ประสบการณ์ทำงาน" icon={Building2} />
               {fd.experience && fd.experience.length > 0 ? (
-                <div className="border rounded-lg overflow-hidden">
+                <>
+                {/* Desktop: Table */}
+                <div className="hidden sm:block border rounded-lg overflow-hidden">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-100">
                       <tr>
@@ -1666,13 +1700,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                     </tbody>
                   </table>
                 </div>
+                {/* Mobile: Cards */}
+                <div className="sm:hidden space-y-2">
+                  {fd.experience.map((exp: any, i: number) => (
+                    <div key={i} className="bg-gray-50 rounded-lg p-3 text-sm border-l-3 border-indigo-300">
+                      <div className="flex justify-between items-start">
+                        <div className="font-semibold text-gray-800">{exp.company || '-'}</div>
+                        <span className="text-[11px] text-gray-400 flex-shrink-0">{exp.from} - {exp.to || 'ปัจจุบัน'}</span>
+                      </div>
+                      <div className="text-gray-600 text-xs mt-0.5">{exp.position || '-'}{exp.salary ? ` · ${exp.salary}` : ''}</div>
+                      {exp.description && <div className="text-xs text-gray-500 mt-1">{exp.description}</div>}
+                    </div>
+                  ))}
+                </div>
+                </>
               ) : (
                 <p className="text-sm text-gray-500">ไม่มีประสบการณ์ทำงาน</p>
               )}
 
               {/* 7. Skills */}
               <SectionHeader title="ทักษะ" />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Languages */}
                 <div className="bg-gray-50 p-3 rounded-lg">
                   <h5 className="font-semibold text-sm text-gray-700 mb-2 border-b pb-1">ภาษา</h5>
@@ -1713,7 +1761,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                 )}
               </div>
               {/* Special Skills & Hobbies */}
-              <div className="grid grid-cols-2 gap-4 mt-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
                 <div className="text-sm"><span className="text-gray-500 font-medium">ความสามารถพิเศษ:</span> <span className="text-gray-900">{fd.specialAbility || '-'}</span></div>
                 <div className="text-sm"><span className="text-gray-500 font-medium">งานอดิเรก:</span> <span className="text-gray-900">{fd.hobbies || '-'}</span></div>
               </div>
@@ -1725,7 +1773,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                   <span className="text-gray-500 font-medium block mb-1">สามารถทำงานต่างจังหวัดได้:</span>
                   <span className="text-gray-900">{fd.upcountryLocations?.length > 0 ? fd.upcountryLocations.join(', ') : '-'}</span>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="bg-gray-50 p-3 rounded text-sm">
                     <span className="text-gray-500 font-medium block mb-1">จุดเด่น:</span>
                     <span className="text-gray-900">{fd.strength || '-'}</span>
@@ -1763,7 +1811,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
 
               {/* 9. Health & Emergency */}
               <SectionHeader title="สุขภาพและผู้ติดต่อฉุกเฉิน" />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-blue-50 p-3 rounded-lg">
                   <h5 className="font-semibold text-sm text-blue-800 mb-2">ผู้ติดต่อฉุกเฉิน</h5>
                   <div className="space-y-1 text-sm">
@@ -1819,7 +1867,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               )}
 
               {/* Action Buttons */}
-              <div className="flex flex-wrap gap-3 pt-4 mt-4 border-t sticky bottom-0 bg-white pb-2">
+              <div className="flex flex-wrap gap-2 sm:gap-3 pt-4 mt-4 border-t sticky bottom-0 bg-white pb-2">
                 <Button variant="outline" onClick={() => {
                   // Store form_data in localStorage and open print.html
                   const fd = viewingApp.form_data ? { ...viewingApp.form_data } : {};
