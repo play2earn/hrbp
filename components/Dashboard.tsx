@@ -2469,13 +2469,31 @@ const MasterDataConfig = () => {
 
   return (
     <div className="form-step-enter max-w-6xl">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Master Data Configuration</h2>
-        <Button onClick={openAdd}><Plus className="w-4 h-4 mr-2" /> Add New</Button>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 sm:mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Master Data Configuration</h2>
+        <Button onClick={openAdd} className="w-full sm:w-auto"><Plus className="w-4 h-4 mr-2" /> Add New</Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="col-span-1 p-0 h-fit overflow-hidden">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-6">
+        {/* Mobile Nav Select */}
+        <div className="md:hidden">
+          <select 
+            className="w-full border-2 border-indigo-100 rounded-xl p-3 bg-white focus:ring-2 focus:ring-indigo-500 font-medium text-gray-700 outline-none"
+            value={activeTable}
+            onChange={(e) => setActiveTable(e.target.value)}
+          >
+            {TABLE_GROUPS.map(group => (
+              <optgroup key={group.id} label={group.label}>
+                {group.tables.map(t => (
+                  <option key={t.id} value={t.id}>{t.label} ({t.labelTh})</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </div>
+
+        {/* Desktop Sidebar Nav */}
+        <Card className="hidden md:block col-span-1 p-0 h-fit overflow-hidden">
           <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-4">
             <h3 className="text-white font-bold text-sm flex items-center gap-2">
               <Database className="w-4 h-4" /> Data Categories
@@ -2547,8 +2565,9 @@ const MasterDataConfig = () => {
           {isLoading ? (
             <div className="text-center py-20 text-gray-500">Loading...</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+            <div className="overflow-x-auto w-full">
+              {/* Desktop Table */}
+              <table className="hidden sm:table min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
@@ -2581,26 +2600,54 @@ const MasterDataConfig = () => {
                   ))}
                 </tbody>
               </table>
+
+              {/* Mobile Card List */}
+              <div className="sm:hidden space-y-3 p-1">
+                {paginatedData.map(item => (
+                  <div key={item.id} className={`border rounded-xl p-4 relative flex flex-col gap-3 shadow-sm ${item.is_active === false ? 'bg-gray-50 border-gray-200 opacity-80' : 'bg-white border-gray-100'}`}>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="text-xs text-gray-400 font-mono">ID: {item.id}</div>
+                        <div className="font-bold text-base text-gray-900 mt-1">{item.name_th || item.name}</div>
+                        {item.name_en && <div className="text-sm text-gray-500">{item.name_en}</div>}
+                      </div>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-[11px] font-bold ${item.is_active !== false ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>
+                        {item.is_active !== false ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                    <div className="flex justify-end gap-2 border-t border-gray-100 pt-3">
+                      <Button size="sm" variant="outline" className="h-8 px-3 text-xs" onClick={() => openEdit(item)}>
+                        <Edit className="w-3.5 h-3.5 mr-1.5 text-blue-600" /> Edit
+                      </Button>
+                      <Button size="sm" variant="outline" className={`h-8 px-3 text-xs ${item.is_active !== false ? 'hover:bg-red-50 hover:text-red-600 hover:border-red-200' : 'hover:bg-green-50 hover:text-green-600 hover:border-green-200'}`} onClick={() => handleToggleActive(item.id, item.is_active !== false)}>
+                        {item.is_active !== false ? <><Trash2 className="w-3.5 h-3.5 mr-1.5 text-red-500" /> Disable</> : <><Check className="w-3.5 h-3.5 mr-1.5 text-green-500" /> Enable</>}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
           {/* Pagination Controls */}
-          <div className="mt-auto pt-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-500">
-            <div className="flex items-center gap-2">
-              <span>Rows per page:</span>
-              <select
-                className="border rounded px-2 py-1 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                value={itemsPerPage}
-                onChange={(e) => {
-                  setItemsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-              >
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-              <span>
+          <div className="mt-auto pt-4 border-t flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500">
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 w-full md:w-auto">
+              <div className="flex items-center gap-2">
+                <span>Rows per page:</span>
+                <select
+                  className="border rounded px-2 py-1 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+              <span className="text-xs sm:text-sm">
                 Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length} entries
               </span>
             </div>
