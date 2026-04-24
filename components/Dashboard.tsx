@@ -558,9 +558,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               <Card>
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
                   <h3 className="text-lg font-bold text-gray-800">Applications</h3>
-                  <div className="flex flex-wrap gap-3 w-full lg:w-auto">
+                  <div className="flex flex-col sm:flex-row flex-wrap gap-3 w-full lg:w-auto">
                     {/* Search */}
-                    <div className="relative flex-1 lg:flex-initial">
+                    <div className="relative w-full sm:w-auto sm:flex-1 lg:flex-initial">
                       <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                       <input
                         type="text"
@@ -570,50 +570,52 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                         onChange={(e) => { setAppFilters(f => ({ ...f, search: e.target.value })); setAppPage(1); }}
                       />
                     </div>
-                    {/* Position Filter */}
-                    <select
-                      className="border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                      value={appFilters.position}
-                      onChange={(e) => { setAppFilters(f => ({ ...f, position: e.target.value })); setAppPage(1); }}
-                    >
-                      <option value="">ตำแหน่งทั้งหมด</option>
-                      {positions.filter(p => p.is_active !== false).map(p => (
-                        <option key={p.id} value={p.name_th || p.name}>{p.name_th || p.name}</option>
-                      ))}
-                    </select>
-                    {/* BU Filter */}
-                    <select
-                      className="border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                      value={appFilters.bu}
-                      onChange={(e) => { setAppFilters(f => ({ ...f, bu: e.target.value })); setAppPage(1); }}
-                    >
-                      <option value="">BU ทั้งหมด</option>
-                      {businessUnits.map(b => (
-                        <option key={b.id || b.name} value={b.name}>{b.name}</option>
-                      ))}
-                    </select>
-                    {/* Channel Filter */}
-                    <select
-                      className="border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                      value={appFilters.channel}
-                      onChange={(e) => { setAppFilters(f => ({ ...f, channel: e.target.value })); setAppPage(1); }}
-                    >
-                      <option value="">ช่องทางทั้งหมด</option>
-                      {channels.filter(c => c.is_active !== false).map(c => (
-                        <option key={c.id} value={c.name_th || c.name}>{c.name_th || c.name}</option>
-                      ))}
-                    </select>
-                    {/* Status Filter */}
-                    <select
-                      className="border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                      value={appFilters.status}
-                      onChange={(e) => { setAppFilters(f => ({ ...f, status: e.target.value })); setAppPage(1); }}
-                    >
-                      <option value="all">สถานะทั้งหมด</option>
-                      <option value="Pending">รอดำเนินการ</option>
-                      <option value="Hired">รับเข้าทำงาน</option>
-                      <option value="Rejected">ไม่ผ่าน</option>
-                    </select>
+                    <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+                      {/* Position Filter */}
+                      <select
+                        className="border rounded-lg px-2 sm:px-3 py-2 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-auto"
+                        value={appFilters.position}
+                        onChange={(e) => { setAppFilters(f => ({ ...f, position: e.target.value })); setAppPage(1); }}
+                      >
+                        <option value="">ตำแหน่งทั้งหมด</option>
+                        {positions.filter(p => p.is_active !== false).map(p => (
+                          <option key={p.id} value={p.name_th || p.name}>{p.name_th || p.name}</option>
+                        ))}
+                      </select>
+                      {/* BU Filter */}
+                      <select
+                        className="border rounded-lg px-2 sm:px-3 py-2 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-auto"
+                        value={appFilters.bu}
+                        onChange={(e) => { setAppFilters(f => ({ ...f, bu: e.target.value })); setAppPage(1); }}
+                      >
+                        <option value="">BU ทั้งหมด</option>
+                        {businessUnits.map(b => (
+                          <option key={b.id || b.name} value={b.name}>{b.name}</option>
+                        ))}
+                      </select>
+                      {/* Channel Filter */}
+                      <select
+                        className="border rounded-lg px-2 sm:px-3 py-2 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-auto"
+                        value={appFilters.channel}
+                        onChange={(e) => { setAppFilters(f => ({ ...f, channel: e.target.value })); setAppPage(1); }}
+                      >
+                        <option value="">ช่องทางทั้งหมด</option>
+                        {channels.filter(c => c.is_active !== false).map(c => (
+                          <option key={c.id} value={c.name_th || c.name}>{c.name_th || c.name}</option>
+                        ))}
+                      </select>
+                      {/* Status Filter */}
+                      <select
+                        className="border rounded-lg px-2 sm:px-3 py-2 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-auto"
+                        value={appFilters.status}
+                        onChange={(e) => { setAppFilters(f => ({ ...f, status: e.target.value })); setAppPage(1); }}
+                      >
+                        <option value="all">สถานะทั้งหมด</option>
+                        <option value="Pending">รอดำเนินการ</option>
+                        <option value="Hired">รับเข้าทำงาน</option>
+                        <option value="Rejected">ไม่ผ่าน</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
