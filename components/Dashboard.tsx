@@ -670,7 +670,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                                     {/* Content */}
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center justify-between gap-2">
-                                        <h4 className="text-sm font-semibold text-gray-900 truncate">{fullName}</h4>
+                                        <h4 className="text-sm font-semibold text-gray-900 truncate">{fullName}{fd.nickname ? ` (${fd.nickname})` : ''}</h4>
                                         <span className={`px-2 py-0.5 text-[11px] font-semibold rounded-full flex-shrink-0 ${app.status === 'Hired' ? 'bg-green-100 text-green-800' :
                                           app.status === 'Rejected' ? 'bg-red-100 text-red-800' :
                                             'bg-yellow-100 text-yellow-800'
