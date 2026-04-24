@@ -681,9 +681,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                                       <div className="text-xs text-gray-600 mt-0.5 font-medium">{pos}</div>
                                       <div className="text-xs text-gray-400">{dept}</div>
                                       <div className="flex items-center justify-between mt-1.5">
-                                        <div className="flex items-center gap-3 text-xs text-gray-400">
+                                        <div className="flex items-center gap-2 text-xs text-gray-400 flex-wrap">
                                           <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> {phone}</span>
-                                          <span>{new Date(app.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}</span>
+                                          <span>·</span>
+                                          <span>{new Date(app.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })} {new Date(app.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}</span>
+                                          {fd.age && <><span>·</span><span>{fd.age} ปี</span></>}
                                         </div>
                                         {/* Action Buttons */}
                                         <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
