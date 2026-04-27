@@ -54,7 +54,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   const appsByBU = useMemo(() => {
     const acc: Record<string, number> = {};
     applications.forEach((app: any) => {
-      const bu = app.business_unit || 'Unknown';
+      const bu = app.form_data?.businessUnit || app.business_unit || 'Unknown';
       acc[bu] = (acc[bu] || 0) + 1;
     });
     return Object.entries(acc).map(([name, value]) => ({ name, value }));

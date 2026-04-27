@@ -6,6 +6,7 @@ export const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444'];
 // Brand-specific BU color map (for charts)
 export const BU_COLOR_MAP: Record<string, string> = {
     'Double A': '#2563EB',   // Blue
+    'DoubleA': '#2563EB',    // Blue
     'NPS': '#EAB308',        // Yellow
     'ReLo': '#16A34A',       // Green
     'Head Office': '#8B5CF6', // Purple
