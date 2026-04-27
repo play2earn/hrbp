@@ -481,6 +481,12 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
       }
     }
 
+    if (step === 10) {
+      if (!formData.photoUrl) {
+        errors.photoUrl = lang === 'th' ? 'กรุณาอัปโหลดรูปถ่าย' : 'Please upload a photo';
+      }
+    }
+
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -1372,9 +1378,10 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FileUpload
-                  label={t.labels.photo}
+                  label={<>{t.labels.photo} <span className="text-red-500">*</span></>}
                   description={lang === 'th' ? "อัปโหลดรูปถ่าย (JPG/PNG จะถูกบีบอัดอัตโนมัติ)" : "Upload photo (JPG/PNG will be auto-compressed)"}
                   value={formData.photoUrl}
+                  error={validationErrors.photoUrl}
                   onChange={() => { }} // Controlled via onFileSelect
                   onFileSelect={(file) => handleFileUpload(file, 'photoUrl', 'photo')}
                   uploading={uploadingState.photo}

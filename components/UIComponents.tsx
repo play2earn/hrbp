@@ -263,7 +263,7 @@ export const Select: React.FC<SelectProps> = ({ label, options, error, className
 
 // --- FileUpload ---
 interface FileUploadProps {
-  label: string;
+  label: React.ReactNode;
   description?: string;
   accept?: string;
   maxSizeMB?: number;

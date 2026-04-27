@@ -6,6 +6,18 @@ import { BarChart2, PieChart as PieChartIcon, Activity } from 'lucide-react';
 
 const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6'];
 
+// Brand-specific BU color map
+const BU_COLOR_MAP: Record<string, string> = {
+  'Double A': '#2563EB',   // Blue
+  'NPS': '#EAB308',        // Yellow
+  'ReLo': '#16A34A',       // Green
+};
+const FALLBACK_COLORS = ['#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#6366F1', '#EF4444', '#0EA5E9'];
+
+const getBuColor = (buName: string, index: number): string => {
+  return BU_COLOR_MAP[buName] || FALLBACK_COLORS[index % FALLBACK_COLORS.length];
+};
+
 export const ReportsTab: React.FC = () => {
   const [executiveSummary, setExecutiveSummary] = useState<any[]>([]);
   const [recruiterKpi, setRecruiterKpi] = useState<any[]>([]);
@@ -64,7 +76,11 @@ export const ReportsTab: React.FC = () => {
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                 />
                 <Legend />
-                <Bar dataKey="total_applications" name="ผู้สมัครทั้งหมด" fill="#6366F1" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="total_applications" name="ผู้สมัครทั้งหมด" radius={[4, 4, 0, 0]}>
+                  {executiveSummary.map((entry: any, index: number) => (
+                    <Cell key={`total-${index}`} fill={getBuColor(entry.business_unit, index)} />
+                  ))}
+                </Bar>
                 <Bar dataKey="hired_count" name="รับเข้าทำงาน" fill="#10B981" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="rejected_count" name="ไม่ผ่าน/ปฏิเสธ" fill="#EF4444" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="pending_count" name="รอดำเนินการ" fill="#F59E0B" radius={[4, 4, 0, 0]} />

@@ -240,6 +240,7 @@
       border-right: var(--box-border);
       border-bottom: var(--box-border);
       transition: all 0.3s ease;
+      min-width: 0;
     }
     
     [data-theme="minimal"] .box-field {
@@ -269,6 +270,12 @@
       font-weight: 500;
       min-height: 14px;
       color: #111827;
+    }
+
+    .military-value {
+      font-size: 12px;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
     }
 
     .content-wrapper {
@@ -437,7 +444,7 @@
         <h3 data-i18n="secBasicInfo">ข้อมูลพื้นฐาน</h3>
       </div>
       <div class="section-body">
-        <div class="grid grid-cols-7">
+        <div class="grid grid-cols-8">
           <div class="box-field">
             <div class="box-label" data-i18n="nicknameTh">ชื่อเล่น (ไทย)</div>
             <div class="box-value" id="nickname">-</div>
@@ -462,9 +469,9 @@
             <div class="box-label" data-i18n="height">ส่วนสูง</div>
             <div class="box-value" id="height">-</div>
           </div>
-          <div class="box-field" style="border-right:none">
-            <div class="box-label" data-i18n="military">ทหาร</div>
-            <div class="box-value" id="militaryStatus">-</div>
+          <div class="box-field col-span-2" style="border-right:none">
+            <div class="box-label" data-i18n="military">สถานะทางทหาร</div>
+            <div class="box-value military-value" id="militaryStatus">-</div>
           </div>
         </div>
         <div class="grid grid-cols-3">
@@ -913,7 +920,7 @@
         prefix: 'คำนำหน้า', firstName: 'ชื่อ', lastName: 'นามสกุล',
         secBasicInfo: 'ข้อมูลพื้นฐาน',
         nicknameTh: 'ชื่อเล่น (ไทย)', nicknameEn: 'ชื่อเล่น (อังกฤษ)',
-        dob: 'วันเกิด', age: 'อายุ', weight: 'น้ำหนัก', height: 'ส่วนสูง', military: 'ทหาร',
+        dob: 'วันเกิด', age: 'อายุ', weight: 'น้ำหนัก', height: 'ส่วนสูง', military: 'สถานะทางทหาร',
         nationalId: 'เลขบัตรประชาชน', phone: 'เบอร์โทรศัพท์', email: 'อีเมล',
         secAddress: 'ที่อยู่', registeredAddr: 'ที่อยู่ตามทะเบียนบ้าน', currentAddr: 'ที่อยู่ปัจจุบัน',
         secFamily: 'ข้อมูลครอบครัว', marital: 'สถานภาพ', children: 'จำนวนบุตร', siblings: 'จำนวนพี่น้อง',
@@ -949,7 +956,7 @@
         prefix: 'Title', firstName: 'First Name', lastName: 'Last Name',
         secBasicInfo: 'Basic Information',
         nicknameTh: 'Nickname (TH)', nicknameEn: 'Nickname (EN)',
-        dob: 'Date of Birth', age: 'Age', weight: 'Weight', height: 'Height', military: 'Military',
+        dob: 'Date of Birth', age: 'Age', weight: 'Weight', height: 'Height', military: 'Military Status',
         nationalId: 'National ID', phone: 'Phone', email: 'Email',
         secAddress: 'Address', registeredAddr: 'Registered Address', currentAddr: 'Current Address',
         secFamily: 'Family Information', marital: 'Marital Status', children: 'Children', siblings: 'Siblings',
@@ -1002,6 +1009,26 @@
 
     const savedLang = localStorage.getItem('hrbp-print-lang') || 'th';
     setLang(savedLang);
+
+    function getMilitaryStatusLabel(status) {
+      if (!status) return '-';
+      const map = {
+        'Completed': 'ผ่านการเกณฑ์ทหารแล้ว (Completed)',
+        'Exempted': 'ได้รับการยกเว้น (Exempted)',
+        'Conscripted': 'ผ่านการเกณฑ์ทหารแล้ว (Conscripted)',
+        'Reserved': 'นักศึกษาวิชาทหาร (Reserved)',
+        'Pending': 'อยู่ระหว่างการผ่อนผัน (Pending)',
+        'Female': 'เพศหญิง - ได้รับการยกเว้น (Female)',
+        'Not Yet': 'ยังไม่เกณฑ์ทหาร (Not Yet)',
+        'N/A (Female)': 'ไม่เกี่ยวข้อง (Female)',
+        'ได้รับการยกเว้น': 'ได้รับการยกเว้น (Exempted)',
+        'ผ่านการเกณฑ์ทหารแล้ว': 'ผ่านการเกณฑ์ทหารแล้ว (Conscripted)',
+        'นักศึกษาวิชาทหาร': 'นักศึกษาวิชาทหาร (Reserved)',
+        'อยู่ระหว่างการผ่อนผัน': 'อยู่ระหว่างการผ่อนผัน (Pending)',
+        'เพศหญิง (ได้รับการยกเว้น)': 'เพศหญิง - ได้รับการยกเว้น (Female)',
+      };
+      return map[status] || status;
+    }
 
     const dataStr = localStorage.getItem('printPreviewData');
     if (dataStr) {
@@ -1070,7 +1097,7 @@
         set('age', d.age ? `${d.age} ปี` : '-');
         set('weight', d.weight ? `${d.weight} กก.` : '-');
         set('height', d.height ? `${d.height} ซม.` : '-');
-        set('militaryStatus', d.militaryStatus);
+        set('militaryStatus', getMilitaryStatusLabel(d.militaryStatus));
         set('nationalId', d.nationalId || (d.passportNo ? `Passport: ${d.passportNo}` : '-'));
         set('phone', d.phone);
         set('email', d.email);
