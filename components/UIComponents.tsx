@@ -388,11 +388,33 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         </div>
       ) : (
         <div className="relative border rounded-xl p-4 bg-white flex items-center gap-4 shadow-sm">
-          <div className="w-12 h-12 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
-            <File className="w-6 h-6 text-indigo-600" />
+          <div className="w-12 h-12 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0 overflow-hidden border">
+            {value && (value.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/) || value.includes('supabase.co')) ? (
+              <img 
+                src={value} 
+                alt="Preview" 
+                className="w-full h-full object-cover" 
+                key={value}
+                onError={(e) => {
+                  // Fallback if image fails to load
+                  (e.target as HTMLImageElement).style.display = 'none';
+                  const parent = (e.target as HTMLImageElement).parentElement;
+                  if (parent) {
+                    const icon = document.createElement('div');
+                    icon.className = 'w-full h-full flex items-center justify-center bg-indigo-100';
+                    icon.innerHTML = '<svg class="w-6 h-6 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>';
+                    parent.appendChild(icon);
+                  }
+                }}
+              />
+            ) : (
+              <File className="w-6 h-6 text-indigo-600" />
+            )}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">{value || "Uploading..."}</p>
+            <p className="text-sm font-medium text-gray-900 truncate">
+              {value ? (value.split('/').pop()?.split('_').slice(1).join('_') || value) : "Uploading..."}
+            </p>
 
             {isBusy ? (
               <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2 overflow-hidden">

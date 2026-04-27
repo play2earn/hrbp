@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Modal, Button } from '../UIComponents';
+import { Modal, Button, FileUpload } from '../UIComponents';
 import { CheckCircle } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { api } from '../../services/api';
@@ -174,20 +174,16 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
             </div>
 
             <div className="py-2">
-              <h4 className="text-sm font-semibold text-gray-700 mb-2">รูปถ่ายผู้สมัคร (อัปโหลดทดแทน)</h4>
-              <div className="text-xs text-gray-500 mb-2">
-                {editForm.photoUrl ? (
-                  <div>รูปภาพปัจจุบัน: <a href={editForm.photoUrl} target="_blank" rel="noreferrer" className="text-indigo-600 underline">ดูแบบเต็ม</a></div>
-                ) : (
-                  <div className="text-red-500">ยังไม่มีรูปภาพ</div>
-                )}
-              </div>
-              <input
-                type="file"
-                accept=".jpg,.png"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
+              <FileUpload
+                label="รูปถ่ายผู้สมัคร (อัปโหลดทดแทน)"
+                description="รูปภาพปัจจุบันจะถูกแทนที่เมื่อกดบันทึก"
+                value={editForm.photoUrl}
+                onChange={() => {}} // Controlled via onFileSelect
+                onFileSelect={async (file) => {
+                  if (!file) {
+                    setEditForm(prev => ({ ...prev, photoUrl: '' }));
+                    return;
+                  }
                   setIsUploadingPhoto(true);
                   showToast('กำลังอัปโหลดรูปภาพ...', 'success');
                   const url = await api.uploadFile(file, 'photos');
@@ -199,14 +195,8 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
                   }
                   setIsUploadingPhoto(false);
                 }}
-                className={`block w-full text-sm text-gray-500
-                      file:mr-4 file:py-2 file:px-4
-                      file:rounded-md file:border-0
-                      file:text-sm file:font-semibold
-                      file:bg-indigo-50 file:text-indigo-700
-                      hover:file:bg-indigo-100 ${isUploadingPhoto ? 'opacity-50 cursor-not-allowed' : ''}
-                    `}
-                disabled={isUploadingPhoto}
+                uploading={isUploadingPhoto}
+                accept=".jpg,.png"
               />
             </div>
 

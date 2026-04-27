@@ -69,6 +69,7 @@ export const MILITARY_STATUS_MAP: Record<string, string> = {
     'Conscripted': 'ผ่านการเกณฑ์ทหารแล้ว (Conscripted)',
     'Reserved': 'นักศึกษาวิชาทหาร (Reserved)',
     'Pending': 'อยู่ระหว่างการผ่อนผัน (Pending)',
+    'Awaiting Selection': 'จะเข้ารับการตรวจเลือกเร็วๆ นี้ (Awaiting Selection)',
     'Female': 'เพศหญิง - ได้รับการยกเว้น (Female)',
     'Not Yet': 'ยังไม่เกณฑ์ทหาร (Not Yet)',
     'N/A (Female)': 'ไม่เกี่ยวข้อง (Female)',
