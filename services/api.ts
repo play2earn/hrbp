@@ -27,6 +27,26 @@ export interface AuthUser {
   hrms_username?: string;
 }
 
+export type ApplicationStatus =
+  | 'Pending'
+  | 'Reviewing'
+  | 'Interview'
+  | 'InterviewScheduled'
+  | 'Interviewed'
+  | 'Offer'
+  | 'Hired'
+  | 'Rejected'
+  | 'Withdrawn'
+  | 'NoShow';
+
+export interface WorkflowStatusOptions {
+  comment?: string;
+  performedByUserId?: string | null;
+  performedByName?: string;
+  rejectionReason?: string;
+  interviewDate?: string;
+}
+
 // ============================================================
 // Error Handler Utility
 // ============================================================
@@ -168,6 +188,14 @@ export const api = {
 
       if (error) return handleError(error, 'submitApplication');
 
+      // Auto-log submission
+      await api.addApplicationLog({
+        application_id: data.id,
+        action: 'submitted',
+        new_value: 'Pending',
+        performed_by: `${formData.firstName} ${formData.lastName}`.trim() || 'ผู้สมัคร',
+      });
+
       return { success: true, data: { id: data.id } };
     } catch (error) {
       return handleError(error, 'submitApplication');
@@ -240,7 +268,7 @@ export const api = {
     try {
       const { data, error } = await supabase
         .from('applications')
-        .select('*')
+        .select('*, assigned_user:users!applications_assigned_to_fkey(id, full_name, emp_id)')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -257,22 +285,25 @@ export const api = {
   /**
    * Update application status with optional comment
    */
-  updateApplicationStatus: async (id: string, status: string, comment?: string): Promise<ApiResponse<any>> => {
+  updateApplicationStatus: async (id: string, status: ApplicationStatus, options: WorkflowStatusOptions = {}): Promise<ApiResponse<any>> => {
     try {
-      const validStatuses = ['Pending', 'Reviewing', 'Interview', 'Approved', 'Rejected', 'Hired'];
+      const validStatuses: ApplicationStatus[] = ['Pending', 'Reviewing', 'Interview', 'InterviewScheduled', 'Interviewed', 'Offer', 'Rejected', 'Hired', 'Withdrawn', 'NoShow'];
       if (!validStatuses.includes(status)) {
         return { success: false, error: { message: 'Invalid status value.' } };
       }
 
-      // Only update status column - other columns may not exist
-      const updateData: any = { status };
+      if (!options.performedByUserId) {
+        return { success: false, error: { message: 'Current user is required for workflow updates.' } };
+      }
 
-      const { data, error } = await supabase
-        .from('applications')
-        .update(updateData)
-        .eq('id', id)
-        .select()
-        .single();
+      const { data, error } = await supabase.rpc('update_application_workflow_status', {
+        p_app_id: id,
+        p_status: status,
+        p_performed_by_user_id: options.performedByUserId,
+        p_note: options.comment || null,
+        p_rejection_reason: options.rejectionReason || null,
+        p_interview_date: options.interviewDate || null,
+      });
 
       if (error) return handleError(error, 'updateApplicationStatus');
       return { success: true, data };
@@ -331,8 +362,150 @@ export const api = {
       if (deleteError) return handleError(deleteError, 'deleteApplication');
 
       return { success: true };
-    } catch (error) {
+    } catch (error: any) {
       return handleError(error, 'deleteApplication');
+    }
+  },
+
+  // ============================================================
+  // Application Assignment Services
+  // ============================================================
+
+  /**
+   * Claim an application (self-assign)
+   */
+  claimApplication: async (appId: string, userId: string): Promise<ApiResponse<any>> => {
+    try {
+      const { data, error } = await supabase.rpc('claim_application', {
+        p_app_id: appId,
+        p_user_id: userId,
+      });
+
+      if (error) return handleError(error, 'claimApplication');
+      return { success: true, data };
+    } catch (error) {
+      return handleError(error, 'claimApplication');
+    }
+  },
+
+  /**
+   * Unassign an application
+   */
+  unassignApplication: async (appId: string, performedByUserId: string): Promise<ApiResponse<any>> => {
+    try {
+      const { data, error } = await supabase.rpc('unassign_application', {
+        p_app_id: appId,
+        p_performed_by_user_id: performedByUserId,
+      });
+
+      if (error) return handleError(error, 'unassignApplication');
+      return { success: true, data };
+    } catch (error) {
+      return handleError(error, 'unassignApplication');
+    }
+  },
+
+  /**
+   * Transfer an application to another recruiter (admin only)
+   */
+  transferApplication: async (appId: string, newUserId: string, performedByUserId: string): Promise<ApiResponse<any>> => {
+    try {
+      const { data, error } = await supabase.rpc('transfer_application', {
+        p_app_id: appId,
+        p_new_user_id: newUserId,
+        p_performed_by_user_id: performedByUserId,
+      });
+
+      if (error) return handleError(error, 'transferApplication');
+      return { success: true, data };
+    } catch (error) {
+      return handleError(error, 'transferApplication');
+    }
+  },
+
+  // ============================================================
+  // Application Activity Log Services
+  // ============================================================
+
+  /**
+   * Add a log entry for an application
+   */
+  addApplicationLog: async (log: {
+    application_id: string;
+    action: string;
+    old_value?: string | null;
+    new_value?: string | null;
+    note?: string | null;
+    performed_by: string;
+  }): Promise<ApiResponse<any>> => {
+    try {
+      const { data, error } = await supabase
+        .from('application_logs')
+        .insert([{
+          application_id: log.application_id,
+          action: log.action,
+          old_value: log.old_value || null,
+          new_value: log.new_value || null,
+          note: log.note || null,
+          performed_by: log.performed_by,
+          created_at: new Date().toISOString(),
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[Log Error]:', error);
+        return handleError(error, 'addApplicationLog');
+      }
+      return { success: true, data };
+    } catch (error) {
+      console.error('[Log Error]:', error);
+      return handleError(error, 'addApplicationLog');
+    }
+  },
+
+  /**
+   * Get all logs for an application (admin/recruiter view — full detail)
+   */
+  getApplicationLogs: async (appId: string): Promise<any[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('application_logs')
+        .select('*')
+        .eq('application_id', appId)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error('Fetch App Logs Error:', error);
+        return [];
+      }
+      return data || [];
+    } catch (error) {
+      console.error('Fetch App Logs Error:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Get public-safe timeline for tracking (only status-related events, no recruiter names)
+   */
+  getApplicationTimeline: async (appId: string): Promise<any[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('application_logs')
+        .select('id, action, new_value, created_at')
+        .eq('application_id', appId)
+        .in('action', ['submitted', 'status_change'])
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error('Fetch Timeline Error:', error);
+        return [];
+      }
+      return data || [];
+    } catch (error) {
+      console.error('Fetch Timeline Error:', error);
+      return [];
     }
   },
 
@@ -771,6 +944,44 @@ export const api = {
       } catch (error) {
         return handleError(error, `toggleActive:${table}`);
       }
+    }
+  },
+
+  // ------------------------------------------------------------------
+  // Reports API
+  // ------------------------------------------------------------------
+  reports: {
+    getExecutiveSummary: async (): Promise<any[]> => {
+      try {
+        const { data, error } = await supabase.from('report_executive_summary').select('*');
+        if (error) { console.error(error); return []; }
+        return data || [];
+      } catch (e) { console.error(e); return []; }
+    },
+    getRecruiterKpi: async (): Promise<any[]> => {
+      try {
+        const { data, error } = await supabase.from('report_recruiter_kpi').select('*');
+        if (error) { console.error(error); return []; }
+        return data || [];
+      } catch (e) { console.error(e); return []; }
+    },
+    getRejectionReasons: async (): Promise<any[]> => {
+      try {
+        const { data, error } = await supabase.from('report_rejection_reasons').select('*');
+        if (error) { console.error(error); return []; }
+        return data || [];
+      } catch (e) { console.error(e); return []; }
+    },
+    getCloseReasons: async (): Promise<any[]> => {
+      try {
+        const { data, error } = await supabase
+          .from('rejection_reasons')
+          .select('*')
+          .eq('is_active', true)
+          .order('sort_order');
+        if (error) { console.error(error); return []; }
+        return data || [];
+      } catch (e) { console.error(e); return []; }
     }
   }
 };

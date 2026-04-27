@@ -3,12 +3,60 @@ import React, { useState, useEffect } from 'react';
 import { MOCK_BU } from '../constants';
 import { Card, Button, Input, Select, Modal } from './UIComponents';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { LucideIcon, Home, FileText, QrCode, Settings, LogOut, CheckCircle, XCircle, Search, Filter, Download, ExternalLink, Calendar, Menu, X, ChevronRight, ChevronLeft, User, Shield, Users, Copy, Check, Database, Plus, Edit, Trash2, Building2, Tag, GraduationCap, MapPin, Phone } from 'lucide-react';
+import { LucideIcon, Home, FileText, QrCode, Settings, LogOut, CheckCircle, XCircle, Search, Filter, Download, ExternalLink, Calendar, Menu, X, ChevronRight, ChevronLeft, ChevronDown, User, Shield, Users, Copy, Check, Database, Plus, Edit, Trash2, Building2, Tag, GraduationCap, MapPin, Phone, UserPlus, UserCheck, History, Clock, ArrowRightLeft, BarChart2 } from 'lucide-react';
 import { api } from '../services/api';
 import { supabase } from '../supabaseClient';
 import { Role } from '../types';
+import type { ApplicationStatus } from '../services/api';
+import { ReportsTab } from './ReportsTab';
 
 const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444'];
+
+// BU color mapping
+const BU_COLORS: Record<string, string> = {
+  'DoubleA': 'bg-blue-100 text-blue-700 border-blue-200',
+  'Double A': 'bg-blue-100 text-blue-700 border-blue-200',
+  'NPS': 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  'ReLo': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  'Other': 'bg-gray-100 text-gray-600 border-gray-200',
+};
+const getBuColor = (bu: string) => BU_COLORS[bu] || 'bg-indigo-50 text-indigo-700 border-indigo-100';
+
+// Log action labels
+const LOG_LABELS: Record<string, { label: string; icon: string; color: string }> = {
+  'submitted': { label: 'ส่งใบสมัคร', icon: '🟢', color: 'text-green-600' },
+  'claimed': { label: 'รับเคส', icon: '🔵', color: 'text-blue-600' },
+  'status_change': { label: 'เปลี่ยนสถานะ', icon: '🟡', color: 'text-yellow-600' },
+  'transferred': { label: 'โอนเคส', icon: '🔄', color: 'text-purple-600' },
+  'unassigned': { label: 'ยกเลิกการรับเคส', icon: '⚪', color: 'text-gray-500' },
+  'edited': { label: 'แก้ไขข้อมูล', icon: '✏️', color: 'text-indigo-600' },
+  'comment': { label: 'หมายเหตุ', icon: '💬', color: 'text-slate-600' },
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  Pending: 'รอดำเนินการ',
+  Reviewing: 'กำลังพิจารณา',
+  Interview: 'นัดสัมภาษณ์',
+  InterviewScheduled: 'นัดสัมภาษณ์',
+  Interviewed: 'สัมภาษณ์แล้ว',
+  Offer: 'เสนอจ้าง',
+  Hired: 'รับแล้ว',
+  Rejected: 'ไม่ผ่าน',
+  Withdrawn: 'ผู้สมัครยกเลิก',
+  NoShow: 'ไม่มาตามนัด',
+};
+
+const getStatusLabel = (status: string) => STATUS_LABELS[status] || status || '-';
+const isInterviewScheduledStatus = (status: string) => status === 'Interview' || status === 'InterviewScheduled';
+const isClosedStatus = (status: string) => ['Hired', 'Rejected', 'Withdrawn', 'NoShow'].includes(status);
+const getStatusBadgeClass = (status: string) => {
+  if (status === 'Hired') return 'bg-green-100 text-green-800';
+  if (status === 'Rejected' || status === 'Withdrawn' || status === 'NoShow') return 'bg-red-100 text-red-800';
+  if (isInterviewScheduledStatus(status)) return 'bg-orange-100 text-orange-800';
+  if (status === 'Interviewed' || status === 'Offer') return 'bg-emerald-100 text-emerald-800';
+  if (status === 'Reviewing') return 'bg-blue-100 text-blue-800';
+  return 'bg-yellow-100 text-yellow-800';
+};
 
 interface DashboardProps {
   role: 'admin' | 'mod';
@@ -16,12 +64,12 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'qr' | 'settings' | 'config' | 'profile'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'reports' | 'qr' | 'settings' | 'config' | 'profile'>('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Current User Info
-  const [currentUser, setCurrentUser] = useState<{ full_name: string; email: string; role: string; emp_id?: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ id?: string; full_name: string; email: string; role: string; emp_id?: string } | null>(null);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
   const [profileEmpId, setProfileEmpId] = useState<string | null>(null);
 
@@ -30,7 +78,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
   const [pendingUsers, setPendingUsers] = useState<any[]>([]);
   const [activeUsers, setActiveUsers] = useState<any[]>([]);
   const [editingUser, setEditingUser] = useState<any | null>(null); // For Edit Modal
-  const [stats, setStats] = useState({ total: 0, pending: 0, hired: 0, rejected: 0 });
+  const [stats, setStats] = useState({ total: 0, pending: 0, reviewing: 0, interviewing: 0, hired: 0, rejected: 0 });
   const [isConfirmingDisable, setIsConfirmingDisable] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -57,16 +105,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     position: '',
     bu: '',
     channel: '',
-    status: 'all'
+    status: 'all',
+    assignment: 'all'
   });
   const [appPage, setAppPage] = useState(1);
   const [appPerPage, setAppPerPage] = useState(25);
   const [viewingApp, setViewingApp] = useState<any | null>(null);
+  const [claimingApp, setClaimingApp] = useState<any | null>(null);
+  const [unassigningApp, setUnassigningApp] = useState<any | null>(null);
+  const [transferringApp, setTransferringApp] = useState<any | null>(null);
+  const [transferTarget, setTransferTarget] = useState('');
   const [rejectingApp, setRejectingApp] = useState<any | null>(null);
   const [rejectComment, setRejectComment] = useState('');
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [closeReasons, setCloseReasons] = useState<any[]>([]);
   const [approvingApp, setApprovingApp] = useState<any | null>(null);
+  const [interviewingApp, setInterviewingApp] = useState<any | null>(null);
+  const [interviewDate, setInterviewDate] = useState('');
   const [deletingApp, setDeletingApp] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [actionMenu, setActionMenu] = useState<{ id: string; x: number; y: number; openUp: boolean } | null>(null);
+  const openActionMenu = (appId: string, e: React.MouseEvent) => {
+    if (actionMenu?.id === appId) { setActionMenu(null); return; }
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const openUp = rect.bottom + 250 > window.innerHeight;
+    setActionMenu({ id: appId, x: rect.right, y: openUp ? rect.top : rect.bottom + 4, openUp });
+  };
+  const [appLogs, setAppLogs] = useState<any[]>([]);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [editingApp, setEditingApp] = useState<any | null>(null);
   const [editForm, setEditForm] = useState({
     position: '',
@@ -91,6 +157,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
   };
+
+  // Helper: current user display name & ID
+  const currentUserName = currentUser?.full_name || 'Unknown';
+  const currentUserId = currentUser?.id || (() => {
+    try {
+      const stored = localStorage.getItem('currentUser');
+      return stored ? JSON.parse(stored).id : null;
+    } catch { return null; }
+  })();
 
   // Profile photo fallback chain: IDMS API → Intranet empimages → WMS Face API → Initials
   const handleProfilePhotoError = () => {
@@ -149,6 +224,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     loadFilteredPositions();
   }, [editForm.departmentId]);
 
+  // Fetch activity logs when viewing an application
+  useEffect(() => {
+    if (viewingApp) {
+      setIsLoadingLogs(true);
+      api.getApplicationLogs(viewingApp.id).then(logs => {
+        setAppLogs(logs);
+        setIsLoadingLogs(false);
+      });
+    } else {
+      setAppLogs([]);
+    }
+  }, [viewingApp]);
+
   // Helper to open full preview in new tab
   const openFullPreview = (app: any) => {
     const fd = app.form_data || {};
@@ -170,6 +258,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
 
     fetchData();
     fetchQrMasterData();
+    api.reports.getCloseReasons().then(setCloseReasons);
 
     // Fetch profile photo from IDMS, fallback to intranet empimages
     const empId = storedUser ? (() => { try { return JSON.parse(storedUser).emp_id; } catch { return null; } })() : null;
@@ -223,10 +312,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     // Calculate simple stats
     const total = data.length;
     const pending = data.filter((a: any) => a.status === 'Pending').length;
+    const reviewing = data.filter((a: any) => a.status === 'Reviewing').length;
+    const interviewing = data.filter((a: any) => isInterviewScheduledStatus(a.status) || a.status === 'Interviewed' || a.status === 'Offer').length;
     const hired = data.filter((a: any) => a.status === 'Hired').length;
-    const rejected = data.filter((a: any) => a.status === 'Rejected').length;
+    const rejected = data.filter((a: any) => a.status === 'Rejected' || a.status === 'Withdrawn' || a.status === 'NoShow').length;
 
-    setStats({ total, pending, hired, rejected });
+    setStats({ total, pending, reviewing, interviewing, hired, rejected });
     setLoading(false);
   };
 
@@ -257,7 +348,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
   };
 
   const handleAppAction = async (id: string, status: string) => {
-    await api.updateApplicationStatus(id, status);
+    if (!currentUserId) {
+      showToast('ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่', 'error');
+      return;
+    }
+    const result = await api.updateApplicationStatus(id, status as any, { performedByUserId: currentUserId });
+    if (!result.success) {
+      showToast(result.error?.message || 'อัปเดตสถานะไม่สำเร็จ', 'error');
+      return;
+    }
     fetchData(); // Refresh list
   };
 
@@ -267,7 +366,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     const result = await api.deleteApplication(deletingApp.id);
     setIsDeleting(false);
     setDeletingApp(null);
-    
+
     if (result.success) {
       showToast('Application deleted successfully');
       fetchData(); // Refresh list
@@ -354,13 +453,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     value: applications.filter(a => a.department === bu || a.form_data?.businessUnit === bu).length
   })).filter(d => d.value > 0);
 
-  const mockChartData = [
-    { name: 'Jan', applications: 40 },
-    { name: 'Feb', applications: 30 },
-    { name: 'Mar', applications: 55 },
-    { name: 'Apr', applications: 80 },
-    { name: 'May', applications: 65 },
-  ];
+  // Prepare real application trend data for the last 6 months
+  const chartData = React.useMemo(() => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const result: { name: string; applications: number; month: number; year: number }[] = [];
+
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      result.push({
+        name: months[d.getMonth()],
+        applications: 0,
+        month: d.getMonth(),
+        year: d.getFullYear()
+      });
+    }
+
+    applications.forEach(app => {
+      if (!app.created_at) return;
+      const d = new Date(app.created_at);
+      const targetTarget = result.find(r => r.month === d.getMonth() && r.year === d.getFullYear());
+      if (targetTarget) {
+        targetTarget.applications += 1;
+      }
+    });
+
+    return result;
+  }, [applications]);
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 overflow-hidden">
@@ -428,6 +547,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
           >
             <QrCode className="w-5 h-5 shrink-0" />
             {!sidebarCollapsed && <span className="font-medium">QR Generator</span>}
+          </button>
+          <button
+            onClick={() => { setActiveTab('reports'); setIsMobileMenuOpen(false); }}
+            className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-2' : 'gap-3 px-3'} py-3 rounded-xl transition-all ${activeTab === 'reports' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+            title="Reports"
+          >
+            <BarChart2 className="w-5 h-5 shrink-0" />
+            {!sidebarCollapsed && <span className="font-medium">Reports</span>}
           </button>
           <button
             onClick={() => { setActiveTab('config'); setIsMobileMenuOpen(false); }}
@@ -500,6 +627,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
       <main className="flex-1 overflow-y-auto pt-16 lg:pt-0 w-full">
         <div className="p-4 sm:p-8 max-w-7xl mx-auto">
 
+          {activeTab === 'reports' && <ReportsTab />}
+
           {activeTab === 'overview' && (
             <div className="space-y-6 form-step-enter">
               <div className="flex justify-between items-center">
@@ -511,45 +640,65 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               </div>
 
               {/* Stats Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl p-6 text-white shadow-xl shadow-indigo-500/25 card-hover">
-                  <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-6">
+                <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl sm:rounded-2xl p-3 sm:p-5 text-white shadow-xl shadow-indigo-500/25 card-hover">
+                  <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/10 rounded-full -mr-8 -mt-8 sm:-mr-10 sm:-mt-10"></div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-indigo-100 text-sm font-medium">Total Applications</p>
-                      <p className="text-4xl font-bold mt-2">{stats.total}</p>
+                      <p className="text-indigo-100 text-[11px] sm:text-sm font-medium">Total Apps</p>
+                      <p className="text-xl sm:text-3xl font-bold mt-0.5 sm:mt-1.5">{stats.total}</p>
                     </div>
-                    <div className="p-3 bg-white/20 rounded-xl"><FileText className="w-6 h-6" /></div>
+                    <div className="p-1.5 sm:p-2.5 bg-white/20 rounded-lg sm:rounded-xl"><FileText className="w-4 h-4 sm:w-6 sm:h-6" /></div>
                   </div>
                 </div>
-                <div className="relative overflow-hidden bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl p-6 text-white shadow-xl shadow-orange-500/25 card-hover">
-                  <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+                <div className="relative overflow-hidden bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl sm:rounded-2xl p-3 sm:p-5 text-white shadow-xl shadow-orange-500/25 card-hover">
+                  <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/10 rounded-full -mr-8 -mt-8 sm:-mr-10 sm:-mt-10"></div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-amber-50 text-sm font-medium">Pending Review</p>
-                      <p className="text-4xl font-bold mt-2">{stats.pending}</p>
+                      <p className="text-amber-50 text-[11px] sm:text-sm font-medium">Pending Review</p>
+                      <p className="text-xl sm:text-3xl font-bold mt-0.5 sm:mt-1.5">{stats.pending}</p>
                     </div>
-                    <div className="p-3 bg-white/20 rounded-xl"><Users className="w-6 h-6" /></div>
+                    <div className="p-1.5 sm:p-2.5 bg-white/20 rounded-lg sm:rounded-xl"><Users className="w-4 h-4 sm:w-6 sm:h-6" /></div>
                   </div>
                 </div>
-                <div className="relative overflow-hidden bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl p-6 text-white shadow-xl shadow-emerald-500/25 card-hover">
-                  <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+                <div className="relative overflow-hidden bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl sm:rounded-2xl p-3 sm:p-5 text-white shadow-xl shadow-blue-500/25 card-hover">
+                  <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/10 rounded-full -mr-8 -mt-8 sm:-mr-10 sm:-mt-10"></div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-emerald-50 text-sm font-medium">Hired (YTD)</p>
-                      <p className="text-4xl font-bold mt-2">{stats.hired}</p>
+                      <p className="text-blue-50 text-[11px] sm:text-sm font-medium">Reviewing</p>
+                      <p className="text-xl sm:text-3xl font-bold mt-0.5 sm:mt-1.5">{stats.reviewing}</p>
                     </div>
-                    <div className="p-3 bg-white/20 rounded-xl"><CheckCircle className="w-6 h-6" /></div>
+                    <div className="p-1.5 sm:p-2.5 bg-white/20 rounded-lg sm:rounded-xl"><Edit className="w-4 h-4 sm:w-6 sm:h-6" /></div>
                   </div>
                 </div>
-                <div className="relative overflow-hidden bg-gradient-to-br from-rose-400 to-red-500 rounded-2xl p-6 text-white shadow-xl shadow-red-500/25 card-hover">
-                  <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+                <div className="relative overflow-hidden bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl sm:rounded-2xl p-3 sm:p-5 text-white shadow-xl shadow-purple-500/25 card-hover">
+                  <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/10 rounded-full -mr-8 -mt-8 sm:-mr-10 sm:-mt-10"></div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-rose-50 text-sm font-medium">Rejected</p>
-                      <p className="text-4xl font-bold mt-2">{stats.rejected}</p>
+                      <p className="text-purple-50 text-[11px] sm:text-sm font-medium">Interviewing</p>
+                      <p className="text-xl sm:text-3xl font-bold mt-0.5 sm:mt-1.5">{stats.interviewing}</p>
                     </div>
-                    <div className="p-3 bg-white/20 rounded-xl"><XCircle className="w-6 h-6" /></div>
+                    <div className="p-1.5 sm:p-2.5 bg-white/20 rounded-lg sm:rounded-xl"><Calendar className="w-4 h-4 sm:w-6 sm:h-6" /></div>
+                  </div>
+                </div>
+                <div className="relative overflow-hidden bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl sm:rounded-2xl p-3 sm:p-5 text-white shadow-xl shadow-emerald-500/25 card-hover">
+                  <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/10 rounded-full -mr-8 -mt-8 sm:-mr-10 sm:-mt-10"></div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-emerald-50 text-[11px] sm:text-sm font-medium">Hired (YTD)</p>
+                      <p className="text-xl sm:text-3xl font-bold mt-0.5 sm:mt-1.5">{stats.hired}</p>
+                    </div>
+                    <div className="p-1.5 sm:p-2.5 bg-white/20 rounded-lg sm:rounded-xl"><CheckCircle className="w-4 h-4 sm:w-6 sm:h-6" /></div>
+                  </div>
+                </div>
+                <div className="relative overflow-hidden bg-gradient-to-br from-rose-400 to-red-500 rounded-xl sm:rounded-2xl p-3 sm:p-5 text-white shadow-xl shadow-red-500/25 card-hover">
+                  <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/10 rounded-full -mr-8 -mt-8 sm:-mr-10 sm:-mt-10"></div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-rose-50 text-[11px] sm:text-sm font-medium">Rejected/Cancel</p>
+                      <p className="text-xl sm:text-3xl font-bold mt-0.5 sm:mt-1.5">{stats.rejected}</p>
+                    </div>
+                    <div className="p-1.5 sm:p-2.5 bg-white/20 rounded-lg sm:rounded-xl"><XCircle className="w-4 h-4 sm:w-6 sm:h-6" /></div>
                   </div>
                 </div>
               </div>
@@ -612,9 +761,36 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                       >
                         <option value="all">สถานะทั้งหมด</option>
                         <option value="Pending">รอดำเนินการ</option>
+                        <option value="Reviewing">กำลังพิจารณา</option>
+                        <option value="InterviewScheduled">นัดสัมภาษณ์</option>
+                        <option value="Interviewed">สัมภาษณ์แล้ว</option>
+                        <option value="Offer">เสนอจ้าง</option>
                         <option value="Hired">รับเข้าทำงาน</option>
                         <option value="Rejected">ไม่ผ่าน</option>
+                        <option value="Withdrawn">ผู้สมัครยกเลิก</option>
+                        <option value="NoShow">ไม่มาตามนัด</option>
                       </select>
+                    </div>
+
+                    {/* Assignment Quick Filter Tabs */}
+                    <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                      {[
+                        { value: 'all', label: 'ทั้งหมด', icon: Users },
+                        { value: 'me', label: 'เคสของฉัน', icon: UserCheck },
+                        { value: 'unassigned', label: 'ยังไม่มีเคส', icon: UserPlus },
+                      ].map(tab => (
+                        <button
+                          key={tab.value}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${appFilters.assignment === tab.value
+                            ? 'bg-white text-indigo-700 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                          onClick={() => { setAppFilters(f => ({ ...f, assignment: tab.value })); setAppPage(1); }}
+                        >
+                          <tab.icon className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">{tab.label}</span>
+                        </button>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -622,7 +798,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                 {/* Filtered & Paginated Data */}
                 {(() => {
                   const filtered = applications.filter((app: any) => {
-                    if (appFilters.status !== 'all' && app.status !== appFilters.status) return false;
+                    if (appFilters.status !== 'all') {
+                      if (appFilters.status === 'InterviewScheduled' && !isInterviewScheduledStatus(app.status)) return false;
+                      if (appFilters.status !== 'InterviewScheduled' && app.status !== appFilters.status) return false;
+                    }
+                    if (appFilters.assignment === 'me' && (!currentUserId || String(app.assigned_to).toLowerCase() !== String(currentUserId).toLowerCase())) return false;
+                    if (appFilters.assignment === 'unassigned' && app.assigned_to) return false;
                     if (appFilters.position && (app.position || app.form_data?.position) !== appFilters.position) return false;
                     if (appFilters.bu && (app.form_data?.businessUnit || app.business_unit) !== appFilters.bu) return false;
                     if (appFilters.channel && (app.form_data?.sourceChannel || app.source_channel) !== appFilters.channel) return false;
@@ -673,12 +854,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center justify-between gap-2">
                                         <h4 className="text-sm font-semibold text-gray-900 truncate">{fullName}{fd.nickname ? ` (${fd.nickname})` : ''}</h4>
-                                        <span className={`px-2 py-0.5 text-[11px] font-semibold rounded-full flex-shrink-0 ${app.status === 'Hired' ? 'bg-green-100 text-green-800' :
-                                          app.status === 'Rejected' ? 'bg-red-100 text-red-800' :
-                                            'bg-yellow-100 text-yellow-800'
-                                          }`}>
-                                          {app.status === 'Pending' ? 'รอดำเนินการ' : app.status === 'Hired' ? 'รับแล้ว' : 'ไม่ผ่าน'}
-                                        </span>
+                                        <div className="flex flex-col items-end">
+                                          <span className={`px-2 py-0.5 text-[11px] font-semibold rounded-full flex-shrink-0 ${getStatusBadgeClass(app.status)}`}>
+                                            {getStatusLabel(app.status)}
+                                          </span>
+                                          {isInterviewScheduledStatus(app.status) && app.interview_date && (
+                                            <div className="text-[10px] text-orange-600 font-medium mt-1 whitespace-nowrap">
+                                              นัด: {new Date(app.interview_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
                                       <div className="text-xs text-gray-600 mt-0.5 font-medium">{pos}</div>
                                       <div className="text-xs text-gray-400">{dept}</div>
@@ -689,29 +874,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                                           <span>{new Date(app.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })} {new Date(app.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}</span>
                                           {fd.age && <><span>·</span><span>{fd.age} ปี</span></>}
                                         </div>
-                                        {/* Action Buttons */}
-                                        <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
-                                          {app.status === 'Pending' && (
-                                            <>
-                                              <button className="p-1.5 rounded-full hover:bg-green-50 transition-colors" onClick={() => setApprovingApp(app)} title="รับเข้าทำงาน">
-                                                <CheckCircle className="w-4.5 h-4.5 text-green-600" />
-                                              </button>
-                                              <button className="p-1.5 rounded-full hover:bg-red-50 transition-colors" onClick={() => { setRejectingApp(app); setRejectComment(''); }} title="ไม่รับ">
-                                                <XCircle className="w-4.5 h-4.5 text-red-500" />
-                                              </button>
-                                            </>
-                                          )}
-                                          {role === 'admin' && (
-                                            <button className="p-1.5 rounded-full hover:bg-red-50 transition-colors" onClick={() => setDeletingApp(app)} title="ลบข้อมูล">
-                                              <Trash2 className="w-4 h-4 text-red-400" />
-                                            </button>
-                                          )}
+                                        {/* Action Menu */}
+                                        <div className="relative" onClick={(e) => e.stopPropagation()}>
+                                          <button
+                                            className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-medium transition-colors border border-indigo-200"
+                                            onClick={(e) => openActionMenu(app.id, e)}
+                                          >
+                                            จัดการ <ChevronDown className="w-3 h-3" />
+                                          </button>
                                         </div>
                                       </div>
                                       {/* Tags */}
                                       {(bu || ch) && (
                                         <div className="flex flex-wrap gap-1 mt-1.5">
-                                          {bu && <span className="px-1.5 py-0.5 text-[10px] rounded bg-indigo-50 text-indigo-600 font-medium border border-indigo-100">BU: {bu}</span>}
+                                          {bu && <span className={`px-1.5 py-0.5 text-[10px] rounded font-medium border ${getBuColor(bu)}`}>BU: {bu}</span>}
                                           {ch && <span className="px-1.5 py-0.5 text-[10px] rounded bg-blue-50 text-blue-600 font-medium border border-blue-100">CH: {ch}</span>}
                                         </div>
                                       )}
@@ -754,7 +930,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                                 <tr key={app.id} className="hover:bg-gray-50 transition-colors">
                                   {/* ลำดับ */}
                                   <td className="px-4 py-3 text-sm text-gray-500 text-center font-medium bg-gray-50/50 w-16">{rowIndex}</td>
-                                  
+
                                   {/* วันที่สมัคร */}
                                   <td className="px-4 py-3">
                                     <div className="text-sm text-gray-800 whitespace-nowrap">
@@ -817,7 +993,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                                   {/* แหล่งที่มา (BU + Channel) */}
                                   <td className="px-4 py-3">
                                     <div className="flex flex-col items-start gap-1">
-                                      {bu ? <span className="px-1.5 py-0.5 text-[10px] rounded bg-indigo-50 text-indigo-700 font-medium whitespace-nowrap border border-indigo-100 placeholder-transparent" title="Business Unit">BU: {bu}</span> : null}
+                                      {bu ? <span className={`px-1.5 py-0.5 text-[10px] rounded font-medium whitespace-nowrap border ${getBuColor(bu)}`} title="Business Unit">BU: {bu}</span> : null}
                                       {ch ? <span className="px-1.5 py-0.5 text-[10px] rounded bg-blue-50 text-blue-700 font-medium whitespace-nowrap border border-blue-100 placeholder-transparent" title="Channel">CH: {ch}</span> : null}
                                       {!bu && !ch && <span className="text-gray-400 text-xs">-</span>}
                                     </div>
@@ -825,36 +1001,52 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
 
                                   {/* สถานะ */}
                                   <td className="px-4 py-3 w-28 whitespace-nowrap">
-                                    <span className={`px-2 py-1 text-xs font-semibold rounded-full inline-block ${app.status === 'Hired' ? 'bg-green-100 text-green-800' :
-                                      app.status === 'Rejected' ? 'bg-red-100 text-red-800' :
-                                        'bg-yellow-100 text-yellow-800'
-                                      }`}>
-                                      {app.status === 'Pending' ? 'รอดำเนินการ' : app.status === 'Hired' ? 'รับแล้ว' : 'ไม่ผ่าน'}
-                                    </span>
+                                    <div className="flex flex-col items-start gap-1">
+                                      <span className={`px-2 py-1 text-xs font-semibold rounded-full inline-block ${getStatusBadgeClass(app.status)}`}>
+                                        {getStatusLabel(app.status)}
+                                      </span>
+                                      {isInterviewScheduledStatus(app.status) && app.interview_date && (
+                                        <span className="text-[11px] text-orange-600 font-medium whitespace-nowrap">
+                                          นัด: {new Date(app.interview_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {/* Assignment logic */}
+                                    {app.assigned_to ? (
+                                      <div className="flex items-center gap-1.5 mt-1.5">
+                                        <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-br from-indigo-100 to-purple-100 border border-indigo-200">
+                                          {app.assigned_user?.emp_id ? (
+                                            <img
+                                              src={`https://wms.advanceagro.net/WSVIS/api/Face/GetImage?CardID=${app.assigned_user.emp_id}`}
+                                              alt=""
+                                              className="w-full h-full object-cover"
+                                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling && ((e.target as HTMLImageElement).parentElement!.innerHTML = `<span class="flex items-center justify-center w-full h-full text-[10px] font-bold text-indigo-500">${(app.assigned_user?.full_name || '?').charAt(0)}</span>`); }}
+                                            />
+                                          ) : (
+                                            <span className="flex items-center justify-center w-full h-full text-[10px] font-bold text-indigo-500">
+                                              {(app.assigned_user?.full_name || '?').charAt(0)}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <span className="text-xs text-indigo-700 font-medium truncate max-w-[80px]">
+                                          {app.assigned_user?.full_name || 'ผู้ดูแล'}
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <Button size="sm" variant="outline" className="h-7 text-xs bg-white mt-1.5 border-dashed border-indigo-300 text-indigo-600 hover:bg-indigo-50" onClick={(e) => { e.stopPropagation(); setClaimingApp(app); }}>
+                                        <UserPlus className="w-3.5 h-3.5 mr-1" /> Claim
+                                      </Button>
+                                    )}
                                   </td>
 
                                   {/* Actions */}
-                                  <td className="px-4 py-3 w-28 text-center whitespace-nowrap">
-                                    <div className="flex justify-center gap-1.5 flex-nowrap">
-                                      <Button size="sm" variant="ghost" className="h-9 w-9 p-0" onClick={() => setViewingApp(app)} title="ดูรายละเอียด">
-                                        <ExternalLink className="w-5 h-5 text-indigo-600" />
-                                      </Button>
-                                      {app.status === 'Pending' && (
-                                        <>
-                                          <Button size="sm" variant="ghost" className="h-9 w-9 p-0" onClick={() => setApprovingApp(app)} title="รับเข้าทำงาน">
-                                            <CheckCircle className="w-5 h-5 text-green-600" />
-                                          </Button>
-                                          <Button size="sm" variant="ghost" className="h-9 w-9 p-0" onClick={() => { setRejectingApp(app); setRejectComment(''); }} title="ไม่รับ">
-                                            <XCircle className="w-5 h-5 text-red-500" />
-                                          </Button>
-                                        </>
-                                      )}
-                                      {role === 'admin' && (
-                                        <Button size="sm" variant="ghost" className="h-9 w-9 p-0 hover:bg-red-50" onClick={() => setDeletingApp(app)} title="ลบข้อมูล">
-                                          <Trash2 className="w-5 h-5 text-red-500" />
-                                        </Button>
-                                      )}
-                                    </div>
+                                  <td className="px-4 py-3 w-20 text-center whitespace-nowrap">
+                                    <button
+                                      className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-medium transition-colors border border-indigo-200"
+                                      onClick={(e) => { e.stopPropagation(); openActionMenu(app.id, e); }}
+                                    >
+                                      จัดการ <ChevronDown className="w-3 h-3" />
+                                    </button>
                                   </td>
                                 </tr>
                               );
@@ -897,10 +1089,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               {/* Charts */}
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <Card className="h-96">
-                  <h3 className="text-lg font-bold text-gray-800 mb-6">Application Trends (Mock)</h3>
+                  <h3 className="text-lg font-bold text-gray-800 mb-6">Application Trends</h3>
                   <div className="h-72 w-full" style={{ minWidth: '200px', minHeight: '200px' }}>
                     <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200}>
-                      <BarChart data={mockChartData}>
+                      <BarChart data={chartData}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
                         <XAxis dataKey="name" axisLine={false} tickLine={false} />
                         <YAxis axisLine={false} tickLine={false} />
@@ -1144,67 +1336,67 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                   <p className="text-gray-500 text-sm p-4 bg-gray-50 rounded-lg">No pending account requests.</p>
                 ) : (
                   <>
-                  {/* Desktop Table */}
-                  <div className="hidden sm:block overflow-x-auto border rounded-lg">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-100 border-b">
-                        <tr>
-                          <th className="text-left px-4 py-3 font-semibold text-gray-700">วันที่สร้าง</th>
-                          <th className="text-left px-4 py-3 font-semibold text-gray-700">ชื่อ</th>
-                          <th className="text-left px-4 py-3 font-semibold text-gray-700">Email</th>
-                          <th className="text-left px-4 py-3 font-semibold text-gray-700">เบอร์โทร</th>
-                          <th className="text-left px-4 py-3 font-semibold text-gray-700">Role</th>
-                          <th className="text-right px-4 py-3 font-semibold text-gray-700">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {pendingUsers.map(user => (
-                          <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-4 py-3 text-gray-600">{new Date(user.created_at).toLocaleDateString('th-TH')}</td>
-                            <td className="px-4 py-3 font-medium text-gray-900">{user.full_name}</td>
-                            <td className="px-4 py-3 text-gray-600">{user.email}</td>
-                            <td className="px-4 py-3 text-gray-600">{user.phone || '-'}</td>
-                            <td className="px-4 py-3">
-                              <span className={`text-xs font-semibold px-2 py-1 rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>
-                                {user.role === 'admin' ? 'Admin' : 'Moderator'}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <div className="flex gap-2 justify-end">
-                                <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleUserAction(user.id, 'Active')}>Approve</Button>
-                                <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => handleUserAction(user.id, 'Rejected')}>Reject</Button>
-                              </div>
-                            </td>
+                    {/* Desktop Table */}
+                    <div className="hidden sm:block overflow-x-auto border rounded-lg">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-100 border-b">
+                          <tr>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-700">วันที่สร้าง</th>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-700">ชื่อ</th>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-700">Email</th>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-700">เบอร์โทร</th>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-700">Role</th>
+                            <th className="text-right px-4 py-3 font-semibold text-gray-700">Actions</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody className="divide-y">
+                          {pendingUsers.map(user => (
+                            <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-4 py-3 text-gray-600">{new Date(user.created_at).toLocaleDateString('th-TH')}</td>
+                              <td className="px-4 py-3 font-medium text-gray-900">{user.full_name}</td>
+                              <td className="px-4 py-3 text-gray-600">{user.email}</td>
+                              <td className="px-4 py-3 text-gray-600">{user.phone || '-'}</td>
+                              <td className="px-4 py-3">
+                                <span className={`text-xs font-semibold px-2 py-1 rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                                  {user.role === 'admin' ? 'Admin' : 'Moderator'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                <div className="flex gap-2 justify-end">
+                                  <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleUserAction(user.id, 'Active')}>Approve</Button>
+                                  <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => handleUserAction(user.id, 'Rejected')}>Reject</Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
 
-                  {/* Mobile Cards */}
-                  <div className="sm:hidden space-y-3">
-                    {pendingUsers.map(user => (
-                      <div key={user.id} className="bg-white border rounded-xl p-4 shadow-sm flex flex-col gap-2">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="font-bold text-gray-900">{user.full_name}</div>
-                            <div className="text-sm text-gray-500">{user.email}</div>
-                            <div className="text-xs text-gray-400 mt-0.5">{user.phone || '-'}</div>
+                    {/* Mobile Cards */}
+                    <div className="sm:hidden space-y-3">
+                      {pendingUsers.map(user => (
+                        <div key={user.id} className="bg-white border rounded-xl p-4 shadow-sm flex flex-col gap-2">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="font-bold text-gray-900">{user.full_name}</div>
+                              <div className="text-sm text-gray-500">{user.email}</div>
+                              <div className="text-xs text-gray-400 mt-0.5">{user.phone || '-'}</div>
+                            </div>
+                            <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                              {user.role === 'admin' ? 'Admin' : 'Moderator'}
+                            </span>
                           </div>
-                          <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>
-                            {user.role === 'admin' ? 'Admin' : 'Moderator'}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center mt-2 border-t pt-3">
-                           <span className="text-xs text-gray-400">{new Date(user.created_at).toLocaleDateString('th-TH')}</span>
-                           <div className="flex gap-2">
+                          <div className="flex justify-between items-center mt-2 border-t pt-3">
+                            <span className="text-xs text-gray-400">{new Date(user.created_at).toLocaleDateString('th-TH')}</span>
+                            <div className="flex gap-2">
                               <Button size="sm" className="bg-green-600 hover:bg-green-700 h-8 px-3 text-xs" onClick={() => handleUserAction(user.id, 'Active')}>Approve</Button>
                               <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 h-8 px-3 text-xs" onClick={() => handleUserAction(user.id, 'Rejected')}>Reject</Button>
-                           </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
                   </>
                 )}
               </Card>
@@ -1220,68 +1412,68 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                   <p className="text-gray-500 text-sm p-4 text-center">No active users found.</p>
                 ) : (
                   <>
-                  {/* Desktop Table */}
-                  <div className="hidden sm:block overflow-x-auto border rounded-lg">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-100 border-b">
-                        <tr>
-                          <th className="text-left px-4 py-3 font-semibold text-gray-700">วันที่สร้าง</th>
-                          <th className="text-left px-4 py-3 font-semibold text-gray-700">ชื่อ</th>
-                          <th className="text-left px-4 py-3 font-semibold text-gray-700">Email</th>
-                          <th className="text-left px-4 py-3 font-semibold text-gray-700">เบอร์โทร</th>
-                          <th className="text-left px-4 py-3 font-semibold text-gray-700">Role</th>
-                          <th className="text-left px-4 py-3 font-semibold text-gray-700">Status</th>
-                          <th className="text-right px-4 py-3 font-semibold text-gray-700">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {activeUsers.map(user => (
-                          <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-4 py-3 text-gray-600">{new Date(user.created_at).toLocaleDateString('th-TH')}</td>
-                            <td className="px-4 py-3 font-medium text-gray-900">{user.full_name}</td>
-                            <td className="px-4 py-3 text-gray-600">{user.email}</td>
-                            <td className="px-4 py-3 text-gray-600">{user.phone || '-'}</td>
-                            <td className="px-4 py-3">
-                              <span className={`text-xs font-semibold px-2 py-1 rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                    {/* Desktop Table */}
+                    <div className="hidden sm:block overflow-x-auto border rounded-lg">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-100 border-b">
+                          <tr>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-700">วันที่สร้าง</th>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-700">ชื่อ</th>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-700">Email</th>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-700">เบอร์โทร</th>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-700">Role</th>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-700">Status</th>
+                            <th className="text-right px-4 py-3 font-semibold text-gray-700">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {activeUsers.map(user => (
+                            <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-4 py-3 text-gray-600">{new Date(user.created_at).toLocaleDateString('th-TH')}</td>
+                              <td className="px-4 py-3 font-medium text-gray-900">{user.full_name}</td>
+                              <td className="px-4 py-3 text-gray-600">{user.email}</td>
+                              <td className="px-4 py-3 text-gray-600">{user.phone || '-'}</td>
+                              <td className="px-4 py-3">
+                                <span className={`text-xs font-semibold px-2 py-1 rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                                  {user.role === 'admin' ? 'Admin' : 'Moderator'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className="text-xs font-semibold bg-green-100 text-green-700 px-2 py-1 rounded-full">Active</span>
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                <Button size="sm" variant="ghost" onClick={() => { setEditingUser(user); setIsConfirmingDisable(false); }}>Manage</Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Mobile Cards */}
+                    <div className="sm:hidden space-y-3">
+                      {activeUsers.map(user => (
+                        <div key={user.id} className="bg-white border rounded-xl p-4 shadow-sm flex flex-col gap-2">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="font-bold text-gray-900">{user.full_name}</div>
+                              <div className="text-sm text-gray-500">{user.email}</div>
+                              <div className="text-xs text-gray-400 mt-0.5">{user.phone || '-'}</div>
+                            </div>
+                            <div className="flex flex-col items-end gap-1.5">
+                              <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>
                                 {user.role === 'admin' ? 'Admin' : 'Moderator'}
                               </span>
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className="text-xs font-semibold bg-green-100 text-green-700 px-2 py-1 rounded-full">Active</span>
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <Button size="sm" variant="ghost" onClick={() => { setEditingUser(user); setIsConfirmingDisable(false); }}>Manage</Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  
-                  {/* Mobile Cards */}
-                  <div className="sm:hidden space-y-3">
-                    {activeUsers.map(user => (
-                      <div key={user.id} className="bg-white border rounded-xl p-4 shadow-sm flex flex-col gap-2">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="font-bold text-gray-900">{user.full_name}</div>
-                            <div className="text-sm text-gray-500">{user.email}</div>
-                            <div className="text-xs text-gray-400 mt-0.5">{user.phone || '-'}</div>
+                              <span className="text-[10px] font-semibold bg-green-100 text-green-700 px-2 py-1 rounded-full">Active</span>
+                            </div>
                           </div>
-                          <div className="flex flex-col items-end gap-1.5">
-                            <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>
-                              {user.role === 'admin' ? 'Admin' : 'Moderator'}
-                            </span>
-                            <span className="text-[10px] font-semibold bg-green-100 text-green-700 px-2 py-1 rounded-full">Active</span>
+                          <div className="flex justify-between items-center mt-2 border-t pt-3">
+                            <span className="text-xs text-gray-400">{new Date(user.created_at).toLocaleDateString('th-TH')}</span>
+                            <Button size="sm" variant="outline" className="h-8 px-4 text-xs" onClick={() => { setEditingUser(user); setIsConfirmingDisable(false); }}>Manage</Button>
                           </div>
                         </div>
-                        <div className="flex justify-between items-center mt-2 border-t pt-3">
-                           <span className="text-xs text-gray-400">{new Date(user.created_at).toLocaleDateString('th-TH')}</span>
-                           <Button size="sm" variant="outline" className="h-8 px-4 text-xs" onClick={() => { setEditingUser(user); setIsConfirmingDisable(false); }}>Manage</Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
                   </>
                 )}
               </Card>
@@ -1567,12 +1759,64 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                   <p className="text-sm text-indigo-600 font-medium mt-1">{fd.position || viewingApp.position || 'ไม่ระบุตำแหน่ง'}</p>
                   <p className="text-sm text-gray-500">{fd.department || viewingApp.department || ''}</p>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${viewingApp.status === 'Hired' ? 'bg-green-100 text-green-800' :
-                      viewingApp.status === 'Rejected' ? 'bg-red-100 text-red-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>{viewingApp.status === 'Pending' ? 'รอดำเนินการ' : viewingApp.status === 'Hired' ? 'รับแล้ว' : 'ไม่ผ่าน'}</span>
-                    <span className="text-xs text-gray-400">สมัคร: {new Date(viewingApp.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                    <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(viewingApp.status)}`}>
+                      {getStatusLabel(viewingApp.status)}
+                    </span>
                   </div>
+                  {/* Timeline */}
+                  <div className="mt-3 flex items-center gap-2 text-xs text-slate-500 overflow-x-auto pb-1">
+                    <div className="flex flex-col">
+                      <span className="font-medium text-slate-700">สมัคร</span>
+                      <span>{new Date(viewingApp.created_at).toLocaleDateString('th-TH')}</span>
+                    </div>
+                    {(viewingApp.interview_date || viewingApp.interviewed_at) && (
+                      <>
+                        <div className="w-4 h-px bg-slate-300"></div>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-yellow-700">สัมภาษณ์</span>
+                          <span>{new Date(viewingApp.interview_date || viewingApp.interviewed_at).toLocaleDateString('th-TH')}</span>
+                        </div>
+                      </>
+                    )}
+                    {viewingApp.hired_at && (
+                      <>
+                        <div className="w-4 h-px bg-slate-300"></div>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-green-700">รับเข้าทำงาน</span>
+                          <span>{new Date(viewingApp.hired_at).toLocaleDateString('th-TH')}</span>
+                        </div>
+                      </>
+                    )}
+                    {viewingApp.rejected_at && (
+                      <>
+                        <div className="w-4 h-px bg-slate-300"></div>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-red-700">ปฏิเสธ</span>
+                          <span>{new Date(viewingApp.rejected_at).toLocaleDateString('th-TH')}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  {/* Recruiter Assignment Info */}
+                  {viewingApp.assigned_user && (
+                    <div className="mt-3 flex items-center gap-2 bg-indigo-50 rounded-lg px-3 py-2">
+                      <UserCheck className="w-4 h-4 text-indigo-600" />
+                      <span className="text-xs text-indigo-700 font-medium">
+                        ผู้ดูแล: {viewingApp.assigned_user.full_name}
+                      </span>
+                      {viewingApp.assigned_at && (
+                        <span className="text-xs text-indigo-400">
+                          (รับเมื่อ {new Date(viewingApp.assigned_at).toLocaleDateString('th-TH')})
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {!viewingApp.assigned_to && (
+                    <div className="mt-3 flex items-center gap-2 bg-amber-50 rounded-lg px-3 py-2">
+                      <UserPlus className="w-4 h-4 text-amber-600" />
+                      <span className="text-xs text-amber-700 font-medium">ยังไม่มีผู้ดูแล</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1671,60 +1915,60 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               <SectionHeader title="การศึกษา" icon={GraduationCap} />
               {fd.education ? (
                 <>
-                {/* Desktop: Table */}
-                <div className="hidden sm:block border rounded-lg overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-100">
-                      <tr>
-                        <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-1/5">ระดับ</th>
-                        <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-1/3">สถาบัน</th>
-                        <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">สาขา</th>
-                        <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-16">GPA</th>
-                        <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-20">ปี</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {['highSchool', 'vocational', 'bachelor', 'master'].map((key) => {
-                        const edu = fd.education?.[key];
-                        if (!edu?.institute) return null;
-                        const levelNames: Record<string, string> = {
-                          highSchool: 'มัธยม/ปวช.',
-                          vocational: 'ปวส.',
-                          bachelor: 'ปริญญาตรี',
-                          master: 'ปริญญาโท'
-                        };
-                        return (
-                          <tr key={key}>
-                            <td className="py-2 px-3 font-medium">{levelNames[key]}</td>
-                            <td className="py-2 px-3">{edu.institute || '-'}</td>
-                            <td className="py-2 px-3">{edu.major || '-'}</td>
-                            <td className="py-2 px-3">{edu.gpa || '-'}</td>
-                            <td className="py-2 px-3 text-xs">{edu.startDate && edu.endDate ? `${edu.startDate}-${edu.endDate}` : '-'}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                {/* Mobile: Cards */}
-                <div className="sm:hidden space-y-2">
-                  {['highSchool', 'vocational', 'bachelor', 'master'].map((key) => {
-                    const edu = fd.education?.[key];
-                    if (!edu?.institute) return null;
-                    const levelNames: Record<string, string> = { highSchool: 'มัธยม/ปวช.', vocational: 'ปวส.', bachelor: 'ปริญญาตรี', master: 'ปริญญาโท' };
-                    return (
-                      <div key={key} className="bg-gray-50 rounded-lg p-3 text-sm">
-                        <div className="font-semibold text-gray-800">{levelNames[key]}</div>
-                        <div className="text-gray-600 mt-0.5">{edu.institute || '-'}</div>
-                        <div className="flex flex-wrap gap-x-4 gap-y-0 text-xs text-gray-500 mt-1">
-                          <span>สาขา: {edu.major || '-'}</span>
-                          <span>GPA: {edu.gpa || '-'}</span>
-                          {edu.startDate && edu.endDate && <span>{edu.startDate}-{edu.endDate}</span>}
+                  {/* Desktop: Table */}
+                  <div className="hidden sm:block border rounded-lg overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-1/5">ระดับ</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-1/3">สถาบัน</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">สาขา</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-16">GPA</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-20">ปี</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {['highSchool', 'vocational', 'bachelor', 'master'].map((key) => {
+                          const edu = fd.education?.[key];
+                          if (!edu?.institute) return null;
+                          const levelNames: Record<string, string> = {
+                            highSchool: 'มัธยม/ปวช.',
+                            vocational: 'ปวส.',
+                            bachelor: 'ปริญญาตรี',
+                            master: 'ปริญญาโท'
+                          };
+                          return (
+                            <tr key={key}>
+                              <td className="py-2 px-3 font-medium">{levelNames[key]}</td>
+                              <td className="py-2 px-3">{edu.institute || '-'}</td>
+                              <td className="py-2 px-3">{edu.major || '-'}</td>
+                              <td className="py-2 px-3">{edu.gpa || '-'}</td>
+                              <td className="py-2 px-3 text-xs">{edu.startDate && edu.endDate ? `${edu.startDate}-${edu.endDate}` : '-'}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  {/* Mobile: Cards */}
+                  <div className="sm:hidden space-y-2">
+                    {['highSchool', 'vocational', 'bachelor', 'master'].map((key) => {
+                      const edu = fd.education?.[key];
+                      if (!edu?.institute) return null;
+                      const levelNames: Record<string, string> = { highSchool: 'มัธยม/ปวช.', vocational: 'ปวส.', bachelor: 'ปริญญาตรี', master: 'ปริญญาโท' };
+                      return (
+                        <div key={key} className="bg-gray-50 rounded-lg p-3 text-sm">
+                          <div className="font-semibold text-gray-800">{levelNames[key]}</div>
+                          <div className="text-gray-600 mt-0.5">{edu.institute || '-'}</div>
+                          <div className="flex flex-wrap gap-x-4 gap-y-0 text-xs text-gray-500 mt-1">
+                            <span>สาขา: {edu.major || '-'}</span>
+                            <span>GPA: {edu.gpa || '-'}</span>
+                            {edu.startDate && edu.endDate && <span>{edu.startDate}-{edu.endDate}</span>}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
                 </>
               ) : (
                 <p className="text-sm text-gray-500">ไม่มีข้อมูล</p>
@@ -1734,44 +1978,44 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               <SectionHeader title="ประสบการณ์ทำงาน" icon={Building2} />
               {fd.experience && fd.experience.length > 0 ? (
                 <>
-                {/* Desktop: Table */}
-                <div className="hidden sm:block border rounded-lg overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-100">
-                      <tr>
-                        <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-24">ช่วงเวลา</th>
-                        <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">บริษัท</th>
-                        <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">ตำแหน่ง</th>
-                        <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-20">เงินเดือน</th>
-                        <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">หน้าที่</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {fd.experience.map((exp: any, i: number) => (
-                        <tr key={i}>
-                          <td className="py-2 px-3 text-xs">{exp.from}<br />{exp.to || 'ปัจจุบัน'}</td>
-                          <td className="py-2 px-3 font-medium">{exp.company || '-'}</td>
-                          <td className="py-2 px-3">{exp.position || '-'}</td>
-                          <td className="py-2 px-3">{exp.salary || '-'}</td>
-                          <td className="py-2 px-3 text-xs">{exp.description || '-'}</td>
+                  {/* Desktop: Table */}
+                  <div className="hidden sm:block border rounded-lg overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-24">ช่วงเวลา</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">บริษัท</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">ตำแหน่ง</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-20">เงินเดือน</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">หน้าที่</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {/* Mobile: Cards */}
-                <div className="sm:hidden space-y-2">
-                  {fd.experience.map((exp: any, i: number) => (
-                    <div key={i} className="bg-gray-50 rounded-lg p-3 text-sm border-l-3 border-indigo-300">
-                      <div className="flex justify-between items-start">
-                        <div className="font-semibold text-gray-800">{exp.company || '-'}</div>
-                        <span className="text-[11px] text-gray-400 flex-shrink-0">{exp.from} - {exp.to || 'ปัจจุบัน'}</span>
+                      </thead>
+                      <tbody className="divide-y">
+                        {fd.experience.map((exp: any, i: number) => (
+                          <tr key={i}>
+                            <td className="py-2 px-3 text-xs">{exp.from}<br />{exp.to || 'ปัจจุบัน'}</td>
+                            <td className="py-2 px-3 font-medium">{exp.company || '-'}</td>
+                            <td className="py-2 px-3">{exp.position || '-'}</td>
+                            <td className="py-2 px-3">{exp.salary || '-'}</td>
+                            <td className="py-2 px-3 text-xs">{exp.description || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {/* Mobile: Cards */}
+                  <div className="sm:hidden space-y-2">
+                    {fd.experience.map((exp: any, i: number) => (
+                      <div key={i} className="bg-gray-50 rounded-lg p-3 text-sm border-l-3 border-indigo-300">
+                        <div className="flex justify-between items-start">
+                          <div className="font-semibold text-gray-800">{exp.company || '-'}</div>
+                          <span className="text-[11px] text-gray-400 flex-shrink-0">{exp.from} - {exp.to || 'ปัจจุบัน'}</span>
+                        </div>
+                        <div className="text-gray-600 text-xs mt-0.5">{exp.position || '-'}{exp.salary ? ` · ${exp.salary}` : ''}</div>
+                        {exp.description && <div className="text-xs text-gray-500 mt-1">{exp.description}</div>}
                       </div>
-                      <div className="text-gray-600 text-xs mt-0.5">{exp.position || '-'}{exp.salary ? ` · ${exp.salary}` : ''}</div>
-                      {exp.description && <div className="text-xs text-gray-500 mt-1">{exp.description}</div>}
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
                 </>
               ) : (
                 <p className="text-sm text-gray-500">ไม่มีประสบการณ์ทำงาน</p>
@@ -1925,6 +2169,61 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                 </div>
               )}
 
+              {/* Interview Date Display */}
+              {isInterviewScheduledStatus(viewingApp.status) && viewingApp.interview_date && (
+                <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-start gap-3">
+                  <Calendar className="w-5 h-5 text-orange-600 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-bold text-orange-800">วันนัดสัมภาษณ์</h4>
+                    <p className="text-sm text-orange-700">
+                      {new Date(viewingApp.interview_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Activity Log Timeline */}
+              <div className="mt-4 pt-3 border-t">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <History className="w-4 h-4" /> ประวัติการดำเนินการ
+                </h4>
+                {isLoadingLogs ? (
+                  <div className="text-center py-4 text-sm text-gray-400">กำลังโหลด...</div>
+                ) : appLogs.length === 0 ? (
+                  <div className="text-center py-4 text-sm text-gray-400">ยังไม่มีประวัติ</div>
+                ) : (
+                  <div className="space-y-4 max-h-64 overflow-y-auto pl-2 py-2">
+                    {[...appLogs].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map((log: any, index: number) => {
+                      const meta = LOG_LABELS[log.action] || { label: log.action, icon: '📌', color: 'text-gray-600' };
+                      return (
+                        <div key={log.id} className="relative flex items-start gap-4 text-sm w-full">
+                          {/* Timeline Line */}
+                          {index !== appLogs.length - 1 && (
+                            <div className="absolute top-6 left-[11px] bottom-[-20px] w-px bg-slate-200"></div>
+                          )}
+                          <div className={`relative z-10 flex text-base leading-none mt-0.5 items-center justify-center bg-white rounded-full p-1 border shadow-sm ${meta.color === 'text-green-600' ? 'border-green-200' : 'border-slate-200'}`}>
+                            {meta.icon}
+                          </div>
+                          <div className="flex-1 min-w-0 bg-slate-50 rounded-xl p-3 border border-slate-100 shadow-sm leading-snug hover:bg-slate-100/80 transition-colors">
+                            <div className={`font-semibold ${meta.color} flex items-center`}>
+                              {meta.label}
+                              {log.old_value && log.new_value && <span className="text-gray-500 font-normal ml-2 bg-white px-2 py-0.5 rounded-md border border-slate-200 text-xs shadow-sm"> {getStatusLabel(log.old_value)} → {getStatusLabel(log.new_value)}</span>}
+                              {!log.old_value && log.new_value && <span className="text-gray-500 font-normal ml-2 bg-white px-2 py-0.5 rounded-md border border-slate-200 text-xs shadow-sm"> {getStatusLabel(log.new_value)}</span>}
+                            </div>
+                            {log.note && <div className="text-sm text-slate-600 mt-2 bg-white p-2 rounded-lg border border-slate-200 shadow-sm leading-relaxed">"{log.note}"</div>}
+                            <div className="text-[11px] text-slate-400 mt-2.5 flex items-center gap-1.5 font-medium tracking-wide">
+                              <User className="w-3 h-3" /> {log.performed_by}
+                              <span>•</span>
+                              <Clock className="w-3 h-3" /> {new Date(log.created_at).toLocaleDateString('th-TH')} {new Date(log.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-2 sm:gap-3 pt-4 mt-4 border-t sticky bottom-0 bg-white pb-2">
                 <Button variant="outline" onClick={() => {
@@ -1940,13 +2239,42 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                 <Button variant="outline" onClick={() => { setEditingApp(viewingApp); setViewingApp(null); }}>
                   <Edit className="w-4 h-4 mr-2" /> แก้ไขข้อมูล
                 </Button>
-                {viewingApp.status === 'Pending' && (
+                {!viewingApp.assigned_to && !isClosedStatus(viewingApp.status) ? (
+                  <Button variant="outline" className="border-indigo-200 text-indigo-700 hover:bg-indigo-50" onClick={() => { setClaimingApp(viewingApp); setViewingApp(null); }}>
+                    <User className="w-4 h-4 mr-2" /> รับเคสนี้ (Claim)
+                  </Button>
+                ) : viewingApp.assigned_to && !isClosedStatus(viewingApp.status) ? (
+                  <>
+                    <Button variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50" onClick={() => { setTransferringApp(viewingApp); setViewingApp(null); }}>
+                      <Users className="w-4 h-4 mr-2" /> โอนเคส
+                    </Button>
+                    <Button variant="outline" className="border-slate-200 text-slate-700 hover:bg-slate-50" onClick={() => { setUnassigningApp(viewingApp); setViewingApp(null); }}>
+                      <User className="w-4 h-4 mr-2" /> ยกเลิกการรับเคส
+                    </Button>
+                  </>
+                ) : null}
+                {viewingApp.status === 'Reviewing' && (
+                  <>
+                    <Button className="bg-yellow-500 hover:bg-yellow-600 text-white" onClick={() => { setInterviewingApp(viewingApp); setInterviewDate(''); setViewingApp(null); }}>
+                      <Calendar className="w-4 h-4 mr-2" /> นัดสัมภาษณ์
+                    </Button>
+                    <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => { setRejectingApp(viewingApp); setViewingApp(null); setRejectComment(''); setRejectionReason(''); }}>
+                      <XCircle className="w-4 h-4 mr-2" /> ไม่รับ
+                    </Button>
+                  </>
+                )}
+                {isInterviewScheduledStatus(viewingApp.status) && (
+                  <Button className="bg-yellow-500 hover:bg-yellow-600 text-white" onClick={() => { setInterviewingApp(viewingApp); setInterviewDate(viewingApp.interview_date || ''); setViewingApp(null); }}>
+                    <Calendar className="w-4 h-4 mr-2" /> เปลี่ยนวันสัมภาษณ์
+                  </Button>
+                )}
+                {(isInterviewScheduledStatus(viewingApp.status) || viewingApp.status === 'Interviewed' || viewingApp.status === 'Offer') && (
                   <>
                     <Button className="bg-green-600 hover:bg-green-700" onClick={() => { setApprovingApp(viewingApp); setViewingApp(null); }}>
                       <CheckCircle className="w-4 h-4 mr-2" /> รับเข้าทำงาน
                     </Button>
-                    <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => { setRejectingApp(viewingApp); setViewingApp(null); setRejectComment(''); }}>
-                      <XCircle className="w-4 h-4 mr-2" /> ไม่รับ
+                    <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => { setRejectingApp(viewingApp); setViewingApp(null); setRejectComment(''); setRejectionReason(''); }}>
+                      <XCircle className="w-4 h-4 mr-2" /> ไม่ผ่าน
                     </Button>
                   </>
                 )}
@@ -1956,6 +2284,80 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
           );
         })()}
       </Modal>
+
+      {/* Action Menu Portal (fixed position, never clipped) */}
+      {actionMenu && (() => {
+        const app = applications.find((a: any) => a.id === actionMenu.id);
+        if (!app) return null;
+        return (
+          <>
+            <div className="fixed inset-0 z-[60]" onClick={() => setActionMenu(null)} />
+            <div
+              className="fixed z-[61] bg-white rounded-xl shadow-xl border border-gray-200 py-1.5 min-w-[170px]"
+              style={{
+                left: `${Math.min(actionMenu.x, window.innerWidth - 180)}px`,
+                ...(actionMenu.openUp
+                  ? { bottom: `${window.innerHeight - actionMenu.y}px` }
+                  : { top: `${actionMenu.y}px` }
+                )
+              }}
+            >
+              <button className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-left text-gray-700 hover:bg-gray-50 transition-colors" onClick={() => { setViewingApp(app); setActionMenu(null); }}>
+                <ExternalLink className="w-4 h-4 text-indigo-500" /> ดูรายละเอียด
+              </button>
+              <button className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-left text-gray-700 hover:bg-gray-50 transition-colors" onClick={() => { setEditingApp(app); setActionMenu(null); }}>
+                <Edit className="w-4 h-4 text-blue-500" /> แก้ไขข้อมูล
+              </button>
+              {/* Pending: only Claim */}
+              {app.status === 'Pending' && !app.assigned_to && (
+                <>
+                  <div className="border-t border-gray-100 my-1" />
+                  <button className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-left text-indigo-700 hover:bg-indigo-50 transition-colors" onClick={() => { setClaimingApp(app); setActionMenu(null); }}>
+                    <UserPlus className="w-4 h-4" /> รับดูแลเคส
+                  </button>
+                </>
+              )}
+              {/* Reviewing: Interview + Reject */}
+              {app.status === 'Reviewing' && (
+                <>
+                  <div className="border-t border-gray-100 my-1" />
+                  <button className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-left text-yellow-700 hover:bg-yellow-50 transition-colors" onClick={() => { setInterviewingApp(app); setInterviewDate(''); setActionMenu(null); }}>
+                    <Calendar className="w-4 h-4" /> นัดสัมภาษณ์
+                  </button>
+                  <button className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-left text-red-600 hover:bg-red-50 transition-colors" onClick={() => { setRejectingApp(app); setRejectComment(''); setRejectionReason(''); setActionMenu(null); }}>
+                    <XCircle className="w-4 h-4" /> ไม่รับ
+                  </button>
+                </>
+              )}
+              {/* Interview or later shortlist: Hire + Reject */}
+              {(isInterviewScheduledStatus(app.status) || app.status === 'Interviewed' || app.status === 'Offer') && (
+                <>
+                  <div className="border-t border-gray-100 my-1" />
+                  {isInterviewScheduledStatus(app.status) && (
+                    <button className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-left text-yellow-700 hover:bg-yellow-50 transition-colors" onClick={() => { setInterviewingApp(app); setInterviewDate(app.interview_date || ''); setActionMenu(null); }}>
+                      <Calendar className="w-4 h-4" /> เปลี่ยน/เลื่อนวันสัมภาษณ์
+                    </button>
+                  )}
+                  <button className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-left text-green-700 hover:bg-green-50 transition-colors" onClick={() => { setApprovingApp(app); setActionMenu(null); }}>
+                    <CheckCircle className="w-4 h-4" /> ผ่านสัมภาษณ์ (รับทำงาน)
+                  </button>
+                  <button className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-left text-red-600 hover:bg-red-50 transition-colors" onClick={() => { setRejectingApp(app); setRejectComment(''); setRejectionReason(''); setActionMenu(null); }}>
+                    <XCircle className="w-4 h-4" /> ไม่ผ่านสัมภาษณ์
+                  </button>
+                </>
+              )}
+              {role === 'admin' && (
+                <>
+                  <div className="border-t border-gray-100 my-1" />
+                  <button className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-left text-red-500 hover:bg-red-50 transition-colors" onClick={() => { setDeletingApp(app); setActionMenu(null); }}>
+                    <Trash2 className="w-4 h-4" /> ลบข้อมูล
+                  </button>
+                </>
+              )}
+            </div>
+          </>
+        );
+      })()}
 
       {/* Approve Application Dialog */}
       <Modal
@@ -1982,13 +2384,85 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               <Button
                 className="bg-green-600 hover:bg-green-700"
                 onClick={async () => {
-                  await api.updateApplicationStatus(approvingApp.id, 'Hired');
+                  if (!currentUserId) {
+                    showToast('ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่', 'error');
+                    return;
+                  }
+                  const result = await api.updateApplicationStatus(approvingApp.id, 'Hired', {
+                    performedByUserId: currentUserId,
+                    performedByName: currentUserName,
+                  });
+                  if (!result.success) {
+                    showToast(result.error?.message || 'รับผู้สมัครไม่สำเร็จ', 'error');
+                    return;
+                  }
                   setApprovingApp(null);
                   showToast('รับผู้สมัครเข้าทำงานเรียบร้อย!', 'success');
                   fetchData();
                 }}
               >
                 <CheckCircle className="w-4 h-4 mr-2" /> ยืนยันรับเข้าทำงาน
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={!!interviewingApp}
+        onClose={() => setInterviewingApp(null)}
+        title="นัดสัมภาษณ์ผู้สมัคร"
+        footer={null}
+      >
+        {interviewingApp && (
+          <div className="space-y-4">
+            <div className="text-center py-2">
+              <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Calendar className="w-6 h-6 text-yellow-600" />
+              </div>
+              <p className="text-gray-700">
+                นัดสัมภาษณ์ <strong>{interviewingApp.full_name || interviewingApp.form_data?.firstName}</strong>
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                ตำแหน่ง: {interviewingApp.position || interviewingApp.form_data?.position || '-'}
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">วันที่นัดสัมภาษณ์ <span className="text-red-500">*</span></label>
+              <input
+                type="date"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-500 outline-none"
+                value={interviewDate}
+                onChange={(e) => setInterviewDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+            <div className="flex gap-3 justify-end pt-4 border-t">
+              <Button variant="outline" onClick={() => setInterviewingApp(null)}>ยกเลิก</Button>
+              <Button
+                className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                disabled={!interviewDate}
+                onClick={async () => {
+                  if (!currentUserId) {
+                    showToast('ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่', 'error');
+                    return;
+                  }
+                  const result = await api.updateApplicationStatus(interviewingApp.id, 'InterviewScheduled', {
+                    performedByUserId: currentUserId,
+                    performedByName: currentUserName,
+                    interviewDate,
+                  });
+                  if (!result.success) {
+                    showToast(result.error?.message || 'นัดสัมภาษณ์ไม่สำเร็จ', 'error');
+                    return;
+                  }
+                  setInterviewingApp(null);
+                  setInterviewDate('');
+                  showToast('นัดสัมภาษณ์เรียบร้อย!', 'success');
+                  fetchData();
+                }}
+              >
+                <Calendar className="w-4 h-4 mr-2" /> ยืนยันนัดสัมภาษณ์
               </Button>
             </div>
           </div>
@@ -2013,11 +2487,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">เหตุผล/หมายเหตุ (ถ้ามี)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">สาเหตุหลัก <span className="text-red-500">*</span></label>
+              <select
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 outline-none bg-white"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+              >
+                <option value="">-- เลือกสาเหตุ --</option>
+                {(closeReasons.length > 0 ? closeReasons : [
+                  { code: 'failed_interview', label_th: 'ไม่ผ่านสัมภาษณ์', category: 'rejected' },
+                  { code: 'qualification_mismatch', label_th: 'คุณสมบัติไม่ตรง', category: 'rejected' },
+                  { code: 'salary_over_budget', label_th: 'เรียกเงินเดือนสูงเกินงบ', category: 'rejected' },
+                  { code: 'candidate_withdrew', label_th: 'ผู้สมัครยกเลิกเอง', category: 'withdrawn' },
+                  { code: 'no_show', label_th: 'ไม่มาตามนัดสัมภาษณ์', category: 'no_show' },
+                  { code: 'cannot_contact', label_th: 'ติดต่อไม่ได้', category: 'rejected' },
+                  { code: 'other', label_th: 'อื่นๆ', category: 'rejected' },
+                ]).map((reason: any) => (
+                  <option key={reason.code || reason.label_th} value={reason.label_th} data-category={reason.category}>
+                    {reason.label_th}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">หมายเหตุเพิ่มเติม (ถ้ามี)</label>
               <textarea
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 outline-none"
                 rows={3}
-                placeholder="ระบุเหตุผลในการปฏิเสธ..."
+                placeholder="ระบุรายละเอียดเพิ่มเติม..."
                 value={rejectComment}
                 onChange={(e) => setRejectComment(e.target.value)}
               />
@@ -2026,9 +2523,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               <Button variant="outline" onClick={() => setRejectingApp(null)}>ยกเลิก</Button>
               <Button
                 variant="danger"
+                disabled={!rejectionReason}
                 onClick={async () => {
-                  await api.updateApplicationStatus(rejectingApp.id, 'Rejected', rejectComment);
+                  if (!currentUserId) {
+                    showToast('ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่', 'error');
+                    return;
+                  }
+                  const selectedReason = closeReasons.find((reason: any) => reason.label_th === rejectionReason);
+                  const closeStatus: ApplicationStatus = selectedReason?.category === 'withdrawn' ? 'Withdrawn' : selectedReason?.category === 'no_show' ? 'NoShow' : 'Rejected';
+                  const result = await api.updateApplicationStatus(rejectingApp.id, closeStatus, {
+                    comment: rejectComment,
+                    performedByUserId: currentUserId,
+                    performedByName: currentUserName,
+                    rejectionReason,
+                  });
+                  if (!result.success) {
+                    showToast(result.error?.message || 'ปฏิเสธผู้สมัครไม่สำเร็จ', 'error');
+                    return;
+                  }
                   setRejectingApp(null);
+                  setRejectionReason('');
+                  setRejectComment('');
                   showToast('ปฏิเสธผู้สมัครเรียบร้อย', 'success');
                   fetchData();
                 }}
@@ -2109,8 +2624,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                   onChange={(e) => setEditForm(prev => ({ ...prev, status: e.target.value }))}
                 >
                   <option value="Pending">รอดำเนินการ</option>
+                  <option value="Reviewing">กำลังพิจารณา</option>
+                  <option value="InterviewScheduled">นัดสัมภาษณ์</option>
+                  <option value="Interviewed">สัมภาษณ์แล้ว</option>
+                  <option value="Offer">เสนอจ้าง</option>
                   <option value="Hired">รับแล้ว</option>
                   <option value="Rejected">ไม่ผ่าน</option>
+                  <option value="Withdrawn">ผู้สมัครยกเลิก</option>
+                  <option value="NoShow">ไม่มาตามนัด</option>
                 </select>
               </div>
             </div>
@@ -2210,6 +2731,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                 onClick={async () => {
                   setIsSavingEdit(true);
                   try {
+                    if (editForm.status !== editingApp.status && !currentUserId) {
+                      showToast('ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่', 'error');
+                      return;
+                    }
                     const updatedFormData = {
                       ...editingApp.form_data,
                       position: editForm.position,
@@ -2231,7 +2756,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                         department: editForm.department,
                         phone: editForm.phone,
                         email: editForm.email,
-                        status: editForm.status,
                         business_unit: editForm.businessUnit,
                         source_channel: editForm.sourceChannel,
                         campaign_tag: editForm.campaignTag,
@@ -2239,6 +2763,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                       })
                       .eq('id', editingApp.id);
                     if (error) throw error;
+                    if (editForm.status !== editingApp.status && currentUserId) {
+                      const statusResult = await api.updateApplicationStatus(editingApp.id, editForm.status as ApplicationStatus, {
+                        performedByUserId: currentUserId,
+                        performedByName: currentUserName,
+                        comment: 'อัปเดตจากหน้าแก้ไขข้อมูล',
+                        rejectionReason: ['Rejected', 'Withdrawn', 'NoShow'].includes(editForm.status) ? 'อื่นๆ' : undefined,
+                      });
+                      if (!statusResult.success) {
+                        throw new Error(statusResult.error?.message || 'Status update failed');
+                      }
+                    }
                     showToast('บันทึกสำเร็จ!', 'success');
                     setEditingApp(null);
                     fetchData();
@@ -2254,6 +2789,101 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               >
                 <CheckCircle className="w-4 h-4 mr-2" /> บันทึกการแก้ไข
               </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Claim Dialog */}
+      <Modal isOpen={!!claimingApp} onClose={() => setClaimingApp(null)} title="ยืนยันการรับเคส (Claim)">
+        {claimingApp && (
+          <div className="space-y-4">
+            <p>คุณต้องการรับเคส <strong>{claimingApp.full_name || claimingApp.form_data?.firstName}</strong> มาดูแลใช่หรือไม่?</p>
+            <div className="flex gap-3 justify-end pt-4">
+              <Button variant="outline" onClick={() => setClaimingApp(null)}>ยกเลิก</Button>
+              <Button className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={async () => {
+                if (!currentUserId) {
+                  showToast('ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่', 'error');
+                  return;
+                }
+                const result = await api.claimApplication(claimingApp.id, currentUserId);
+                if (!result.success) {
+                  showToast(result.error?.message || 'รับเคสไม่สำเร็จ', 'error');
+                  return;
+                }
+                setClaimingApp(null);
+                showToast('รับเคสเรียบร้อย', 'success');
+                fetchData();
+              }}>ยืนยัน</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Unassign Dialog */}
+      <Modal isOpen={!!unassigningApp} onClose={() => setUnassigningApp(null)} title="ยกเลิกการรับเคส (Unassign)">
+        {unassigningApp && (
+          <div className="space-y-4">
+            <p>คุณต้องการยกเลิกการดูแลเคส <strong>{unassigningApp.full_name || unassigningApp.form_data?.firstName}</strong> ใช่หรือไม่?</p>
+            <div className="flex gap-3 justify-end pt-4">
+              <Button variant="outline" onClick={() => setUnassigningApp(null)}>ยกเลิก</Button>
+              <Button className="bg-slate-600 hover:bg-slate-700 text-white" onClick={async () => {
+                if (!currentUserId) {
+                  showToast('ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่', 'error');
+                  return;
+                }
+                const result = await api.unassignApplication(unassigningApp.id, currentUserId);
+                if (!result.success) {
+                  showToast(result.error?.message || 'ยกเลิกการดูแลเคสไม่สำเร็จ', 'error');
+                  return;
+                }
+                setUnassigningApp(null);
+                showToast('ยกเลิกการดูแลเคสเรียบร้อย', 'success');
+                fetchData();
+              }}>ยืนยัน</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Transfer Dialog */}
+      <Modal isOpen={!!transferringApp} onClose={() => setTransferringApp(null)} title="โอนเคสให้ผู้อื่น (Transfer)">
+        {transferringApp && (
+          <div className="space-y-4">
+            <p>คุณต้องการโอนเคส <strong>{transferringApp.full_name || transferringApp.form_data?.firstName}</strong> ใช่หรือไม่?</p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">เลือกผู้รับผิดชอบใหม่ <span className="text-red-500">*</span></label>
+              <select
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+                value={transferTarget}
+                onChange={(e) => setTransferTarget(e.target.value)}
+              >
+                <option value="">-- เลือก --</option>
+                {activeUsers.map(u => (
+                  <option key={u.id} value={u.id}>{u.full_name} ({u.role})</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-3 justify-end pt-4 border-t">
+              <Button variant="outline" onClick={() => setTransferringApp(null)}>ยกเลิก</Button>
+              <Button disabled={!transferTarget} className="bg-blue-600 hover:bg-blue-700 text-white" onClick={async () => {
+                const targetUser = activeUsers.find((u: any) => u.id === transferTarget);
+                if (!currentUserId) {
+                  showToast('ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่', 'error');
+                  return;
+                }
+                if (targetUser) {
+                  const result = await api.transferApplication(transferringApp.id, targetUser.id, currentUserId);
+                  if (!result.success) {
+                    showToast(result.error?.message || 'โอนเคสไม่สำเร็จ', 'error');
+                    return;
+                  }
+                }
+                setTransferringApp(null);
+                setTransferTarget('');
+                showToast(`โอนเคสให้ ${targetUser?.full_name || ''} เรียบร้อย`, 'success');
+                fetchData();
+              }}>ยืนยันโอนเคส</Button>
             </div>
           </div>
         )}
@@ -2533,7 +3163,7 @@ const MasterDataConfig = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-6">
         {/* Mobile Nav Select */}
         <div className="md:hidden">
-          <select 
+          <select
             className="w-full border-2 border-indigo-100 rounded-xl p-3 bg-white focus:ring-2 focus:ring-indigo-500 font-medium text-gray-700 outline-none"
             value={activeTable}
             onChange={(e) => setActiveTable(e.target.value)}
@@ -2774,7 +3404,7 @@ const MasterDataConfig = () => {
 
           {/* Name/Name_EN Fields (where TH is name and EN is name_en) */}
           {['universities', 'colleges', 'faculties'].includes(activeTable) && (
-             <>
+            <>
               <Input label="Name (TH)" value={formData.name || ''} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
               <Input label="Name (EN)" value={formData.name_en || ''} onChange={(e) => setFormData({ ...formData, name_en: e.target.value })} />
             </>

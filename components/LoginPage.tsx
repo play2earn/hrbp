@@ -61,6 +61,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onBack, lang, onT
         setSuccess('เชื่อมต่อระบบ HRMS สำเร็จ!');
         // Store user info for use in Dashboard
         localStorage.setItem('currentUser', JSON.stringify({
+          id: response.user.id,
           full_name: response.user.full_name,
           email: response.user.email,
           role: response.user.role,

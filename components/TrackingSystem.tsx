@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { api } from '../services/api';
-import { Button } from './UIComponents';
 import { Search, Loader2, CheckCircle2, Clock, XCircle, FileText, X, CreditCard, Hash } from 'lucide-react';
+import { Button } from './UIComponents';
+import { api } from '../services/api';
 
 interface TrackingSystemProps {
     isOpen: boolean;
@@ -15,6 +15,7 @@ export default function TrackingSystem({ isOpen, onClose, lang = 'en' }: Trackin
     const [results, setResults] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [timelines, setTimelines] = useState<Record<string, any[]>>({});
 
     if (!isOpen) return null;
 
@@ -34,9 +35,14 @@ export default function TrackingSystem({ isOpen, onClose, lang = 'en' }: Trackin
         entries: lang === 'th' ? 'รายการ' : 'application(s)',
         statusLabels: {
             Pending: lang === 'th' ? 'รอดำเนินการ' : 'Pending',
+            Reviewing: lang === 'th' ? 'กำลังพิจารณา' : 'Reviewing',
             Interview: lang === 'th' ? 'นัดสัมภาษณ์' : 'Interview',
+            InterviewScheduled: lang === 'th' ? 'นัดสัมภาษณ์' : 'Interview Scheduled',
+            Interviewed: lang === 'th' ? 'สัมภาษณ์แล้ว' : 'Interviewed',
             Offer: lang === 'th' ? 'ได้รับข้อเสนอ' : 'Offer',
             Rejected: lang === 'th' ? 'ไม่ผ่าน' : 'Rejected',
+            Withdrawn: lang === 'th' ? 'ผู้สมัครยกเลิก' : 'Withdrawn',
+            NoShow: lang === 'th' ? 'ไม่มาตามนัด' : 'No show',
             Hired: lang === 'th' ? 'รับเข้าทำงาน' : 'Hired',
         } as Record<string, string>,
     };
@@ -59,6 +65,12 @@ export default function TrackingSystem({ isOpen, onClose, lang = 'en' }: Trackin
                     setError(t.notFound);
                 } else if (data && data.length > 0) {
                     setResults(data);
+                    // Load timelines for each result
+                    data.forEach((app: any) => {
+                        api.getApplicationTimeline(app.id).then((logs) => {
+                            setTimelines(prev => ({ ...prev, [app.id]: logs }));
+                        });
+                    });
                 } else {
                     setError(t.notFound);
                 }
@@ -71,6 +83,10 @@ export default function TrackingSystem({ isOpen, onClose, lang = 'en' }: Trackin
                     setError((data as any).error);
                 } else if (data) {
                     setResults([data]);
+                    // Load timeline
+                    api.getApplicationTimeline((data as any).id).then((logs) => {
+                        setTimelines(prev => ({ ...prev, [(data as any).id]: logs }));
+                    });
                 } else {
                     setError(t.notFound);
                 }
@@ -87,8 +103,13 @@ export default function TrackingSystem({ isOpen, onClose, lang = 'en' }: Trackin
         switch (s) {
             case 'Pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
             case 'Interview': return 'bg-blue-100 text-blue-800 border-blue-200';
+            case 'InterviewScheduled': return 'bg-blue-100 text-blue-800 border-blue-200';
+            case 'Interviewed': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+            case 'Reviewing': return 'bg-indigo-100 text-indigo-800 border-indigo-200';
             case 'Offer': return 'bg-green-100 text-green-800 border-green-200';
             case 'Rejected': return 'bg-red-100 text-red-800 border-red-200';
+            case 'Withdrawn': return 'bg-red-100 text-red-800 border-red-200';
+            case 'NoShow': return 'bg-red-100 text-red-800 border-red-200';
             case 'Hired': return 'bg-indigo-100 text-indigo-800 border-indigo-200';
             default: return 'bg-gray-100 text-gray-800 border-gray-200';
         }
@@ -194,6 +215,41 @@ export default function TrackingSystem({ isOpen, onClose, lang = 'en' }: Trackin
                                         <div className="pt-2 border-t border-slate-100">
                                             <p className="text-xs text-gray-400">{t.lastUpdated}: {new Date(status.updated_at || status.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                                         </div>
+                                        {/* Public Timeline */}
+                                        {timelines[status.id] && timelines[status.id].length > 0 && (
+                                            <div className="pt-3 mt-2 border-t border-slate-100">
+                                                <p className="text-xs text-gray-400 uppercase font-bold mb-2">{lang === 'th' ? 'ไทม์ไลน์' : 'Timeline'}</p>
+                                                <div className="space-y-0">
+                                                    {timelines[status.id].map((log: any, i: number) => {
+                                                        const isSubmit = log.action === 'submitted';
+                                                        const statusLabel = t.statusLabels[log.new_value] || log.new_value || '';
+                                                        return (
+                                                            <div key={log.id} className="flex gap-2.5">
+                                                                <div className="flex flex-col items-center">
+                                                                    <div className={`w-2.5 h-2.5 rounded-full mt-1 ${isSubmit ? 'bg-green-400' : 'bg-indigo-400'}`} />
+                                                                    {i < timelines[status.id].length - 1 && <div className="w-px flex-1 bg-gray-200 my-0.5" />}
+                                                                </div>
+                                                                <div className="pb-3 min-w-0">
+                                                                    <p className="text-xs font-medium text-slate-700">
+                                                                        {isSubmit ? (lang === 'th' ? 'ได้รับใบสมัครเรียบร้อย' : 'Application received') : statusLabel}
+                                                                        {log.metadata?.interview_date && (log.new_value === 'Interview' || log.new_value === 'InterviewScheduled') && (
+                                                                            <span className="text-indigo-600 block mt-0.5 font-semibold text-[11px]">
+                                                                                {lang === 'th' ? 'วันที่นัดหมาย: ' : 'Date: '}
+                                                                                {new Date(log.metadata.interview_date).toLocaleDateString(lang === 'th' ? 'th-TH' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                                                            </span>
+                                                                        )}
+                                                                    </p>
+                                                                    <p className="text-[10px] text-gray-400">
+                                                                        {lang === 'th' ? 'บันทึกเมื่อ: ' : 'Recorded: '}
+                                                                        {new Date(log.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })} {new Date(log.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             ))}

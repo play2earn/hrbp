@@ -8,6 +8,18 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        proxy: {
+          '/api/idms-auth': {
+            target: 'https://mobiledev.advanceagro.net',
+            changeOrigin: true,
+            rewrite: (path: string) => {
+              const url = new URL(path, 'http://localhost');
+              const account = url.searchParams.get('account') || '';
+              const password = url.searchParams.get('password') || '';
+              return `/ws/api/idms/authentication/?account=${encodeURIComponent(account)}&password=${encodeURIComponent(password)}&Service=0000&AgentId=SystemMango&AgentCode=Np4kfRh5`;
+            },
+          },
+        },
       },
       plugins: [react()],
       define: {
