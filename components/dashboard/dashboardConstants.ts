@@ -8,6 +8,8 @@ export const BU_COLOR_MAP: Record<string, string> = {
     'Double A': '#2563EB',   // Blue
     'NPS': '#EAB308',        // Yellow
     'ReLo': '#16A34A',       // Green
+    'Head Office': '#8B5CF6', // Purple
+    'Technology': '#6366F1',  // Indigo
 };
 export const BU_FALLBACK_COLORS = ['#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#6366F1', '#EF4444', '#0EA5E9'];
 
@@ -21,6 +23,8 @@ export const BU_COLORS: Record<string, string> = {
     'Double A': 'bg-blue-100 text-blue-700 border-blue-200',
     'NPS': 'bg-yellow-100 text-yellow-700 border-yellow-200',
     'ReLo': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    'Head Office': 'bg-purple-100 text-purple-700 border-purple-200',
+    'Technology': 'bg-indigo-100 text-indigo-700 border-indigo-200',
     'Other': 'bg-gray-100 text-gray-600 border-gray-200',
 };
 export const getBuColor = (bu: string) => BU_COLORS[bu] || 'bg-indigo-50 text-indigo-700 border-indigo-100';
