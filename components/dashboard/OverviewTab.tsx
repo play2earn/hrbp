@@ -81,6 +81,18 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     return Object.entries(acc).map(([name, value]) => ({ name, value }));
   }, [applications]);
 
+  const appsByDate = useMemo(() => {
+    const acc: Record<string, number> = {};
+    // Sort applications by date first
+    const sorted = [...applications].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    
+    sorted.forEach((app: any) => {
+      const date = new Date(app.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+      acc[date] = (acc[date] || 0) + 1;
+    });
+    return Object.entries(acc).map(([name, value]) => ({ name, value }));
+  }, [applications]);
+
   const RADIAN = Math.PI / 180;
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
@@ -94,9 +106,10 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     );
   };
 
-  const chartData = appsByBU.length > 0 ? appsByBU : [{ name: 'No Data', value: 1 }];
-  const statusData = appsByStatus.length > 0 ? appsByStatus : [{ name: 'No Data', value: 1 }];
-  const deptData = appsByDept.length > 0 ? appsByDept : [{ name: 'No Data', value: 1 }];
+  const chartData = appsByDate.length > 0 ? appsByDate : [{ name: 'No Data', value: 0 }];
+  const statusData = appsByStatus.length > 0 ? appsByStatus : [{ name: 'No Data', value: 0 }];
+  const buData = appsByBU.length > 0 ? appsByBU : [{ name: 'No Data', value: 0 }];
+  const deptData = appsByDept.length > 0 ? appsByDept : [{ name: 'No Data', value: 0 }];
 
   return (
     <>
@@ -559,18 +572,18 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         {/* Charts */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <Card className="h-96">
-            <h3 className="text-lg font-bold text-gray-800 mb-6">Application Trends</h3>
+            <h3 className="text-lg font-bold text-gray-800 mb-6">Application Trends (by Date)</h3>
             <div className="h-72 w-full" style={{ minWidth: '200px', minHeight: '200px' }}>
               <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200}>
                 <BarChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                  <YAxis axisLine={false} tickLine={false} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} allowDecimals={false} />
                   <Tooltip
                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                     cursor={{ fill: '#F3F4F6' }}
                   />
-                  <Bar dataKey="applications" fill="#4F46E5" radius={[6, 6, 0, 0]} barSize={40} />
+                  <Bar dataKey="value" name="Applications" fill="#4F46E5" radius={[6, 6, 0, 0]} barSize={30} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -581,20 +594,23 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200}>
                 <PieChart>
                   <Pie
-                    data={deptData.length > 0 ? deptData : [{ name: 'No Data', value: 1 }]}
+                    data={buData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={80}
-                    outerRadius={110}
+                    innerRadius={60}
+                    outerRadius={90}
                     fill="#8884d8"
                     paddingAngle={5}
                     dataKey="value"
+                    label={renderCustomizedLabel}
+                    labelLine={false}
                   >
-                    {(deptData.length > 0 ? deptData : [{ name: 'No Data', value: 1 }]).map((entry, index) => (
+                    {buData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                  <Legend verticalAlign="bottom" height={36} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
