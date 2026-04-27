@@ -447,11 +447,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     </button>
   );
 
-  // Prepare chart data from real applications
-  const deptData = MOCK_BU.map(bu => ({
-    name: bu,
-    value: applications.filter(a => a.department === bu || a.form_data?.businessUnit === bu).length
-  })).filter(d => d.value > 0);
+  // Prepare chart data from real applications dynamically
+  const deptData = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    applications.forEach(app => {
+      const bu = app.business_unit || app.form_data?.businessUnit || app.department || 'ไม่ระบุ BU';
+      counts[bu] = (counts[bu] || 0) + 1;
+    });
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [applications]);
 
   // Prepare real application trend data for the last 6 months
   const chartData = React.useMemo(() => {
