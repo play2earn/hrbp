@@ -230,7 +230,7 @@ export const TextArea: React.FC<TextAreaProps> = ({ label, error, className = ''
 
 // --- Select ---
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
-  label?: string;
+  label?: React.ReactNode;
   options: { value: string; label: string }[];
   error?: string;
 }

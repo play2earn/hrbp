@@ -6,12 +6,19 @@ import { ApplicantFormComp } from './components/ApplicantForm';
 import { Dashboard } from './components/Dashboard';
 import { LoginPage } from './components/LoginPage';
 import { PDFPreview } from './components/PDFPreview';
+import { SharedProfileView } from './components/SharedProfileView';
 import { Button, Card, Modal } from './components/UIComponents';
 import { Globe, Lock, User as UserIcon, ArrowRight, Briefcase, TrendingUp, Heart, Shield, MapPin, Building2, Search } from 'lucide-react';
 
 import TrackingSystem from './components/TrackingSystem';
 
 export default function App() {
+  // Check for /share/:token path first
+  const shareMatch = window.location.pathname.match(/^\/share\/([a-f0-9]{64})$/i);
+  if (shareMatch) {
+    return <SharedProfileView token={shareMatch[1]} />;
+  }
+
   const [role, setRole] = useState<Role>(() => {
     try {
       const stored = localStorage.getItem('currentUser');

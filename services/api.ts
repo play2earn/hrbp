@@ -83,29 +83,36 @@ export const api = {
    */
   uploadFile: async (file: File, folder: string): Promise<string | null> => {
     try {
-      // Validate file size (max 10MB)
-      const MAX_SIZE = 10 * 1024 * 1024;
-      if (file.size > MAX_SIZE) {
-        throw { message: 'File size exceeds 10MB limit.' };
-      }
-
       // Validate file type
       const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
       if (!allowedTypes.includes(file.type)) {
-        throw { message: 'File type not allowed. Please use JPG, PNG, WebP, or PDF.' };
+        throw { message: 'ประเภทไฟล์ไม่รองรับ กรุณาใช้ JPG, PNG, WebP หรือ PDF' };
+      }
+
+      // Validate file size (different limits by type)
+      const isPDF = file.type === 'application/pdf';
+      const MAX_SIZE = isPDF ? 5 * 1024 * 1024 : 10 * 1024 * 1024; // 5MB for PDF, 10MB for images
+      if (file.size > MAX_SIZE) {
+        throw { message: isPDF
+          ? `ไฟล์ PDF ขนาดเกิน 5MB (${(file.size / 1024 / 1024).toFixed(1)}MB) กรุณาลดขนาดไฟล์ก่อนอัพโหลด`
+          : `ไฟล์ขนาดเกิน 10MB กรุณาลดขนาดไฟล์ก่อนอัพโหลด`
+        };
       }
 
       let fileToUpload = file;
 
-      // Compress image if it's an image file type
+      // Compress image files
       if (file.type.startsWith('image/')) {
+        const originalSize = file.size;
         const options = {
-          maxSizeMB: 1, // Compress to max 1MB
-          maxWidthOrHeight: 1920, // Resize if larger than 1920px
+          maxSizeMB: 0.8, // Compress to max 800KB (tighter for faster loads)
+          maxWidthOrHeight: 1600, // Max dimension 1600px (sufficient for viewing)
           useWebWorker: true,
+          fileType: 'image/jpeg' as const, // Convert all images to JPEG for smaller size
         };
         try {
           fileToUpload = await imageCompression(file, options);
+          console.log(`📷 Image compressed: ${(originalSize / 1024).toFixed(0)}KB → ${(fileToUpload.size / 1024).toFixed(0)}KB (${Math.round((1 - fileToUpload.size / originalSize) * 100)}% reduction)`);
         } catch (error) {
           console.error('Image compression failed. Proceeding with original file.', error);
         }
@@ -563,6 +570,138 @@ export const api = {
     } catch (error) {
       console.error('Fetch QR Logs Error:', error);
       return [];
+    }
+  },
+
+  // ============================================================
+  // Share Link Services
+  // ============================================================
+
+  /**
+   * Generate (or reuse existing) a 30-day share token for an application
+   */
+  generateShareToken: async (applicationId: string, createdBy: string): Promise<ApiResponse<{ token: string; url: string; expires_at: string }>> => {
+    try {
+      // Check for existing non-expired, non-revoked token
+      const { data: existing } = await supabase
+        .from('application_share_tokens')
+        .select('token, expires_at')
+        .eq('application_id', applicationId)
+        .eq('is_revoked', false)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existing) {
+        const url = `${window.location.origin}/share/${existing.token}`;
+        return { success: true, data: { token: existing.token, url, expires_at: existing.expires_at } };
+      }
+
+      // Generate new token: crypto-safe 32-byte hex
+      const token = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+        .map(b => b.toString(16).padStart(2, '0')).join('');
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+      const { data, error } = await supabase
+        .from('application_share_tokens')
+        .insert([{
+          application_id: applicationId,
+          token,
+          created_by: createdBy,
+          expires_at: expiresAt,
+        }])
+        .select('token, expires_at')
+        .single();
+
+      if (error) return handleError(error, 'generateShareToken');
+
+      const url = `${window.location.origin}/share/${data.token}`;
+      return { success: true, data: { token: data.token, url, expires_at: data.expires_at } };
+    } catch (error) {
+      return handleError(error, 'generateShareToken');
+    }
+  },
+
+  /**
+   * Fetch existing active share token without creating a new one
+   */
+  getExistingShareToken: async (applicationId: string): Promise<ApiResponse<{ token: string; url: string; expires_at: string } | null>> => {
+    try {
+      const { data, error } = await supabase
+        .from('application_share_tokens')
+        .select('token, expires_at')
+        .eq('application_id', applicationId)
+        .eq('is_revoked', false)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) return handleError(error, 'getExistingShareToken');
+      if (!data) return { success: true, data: null };
+
+      const url = `${window.location.origin}/share/${data.token}`;
+      return { success: true, data: { token: data.token, url, expires_at: data.expires_at } };
+    } catch (error) {
+      return handleError(error, 'getExistingShareToken');
+    }
+  },
+  /**
+   * Fetch application data via a share token (public endpoint)
+   */
+  getApplicationByShareToken: async (token: string): Promise<ApiResponse<any>> => {
+    try {
+      // Validate token and get application_id
+      const { data: tokenRow, error: tokenError } = await supabase
+        .from('application_share_tokens')
+        .select('id, application_id, expires_at, is_revoked')
+        .eq('token', token)
+        .eq('is_revoked', false)
+        .gt('expires_at', new Date().toISOString())
+        .maybeSingle();
+
+      if (tokenError || !tokenRow) {
+        return { success: false, error: { message: 'ลิงก์ไม่ถูกต้องหรือหมดอายุแล้ว' } };
+      }
+
+      // Fetch application
+      const { data: app, error: appError } = await supabase
+        .from('applications')
+        .select('id, full_name, position, department, form_data, created_at, status, photo_url')
+        .eq('id', tokenRow.application_id)
+        .single();
+
+      if (appError || !app) {
+        return { success: false, error: { message: 'ไม่พบข้อมูลผู้สมัคร' } };
+      }
+
+      // Update access stats (fire-and-forget)
+      supabase.from('application_share_tokens').update({
+        last_accessed_at: new Date().toISOString(),
+        access_count: (tokenRow as any).access_count + 1,
+      }).eq('id', tokenRow.id).then(() => {});
+
+      return { success: true, data: app };
+    } catch (error) {
+      return handleError(error, 'getApplicationByShareToken');
+    }
+  },
+
+  /**
+   * Revoke a share token
+   */
+  revokeShareToken: async (token: string): Promise<ApiResponse<void>> => {
+    try {
+      const { error } = await supabase
+        .from('application_share_tokens')
+        .update({ is_revoked: true })
+        .eq('token', token);
+
+      if (error) return handleError(error, 'revokeShareToken');
+      return { success: true };
+    } catch (error) {
+      return handleError(error, 'revokeShareToken');
     }
   },
 

@@ -146,7 +146,8 @@ export const TRANSLATIONS = {
       // Step 10
       photo: 'Your current photo (.JPG/ .PNG) limit 2MB',
       resume: 'Resume/ CV (.PDF) limit 2MB',
-      otherDocs: 'Others important documents (Transcript, TOEIC, etc.)',
+      transcript: 'Academic Transcript (.PDF) *Required',
+      otherDocs: 'Others important documents (TOEIC, Cert., etc.)',
       links: 'Another link about you (LinkedIn, JobThai, etc.)'
     },
     dashboard: {
@@ -186,13 +187,22 @@ export const TRANSLATIONS = {
       publicVehicle3: 'Public Vehicle Class 3',
       fatherInfo: "Father's Information",
       motherInfo: "Mother's Information",
-      highSchool: 'High School / Vocational Cert.',
-      vocational: 'Higher Vocational (Diploma)',
+      primarySchool: 'Primary School (P.1-P.6)',
+      juniorHighSchool: 'Junior High School (M.1-M.3)',
+      highSchool: 'High School / Vocational Cert. (ม.4-ม.6 / ปวช.)',
+      vocational: 'Higher Vocational (Diploma / ปวส.)',
       bachelor: 'Bachelor',
       master: 'Master',
+      phd: 'Doctorate (Ph.D.)',
       addExperience: 'Add Experience',
       removeExperience: 'Remove',
-      noExperienceYet: 'No experience added yet. Click "Add Experience" if applicable.'
+      noExperienceYet: 'No experience added yet. Click "Add Experience" if applicable.',
+      // Military Status
+      militaryCompleted: 'Completed Military Service / ผ่านการเกณฑ์ทหารแล้ว',
+      militaryRotc: 'Completed ROTC Program / จบหลักสูตร รด.',
+      militaryExemptFemale: 'Exempted - Female / ได้รับการยกเว้น - เพศหญิง',
+      militaryExemptLaw: 'Exempted - By Law / ได้รับการยกเว้น - ตามกฎหมาย',
+      militaryNotYet: 'Not Yet Conscripted / ยังไม่เกณฑ์ทหาร'
     }
   },
   th: {
@@ -339,7 +349,8 @@ export const TRANSLATIONS = {
       // Step 10
       photo: 'รูปถ่ายปัจจุบัน (.JPG/ .PNG) ไม่เกิน 2MB',
       resume: 'เรซูเม่ / CV (.PDF) ไม่เกิน 2MB',
-      otherDocs: 'เอกสารสำคัญอื่นๆ (Transcript, ใบเซอร์, ฯลฯ)',
+      transcript: 'Transcript / ใบรับรองผลการศึกษา (.PDF) *จำเป็น',
+      otherDocs: 'เอกสารสำคัญอื่นๆ (ใบเซอร์, TOEIC ฯลฯ)',
       links: 'ลิงก์เพิ่มเติม (LinkedIn, JobThai, Portfolio)'
     },
     dashboard: {
@@ -379,13 +390,22 @@ export const TRANSLATIONS = {
       publicVehicle3: 'รถสาธารณะ ประเภท 3',
       fatherInfo: 'ข้อมูลบิดา',
       motherInfo: 'ข้อมูลมารดา',
-      highSchool: 'มัธยมศึกษา / ปวช.',
+      primarySchool: 'ประถมศึกษา (ป.1-ป.6)',
+      juniorHighSchool: 'มัธยมศึกษาตอนต้น (ม.1-ม.3)',
+      highSchool: 'มัธยมศึกษาตอนปลาย / ปวช.',
       vocational: 'ปวส.',
       bachelor: 'ปริญญาตรี',
       master: 'ปริญญาโท',
+      phd: 'ปริญญาเอก',
       addExperience: 'เพิ่มประสบการณ์',
       removeExperience: 'ลบ',
-      noExperienceYet: 'ยังไม่ได้เพิ่มประสบการณ์ กด "เพิ่มประสบการณ์" หากมี'
+      noExperienceYet: 'ยังไม่ได้เพิ่มประสบการณ์ กด "เพิ่มประสบการณ์" หากมี',
+      // Military Status
+      militaryCompleted: 'ผ่านการเกณฑ์ทหารแล้ว / Completed Military Service',
+      militaryRotc: 'จบหลักสูตร รด. / Completed ROTC',
+      militaryExemptFemale: 'ได้รับการยกเว้น - เพศหญิง / Exempted - Female',
+      militaryExemptLaw: 'ได้รับการยกเว้น - ตามกฎหมาย / Exempted - By Law',
+      militaryNotYet: 'ยังไม่เกณฑ์ทหาร / Not Yet Conscripted'
     }
   }
 };
@@ -450,12 +470,11 @@ export const PDPA_TEXT = `
 `;
 
 export const MILITARY_STATUS_OPTIONS = [
-  'Exempted',
-  'Conscripted',
-  'Reserved',
-  'Pending',
-  'Awaiting Selection',
-  'Female'
+  { value: 'Completed', labelTh: 'ผ่านการเกณฑ์ทหารแล้ว', labelEn: 'Completed Military Service' },
+  { value: 'ROTC', labelTh: 'จบหลักสูตร รด.', labelEn: 'Completed ROTC Program' },
+  { value: 'ExemptFemale', labelTh: 'ได้รับการยกเว้น - เพศหญิง', labelEn: 'Exempted - Female' },
+  { value: 'ExemptLaw', labelTh: 'ได้รับการยกเว้น - ตามกฎหมาย', labelEn: 'Exempted - By Law' },
+  { value: 'NotYet', labelTh: 'ยังไม่เกณฑ์ทหาร', labelEn: 'Not Yet Conscripted' },
 ];
 
 export const UPCOUNTRY_LOCATIONS_DATA = [

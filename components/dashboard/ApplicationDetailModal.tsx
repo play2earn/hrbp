@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { api } from '../../services/api';
 import { Modal, Button } from '../UIComponents';
 import {
   User, MapPin, Users, Building2, GraduationCap, Tag,
   FileText, ExternalLink, Edit, Calendar, History, Clock,
-  CheckCircle, XCircle, UserPlus, UserCheck
+  CheckCircle, XCircle, UserPlus, UserCheck, Link, Copy, Check
 } from 'lucide-react';
 import {
   LOG_LABELS, getStatusBadgeClass, getStatusLabel,
@@ -38,6 +38,104 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   setApprovingApp, onApplicationUpdated
 }) => {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [shareLink, setShareLink] = useState<string | null>(null);
+  const [shareToken, setShareToken] = useState<string | null>(null);
+  const [shareLinkCopied, setShareLinkCopied] = useState(false);
+  const [shareLinkExpiry, setShareLinkExpiry] = useState<string | null>(null);
+  const [showShareConfirm, setShowShareConfirm] = useState(false);
+  const [showRevokeConfirm, setShowRevokeConfirm] = useState(false);
+
+  // Load existing share link when modal opens
+  useEffect(() => {
+    if (viewingApp?.id) {
+      const fetchExistingToken = async () => {
+        const result = await api.getExistingShareToken(viewingApp.id);
+        if (result.success && result.data) {
+          setShareLink(result.data.url);
+          setShareToken(result.data.token);
+          setShareLinkExpiry(result.data.expires_at);
+        } else {
+          setShareLink(null);
+          setShareToken(null);
+          setShareLinkExpiry(null);
+        }
+      };
+      fetchExistingToken();
+    } else {
+      setShareLink(null);
+      setShareToken(null);
+      setShareLinkExpiry(null);
+    }
+  }, [viewingApp?.id]);
+
+  const handleGenerateShareLink = async () => {
+    if (!viewingApp) return;
+    if (shareLink) return;
+    setShowShareConfirm(true);
+  };
+
+  const executeGenerateShareLink = async () => {
+    if (!viewingApp) return;
+    setShowShareConfirm(false);
+    setIsGeneratingLink(true);
+    try {
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const createdBy = currentUser?.full_name || currentUser?.email || 'ระบบ';
+      const result = await api.generateShareToken(viewingApp.id, createdBy);
+      if (result.success && result.data) {
+        setShareLink(result.data.url);
+        setShareToken(result.data.token);
+        setShareLinkExpiry(result.data.expires_at);
+      } else {
+        alert('เกิดข้อผิดพลาด: ' + (result.error?.message || 'ไม่สามารถสร้างลิงก์ได้'));
+      }
+    } finally {
+      setIsGeneratingLink(false);
+    }
+  };
+
+  const handleCopyShareLink = async () => {
+    if (!shareLink) return;
+    try {
+      await navigator.clipboard.writeText(shareLink);
+      setShareLinkCopied(true);
+      setTimeout(() => setShareLinkCopied(false), 2500);
+    } catch {
+      // fallback
+      const el = document.createElement('textarea');
+      el.value = shareLink;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      setShareLinkCopied(true);
+      setTimeout(() => setShareLinkCopied(false), 2500);
+    }
+  };
+
+  const handleRevokeShareLink = async () => {
+    if (!shareToken) return;
+    setShowRevokeConfirm(true);
+  };
+
+  const executeRevokeShareLink = async () => {
+    if (!shareToken) return;
+    setShowRevokeConfirm(false);
+    setIsGeneratingLink(true);
+    try {
+      const result = await api.revokeShareToken(shareToken);
+      if (result.success) {
+        setShareLink(null);
+        setShareToken(null);
+        setShareLinkExpiry(null);
+      } else {
+        alert('เกิดข้อผิดพลาด: ' + (result.error?.message || 'ไม่สามารถยกเลิกได้'));
+      }
+    } finally {
+      setIsGeneratingLink(false);
+    }
+  };
 
   return (
     <>
@@ -293,14 +391,17 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {['highSchool', 'vocational', 'bachelor', 'master'].map((key) => {
+                        {(['primarySchool', 'juniorHighSchool', 'highSchool', 'vocational', 'bachelor', 'master', 'phd'] as const).map((key) => {
                           const edu = fd.education?.[key];
                           if (!edu?.institute) return null;
                           const levelNames: Record<string, string> = {
-                            highSchool: 'มัธยม/ปวช.',
+                            primarySchool: 'ประถมศึกษา (ป.1-6)',
+                            juniorHighSchool: 'มัธยมต้น (ม.1-3)',
+                            highSchool: 'มัธยมปลาย / ปวช.',
                             vocational: 'ปวส.',
                             bachelor: 'ปริญญาตรี',
-                            master: 'ปริญญาโท'
+                            master: 'ปริญญาโท',
+                            phd: 'ปริญญาเอก',
                           };
                           return (
                             <tr key={key}>
@@ -317,10 +418,13 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                   </div>
                   {/* Mobile: Cards */}
                   <div className="sm:hidden space-y-2">
-                    {['highSchool', 'vocational', 'bachelor', 'master'].map((key) => {
+                    {(['primarySchool', 'juniorHighSchool', 'highSchool', 'vocational', 'bachelor', 'master', 'phd'] as const).map((key) => {
                       const edu = fd.education?.[key];
                       if (!edu?.institute) return null;
-                      const levelNames: Record<string, string> = { highSchool: 'มัธยม/ปวช.', vocational: 'ปวส.', bachelor: 'ปริญญาตรี', master: 'ปริญญาโท' };
+                      const levelNames: Record<string, string> = {
+                        primarySchool: 'ประถมศึกษา (ป.1-6)', juniorHighSchool: 'มัธยมต้น (ม.1-3)', highSchool: 'มัธยมปลาย / ปวช.',
+                        vocational: 'ปวส.', bachelor: 'ปริญญาตรี', master: 'ปริญญาโท', phd: 'ปริญญาเอก',
+                      };
                       return (
                         <div key={key} className="bg-gray-50 rounded-lg p-3 text-sm">
                           <div className="font-semibold text-gray-800">{levelNames[key]}</div>
@@ -589,6 +693,35 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                 )}
               </div>
 
+              {/* Share Link Panel */}
+              {shareLink && (
+                <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold text-emerald-800 flex items-center gap-1"><Link className="w-3.5 h-3.5" /> ลิงก์แชร์โปรไฟล์</span>
+                    <span className="text-[10px] text-emerald-600">
+                      หมดอายุ: {shareLinkExpiry ? new Date(shareLinkExpiry).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input readOnly value={shareLink} className="flex-1 text-xs bg-white border border-emerald-200 rounded px-2 py-1.5 text-emerald-900 truncate" />
+                    <button
+                      onClick={handleCopyShareLink}
+                      className="flex-shrink-0 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-semibold flex items-center gap-1 transition"
+                    >
+                      {shareLinkCopied ? <><Check className="w-3.5 h-3.5" /> คัดลอกแล้ว!</> : <><Copy className="w-3.5 h-3.5" /> คัดลอก</>}
+                    </button>
+                    <button
+                      onClick={handleRevokeShareLink}
+                      disabled={isGeneratingLink}
+                      className="flex-shrink-0 px-2.5 py-1.5 bg-red-100 hover:bg-red-200 text-red-600 rounded text-xs font-semibold flex items-center gap-1 transition disabled:opacity-50"
+                      title="หยุดการแชร์ (ยกเลิกลิงก์)"
+                    >
+                      <XCircle className="w-3.5 h-3.5" /> หยุดแชร์
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-2 sm:gap-3 pt-4 mt-4 border-t sticky bottom-0 bg-white pb-2">
                 <Button variant="outline" onClick={() => {
@@ -600,6 +733,15 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                   window.open('/print.html', '_blank');
                 }}>
                   <ExternalLink className="w-4 h-4 mr-2" /> เปิด Preview เต็มจอ
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                  onClick={handleGenerateShareLink}
+                  disabled={isGeneratingLink}
+                >
+                  <Link className="w-4 h-4 mr-2" />
+                  {isGeneratingLink ? 'กำลังสร้าง...' : shareLink ? 'ดูลิงก์แชร์' : 'สร้างลิงก์แชร์'}
                 </Button>
                 <Button variant="outline" onClick={() => { setEditingApp(viewingApp); setViewingApp(null); }}>
                   <Edit className="w-4 h-4 mr-2" /> แก้ไขข้อมูล
@@ -648,6 +790,89 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
             </div>
           );
         })()}
+      </Modal>
+
+      {/* Share Link Confirm Modal */}
+      <Modal
+        isOpen={showShareConfirm}
+        onClose={() => setShowShareConfirm(false)}
+        title="สร้างลิงก์แชร์โปรไฟล์"
+        footer={null}
+      >
+        <div className="space-y-4">
+          <div className="text-center py-2">
+            <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Link className="w-6 h-6 text-indigo-600" />
+            </div>
+            <p className="text-gray-700">
+              ต้องการสร้างลิงก์แชร์โปรไฟล์ <strong>{viewingApp?.full_name || viewingApp?.form_data?.firstName}</strong> หรือไม่?
+            </p>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600 space-y-1.5">
+            <div className="flex items-start gap-2">
+              <span className="text-indigo-500 font-bold">•</span>
+              <span>ลิงก์จะหมดอายุอัตโนมัติใน <strong>30 วัน</strong></span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-indigo-500 font-bold">•</span>
+              <span>ผู้ที่มีลิงก์สามารถดูข้อมูลผู้สมัครได้ <strong>โดยไม่ต้องล็อกอิน</strong></span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-indigo-500 font-bold">•</span>
+              <span>สามารถยกเลิกลิงก์ได้ภายหลัง</span>
+            </div>
+          </div>
+          <div className="flex gap-3 justify-end pt-4 border-t">
+            <Button variant="outline" onClick={() => setShowShareConfirm(false)}>ยกเลิก</Button>
+            <Button
+              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              onClick={executeGenerateShareLink}
+            >
+              <Link className="w-4 h-4 mr-2" /> ยืนยันสร้างลิงก์
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Revoke Share Link Confirm Modal */}
+      <Modal
+        isOpen={showRevokeConfirm}
+        onClose={() => setShowRevokeConfirm(false)}
+        title="ยกเลิกการแชร์โปรไฟล์"
+        footer={null}
+      >
+        <div className="space-y-4">
+          <div className="text-center py-2">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <XCircle className="w-6 h-6 text-red-600" />
+            </div>
+            <p className="text-gray-700">
+              คุณต้องการ <strong>หยุดการแชร์</strong> โปรไฟล์นี้ใช่หรือไม่?
+            </p>
+          </div>
+          <div className="bg-red-50 rounded-lg p-4 text-sm text-red-700 border border-red-100">
+            <div className="flex items-start gap-2">
+              <span className="font-bold">⚠️ ข้อควรระวัง:</span>
+              <span>ลิงก์เดิมที่เคยส่งออกไปจะ <strong>ใช้งานไม่ได้ทันที</strong> และไม่สามารถกู้คืนได้</span>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowRevokeConfirm(false)} 
+              className="flex-1"
+            >
+              ย้อนกลับ
+            </Button>
+            <Button 
+              onClick={executeRevokeShareLink}
+              disabled={isGeneratingLink}
+              className="flex-1 bg-red-600 hover:bg-red-700"
+            >
+              {isGeneratingLink ? 'กำลังดำเนินการ...' : 'ยืนยันการหยุดแชร์'}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </>
   );

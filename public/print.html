@@ -861,17 +861,108 @@
         </div>
       </div>
 
-      <!-- Signature Area -->
-      <div class="mt-8 grid grid-cols-2 gap-8">
-        <div class="text-center">
-          <div class="border-b border-gray-400 h-16"></div>
-          <p class="text-xs mt-1" data-i18n="sigApplicant">ลงชื่อผู้สมัคร</p>
-          <p class="text-[11px] text-gray-500" data-i18n="sigDate">วันที่: ____/____/____</p>
+
+      <!-- ===== หนังสือยินยอมและรับรอง ===== -->
+      <div class="mt-8">
+        <div class="section-title">
+          <h3 data-i18n="secConsent">หนังสือยินยอมและรับรอง</h3>
         </div>
-        <div class="text-center">
-          <div class="border-b border-gray-400 h-16"></div>
-          <p class="text-xs mt-1" data-i18n="sigRecruiter">ลงชื่อผู้รับสมัคร</p>
-          <p class="text-[11px] text-gray-500" data-i18n="sigDate">วันที่: ____/____/____</p>
+        <div class="section-body p-4">
+          <p class="text-[12px] leading-relaxed text-center mb-4 indent-8" id="consent-text-1"></p>
+          <div class="grid grid-cols-2 gap-6 mt-6">
+            <div>
+              <div class="border-b border-gray-400 h-8 mb-1"></div>
+              <p class="text-[10px] text-gray-500" data-i18n="consentApplicantName">ชื่อ-นามสกุล (ผู้สมัคร)</p>
+              <p class="text-[12px] font-semibold mt-1" id="consent-applicant-name">-</p>
+            </div>
+            <div>
+              <div class="border-b border-gray-400 h-8 mb-1"></div>
+              <p class="text-[10px] text-gray-500" data-i18n="consentDate">วัน/เดือน/ปี</p>
+              <p class="text-[12px] font-semibold mt-1" id="consent-date-1">-</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-6 mt-4">
+            <div>
+              <div class="border-b border-gray-400 h-8 mb-1"></div>
+              <p class="text-[10px] text-gray-500" data-i18n="consentPosition">ตำแหน่ง</p>
+            </div>
+            <div>
+              <div class="border-b border-gray-400 h-8 mb-1"></div>
+              <p class="text-[10px] text-gray-500" data-i18n="consentPhone">เบอร์โทรติดต่อ</p>
+            </div>
+          </div>
+          <p class="text-center mt-4 text-[12px] font-bold" data-i18n="consentApplicantLabel">ผู้สมัครงาน</p>
+          <p class="text-center text-[10px] text-gray-400" data-i18n="consentDateLabel">วัน/ เดือน/ ปี</p>
+        </div>
+      </div>
+      <!-- ===== รายละเอียดเกี่ยวกับข้อมูลส่วนบุคคล (Privacy Notice) ===== -->
+      <div class="mt-4" style="break-before:page;">
+        <div class="section-title">
+          <h3 data-i18n="secPrivacyNotice">รายละเอียดเกี่ยวกับข้อมูลส่วนบุคคล</h3>
+        </div>
+        <div class="section-body p-4">
+          <p class="text-[12px] leading-relaxed mb-3" id="privacy-intro"></p>
+          <p class="text-[12px] font-bold mt-3 mb-1" id="privacy-h1"></p>
+          <p class="text-[12px] leading-relaxed ml-4 mb-2" id="privacy-p1"></p>
+          <p class="text-[12px] font-bold mt-3 mb-1" id="privacy-h2"></p>
+          <p class="text-[12px] leading-relaxed ml-4 mb-2" id="privacy-p2"></p>
+          <p class="text-[12px] font-bold mt-3 mb-1" id="privacy-h3"></p>
+          <p class="text-[12px] leading-relaxed ml-4 mb-2" id="privacy-p3"></p>
+          <p class="text-[12px] font-bold mt-3 mb-1" id="privacy-h4"></p>
+          <p class="text-[12px] leading-relaxed ml-4 mb-2" id="privacy-p4"></p>
+          <p class="text-[12px] font-bold mt-3 mb-1" id="privacy-h5"></p>
+          <p class="text-[12px] leading-relaxed ml-4 mb-1" id="privacy-p5a"></p>
+          <p class="text-[12px] leading-relaxed ml-4 mb-2" id="privacy-p5b"></p>
+          <div class="ml-4 bg-gray-50 border border-gray-200 rounded p-2 text-[10px] mb-2" id="privacy-dpo-box">
+            <p><strong id="privacy-dpo-label">ผู้ควบคุมข้อมูลส่วนบุคคล:</strong> <span id="privacy-dpo-name">บริษัท ดับเบิ้ล เอ (1991) จำกัด (มหาชน)</span></p>
+            <p><strong id="privacy-addr-label">สถานที่ติดต่อ:</strong> <span id="privacy-addr-dept">ฝ่ายสรรหาและคัดเลือกบุคลากร</span></p>
+            <p class="ml-24" id="privacy-addr-line1">187/3 หมู่ที่ 1 ถนนบางนา-ตราด กม. 42 ตำบลบางวัว อำเภอบางปะกง</p>
+            <p class="ml-24" id="privacy-addr-line2">จังหวัดฉะเชิงเทรา 24180</p>
+            <p><strong>Email:</strong> double_a_talent@doublea1991.com</p>
+          </div>
+          <p class="text-[12px] leading-relaxed ml-4 mb-2" id="privacy-policy-link"></p>
+          <p class="text-[12px] leading-relaxed ml-4 mb-2" id="privacy-third-party"></p>
+          <p class="text-[12px] leading-relaxed font-semibold mb-4" id="privacy-confirm"></p>
+
+          <div class="grid grid-cols-2 gap-6 mt-4">
+            <div>
+              <div class="border-b border-gray-400 h-8 mb-1"></div>
+              <p class="text-[10px] text-gray-500" data-i18n="consentApplicantName">ชื่อ-นามสกุล (ผู้สมัคร)</p>
+              <p class="text-[12px] font-semibold mt-1" id="privacy-applicant-name">-</p>
+            </div>
+            <div>
+              <div class="border-b border-gray-400 h-8 mb-1"></div>
+              <p class="text-[10px] text-gray-500" data-i18n="consentDate">วัน/เดือน/ปี</p>
+              <p class="text-[12px] font-semibold mt-1" id="privacy-date">-</p>
+            </div>
+          </div>
+          <p class="text-center mt-4 text-[12px] font-bold" data-i18n="consentApplicantLabel">ผู้สมัครงาน</p>
+          <p class="text-center text-[10px] text-gray-400" data-i18n="consentDateLabel">วัน/ เดือน/ ปี</p>
+        </div>
+      </div>
+
+      <!-- ===== ความยินยอมในการประมวลผลข้อมูล ===== -->
+      <div class="mt-4">
+        <div class="section-title">
+          <h3 data-i18n="secDataConsent">ความยินยอมในการประมวลผลข้อมูล</h3>
+        </div>
+        <div class="section-body p-4">
+          <p class="text-[12px] leading-relaxed mb-3" id="consent-text-2"></p>
+          <p class="text-[12px] leading-relaxed mb-4" id="consent-text-3"></p>
+          <div class="grid grid-cols-2 gap-6 mt-4">
+            <div>
+              <div class="border-b border-gray-400 h-8 mb-1"></div>
+              <p class="text-[10px] text-gray-500" data-i18n="consentApplicantName">ชื่อ-นามสกุล (ผู้สมัคร)</p>
+              <p class="text-[12px] font-semibold mt-1" id="consent-applicant-name-2">-</p>
+            </div>
+            <div>
+              <div class="border-b border-gray-400 h-8 mb-1"></div>
+              <p class="text-[10px] text-gray-500" data-i18n="consentDate">วัน/เดือน/ปี</p>
+              <p class="text-[12px] font-semibold mt-1" id="consent-date-2">-</p>
+            </div>
+          </div>
+          <p class="text-center mt-4 text-[12px] font-bold" data-i18n="consentApplicantLabel">ผู้สมัครงาน</p>
+          <p class="text-center text-[10px] text-gray-400" data-i18n="consentDateLabel">วัน/ เดือน/ ปี</p>
         </div>
       </div>
     </div>
@@ -944,6 +1035,12 @@
         emPhone: 'เบอร์โทร', emCompany: 'บริษัท', emPosition: 'ตำแหน่ง',
         sigApplicant: 'ลงชื่อผู้สมัคร', sigRecruiter: 'ลงชื่อผู้รับสมัคร', sigDate: 'วันที่: ____/____/____',
         secQuestCont: 'แบบสอบถาม (ต่อ)',
+        secConsent: 'หนังสือยินยอมและรับรอง',
+        secPrivacyNotice: 'รายละเอียดเกี่ยวกับข้อมูลส่วนบุคคล',
+        secDataConsent: 'ความยินยอมในการประมวลผลข้อมูล',
+        consentApplicantName: 'ชื่อ-นามสกุล (ผู้สมัคร)', consentDate: 'วัน/เดือน/ปี',
+        consentPosition: 'ตำแหน่ง', consentPhone: 'เบอร์โทรติดต่อ',
+        consentApplicantLabel: 'ผู้สมัครงาน', consentDateLabel: 'วัน/ เดือน/ ปี',
       },
       en: {
         docTitle: 'Job Application', docSubtitle: 'Application for Employment',
@@ -980,6 +1077,12 @@
         emPhone: 'Phone', emCompany: 'Company', emPosition: 'Position',
         sigApplicant: 'Applicant Signature', sigRecruiter: 'Recruiter Signature', sigDate: 'Date: ____/____/____',
         secQuestCont: 'Questionnaire (Continue)',
+        secConsent: 'Declaration & Consent Letter',
+        secPrivacyNotice: 'Privacy Notice',
+        secDataConsent: 'Data Processing Consent',
+        consentApplicantName: 'Name (Applicant)', consentDate: 'Date',
+        consentPosition: 'Position', consentPhone: 'Contact Number',
+        consentApplicantLabel: 'Applicant', consentDateLabel: 'Day / Month / Year',
       }
     };
 
@@ -1013,20 +1116,26 @@
     function getMilitaryStatusLabel(status) {
       if (!status) return '-';
       const map = {
-        'Completed': 'ผ่านการเกณฑ์ทหารแล้ว (Completed)',
-        'Exempted': 'ได้รับการยกเว้น (Exempted)',
-        'Conscripted': 'ผ่านการเกณฑ์ทหารแล้ว (Conscripted)',
-        'Reserved': 'นักศึกษาวิชาทหาร (Reserved)',
-        'Pending': 'อยู่ระหว่างการผ่อนผัน (Pending)',
-        'Awaiting Selection': 'จะเข้ารับการตรวจเลือกเร็วๆ นี้ (Awaiting Selection)',
-        'Female': 'เพศหญิง - ได้รับการยกเว้น (Female)',
-        'Not Yet': 'ยังไม่เกณฑ์ทหาร (Not Yet)',
-        'N/A (Female)': 'ไม่เกี่ยวข้อง (Female)',
-        'ได้รับการยกเว้น': 'ได้รับการยกเว้น (Exempted)',
-        'ผ่านการเกณฑ์ทหารแล้ว': 'ผ่านการเกณฑ์ทหารแล้ว (Conscripted)',
-        'นักศึกษาวิชาทหาร': 'นักศึกษาวิชาทหาร (Reserved)',
-        'อยู่ระหว่างการผ่อนผัน': 'อยู่ระหว่างการผ่อนผัน (Pending)',
-        'เพศหญิง (ได้รับการยกเว้น)': 'เพศหญิง - ได้รับการยกเว้น (Female)',
+        // New standardized values
+        'Completed': 'ผ่านการเกณฑ์ทหารแล้ว / Completed Military Service',
+        'ROTC': 'จบหลักสูตร รด. / Completed ROTC Program',
+        'ExemptFemale': 'ได้รับการยกเว้น - เพศหญิง / Exempted - Female',
+        'ExemptLaw': 'ได้รับการยกเว้น - ตามกฎหมาย / Exempted - By Law',
+        'NotYet': 'ยังไม่เกณฑ์ทหาร / Not Yet Conscripted',
+        // Legacy values (backward compat)
+        'Exempted': 'ได้รับการยกเว้น / Exempted',
+        'Conscripted': 'ผ่านการเกณฑ์ทหารแล้ว / Conscripted',
+        'Reserved': 'นักศึกษาวิชาทหาร / ROTC Reserved',
+        'Pending': 'อยู่ระหว่างการผ่อนผัน / Pending',
+        'Awaiting Selection': 'จะเข้ารับการตรวจเลือก / Awaiting Selection',
+        'Female': 'เพศหญิง - ได้รับการยกเว้น / Female Exempted',
+        'Not Yet': 'ยังไม่เกณฑ์ทหาร / Not Yet',
+        'N/A (Female)': 'ไม่เกี่ยวข้อง / N/A (Female)',
+        'ได้รับการยกเว้น': 'ได้รับการยกเว้น / Exempted',
+        'ผ่านการเกณฑ์ทหารแล้ว': 'ผ่านการเกณฑ์ทหารแล้ว / Completed',
+        'นักศึกษาวิชาทหาร': 'นักศึกษาวิชาทหาร / ROTC',
+        'อยู่ระหว่างการผ่อนผัน': 'อยู่ระหว่างการผ่อนผัน / Pending',
+        'เพศหญิง (ได้รับการยกเว้น)': 'เพศหญิง - ได้รับการยกเว้น / Female Exempted',
       };
       return map[status] || status;
     }
@@ -1128,13 +1237,33 @@
 
         // Education
         const eduRows = document.getElementById('education-rows');
-        const eduLevels = { highSchool: 'มัธยม', vocational: 'ปวช./ปวส.', bachelor: 'ป.ตรี', master: 'ป.โท' };
+        const eduLevelsTh = {
+          primarySchool: 'ประถมศึกษา (ป.1-6)',
+          juniorHighSchool: 'มัธยมศึกษาตอนต้น (ม.1-3)',
+          highSchool: 'มัธยมปลาย / ปวช.',
+          vocational: 'ปวส.',
+          bachelor: 'ปริญญาตรี',
+          master: 'ปริญญาโท',
+          phd: 'ปริญญาเอก'
+        };
+        const eduLevelsEn = {
+          primarySchool: 'Primary School',
+          juniorHighSchool: 'Junior High School',
+          highSchool: 'High School / Voc.Cert.',
+          vocational: 'Higher Vocational',
+          bachelor: 'Bachelor',
+          master: 'Master',
+          phd: 'Ph.D.'
+        };
+        const eduOrder = ['primarySchool', 'juniorHighSchool', 'highSchool', 'vocational', 'bachelor', 'master', 'phd'];
         if (d.education) {
           let html = '';
-          for (const [lvl, info] of Object.entries(d.education)) {
+          for (const lvl of eduOrder) {
+            const info = d.education[lvl];
             if (info && info.institute) {
+              const label = currentLang === 'en' ? (eduLevelsEn[lvl] || lvl) : (eduLevelsTh[lvl] || lvl);
               html += `<div class="grid grid-cols-5 print-break">
-                <div class="box-field text-[11px]">${eduLevels[lvl] || lvl}</div>
+                <div class="box-field text-[11px] font-semibold">${label}</div>
                 <div class="box-field text-[11px]">${info.institute || '-'}</div>
                 <div class="box-field text-[11px]">${info.major || '-'}</div>
                 <div class="box-field text-[11px]">${info.gpa || '-'}</div>
@@ -1243,6 +1372,75 @@
           linkEl.href = d.profileLinks;
           linkEl.textContent = d.profileLinks;
         }
+
+        // Consent section - auto-fill name and date
+        const consentName = [d.title, d.firstName, d.lastName].filter(Boolean).join(' ') || '-';
+        const consentToday = new Date();
+        const consentDateFormatted = consentToday.toLocaleDateString(currentLang === 'th' ? 'th-TH' : 'en-GB', {
+          day: 'numeric', month: 'long', year: 'numeric'
+        });
+        const consentText1El = document.getElementById('consent-text-1');
+        const consentText2El = document.getElementById('consent-text-2');
+        const consentText3El = document.getElementById('consent-text-3');
+        if (consentText1El) consentText1El.textContent = currentLang === 'en'
+          ? 'I hereby certify that all information provided in this application form is true and complete to the best of my knowledge. I understand that any misrepresentation or omission of facts may result in immediate termination of employment, without any claim for compensation or damages from the company.'
+          : 'ข้าพเจ้าได้อ่าน ศึกษาเอกสารและพิจารณาคำยินยอมจากผู้ให้ข้อมูลกับบริษัทฯ ข้าพเจ้าขอรับรองว่า รายละเอียดทั้งหมดที่ให้ไว้ในใบสมัครงานนี้ ถูกต้องและเป็นความจริงทุกประการ หากภายหลังบริษัทฯ ตรวจพบว่าข้อใดเป็นเท็จ ข้าพเจ้ายินยอมให้บริษัทฯบอกเลิกการว่าจ้างข้าพเจ้าได้ทันที';
+        if (consentText2El) consentText2El.textContent = currentLang === 'en'
+          ? 'The applicant consents to the company collecting, using, and processing personal data contained in the job application for employment consideration and workforce management purposes. The company commits to strictly maintaining data confidentiality.'
+          : 'ผู้สมัครงานให้บริษัทฯ เก็บ รวบรวม ใช้ ประมวลผล ข้อมูลส่วนบุคคลที่มีอยู่ในข้อมูลผู้สมัครงานเพื่อการดำเนินงานในการทำงาน ได้แก่ เพื่อการพิจารณาจ้างงานและการบริหารจัดการแรงงานของบริษัทฯ';
+        if (consentText3El) consentText3El.textContent = currentLang === 'en'
+          ? 'This consent covers data storage and use for a period of 5 years from the application date.'
+          : 'ทั้งนี้ยินยอมให้จัดเก็บและใช้งานข้อมูลดังกล่าวเป็นระยะเวลา 5 ปี นับแต่วันที่สมัครงาน';
+        ['consent-applicant-name', 'consent-applicant-name-2'].forEach(id => set(id, consentName));
+        ['consent-date-1', 'consent-date-2'].forEach(id => set(id, consentDateFormatted));
+
+        // Privacy Notice section - auto-fill
+        const isEN = currentLang === 'en';
+        set('privacy-intro', isEN
+          ? 'This Privacy Notice is to clarify the personal data processing between Double A (1991) Public Company Limited (the "Company") and the applicant who intends to apply for a job at the Company and/or the Company\'s alliance (the "Applicant") according to the Policy of the Company.'
+          : 'หนังสือนี้จัดทำขึ้นเพื่อชี้แจงรายละเอียดเกี่ยวกับข้อมูลส่วนบุคคลระหว่างบริษัท ดับเบิ้ล เอ (1991) จำกัด (มหาชน) ("บริษัทฯ") และผู้ที่มีความประสงค์จะสมัครงานเพื่อเข้าทำงานกับบริษัทฯ และ/หรือบริษัทในเครือพันธมิตรของบริษัทฯ ("ผู้สมัครงาน") ตามหลักเกณฑ์และนโยบายของบริษัทฯ ดังนี้');
+        set('privacy-h1', isEN ? '1. Processing of the Personal Data' : '1. การเก็บรวบรวมข้อมูลส่วนบุคคล');
+        set('privacy-p1', isEN
+          ? 'The Company will collect, use, or disclose the Applicant\'s personal data, including name, surname, identification number, address, education background, work/training experience, military status, email, contact number, photo, and the information in the Applicant\'s resume or CV, which is not sensitive personal data, for the benefit of the Applicant, to verify identity and to consider the employment.'
+          : 'บริษัทฯ จะเก็บ รวบรวม ใช้ ประมวลผล และเปิดเผยข้อมูลส่วนบุคคลของผู้สมัครงาน ได้แก่ ชื่อ นามสกุล เลขประจำตัวประชาชน ที่อยู่ ประวัติการศึกษา ประวัติการทำงานหรือการอบรม ประวัติการเกณฑ์ทหาร อีเมล เบอร์โทรศัพท์ ข้อมูลตามที่ผู้สมัครงานระบุใน Resume และ CV ที่ผู้สมัครนำส่งให้บริษัทฯ ที่ไม่ใช่ข้อมูลอ่อนไหว เพื่อประโยชน์ของผู้สมัครงานในการยืนยันตัวบุคคลของผู้สมัครงาน และเพื่อการพิจารณาความเหมาะสมในการเข้าทำสัญญาจ้างแรงงานกับบริษัทฯ');
+        set('privacy-h2', isEN ? '2. Disclosure of Personal Data' : '2. การเปิดเผยข้อมูลส่วนบุคคล');
+        set('privacy-p2', isEN
+          ? 'The Company may disclose the Applicant\'s personal data to the Company\'s alliance for considering the employment and processing for the said purpose.'
+          : 'บริษัทฯ อาจเปิดเผยข้อมูลส่วนบุคคลของผู้สมัครงานต่อบริษัทในเครือพันธมิตรของบริษัทฯ เพื่อผลประโยชน์ของผู้สมัครงานในการพิจารณาความเหมาะสมในการเข้าทำสัญญาจ้างแรงงานกับบริษัทในเครือพันธมิตรของบริษัทฯ');
+        set('privacy-h3', isEN ? '3. Data Processing' : '3. การประมวลผลข้อมูล');
+        set('privacy-p3', isEN
+          ? 'The Applicant\'s personal data will be processed by authorized persons of the Company and/or the Company\'s alliance for employment consideration.'
+          : 'ข้อมูลส่วนบุคคลของผู้สมัครงานจะถูกประมวลผลโดยผู้ที่ได้รับอนุมัติจากบริษัทฯ และ/หรือบริษัทในเครือพันธมิตรของบริษัทฯ เพื่อการพิจารณารับบุคคลเข้าทำงาน');
+        set('privacy-h4', isEN ? '4. Data Retention Period' : '4. ระยะเวลาในการจัดเก็บข้อมูล');
+        set('privacy-p4', isEN
+          ? 'The Company shall collect the Personal Data for 5 years from the date that the Applicant applies for a job with the Company and/or the Company\'s alliance.'
+          : 'บริษัทฯ จะเก็บข้อมูลส่วนบุคคลของผู้สมัครงานเพื่อการดำเนินการตามวัตถุประสงค์เป็นระยะเวลา 5 ปี นับแต่วันที่ผู้สมัครงานทำการสมัครงานเพื่อเข้าทำงานกับบริษัทฯ และ/หรือบริษัทในเครือพันธมิตรของบริษัทฯ');
+        set('privacy-h5', isEN ? '5. Rights of the Applicant' : '5. สิทธิของผู้สมัครงาน');
+        set('privacy-p5a', isEN
+          ? 'Rights of the Applicant are in accordance with the Personal Data Protection Act, B.E. 2562 (2019) and the Company\'s Personal Information Protection Policy.'
+          : 'รายละเอียดปรากฏตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 นโยบายคุ้มครองข้อมูลส่วนบุคคลของบริษัทฯ เรื่อง "สิทธิของเจ้าของข้อมูล"');
+        set('privacy-p5b', isEN
+          ? 'If the Applicant would like access, rectification, erasure of the Personal Data provided to the Company, please submit the request to the contact below:'
+          : 'กรณีที่ผู้สมัครงานต้องการเข้าถึง แก้ไข ลบข้อมูลส่วนบุคคลที่ให้ไว้แก่บริษัทฯ ผู้สมัครงานสามารถติดต่อมายังบริษัทฯ เพื่อยื่นคำขอผ่านช่องทางการติดต่อดังนี้');
+        // DPO box i18n
+        set('privacy-dpo-label', isEN ? 'Data Controller:' : 'ผู้ควบคุมข้อมูลส่วนบุคคล:');
+        set('privacy-dpo-name', isEN ? 'Double A (1991) Public Company Limited' : 'บริษัท ดับเบิ้ล เอ (1991) จำกัด (มหาชน)');
+        set('privacy-addr-label', isEN ? 'Address:' : 'สถานที่ติดต่อ:');
+        set('privacy-addr-dept', isEN ? 'Recruitment Department' : 'ฝ่ายสรรหาและคัดเลือกบุคลากร');
+        set('privacy-addr-line1', isEN ? '187/3 Moo 1, Bangna-Trad Km. 42 Road, Bangwua, Bangpakong' : '187/3 หมู่ที่ 1 ถนนบางนา-ตราด กม. 42 ตำบลบางวัว อำเภอบางปะกง');
+        set('privacy-addr-line2', isEN ? 'Chachoengsao 24180, Thailand' : 'จังหวัดฉะเชิงเทรา 24180');
+        const policyLinkEl = document.getElementById('privacy-policy-link');
+        if (policyLinkEl) policyLinkEl.innerHTML = isEN
+          ? 'The Applicant can find the Privacy Policy at <a href="https://www.doubleapaper.com/privacy-policy" class="text-blue-600 underline">https://www.doubleapaper.com/privacy-policy</a>'
+          : 'ผู้สมัครงานสามารถตรวจสอบรายละเอียดเกี่ยวกับสิทธิอื่นๆ ได้ที่ <a href="https://www.doubleapaper.com/privacy-policy" class="text-blue-600 underline">https://www.doubleapaper.com/privacy-policy</a>';
+        set('privacy-third-party', isEN
+          ? 'The Applicant certifies that the third party\'s personal data provided to the Company is true and correct, and the third party has acknowledged the said disclosure.'
+          : 'ทั้งนี้ผู้สมัครงานยืนยันว่าข้อมูลส่วนบุคคลของบุคคลที่สามที่ผู้สมัครงานให้แก่บริษัทฯ ถูกต้อง และเจ้าของข้อมูลส่วนบุคคลทราบถึงการเปิดเผยข้อมูลดังกล่าวแก่บริษัทฯ แล้ว');
+        set('privacy-confirm', isEN
+          ? 'The Applicant has read and understood this Privacy Notice. The Applicant certifies that the Personal Data provided to the Company is true and correct.'
+          : 'ผู้สมัครงาน อ่าน เข้าใจ และรายละเอียดซึ่งระบุไว้ข้างต้นแล้ว โดยยอมรับรองว่าข้อมูลที่นำส่งให้แก่บริษัทฯ เพื่อการประมวลผลข้อมูลนั้นถูกต้อง และเป็นความจริงทุกประการ');
+        set('privacy-applicant-name', consentName);
+        set('privacy-date', consentDateFormatted);
 
       } catch (e) {
         console.error('Parse error:', e);

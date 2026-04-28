@@ -127,6 +127,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
   const [uploadingState, setUploadingState] = useState({
     photo: false,
     resume: false,
+    transcript: false,
     certificate: false
   });
 
@@ -336,7 +337,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
     }));
   };
 
-  const handleFileUpload = async (file: File | null, fieldName: 'photoUrl' | 'resumeUrl' | 'certificateUrl', stateKey: 'photo' | 'resume' | 'certificate') => {
+  const handleFileUpload = async (file: File | null, fieldName: 'photoUrl' | 'resumeUrl' | 'transcriptUrl' | 'certificateUrl', stateKey: 'photo' | 'resume' | 'transcript' | 'certificate') => {
     if (!file) {
       updateField(fieldName, '');
       return;
@@ -426,6 +427,15 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
   const validateStep = (step: number): boolean => {
     const errors: Record<string, string> = {};
 
+    if (step === 1) {
+      if (!formData.department) {
+        errors.department = lang === 'th' ? 'กรุณาเลือกแผนก' : 'Please select a department';
+      }
+      if (!formData.position) {
+        errors.position = lang === 'th' ? 'กรุณาเลือกตำแหน่ง' : 'Please select a position';
+      }
+    }
+
     if (step === 2) {
       // National ID: 13 digits
       if (formData.isThaiNational && formData.nationalId) {
@@ -484,6 +494,9 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
     if (step === 10) {
       if (!formData.photoUrl) {
         errors.photoUrl = lang === 'th' ? 'กรุณาอัปโหลดรูปถ่าย' : 'Please upload a photo';
+      }
+      if (!formData.transcriptUrl) {
+        errors.transcriptUrl = lang === 'th' ? 'กรุณาแนบ Transcript / ใบรับรองผลการศึกษา' : 'Please upload your Academic Transcript';
       }
     }
 
@@ -663,18 +676,24 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
           {currentStep === 1 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* BU/Channel/Tag come from URL params only - not selectable by user */}
-              <Select
-                label={t.labels.department}
-                value={formData.department}
-                onChange={(e) => updateField('department', e.target.value)}
-                options={departments.map(d => ({ label: lang === 'en' ? d.name_en : d.name_th, value: d.name_en }))}
-              />
-              <Select
-                label={t.labels.position}
-                value={formData.position}
-                onChange={(e) => updateField('position', e.target.value)}
-                options={positions.map(p => ({ label: lang === 'en' ? (p.name_en || p.name_th) : p.name_th, value: p.name_th }))}
-              />
+              <div>
+                <Select
+                  label={<>{t.labels.department} <span className="text-red-500">*</span></>}
+                  value={formData.department}
+                  onChange={(e) => updateField('department', e.target.value)}
+                  options={departments.map(d => ({ label: lang === 'en' ? d.name_en : d.name_th, value: d.name_en }))}
+                />
+                {validationErrors.department && <p className="text-red-500 text-xs mt-1">{validationErrors.department}</p>}
+              </div>
+              <div>
+                <Select
+                  label={<>{t.labels.position} <span className="text-red-500">*</span></>}
+                  value={formData.position}
+                  onChange={(e) => updateField('position', e.target.value)}
+                  options={positions.map(p => ({ label: lang === 'en' ? (p.name_en || p.name_th) : p.name_th, value: p.name_th }))}
+                />
+                {validationErrors.position && <p className="text-red-500 text-xs mt-1">{validationErrors.position}</p>}
+              </div>
               <div className="flex gap-4 items-end">
                 <Input
                   label={t.labels.salary}
@@ -747,7 +766,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                 <Input label={t.labels.height} type="number" value={formData.height} onChange={(e) => updateField('height', e.target.value)} />
               </div>
 
-              <Select label={t.labels.military} options={MILITARY_STATUS_OPTIONS.map(o => ({ label: t.options[o.toLowerCase() as keyof typeof t.options] || o, value: o.split(' / ')[0] }))} value={formData.militaryStatus} onChange={(e) => updateField('militaryStatus', e.target.value)} />
+              <Select label={t.labels.military} options={MILITARY_STATUS_OPTIONS.map(o => ({ label: lang === 'en' ? `${o.labelTh} / ${o.labelEn}` : `${o.labelTh} / ${o.labelEn}`, value: o.value }))} value={formData.militaryStatus} onChange={(e) => updateField('militaryStatus', e.target.value)} />
             </div>
           )}
 
@@ -1041,36 +1060,60 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
           {/* --- Step 5: Education --- */}
           {currentStep === 5 && (
             <div className="space-y-6">
-              {['High School', 'Vocational', 'Bachelor', 'Master'].map((level) => {
-                const key = level.toLowerCase().replace(' ', '') === 'highschool' ? 'highSchool' : level.toLowerCase() as keyof typeof formData.education;
+              {([
+                { level: 'primarySchool', noAutocomplete: true },
+                { level: 'juniorHighSchool', noAutocomplete: true },
+                { level: 'High School', noAutocomplete: false },
+                { level: 'Vocational', noAutocomplete: false },
+                { level: 'Bachelor', noAutocomplete: false },
+                { level: 'Master', noAutocomplete: false },
+                { level: 'phd', noAutocomplete: false },
+              ] as Array<{ level: string; noAutocomplete: boolean }>).map(({ level, noAutocomplete }) => {
+                const key = level === 'primarySchool' ? 'primarySchool'
+                  : level === 'juniorHighSchool' ? 'juniorHighSchool'
+                  : level === 'phd' ? 'phd'
+                  : level.toLowerCase().replace(' ', '') === 'highschool' ? 'highSchool'
+                  : level.toLowerCase() as keyof typeof formData.education;
                 const data = formData.education[key];
                 const currentYear = new Date().getFullYear();
                 const years = Array.from({ length: currentYear - 1940 + 11 }, (_, i) => currentYear + 10 - i);
 
                 // Determine which list to use for autocomplete
-                const instituteList = level === 'Bachelor' || level === 'Master' ? universities : (level === 'Vocational' || level === 'High School') ? colleges : null;
-                const listId = level === 'Bachelor' || level === 'Master' ? 'universities-list' : (level === 'Vocational' || level === 'High School') ? 'colleges-list' : null;
+                const isUniversity = level === 'Bachelor' || level === 'Master' || level === 'phd';
+                const isCollege = level === 'Vocational' || level === 'High School';
+                const instituteList = isUniversity ? universities : isCollege ? colleges : null;
+                const listId = isUniversity ? 'universities-list' : isCollege ? 'colleges-list' : null;
 
-                const eduLabelKey: Record<string, string> = { 'High School': 'highSchool', 'Vocational': 'vocational', 'Bachelor': 'bachelor', 'Master': 'master' };
+                const eduLabelMap: Record<string, string> = {
+                  primarySchool: 'primarySchool',
+                  juniorHighSchool: 'juniorHighSchool',
+                  'High School': 'highSchool',
+                  Vocational: 'vocational',
+                  Bachelor: 'bachelor',
+                  Master: 'master',
+                  phd: 'phd',
+                };
+
+                const eduLabel = t.options[eduLabelMap[level] as keyof typeof t.options] || level;
 
                 return (
                   <div key={level} className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-bold text-gray-800 mb-3">{t.options[eduLabelKey[level] as keyof typeof t.options] || level} {lang === 'th' ? '' : 'Degrees'}</h3>
+                    <h3 className="font-bold text-gray-800 mb-3">{eduLabel}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Institute field - with autocomplete for Bachelor, Master, Vocational */}
+                      {/* Institute field - with autocomplete unless noAutocomplete */}
                       <div className="flex flex-col">
                         <label className="text-sm font-medium text-gray-700 mb-1">{t.labels.institute}</label>
-                        {instituteList ? (
+                        {instituteList && !noAutocomplete ? (
                           <>
                             <input
                               type="text"
-                              list={listId}
+                              list={listId!}
                               className="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                               value={data.institute}
                               onChange={(e) => updateNested('education', key as string, { ...data, institute: e.target.value })}
                               placeholder={`เลือกหรือพิมพ์ชื่อสถาบัน...`}
                             />
-                            <datalist id={listId}>
+                            <datalist id={listId!}>
                               {instituteList.map((item: any) => (
                                 <option key={item.id} value={item.name}>{item.name_en || ''}</option>
                               ))}
@@ -1086,7 +1129,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                           />
                         )}
                       </div>
-                      <Input label={level === 'High School' ? t.labels.program : t.labels.major} value={data.major} onChange={(e) => updateNested('education', key as string, { ...data, major: e.target.value })} />
+                      <Input label={level === 'primarySchool' || level === 'High School' || level === 'juniorHighSchool' ? t.labels.program : t.labels.major} value={data.major} onChange={(e) => updateNested('education', key as string, { ...data, major: e.target.value })} />
                       <Input label={t.labels.gpa} value={data.gpa} onChange={(e) => updateNested('education', key as string, { ...data, gpa: e.target.value })} />
                       <div className="flex gap-2">
                         <div className="flex-1 flex flex-col">
@@ -1394,6 +1437,17 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                   onChange={() => { }}
                   onFileSelect={(file) => handleFileUpload(file, 'resumeUrl', 'resume')}
                   uploading={uploadingState.resume}
+                  accept=".pdf"
+                  maxSizeMB={10}
+                />
+                <FileUpload
+                  label={<>{t.labels.transcript} <span className="text-red-500">*</span></>}
+                  description={lang === 'th' ? "แนบ Transcript / ใบรับรองผลการศึกษา (PDF เท่านั้น, ไม่เกิน 10MB)" : "Upload Academic Transcript (PDF only, max 10MB)"}
+                  value={formData.transcriptUrl}
+                  error={validationErrors.transcriptUrl}
+                  onChange={() => { }}
+                  onFileSelect={(file) => handleFileUpload(file, 'transcriptUrl', 'transcript')}
+                  uploading={uploadingState.transcript}
                   accept=".pdf"
                   maxSizeMB={10}
                 />

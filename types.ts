@@ -83,10 +83,13 @@ export interface ApplicationForm {
 
   // Step 5: Education
   education: {
+    primarySchool: EducationEntry;
+    juniorHighSchool: EducationEntry;
     highSchool: EducationEntry;
     vocational: EducationEntry;
     bachelor: EducationEntry;
     master: EducationEntry;
+    phd: EducationEntry;
   };
 
   // Step 6: Skills
@@ -153,6 +156,7 @@ export interface ApplicationForm {
   // Step 10: Uploads
   photoUrl: string;
   resumeUrl: string;
+  transcriptUrl: string;
   certificateUrl: string;
   otherDocsUrl: string;
   profileLinks: string; // LinkedIn, JobThai, etc.
@@ -216,10 +220,13 @@ export const INITIAL_FORM_STATE: ApplicationForm = {
   siblingCount: 0,
 
   education: {
+    primarySchool: { ...emptyEdu },
+    juniorHighSchool: { ...emptyEdu },
     highSchool: { ...emptyEdu },
     vocational: { ...emptyEdu },
     bachelor: { ...emptyEdu },
-    master: { ...emptyEdu }
+    master: { ...emptyEdu },
+    phd: { ...emptyEdu }
   },
 
   englishSkill: 'Fair',
@@ -281,6 +288,7 @@ export const INITIAL_FORM_STATE: ApplicationForm = {
 
   photoUrl: '',
   resumeUrl: '',
+  transcriptUrl: '',
   certificateUrl: '',
   otherDocsUrl: '',
   profileLinks: ''
