@@ -1151,6 +1151,24 @@ const MasterDataConfig = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
 
+  // Department Positions Modal State
+  const [deptPositionsModal, setDeptPositionsModal] = useState<{ id: number; name: string } | null>(null);
+  const [deptPositionsList, setDeptPositionsList] = useState<any[]>([]);
+  const [isLoadingDeptPositions, setIsLoadingDeptPositions] = useState(false);
+
+  const openDeptPositions = async (dept: any) => {
+    setDeptPositionsModal({ id: dept.id, name: dept.name_th || dept.name });
+    setIsLoadingDeptPositions(true);
+    try {
+      const posData = await api.master.getPositions(dept.id);
+      setDeptPositionsList(posData || []);
+    } catch (err) {
+      console.error("Failed to load positions", err);
+      setDeptPositionsList([]);
+    }
+    setIsLoadingDeptPositions(false);
+  };
+
   // Grouped Tables Configuration
   const TABLE_GROUPS = [
     {
@@ -1423,6 +1441,9 @@ const MasterDataConfig = () => {
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name (TH/Main)</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name (EN)</th>
+                    {activeTable === 'positions' && (
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Department</th>
+                    )}
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                   </tr>
@@ -1431,8 +1452,24 @@ const MasterDataConfig = () => {
                   {paginatedData.map((item) => (
                     <tr key={item.id} className={`hover:bg-gray-50 transition-colors ${item.is_active === false ? 'bg-gray-50/50' : ''}`}>
                       <td className="px-4 py-3 text-sm text-gray-500">{item.id}</td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.name_th || item.name}</td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        {activeTable === 'departments' ? (
+                          <button 
+                            className="text-indigo-600 hover:text-indigo-800 hover:underline text-left font-semibold"
+                            onClick={() => openDeptPositions(item)}
+                          >
+                            {item.name_th || item.name}
+                          </button>
+                        ) : (
+                          item.name_th || item.name
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-500">{item.name_en || '-'}</td>
+                      {activeTable === 'positions' && (
+                        <td className="px-4 py-3 text-sm text-gray-500">
+                          {deptList.find(d => d.id === item.department_id)?.name_th || '-'}
+                        </td>
+                      )}
                       <td className="px-4 py-3 text-sm">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${item.is_active !== false ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'}`}>
                           {item.is_active !== false ? 'Active' : 'Inactive'}
@@ -1458,8 +1495,22 @@ const MasterDataConfig = () => {
                     <div className="flex justify-between items-start">
                       <div>
                         <div className="text-xs text-gray-400 font-mono">ID: {item.id}</div>
-                        <div className="font-bold text-base text-gray-900 mt-1">{item.name_th || item.name}</div>
+                        {activeTable === 'departments' ? (
+                          <button 
+                            className="font-bold text-base text-indigo-600 hover:text-indigo-800 hover:underline mt-1 text-left"
+                            onClick={() => openDeptPositions(item)}
+                          >
+                            {item.name_th || item.name}
+                          </button>
+                        ) : (
+                          <div className="font-bold text-base text-gray-900 mt-1">{item.name_th || item.name}</div>
+                        )}
                         {item.name_en && <div className="text-sm text-gray-500">{item.name_en}</div>}
+                        {activeTable === 'positions' && (
+                          <div className="text-sm text-gray-600 mt-1">
+                            <span className="font-medium text-gray-500">Dept:</span> {deptList.find(d => d.id === item.department_id)?.name_th || '-'}
+                          </div>
+                        )}
                       </div>
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-[11px] font-bold ${item.is_active !== false ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>
                         {item.is_active !== false ? 'Active' : 'Inactive'}
