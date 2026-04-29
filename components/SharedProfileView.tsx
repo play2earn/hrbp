@@ -583,8 +583,14 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-100 p-4 bg-gray-50/50 text-center">
-          <p className="text-xs text-gray-400">
+        <div className="border-t border-gray-100 p-6 bg-gray-50/50 flex flex-col items-center gap-2">
+          <div className="flex items-center gap-2 opacity-60">
+            <img src="/doublea_logo.png" alt="Double A Logo" className="w-5 h-5 object-contain" />
+            <span className="text-xs font-bold text-gray-900">
+              <span className="text-blue-700 italic">Double A</span> Network
+            </span>
+          </div>
+          <p className="text-[10px] sm:text-xs text-gray-400">
             ลิงก์แชร์มีอายุ 30 วัน · สร้างจากระบบ Double A Network · เอกสารใช้ภายในเท่านั้น
           </p>
         </div>

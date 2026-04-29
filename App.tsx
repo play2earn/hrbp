@@ -195,8 +195,18 @@ export default function App() {
           />
         </main>
         <footer className="bg-white border-t border-slate-200 py-8 mt-12 text-center text-sm text-slate-500">
-          <p>© 2026 Double A Network.</p>
-          <p className="text-xs mt-1 text-slate-400">Powered by AI Technology</p>
+          <div className="flex flex-col items-center gap-3">
+            <div className="flex items-center gap-2">
+              <img src="/doublea_logo.png" alt="Double A Logo" className="w-6 h-6 object-contain" />
+              <span className="font-bold text-slate-900">
+                <span className="text-blue-700 italic">Double A</span> Network
+              </span>
+            </div>
+            <div>
+              <p>© 2026 Double A Network.</p>
+              <p className="text-xs mt-1 text-slate-400">Powered by AI Technology</p>
+            </div>
+          </div>
         </footer>
       </div>
     );
@@ -571,8 +581,10 @@ export default function App() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center mb-5">
-                <div className="w-10 h-10 animated-gradient rounded-xl mr-3 flex items-center justify-center text-white font-bold text-lg">N</div>
-                <span className="font-bold text-2xl text-white">{t.appTitle}</span>
+                <img src="/doublea_logo.png" alt="Double A Logo" className="w-10 h-10 mr-3 flex-shrink-0 object-contain" />
+                <span className="font-bold text-2xl text-white">
+                  <span className="text-blue-400 italic">Double A</span> Network
+                </span>
               </div>
               <p className="text-gray-400 max-w-sm leading-relaxed mb-6">
                 Empowering businesses with top talent. Streamlining recruitment for a better future.
