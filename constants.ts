@@ -106,8 +106,8 @@ export const TRANSLATIONS = {
       chinese: 'Chinese skill',
       chineseScore: 'Chinese Test score (HSK, Etc.)',
       driving: 'Driving (For positions that require the use of vehicles)',
-      motorcycle: 'Motorcycle',
-      car: 'Car',
+      motorcycle: 'รถจักรยานยนต์',
+      car: 'รถยนต์',
       canDrive: 'Can you drive/ride?',
       haveLicense: 'Do you have a license?',
       licenseList: 'Driving License',
@@ -161,12 +161,12 @@ export const TRANSLATIONS = {
       married: 'Married',
       divorced: 'Divorced',
       widowed: 'Widowed',
-      exempted: 'ได้รับการยกเว้น (Exempted)',
-      conscripted: 'ผ่านการเกณฑ์ทหารแล้ว (Conscripted)',
-      reserved: 'นักศึกษาวิชาทหาร (Reserved)',
-      pending: 'อยู่ระหว่างการผ่อนผัน (Pending)',
-      'awaiting selection': 'จะเข้ารับการตรวจเลือกเร็วๆ นี้ (Awaiting Selection)',
-      female: 'เพศหญิง - ได้รับการยกเว้น (Female)',
+      exempted: 'ได้รับการยกเว้น',
+      conscripted: 'ผ่านการเกณฑ์ทหารแล้ว',
+      reserved: 'นักศึกษาวิชาทหาร (รด.)',
+      pending: 'อยู่ระหว่างการผ่อนผัน',
+      'awaiting selection': 'จะเข้ารับการตรวจเลือกเร็วๆ นี้',
+      female: 'เพศหญิง - ได้รับการยกเว้น',
       fluent: 'Fluent',
       good: 'Good',
       fair: 'Fair',
@@ -182,7 +182,7 @@ export const TRANSLATIONS = {
       noIdont: 'No, I don\'t',
       notHave: 'Not have license',
       privateCar: 'Private Car',
-      privateMotorcycle: 'Private Motorcycle',
+      privateMotorcycle: 'รถจักรยานยนต์ส่วนบุคคล',
       publicVehicle2: 'Public Vehicle Class 2',
       publicVehicle3: 'Public Vehicle Class 3',
       fatherInfo: "Father's Information",
@@ -198,11 +198,11 @@ export const TRANSLATIONS = {
       removeExperience: 'Remove',
       noExperienceYet: 'No experience added yet. Click "Add Experience" if applicable.',
       // Military Status
-      militaryCompleted: 'Completed Military Service / ผ่านการเกณฑ์ทหารแล้ว',
-      militaryRotc: 'Completed ROTC Program / จบหลักสูตร รด.',
-      militaryExemptFemale: 'Exempted - Female / ได้รับการยกเว้น - เพศหญิง',
-      militaryExemptLaw: 'Exempted - By Law / ได้รับการยกเว้น - ตามกฎหมาย',
-      militaryNotYet: 'Not Yet Conscripted / ยังไม่เกณฑ์ทหาร'
+      militaryCompleted: 'ผ่านการเกณฑ์ทหารแล้ว',
+      militaryRotc: 'จบหลักสูตร รด.',
+      militaryExemptFemale: 'ได้รับการยกเว้น - เพศหญิง',
+      militaryExemptLaw: 'ได้รับการยกเว้น - ตามกฎหมาย',
+      militaryNotYet: 'ยังไม่เกณฑ์ทหาร'
     }
   },
   th: {
@@ -364,12 +364,12 @@ export const TRANSLATIONS = {
       married: 'แต่งงาน',
       divorced: 'หย่าร้าง',
       widowed: 'ม่าย',
-      exempted: 'ได้รับการยกเว้น (Exempted)',
-      conscripted: 'ผ่านการเกณฑ์ทหารแล้ว (Conscripted)',
-      reserved: 'นักศึกษาวิชาทหาร (Reserved)',
-      pending: 'อยู่ระหว่างการผ่อนผัน (Pending)',
-      'awaiting selection': 'จะเข้ารับการตรวจเลือกเร็วๆ นี้ (Awaiting Selection)',
-      female: 'เพศหญิง - ได้รับการยกเว้น (Female)',
+      exempted: 'ได้รับการยกเว้น',
+      conscripted: 'ผ่านการเกณฑ์ทหารแล้ว',
+      reserved: 'นักศึกษาวิชาทหาร (รด.)',
+      pending: 'อยู่ระหว่างการผ่อนผัน',
+      'awaiting selection': 'จะเข้ารับการตรวจเลือกเร็วๆ นี้',
+      female: 'เพศหญิง - ได้รับการยกเว้น',
       fluent: 'คล่องแคล่ว / ดีมาก',
       good: 'ดี',
       fair: 'พอใช้',
@@ -401,11 +401,11 @@ export const TRANSLATIONS = {
       removeExperience: 'ลบ',
       noExperienceYet: 'ยังไม่ได้เพิ่มประสบการณ์ กด "เพิ่มประสบการณ์" หากมี',
       // Military Status
-      militaryCompleted: 'ผ่านการเกณฑ์ทหารแล้ว / Completed Military Service',
-      militaryRotc: 'จบหลักสูตร รด. / Completed ROTC',
-      militaryExemptFemale: 'ได้รับการยกเว้น - เพศหญิง / Exempted - Female',
-      militaryExemptLaw: 'ได้รับการยกเว้น - ตามกฎหมาย / Exempted - By Law',
-      militaryNotYet: 'ยังไม่เกณฑ์ทหาร / Not Yet Conscripted'
+      militaryCompleted: 'ผ่านการเกณฑ์ทหารแล้ว',
+      militaryRotc: 'จบหลักสูตร รด.',
+      militaryExemptFemale: 'ได้รับการยกเว้น - เพศหญิง',
+      militaryExemptLaw: 'ได้รับการยกเว้น - ตามกฎหมาย',
+      militaryNotYet: 'ยังไม่เกณฑ์ทหาร'
     }
   }
 };
@@ -470,18 +470,18 @@ export const PDPA_TEXT = `
 `;
 
 export const MILITARY_STATUS_OPTIONS = [
-  { value: 'Completed', labelTh: 'ผ่านการเกณฑ์ทหารแล้ว', labelEn: 'Completed Military Service' },
-  { value: 'ROTC', labelTh: 'จบหลักสูตร รด.', labelEn: 'Completed ROTC Program' },
-  { value: 'ExemptFemale', labelTh: 'ได้รับการยกเว้น - เพศหญิง', labelEn: 'Exempted - Female' },
-  { value: 'ExemptLaw', labelTh: 'ได้รับการยกเว้น - ตามกฎหมาย', labelEn: 'Exempted - By Law' },
-  { value: 'NotYet', labelTh: 'ยังไม่เกณฑ์ทหาร', labelEn: 'Not Yet Conscripted' },
+  { value: 'Completed', labelTh: 'ผ่านการเกณฑ์ทหารแล้ว', labelEn: 'ผ่านการเกณฑ์ทหารแล้ว' },
+  { value: 'ROTC', labelTh: 'จบหลักสูตร รด.', labelEn: 'จบหลักสูตร รด.' },
+  { value: 'ExemptFemale', labelTh: 'ได้รับการยกเว้น - เพศหญิง', labelEn: 'ได้รับการยกเว้น - เพศหญิง' },
+  { value: 'ExemptLaw', labelTh: 'ได้รับการยกเว้น - ตามกฎหมาย', labelEn: 'ได้รับการยกเว้น - ตามกฎหมาย' },
+  { value: 'NotYet', labelTh: 'ยังไม่เกณฑ์ทหาร', labelEn: 'ยังไม่เกณฑ์ทหาร' },
 ];
 
 export const UPCOUNTRY_LOCATIONS_DATA = [
   { key: 'dap', en: 'Chachoengsao : Bangna Trat km.42 (DAP)', th: 'ฉะเชิงเทรา : บางนา-ตราด กม.42 (DAP)' },
   { key: 'ip5', en: 'Chachoengsao : Bangprakong (IP5)', th: 'ฉะเชิงเทรา : บางปะกง (IP5)' },
   { key: 'ip2', en: 'Chachoengsao : Phanom Sarakham (IP2)', th: 'ฉะเชิงเทรา : พนมสารคาม (IP2)' },
-  { key: 'ip1', en: 'Prachin Buri : 304 Double A (IP1)', th: 'ปราจีนบุรี : 304 ดับเบิ้ล เอ (IP1)' },
+  { key: 'ip1', en: 'Prachin Buri : 304 ดั๊บเบิ้ล เอ (IP1)', th: 'ปราจีนบุรี : 304 ดั๊บเบิ้ล เอ (IP1)' },
   { key: 'sriracha', en: 'Chonburi : Si Racha', th: 'ชลบุรี : ศรีราชา' },
   { key: 'silom', en: 'Bangkok : Silom Edge Office', th: 'กรุงเทพฯ : สีลม เอดจ์ ออฟฟิศ' },
   { key: 'onebkk', en: 'Bangkok : One Bangkok', th: 'กรุงเทพฯ : One Bangkok' },

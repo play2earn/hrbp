@@ -505,7 +505,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                 <div className="bg-gray-50 p-3 rounded-lg">
                   <h5 className="font-semibold text-sm text-gray-700 mb-2 border-b pb-1">การขับขี่</h5>
                   <div className="space-y-1 text-sm">
-                    <div className="flex justify-between"><span className="text-gray-600">มอเตอร์ไซค์:</span><span className="font-medium">{fd.driving?.motorcycle ? 'ได้' : 'ไม่ได้'} {fd.driving?.motorcycleLicense ? '(มีใบขับขี่)' : ''}</span></div>
+                    <div className="flex justify-between"><span className="text-gray-600">รถจักรยานยนต์:</span><span className="font-medium">{fd.driving?.motorcycle ? 'ได้' : 'ไม่ได้'} {fd.driving?.motorcycleLicense ? '(มีใบขับขี่)' : ''}</span></div>
                     <div className="flex justify-between"><span className="text-gray-600">รถยนต์:</span><span className="font-medium">{fd.driving?.car ? 'ได้' : 'ไม่ได้'} {fd.driving?.carLicense ? '(มีใบขับขี่)' : ''}</span></div>
                     {fd.driving?.licenseClasses?.length > 0 && <div className="text-xs text-gray-500">ประเภท: {fd.driving.licenseClasses.join(', ')}</div>}
                   </div>

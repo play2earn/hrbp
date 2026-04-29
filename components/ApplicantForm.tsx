@@ -766,7 +766,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                 <Input label={t.labels.height} type="number" value={formData.height} onChange={(e) => updateField('height', e.target.value)} />
               </div>
 
-              <Select label={t.labels.military} options={MILITARY_STATUS_OPTIONS.map(o => ({ label: lang === 'en' ? `${o.labelTh} / ${o.labelEn}` : `${o.labelTh} / ${o.labelEn}`, value: o.value }))} value={formData.militaryStatus} onChange={(e) => updateField('militaryStatus', e.target.value)} />
+              <Select label={t.labels.military} options={MILITARY_STATUS_OPTIONS.map(o => ({ label: o.labelTh, value: o.value }))} value={formData.militaryStatus} onChange={(e) => updateField('militaryStatus', e.target.value)} />
             </div>
           )}
 

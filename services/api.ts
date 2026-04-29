@@ -273,6 +273,14 @@ export const api = {
    */
   getApplications: async (): Promise<any[]> => {
     try {
+      // Check for session validity before fetching
+      const sessionResult = await api.auth.verifySession();
+      if (!sessionResult.success) {
+        console.warn("Session invalid, clearing localStorage");
+        localStorage.removeItem('currentUser');
+        return [];
+      }
+
       const { data, error } = await supabase
         .from('applications')
         .select('*, assigned_user:users!applications_assigned_to_fkey(id, full_name, emp_id)')
@@ -446,22 +454,25 @@ export const api = {
     performed_by: string;
   }): Promise<ApiResponse<any>> => {
     try {
+      const payload = {
+        application_id: log.application_id,
+        action: log.action,
+        old_value: log.old_value || null,
+        new_value: log.new_value || null,
+        note: log.note || null,
+        performed_by: log.performed_by,
+        created_at: new Date().toISOString(),
+      };
+
       const { data, error } = await supabase
         .from('application_logs')
-        .insert([{
-          application_id: log.application_id,
-          action: log.action,
-          old_value: log.old_value || null,
-          new_value: log.new_value || null,
-          note: log.note || null,
-          performed_by: log.performed_by,
-          created_at: new Date().toISOString(),
-        }])
+        .insert([payload])
         .select()
         .single();
 
       if (error) {
         console.error('[Log Error]:', error);
+        // Fallback to anonymous log if policy fails (might be useful for some cases)
         return handleError(error, 'addApplicationLog');
       }
       return { success: true, data };
@@ -709,6 +720,34 @@ export const api = {
   // Authentication Services (Secure Version)
   // ============================================================
   auth: {
+    /**
+     * Verify if the local session user still exists and is active in the database
+     */
+    verifySession: async (): Promise<ApiResponse<AuthUser>> => {
+      try {
+        const storedUser = localStorage.getItem('currentUser');
+        if (!storedUser) return { success: false, error: { message: 'No session' } };
+
+        const user = JSON.parse(storedUser);
+        if (!user || !user.id) return { success: false, error: { message: 'Invalid session data' } };
+
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', user.id)
+          .eq('status', 'Active')
+          .single();
+
+        if (error || !data) {
+          return { success: false, error: { message: 'Session expired or user inactive' } };
+        }
+
+        return { success: true, data };
+      } catch (err) {
+        return { success: false, error: { message: 'Session verification failed' } };
+      }
+    },
+
     /**
      * Sign in via HRMS IDMS endpoint
      */

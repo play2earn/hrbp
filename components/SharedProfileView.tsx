@@ -16,6 +16,26 @@ const EDU_LEVELS: Record<string, string> = {
   phd: 'ปริญญาเอก',
 };
 
+const MILITARY_STATUS_MAP: Record<string, string> = {
+  'Completed': 'ผ่านการเกณฑ์ทหารแล้ว',
+  'Exempted': 'ได้รับการยกเว้น',
+  'Conscripted': 'ผ่านการเกณฑ์ทหารแล้ว',
+  'Reserved': 'นักศึกษาวิชาทหาร (รด.)',
+  'Pending': 'อยู่ระหว่างการผ่อนผัน',
+  'Awaiting Selection': 'จะเข้ารับการตรวจเลือกเร็วๆ นี้',
+  'Female': 'ได้รับการยกเว้น - เพศหญิง',
+  'Not Yet': 'ยังไม่เกณฑ์ทหาร',
+  'N/A (Female)': 'ได้รับการยกเว้น - เพศหญิง',
+  'ได้รับการยกเว้น': 'ได้รับการยกเว้น',
+  'ผ่านการเกณฑ์ทหารแล้ว': 'ผ่านการเกณฑ์ทหารแล้ว',
+  'นักศึกษาวิชาทหาร': 'นักศึกษาวิชาทหาร (รด.)',
+  'อยู่ระหว่างการผ่อนผัน': 'อยู่ระหว่างการผ่อนผัน',
+  'เพศหญิง (ได้รับการยกเว้น)': 'ได้รับการยกเว้น - เพศหญิง',
+  'ROTC': 'จบหลักสูตร รด.',
+  'ExemptFemale': 'ได้รับการยกเว้น - เพศหญิง',
+  'ExemptLaw': 'ได้รับการยกเว้น - ตามกฎหมาย',
+};
+
 const EDU_ORDER = ['primarySchool', 'juniorHighSchool', 'highSchool', 'vocational', 'bachelor', 'master', 'phd'];
 
 export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) => {
@@ -216,7 +236,7 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
               { label: 'วันออกบัตร', value: fd.idCardIssueDate },
               { label: 'วันหมดอายุบัตร', value: fd.idCardExpiryDate },
               { label: 'สถานภาพ', value: fd.maritalStatus },
-              { label: 'สถานะทหาร', value: fd.militaryStatus },
+              { label: 'สถานะทหาร', value: MILITARY_STATUS_MAP[fd.militaryStatus] || fd.militaryStatus },
               { label: 'Line ID', value: fd.lineId },
             ]} />
           </Section>
@@ -350,8 +370,8 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
           {fd.driving && (
             <Section title="การขับขี่" icon={Car}>
               <InfoGrid items={[
-                { label: 'มอเตอร์ไซค์', value: fd.driving.motorcycle ? 'ได้' : 'ไม่ได้' },
-                { label: 'ใบขับขี่มอเตอร์ไซค์', value: fd.driving.motorcycleLicense ? 'มี' : 'ไม่มี' },
+                { label: 'รถจักรยานยนต์', value: fd.driving.motorcycle ? 'ได้' : 'ไม่ได้' },
+                { label: 'ใบขับขี่รถจักรยานยนต์', value: fd.driving.motorcycleLicense ? 'มี' : 'ไม่มี' },
                 { label: 'รถยนต์', value: fd.driving.car ? 'ได้' : 'ไม่ได้' },
                 { label: 'ใบขับขี่รถยนต์', value: fd.driving.carLicense ? 'มี' : 'ไม่มี' },
                 { label: 'ประเภทใบขับขี่', value: fd.driving.licenseClasses?.join(', ') || null },
@@ -437,7 +457,7 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
           )}
 
           {/* ===== หนังสือยินยอมและรับรอง ===== */}
-          <div className="mb-6 mt-4">
+          <div className="mb-6 mt-12 pt-8 border-t border-gray-100">
             <div className="flex items-center gap-2 mb-3 pb-2 border-b-2 border-indigo-200">
               <Shield className="w-4 h-4 text-indigo-600" />
               <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">หนังสือยินยอมและรับรอง</h3>
@@ -455,7 +475,9 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
                 <p className="text-sm font-semibold mt-1">{fd.position || app.position || '-'}</p>
               </div>
             </div>
-            <p className="text-center mt-3 text-xs text-gray-500">ผู้สมัครงาน &nbsp;|&nbsp; วัน / เดือน / ปี</p>
+            <p className="text-center mt-3 text-xs text-gray-500">
+              ผู้สมัครงาน &nbsp;|&nbsp; {app.created_at ? new Date(app.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
           </div>
 
           {/* ===== รายละเอียดเกี่ยวกับข้อมูลส่วนบุคคล (Privacy Notice) ===== */}
@@ -465,7 +487,7 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
               <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">รายละเอียดเกี่ยวกับข้อมูลส่วนบุคคล</h3>
             </div>
             <div className="text-sm text-gray-700 space-y-3 leading-relaxed">
-              <p>หนังสือนี้จัดทำขึ้นเพื่อชี้แจงรายละเอียดเกี่ยวกับข้อมูลส่วนบุคคลระหว่างบริษัท ดับเบิ้ล เอ (1991) จำกัด (มหาชน) ("บริษัทฯ") และผู้ที่มีความประสงค์จะสมัครงานเพื่อเข้าทำงานกับบริษัทฯ และ/หรือบริษัทในเครือพันธมิตรของบริษัทฯ ("ผู้สมัครงาน") ตามหลักเกณฑ์และนโยบายของบริษัทฯ ดังนี้</p>
+              <p>หนังสือนี้จัดทำขึ้นเพื่อชี้แจงรายละเอียดเกี่ยวกับข้อมูลส่วนบุคคลระหว่างบริษัท ดั๊บเบิ้ล เอ (1991) จำกัด (มหาชน) ("บริษัทฯ") และผู้ที่มีความประสงค์จะสมัครงานเพื่อเข้าทำงานกับบริษัทฯ และ/หรือบริษัทในเครือพันธมิตรของบริษัทฯ ("ผู้สมัครงาน") ตามหลักเกณฑ์และนโยบายของบริษัทฯ ดังนี้</p>
               <div>
                 <p className="font-bold">1. การเก็บรวบรวมข้อมูลส่วนบุคคล</p>
                 <p className="ml-4 mt-1 text-gray-600">บริษัทฯ จะเก็บ รวบรวม ใช้ ประมวลผล และเปิดเผยข้อมูลส่วนบุคคลของผู้สมัครงาน ได้แก่ ชื่อ นามสกุล เลขประจำตัวประชาชน ที่อยู่ ประวัติการศึกษา ประวัติการทำงานหรือการอบรม ประวัติการเกณฑ์ทหาร อีเมล เบอร์โทรศัพท์ ข้อมูลตามที่ผู้สมัครงานระบุใน Resume และ CV ที่ผู้สมัครนำส่งให้บริษัทฯ ที่ไม่ใช่ข้อมูลอ่อนไหว เพื่อประโยชน์ของผู้สมัครงานในการยืนยันตัวบุคคลของผู้สมัครงาน และเพื่อการพิจารณาความเหมาะสมในการเข้าทำสัญญาจ้างแรงงานกับบริษัทฯ</p>
@@ -488,11 +510,11 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
                 <p className="ml-4 mt-1 text-gray-600">กรณีที่ผู้สมัครงานต้องการเข้าถึง แก้ไข ลบข้อมูลส่วนบุคคลที่ให้ไว้แก่บริษัทฯ ผู้สมัครงานสามารถติดต่อมายังบริษัทฯ เพื่อยื่นคำขอผ่านช่องทางการติดต่อดังนี้</p>
               </div>
               <div className="ml-4 bg-gray-100 border border-gray-200 rounded p-3 text-xs space-y-1">
-                <p><strong>ผู้ควบคุมข้อมูลส่วนบุคคล:</strong> บริษัท ดับเบิ้ล เอ (1991) จำกัด (มหาชน)</p>
+                <p><strong>ผู้ควบคุมข้อมูลส่วนบุคคล:</strong> บริษัท ดั๊บเบิ้ล เอ (1991) จำกัด (มหาชน)</p>
                 <p><strong>สถานที่ติดต่อ:</strong> ฝ่ายสรรหาและคัดเลือกบุคลากร</p>
                 <p className="pl-16">187/3 หมู่ที่ 1 ถนนบางนา-ตราด กม. 42 ตำบลบางวัว อำเภอบางปะกง</p>
                 <p className="pl-16">จังหวัดฉะเชิงเทรา 24180</p>
-                <p><strong>Email:</strong> double_a_talent@doublea1991.com</p>
+                <p><strong>Email:</strong> recruit@doublea1991.com</p>
               </div>
               <p className="ml-4 text-gray-600">ผู้สมัครงานสามารถตรวจสอบรายละเอียดเกี่ยวกับสิทธิอื่นๆ ได้ที่ <a href="https://www.doubleapaper.com/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">https://www.doubleapaper.com/privacy-policy</a></p>
               <p className="ml-4 text-gray-600">ทั้งนี้ผู้สมัครงานยืนยันว่าข้อมูลส่วนบุคคลของบุคคลที่สามที่ผู้สมัครงานให้แก่บริษัทฯ ถูกต้อง และเจ้าของข้อมูลส่วนบุคคลทราบถึงการเปิดเผยข้อมูลดังกล่าวแก่บริษัทฯ แล้ว</p>
@@ -508,7 +530,7 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
                 <p className="text-sm font-semibold mt-1">{new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
               </div>
             </div>
-            <p className="text-center mt-3 text-xs text-gray-500">ผู้สมัครงาน &nbsp;|&nbsp; วัน / เดือน / ปี</p>
+
           </div>
 
           {/* ===== ความยินยอมในการประมวลผลข้อมูล ===== */}
@@ -531,7 +553,7 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
                 <p className="text-sm font-semibold mt-1">{new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
               </div>
             </div>
-            <p className="text-center mt-3 text-xs text-gray-500">ผู้สมัครงาน &nbsp;|&nbsp; วัน / เดือน / ปี</p>
+
           </div>
         </div>
 

@@ -5,12 +5,13 @@ export const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444'];
 
 // Brand-specific BU color map (for charts)
 export const BU_COLOR_MAP: Record<string, string> = {
-    'Double A': '#2563EB',   // Blue
-    'DoubleA': '#2563EB',    // Blue
-    'NPS': '#EAB308',        // Yellow
-    'ReLo': '#16A34A',       // Green
-    'Head Office': '#8B5CF6', // Purple
-    'Technology': '#6366F1',  // Indigo
+    'ดั๊บเบิ้ล เอ': '#2563EB',   // Blue
+    'Double A': '#2563EB',     // Blue
+    'DoubleA': '#2563EB',      // Blue
+    'NPS': '#EAB308',          // Yellow
+    'ReLo': '#16A34A',         // Green
+    'Head Office': '#8B5CF6',   // Purple
+    'Technology': '#6366F1',    // Indigo
 };
 export const BU_FALLBACK_COLORS = ['#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#6366F1', '#EF4444', '#0EA5E9'];
 
@@ -20,8 +21,9 @@ export const getBuChartColor = (buName: string, index: number): string => {
 
 // BU color mapping (for CSS badge classes)
 export const BU_COLORS: Record<string, string> = {
-    'DoubleA': 'bg-blue-100 text-blue-700 border-blue-200',
+    'ดั๊บเบิ้ล เอ': 'bg-blue-100 text-blue-700 border-blue-200',
     'Double A': 'bg-blue-100 text-blue-700 border-blue-200',
+    'DoubleA': 'bg-blue-100 text-blue-700 border-blue-200',
     'NPS': 'bg-yellow-100 text-yellow-700 border-yellow-200',
     'ReLo': 'bg-emerald-100 text-emerald-700 border-emerald-200',
     'Head Office': 'bg-purple-100 text-purple-700 border-purple-200',
@@ -67,22 +69,25 @@ export const getStatusBadgeClass = (status: string) => {
     return 'bg-yellow-100 text-yellow-800';
 };
 
-// Military status bilingual mapping
+// Military status Thai-only mapping
 export const MILITARY_STATUS_MAP: Record<string, string> = {
-    'Completed': 'ผ่านการเกณฑ์ทหารแล้ว (Completed)',
-    'Exempted': 'ได้รับการยกเว้น (Exempted)',
-    'Conscripted': 'ผ่านการเกณฑ์ทหารแล้ว (Conscripted)',
-    'Reserved': 'นักศึกษาวิชาทหาร (Reserved)',
-    'Pending': 'อยู่ระหว่างการผ่อนผัน (Pending)',
-    'Awaiting Selection': 'จะเข้ารับการตรวจเลือกเร็วๆ นี้ (Awaiting Selection)',
-    'Female': 'เพศหญิง - ได้รับการยกเว้น (Female)',
-    'Not Yet': 'ยังไม่เกณฑ์ทหาร (Not Yet)',
-    'N/A (Female)': 'ไม่เกี่ยวข้อง (Female)',
-    'ได้รับการยกเว้น': 'ได้รับการยกเว้น (Exempted)',
-    'ผ่านการเกณฑ์ทหารแล้ว': 'ผ่านการเกณฑ์ทหารแล้ว (Conscripted)',
-    'นักศึกษาวิชาทหาร': 'นักศึกษาวิชาทหาร (Reserved)',
-    'อยู่ระหว่างการผ่อนผัน': 'อยู่ระหว่างการผ่อนผัน (Pending)',
-    'เพศหญิง (ได้รับการยกเว้น)': 'เพศหญิง - ได้รับการยกเว้น (Female)',
+    'Completed': 'ผ่านการเกณฑ์ทหารแล้ว',
+    'Exempted': 'ได้รับการยกเว้น',
+    'Conscripted': 'ผ่านการเกณฑ์ทหารแล้ว',
+    'Reserved': 'นักศึกษาวิชาทหาร (รด.)',
+    'Pending': 'อยู่ระหว่างการผ่อนผัน',
+    'Awaiting Selection': 'จะเข้ารับการตรวจเลือกเร็วๆ นี้',
+    'Female': 'ได้รับการยกเว้น - เพศหญิง',
+    'Not Yet': 'ยังไม่เกณฑ์ทหาร',
+    'N/A (Female)': 'ได้รับการยกเว้น - เพศหญิง',
+    'ได้รับการยกเว้น': 'ได้รับการยกเว้น',
+    'ผ่านการเกณฑ์ทหารแล้ว': 'ผ่านการเกณฑ์ทหารแล้ว',
+    'นักศึกษาวิชาทหาร': 'นักศึกษาวิชาทหาร (รด.)',
+    'อยู่ระหว่างการผ่อนผัน': 'อยู่ระหว่างการผ่อนผัน',
+    'เพศหญิง (ได้รับการยกเว้น)': 'ได้รับการยกเว้น - เพศหญิง',
+    'ROTC': 'จบหลักสูตร รด.',
+    'ExemptFemale': 'ได้รับการยกเว้น - เพศหญิง',
+    'ExemptLaw': 'ได้รับการยกเว้น - ตามกฎหมาย',
 };
 
 export const getMilitaryStatusLabel = (status: string | undefined): string => {

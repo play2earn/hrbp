@@ -48,6 +48,44 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
     return positions.filter((p) => !editForm.departmentId || p.department_id === editForm.departmentId);
   }, [positions, editForm.departmentId]);
 
+  const FIELD_LABELS: Record<string, string> = {
+    position: 'ตำแหน่ง',
+    department: 'แผนก',
+    expectedSalary: 'เงินเดือนที่คาดหวัง',
+    phone: 'เบอร์โทร',
+    email: 'อีเมล',
+    businessUnit: 'หน่วยธุรกิจ',
+    sourceChannel: 'ช่องทางรับสมัคร',
+    campaignTag: 'แท็กแคมเปญ',
+    height: 'ส่วนสูง',
+    weight: 'น้ำหนัก',
+    photoUrl: 'รูปถ่าย',
+  };
+
+  const getChangedFields = () => {
+    const changes: string[] = [];
+    Object.keys(FIELD_LABELS).forEach(key => {
+      const newValue = (editForm as any)[key];
+      let oldValue: any;
+
+      if (key === 'businessUnit') oldValue = editingApp.form_data?.businessUnit || editingApp.business_unit;
+      else if (key === 'sourceChannel') oldValue = editingApp.form_data?.sourceChannel || editingApp.source_channel;
+      else if (key === 'campaignTag') oldValue = editingApp.form_data?.campaignTag || editingApp.campaign_tag;
+      else if (key === 'photoUrl') oldValue = editingApp.form_data?.photoUrl || editingApp.photo_url;
+      else if (['height', 'weight', 'expectedSalary'].includes(key)) oldValue = editingApp.form_data?.[key];
+      else oldValue = editingApp.form_data?.[key] || editingApp[key];
+
+      // Standardize comparison
+      const strNew = String(newValue || '').trim();
+      const strOld = String(oldValue || '').trim();
+
+      if (strNew !== strOld) {
+        changes.push(FIELD_LABELS[key]);
+      }
+    });
+    return changes;
+  };
+
   return (
     <>
       {/* Edit Application Modal */}
@@ -286,6 +324,18 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
                       })
                       .eq('id', editingApp.id);
                     if (error) throw error;
+
+                    // Add log for manual edit
+                    const changedFields = getChangedFields();
+                    if (changedFields.length > 0) {
+                      await api.addApplicationLog({
+                        application_id: editingApp.id,
+                        action: 'edited',
+                        note: `แก้ไขข้อมูล: ${changedFields.join(', ')}`,
+                        performed_by: currentUserName,
+                      });
+                    }
+
                     if (editForm.status !== editingApp.status && currentUserId) {
                       const statusResult = await api.updateApplicationStatus(editingApp.id, editForm.status as ApplicationStatus, {
                         performedByUserId: currentUserId,

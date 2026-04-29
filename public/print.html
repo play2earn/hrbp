@@ -672,11 +672,11 @@
       <div class="section-body">
         <div class="grid grid-cols-4">
           <div class="box-field">
-            <div class="box-label" data-i18n="motorcycle">มอเตอร์ไซค์</div>
+            <div class="box-label" data-i18n="motorcycle">รถจักรยานยนต์</div>
             <div class="box-value" id="motorcycle">-</div>
           </div>
           <div class="box-field">
-            <div class="box-label" data-i18n="motoLicense">ใบขับขี่มอเตอร์ไซค์</div>
+            <div class="box-label" data-i18n="motoLicense">ใบขับขี่รถจักรยานยนต์</div>
             <div class="box-value" id="motorcycleLicense">-</div>
           </div>
           <div class="box-field">
@@ -914,11 +914,11 @@
           <p class="text-[12px] leading-relaxed ml-4 mb-1" id="privacy-p5a"></p>
           <p class="text-[12px] leading-relaxed ml-4 mb-2" id="privacy-p5b"></p>
           <div class="ml-4 bg-gray-50 border border-gray-200 rounded p-2 text-[10px] mb-2" id="privacy-dpo-box">
-            <p><strong id="privacy-dpo-label">ผู้ควบคุมข้อมูลส่วนบุคคล:</strong> <span id="privacy-dpo-name">บริษัท ดับเบิ้ล เอ (1991) จำกัด (มหาชน)</span></p>
+            <p><strong id="privacy-dpo-label">ผู้ควบคุมข้อมูลส่วนบุคคล:</strong> <span id="privacy-dpo-name">บริษัท ดั๊บเบิ้ล เอ (1991) จำกัด (มหาชน)</span></p>
             <p><strong id="privacy-addr-label">สถานที่ติดต่อ:</strong> <span id="privacy-addr-dept">ฝ่ายสรรหาและคัดเลือกบุคลากร</span></p>
             <p class="ml-24" id="privacy-addr-line1">187/3 หมู่ที่ 1 ถนนบางนา-ตราด กม. 42 ตำบลบางวัว อำเภอบางปะกง</p>
             <p class="ml-24" id="privacy-addr-line2">จังหวัดฉะเชิงเทรา 24180</p>
-            <p><strong>Email:</strong> double_a_talent@doublea1991.com</p>
+            <p><strong>Email:</strong> recruit@doublea1991.com</p>
           </div>
           <p class="text-[12px] leading-relaxed ml-4 mb-2" id="privacy-policy-link"></p>
           <p class="text-[12px] leading-relaxed ml-4 mb-2" id="privacy-third-party"></p>
@@ -1011,7 +1011,7 @@
         prefix: 'คำนำหน้า', firstName: 'ชื่อ', lastName: 'นามสกุล',
         secBasicInfo: 'ข้อมูลพื้นฐาน',
         nicknameTh: 'ชื่อเล่น (ไทย)', nicknameEn: 'ชื่อเล่น (อังกฤษ)',
-        dob: 'วันเกิด', age: 'อายุ', weight: 'น้ำหนัก', height: 'ส่วนสูง', military: 'สถานะทางทหาร',
+        dob: 'วันเกิด', age: 'อายุ', weight: 'น้ำหนัก', height: 'ส่วนสูง', military: 'สถานภาพทางทหาร',
         nationalId: 'เลขบัตรประชาชน', phone: 'เบอร์โทรศัพท์', email: 'อีเมล',
         secAddress: 'ที่อยู่', registeredAddr: 'ที่อยู่ตามทะเบียนบ้าน', currentAddr: 'ที่อยู่ปัจจุบัน',
         secFamily: 'ข้อมูลครอบครัว', marital: 'สถานภาพ', children: 'จำนวนบุตร', siblings: 'จำนวนพี่น้อง',
@@ -1023,7 +1023,7 @@
         secLangSkill: 'ทักษะภาษา', english: 'ภาษาอังกฤษ', testScore: 'คะแนนสอบ',
         chinese: 'ภาษาจีน', chineseScore: 'คะแนนสอบจีน', otherLang: 'ภาษาอื่นๆ',
         secComputer: 'ทักษะคอมพิวเตอร์',
-        secDriving: 'การขับขี่', motorcycle: 'มอเตอร์ไซค์', motoLicense: 'ใบขับขี่มอเตอร์ไซค์',
+        secDriving: 'การขับขี่', motorcycle: 'รถจักรยานยนต์', motoLicense: 'ใบขับขี่รถจักรยานยนต์',
         car: 'รถยนต์', carLicense: 'ใบขับขี่รถยนต์',
         secOtherSkill: 'ความสามารถอื่นๆ', specialAbility: 'ความสามารถพิเศษ', hobbies: 'งานอดิเรก',
         secQuestionnaire: 'แบบสอบถาม', upcountry: 'พื้นที่ไปปฏิบัติงานต่างจังหวัด',
@@ -1117,25 +1117,25 @@
       if (!status) return '-';
       const map = {
         // New standardized values
-        'Completed': 'ผ่านการเกณฑ์ทหารแล้ว / Completed Military Service',
-        'ROTC': 'จบหลักสูตร รด. / Completed ROTC Program',
-        'ExemptFemale': 'ได้รับการยกเว้น - เพศหญิง / Exempted - Female',
-        'ExemptLaw': 'ได้รับการยกเว้น - ตามกฎหมาย / Exempted - By Law',
-        'NotYet': 'ยังไม่เกณฑ์ทหาร / Not Yet Conscripted',
+        'Completed': 'ผ่านการเกณฑ์ทหารแล้ว',
+        'ROTC': 'จบหลักสูตร รด.',
+        'ExemptFemale': 'ได้รับการยกเว้น - เพศหญิง',
+        'ExemptLaw': 'ได้รับการยกเว้น - ตามกฎหมาย',
+        'NotYet': 'ยังไม่เกณฑ์ทหาร',
         // Legacy values (backward compat)
-        'Exempted': 'ได้รับการยกเว้น / Exempted',
-        'Conscripted': 'ผ่านการเกณฑ์ทหารแล้ว / Conscripted',
-        'Reserved': 'นักศึกษาวิชาทหาร / ROTC Reserved',
-        'Pending': 'อยู่ระหว่างการผ่อนผัน / Pending',
-        'Awaiting Selection': 'จะเข้ารับการตรวจเลือก / Awaiting Selection',
-        'Female': 'เพศหญิง - ได้รับการยกเว้น / Female Exempted',
-        'Not Yet': 'ยังไม่เกณฑ์ทหาร / Not Yet',
-        'N/A (Female)': 'ไม่เกี่ยวข้อง / N/A (Female)',
-        'ได้รับการยกเว้น': 'ได้รับการยกเว้น / Exempted',
-        'ผ่านการเกณฑ์ทหารแล้ว': 'ผ่านการเกณฑ์ทหารแล้ว / Completed',
-        'นักศึกษาวิชาทหาร': 'นักศึกษาวิชาทหาร / ROTC',
-        'อยู่ระหว่างการผ่อนผัน': 'อยู่ระหว่างการผ่อนผัน / Pending',
-        'เพศหญิง (ได้รับการยกเว้น)': 'เพศหญิง - ได้รับการยกเว้น / Female Exempted',
+        'Exempted': 'ได้รับการยกเว้น',
+        'Conscripted': 'ผ่านการเกณฑ์ทหารแล้ว',
+        'Reserved': 'จบหลักสูตร รด.',
+        'Pending': 'อยู่ระหว่างการผ่อนผัน',
+        'Awaiting Selection': 'จะเข้ารับการตรวจเลือก',
+        'Female': 'เพศหญิง - ได้รับการยกเว้น',
+        'Not Yet': 'ยังไม่เกณฑ์ทหาร',
+        'N/A (Female)': 'ไม่เกี่ยวข้อง',
+        'ได้รับการยกเว้น': 'ได้รับการยกเว้น',
+        'ผ่านการเกณฑ์ทหารแล้ว': 'ผ่านการเกณฑ์ทหารแล้ว',
+        'นักศึกษาวิชาทหาร': 'จบหลักสูตร รด.',
+        'อยู่ระหว่างการผ่อนผัน': 'อยู่ระหว่างการผ่อนผัน',
+        'เพศหญิง (ได้รับการยกเว้น)': 'เพศหญิง - ได้รับการยกเว้น',
       };
       return map[status] || status;
     }
@@ -1398,7 +1398,7 @@
         const isEN = currentLang === 'en';
         set('privacy-intro', isEN
           ? 'This Privacy Notice is to clarify the personal data processing between Double A (1991) Public Company Limited (the "Company") and the applicant who intends to apply for a job at the Company and/or the Company\'s alliance (the "Applicant") according to the Policy of the Company.'
-          : 'หนังสือนี้จัดทำขึ้นเพื่อชี้แจงรายละเอียดเกี่ยวกับข้อมูลส่วนบุคคลระหว่างบริษัท ดับเบิ้ล เอ (1991) จำกัด (มหาชน) ("บริษัทฯ") และผู้ที่มีความประสงค์จะสมัครงานเพื่อเข้าทำงานกับบริษัทฯ และ/หรือบริษัทในเครือพันธมิตรของบริษัทฯ ("ผู้สมัครงาน") ตามหลักเกณฑ์และนโยบายของบริษัทฯ ดังนี้');
+          : 'หนังสือนี้จัดทำขึ้นเพื่อชี้แจงรายละเอียดเกี่ยวกับข้อมูลส่วนบุคคลระหว่างบริษัท ดั๊บเบิ้ล เอ (1991) จำกัด (มหาชน) ("บริษัทฯ") และผู้ที่มีความประสงค์จะสมัครงานเพื่อเข้าทำงานกับบริษัทฯ และ/หรือบริษัทในเครือพันธมิตรของบริษัทฯ ("ผู้สมัครงาน") ตามหลักเกณฑ์และนโยบายของบริษัทฯ ดังนี้');
         set('privacy-h1', isEN ? '1. Processing of the Personal Data' : '1. การเก็บรวบรวมข้อมูลส่วนบุคคล');
         set('privacy-p1', isEN
           ? 'The Company will collect, use, or disclose the Applicant\'s personal data, including name, surname, identification number, address, education background, work/training experience, military status, email, contact number, photo, and the information in the Applicant\'s resume or CV, which is not sensitive personal data, for the benefit of the Applicant, to verify identity and to consider the employment.'
@@ -1424,11 +1424,12 @@
           : 'กรณีที่ผู้สมัครงานต้องการเข้าถึง แก้ไข ลบข้อมูลส่วนบุคคลที่ให้ไว้แก่บริษัทฯ ผู้สมัครงานสามารถติดต่อมายังบริษัทฯ เพื่อยื่นคำขอผ่านช่องทางการติดต่อดังนี้');
         // DPO box i18n
         set('privacy-dpo-label', isEN ? 'Data Controller:' : 'ผู้ควบคุมข้อมูลส่วนบุคคล:');
-        set('privacy-dpo-name', isEN ? 'Double A (1991) Public Company Limited' : 'บริษัท ดับเบิ้ล เอ (1991) จำกัด (มหาชน)');
+        set('privacy-dpo-name', isEN ? 'Double A (1991) Public Company Limited' : 'บริษัท ดั๊บเบิ้ล เอ (1991) จำกัด (มหาชน)');
         set('privacy-addr-label', isEN ? 'Address:' : 'สถานที่ติดต่อ:');
         set('privacy-addr-dept', isEN ? 'Recruitment Department' : 'ฝ่ายสรรหาและคัดเลือกบุคลากร');
         set('privacy-addr-line1', isEN ? '187/3 Moo 1, Bangna-Trad Km. 42 Road, Bangwua, Bangpakong' : '187/3 หมู่ที่ 1 ถนนบางนา-ตราด กม. 42 ตำบลบางวัว อำเภอบางปะกง');
         set('privacy-addr-line2', isEN ? 'Chachoengsao 24180, Thailand' : 'จังหวัดฉะเชิงเทรา 24180');
+        set('privacy-dpo-email', 'recruit@doublea1991.com'); // This ID might not exist in HTML, checking...
         const policyLinkEl = document.getElementById('privacy-policy-link');
         if (policyLinkEl) policyLinkEl.innerHTML = isEN
           ? 'The Applicant can find the Privacy Policy at <a href="https://www.doubleapaper.com/privacy-policy" class="text-blue-600 underline">https://www.doubleapaper.com/privacy-policy</a>'

@@ -8,9 +8,10 @@ const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'
 
 // Brand-specific BU color map
 const BU_COLOR_MAP: Record<string, string> = {
-  'Double A': '#2563EB',   // Blue
-  'NPS': '#EAB308',        // Yellow
-  'ReLo': '#16A34A',       // Green
+  'ดั๊บเบิ้ล เอ': '#2563EB',   // Blue
+  'Double A': '#2563EB',      // Support legacy data
+  'NPS': '#EAB308',           // Yellow
+  'ReLo': '#16A34A',          // Green
 };
 const FALLBACK_COLORS = ['#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#6366F1', '#EF4444', '#0EA5E9'];
 

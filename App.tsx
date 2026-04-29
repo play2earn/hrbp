@@ -10,6 +10,7 @@ import { SharedProfileView } from './components/SharedProfileView';
 import { Button, Card, Modal } from './components/UIComponents';
 import { Globe, Lock, User as UserIcon, ArrowRight, Briefcase, TrendingUp, Heart, Shield, MapPin, Building2, Search } from 'lucide-react';
 
+import { api, AuthUser } from './services/api';
 import TrackingSystem from './components/TrackingSystem';
 
 export default function App() {
@@ -19,6 +20,7 @@ export default function App() {
     return <SharedProfileView token={shareMatch[1]} />;
   }
 
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [role, setRole] = useState<Role>(() => {
     try {
       const stored = localStorage.getItem('currentUser');
@@ -29,6 +31,38 @@ export default function App() {
     } catch {}
     return 'guest';
   });
+  
+  useEffect(() => {
+    const checkSession = async () => {
+      const storedUser = localStorage.getItem('currentUser');
+      if (storedUser) {
+        // Verify with server
+        try {
+          const result = await api.auth.verifySession();
+          if (result.success && result.data) {
+            setRole(result.data.role);
+            setCurrentUser(result.data);
+            localStorage.setItem('currentUser', JSON.stringify(result.data));
+          } else {
+            setRole('guest');
+            setCurrentUser(null);
+            localStorage.removeItem('currentUser');
+          }
+        } catch {
+          setRole('guest');
+          setCurrentUser(null);
+          localStorage.removeItem('currentUser');
+        }
+      }
+    };
+
+    checkSession();
+
+    // Re-verify periodically (every 15 minutes)
+    const interval = setInterval(checkSession, 15 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   const [lang, setLang] = useState<Language>('en');
   const [pdpaAccepted, setPdpaAccepted] = useState(false);
   const [isPdpaModalOpen, setIsPdpaModalOpen] = useState(false);
@@ -368,7 +402,7 @@ export default function App() {
             <div className="p-5 max-h-72 overflow-y-auto text-sm text-gray-700 leading-relaxed space-y-3">
               {lang === 'th' ? (
                 <>
-                  <p>หนังสือนี้จัดทำขึ้นเพื่อชี้แจงรายละเอียดเกี่ยวกับข้อมูลส่วนบุคคลระหว่างบริษัท ดับเบิ้ล เอ (1991) จำกัด (มหาชน) ("<strong>บริษัทฯ</strong>") และผู้ที่มีความประสงค์จะสมัครงานเพื่อเข้าทำงานกับบริษัทฯ และ/หรือบริษัทในเครือพันธมิตรของบริษัทฯ ("<strong>ผู้สมัครงาน</strong>") ตามหลักเกณฑ์และนโยบายของบริษัทฯ ดังนี้</p>
+                  <p>หนังสือนี้จัดทำขึ้นเพื่อชี้แจงรายละเอียดเกี่ยวกับข้อมูลส่วนบุคคลระหว่างบริษัท ดั๊บเบิ้ล เอ (1991) จำกัด (มหาชน) ("<strong>บริษัทฯ</strong>") และผู้ที่มีความประสงค์จะสมัครงานเพื่อเข้าทำงานกับบริษัทฯ และ/หรือบริษัทในเครือพันธมิตรของบริษัทฯ ("<strong>ผู้สมัครงาน</strong>") ตามหลักเกณฑ์และนโยบายของบริษัทฯ ดังนี้</p>
 
                   <p className="font-bold text-gray-900">1. การเก็บรวบรวมข้อมูลส่วนบุคคล</p>
                   <p className="pl-4">บริษัทฯ จะเก็บ รวบรวม ใช้ ประมวลผล และเปิดเผยข้อมูลส่วนบุคคลของผู้สมัครงาน ได้แก่ ชื่อ นามสกุล เลขประจำตัวประชาชน ที่อยู่ ประวัติการศึกษา ประวัติการทำงานหรือการอบรม ประวัติการเกณฑ์ทหาร อีเมล เบอร์โทรศัพท์ ข้อมูลตามที่ผู้สมัครงานระบุใน Resume และ CV ที่ผู้สมัครนำส่งให้บริษัทฯ ที่ไม่ใช่ข้อมูลอ่อนไหว เพื่อประโยชน์ของผู้สมัครงานในการยืนยันตัวบุคคลของผู้สมัครงาน และเพื่อการพิจารณาความเหมาะสมในการเข้าทำสัญญาจ้างแรงงานกับบริษัทฯ</p>
@@ -387,11 +421,11 @@ export default function App() {
                   <p className="pl-4">กรณีที่ผู้สมัครงานต้องการเข้าถึง แก้ไข ลบข้อมูลส่วนบุคคล ที่ให้ไว้แก่บริษัทฯ ผู้สมัครงานสามารถติดต่อมายังบริษัทฯ เพื่อยื่นคำขอเกี่ยวกับข้อมูลส่วนบุคคลของท่านผ่านช่องทางการติดต่อดังนี้</p>
 
                   <div className="pl-4 mt-2 bg-gray-50 p-3 rounded-lg text-xs">
-                    <p><strong>ผู้ควบคุมข้อมูลส่วนบุคคล:</strong> บริษัท ดับเบิ้ล เอ (1991) จำกัด (มหาชน)</p>
+                    <p><strong>ผู้ควบคุมข้อมูลส่วนบุคคล:</strong> บริษัท ดั๊บเบิ้ล เอ (1991) จำกัด (มหาชน)</p>
                     <p><strong>สถานที่ติดต่อ:</strong> ฝ่ายสรรหาและคัดเลือกบุคลากร</p>
                     <p className="pl-24">187/3 หมู่ที่ 1 ถนนบางนา-ตราด กม. 42 ตำบลบางวัว อำเภอบางปะกง</p>
                     <p className="pl-24">จังหวัดฉะเชิงเทรา 24180</p>
-                    <p><strong>Email:</strong> double_a_talent@doublea1991.com</p>
+                    <p><strong>Email:</strong> recruit@doublea1991.com</p>
                   </div>
 
                   <p className="mt-2">ผู้สมัครงานสามารถตรวจสอบรายละเอียดเกี่ยวกับสิทธิอื่นๆ ของผู้สมัครงานได้ที่ <a href="https://www.doubleapaper.com/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">https://www.doubleapaper.com/privacy-policy</a></p>
@@ -417,7 +451,7 @@ export default function App() {
                     <p><strong>Data Controller:</strong> Double A (1991) Public Company Limited</p>
                     <p><strong>Address:</strong> Recruitment Department, 187/3 Moo 1, Bangna-Trad Km. 42 Road, Bangwua,</p>
                     <p className="pl-16">Bangpakong, Chachoengsao 24180, Thailand.</p>
-                    <p><strong>Email:</strong> double_a_talent@doublea1991.com</p>
+                    <p><strong>Email:</strong> recruit@doublea1991.com</p>
                   </div>
 
                   <p className="mt-2">Furthermore, The Application can find the information of the Personal Data Protection Policy of the Company at <a href="https://www.doubleapaper.com/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">https://www.doubleapaper.com/privacy-policy</a>.</p>
@@ -447,11 +481,11 @@ export default function App() {
                   <p>ผู้สมัครงานสามารถยกเลิกความยินยอมได้ตามสิทธิของเจ้าของข้อมูลได้ที่</p>
 
                   <div className="bg-gray-50 p-3 rounded-lg text-xs">
-                    <p><strong>ผู้ควบคุมข้อมูลส่วนบุคคล:</strong> บริษัท ดับเบิ้ล เอ (1991) จำกัด (มหาชน)</p>
+                    <p><strong>ผู้ควบคุมข้อมูลส่วนบุคคล:</strong> บริษัท ดั๊บเบิ้ล เอ (1991) จำกัด (มหาชน)</p>
                     <p><strong>สถานที่ติดต่อ:</strong> ฝ่ายสรรหาและคัดเลือกบุคลากร</p>
                     <p className="pl-24">187/3 หมู่ที่ 1 ถนนบางนา-ตราด กม. 42 ตำบลบางวัว อำเภอบางปะกง</p>
                     <p className="pl-24">จังหวัดฉะเชิงเทรา 24180</p>
-                    <p><strong>Email:</strong> double_a_talent@doublea1991.com</p>
+                    <p><strong>Email:</strong> recruit@doublea1991.com</p>
                   </div>
 
                   <p>ผู้สมัครงานสามารถตรวจสอบรายละเอียดเกี่ยวกับสิทธิอื่นๆ ของผู้สมัครงานได้ที่ <a href="https://www.doubleapaper.com/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">https://www.doubleapaper.com/privacy-policy</a></p>
@@ -468,7 +502,7 @@ export default function App() {
                     <p><strong>Data Controller:</strong> Double A (1991) Public Company Limited</p>
                     <p><strong>Address:</strong> Recruitment Department, 187/3 Moo 1, Bangna-Trad Km. 42 Road, Bangwua,</p>
                     <p className="pl-16">Bangpakong, Chachoengsao 24180, Thailand.</p>
-                    <p><strong>Email:</strong> double_a_talent@doublea1991.com</p>
+                    <p><strong>Email:</strong> recruit@doublea1991.com</p>
                   </div>
 
                   <p>The Application can find the information of the Personal Data Protection Policy of the Company at <a href="https://www.doubleapaper.com/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">https://www.doubleapaper.com/privacy-policy</a>.</p>

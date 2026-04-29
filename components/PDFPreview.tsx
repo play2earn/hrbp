@@ -76,7 +76,7 @@ const ConsentSection: React.FC<{ data: ApplicationForm; lang: Language }> = ({ d
         <div className="border-2 border-t-0 border-black p-6 text-black">
           <p className="text-sm leading-relaxed mb-4">
             {lang === 'th'
-              ? 'หนังสือนี้จัดทำขึ้นเพื่อชี้แจงรายละเอียดเกี่ยวกับข้อมูลส่วนบุคคลระหว่างบริษัท ดับเบิ้ล เอ (1991) จำกัด (มหาชน) ("บริษัทฯ") และผู้ที่มีความประสงค์จะสมัครงานเพื่อเข้าทำงานกับบริษัทฯ และ/หรือบริษัทในเครือพันธมิตรของบริษัทฯ ("ผู้สมัครงาน") ตามหลักเกณฑ์และนโยบายของบริษัทฯ ดังนี้'
+              ? 'หนังสือนี้จัดทำขึ้นเพื่อชี้แจงรายละเอียดเกี่ยวกับข้อมูลส่วนบุคคลระหว่างบริษัท ดั๊บเบิ้ล เอ (1991) จำกัด (มหาชน) ("บริษัทฯ") และผู้ที่มีความประสงค์จะสมัครงานเพื่อเข้าทำงานกับบริษัทฯ และ/หรือบริษัทในเครือพันธมิตรของบริษัทฯ ("ผู้สมัครงาน") ตามหลักเกณฑ์และนโยบายของบริษัทฯ ดังนี้'
               : 'This Privacy Notice is to clarify the personal data processing between Double A (1991) Public Company Limited (the "Company") and the applicant who intends to apply for a job at the Company and/or the Company\'s alliance (the "Applicant") according to the Policy of the Company.'
             }
           </p>
@@ -144,11 +144,11 @@ const ConsentSection: React.FC<{ data: ApplicationForm; lang: Language }> = ({ d
 
           {/* DPO Contact Info */}
           <div className="ml-4 bg-gray-50 border border-gray-200 rounded p-3 text-xs mb-3">
-            <p><span className="font-bold">{lang === 'th' ? 'ผู้ควบคุมข้อมูลส่วนบุคคล:' : 'Data Controller:'}</span> {lang === 'th' ? 'บริษัท ดับเบิ้ล เอ (1991) จำกัด (มหาชน)' : 'Double A (1991) Public Company Limited'}</p>
+            <p><span className="font-bold">{lang === 'th' ? 'ผู้ควบคุมข้อมูลส่วนบุคคล:' : 'Data Controller:'}</span> {lang === 'th' ? 'บริษัท ดั๊บเบิ้ล เอ (1991) จำกัด (มหาชน)' : 'Double A (1991) Public Company Limited'}</p>
             <p><span className="font-bold">{lang === 'th' ? 'สถานที่ติดต่อ:' : 'Address:'}</span> {lang === 'th' ? 'ฝ่ายสรรหาและคัดเลือกบุคลากร' : 'Recruitment Department'}</p>
             <p className="ml-24">{lang === 'th' ? '187/3 หมู่ที่ 1 ถนนบางนา-ตราด กม. 42 ตำบลบางวัว อำเภอบางปะกง' : '187/3 Moo 1, Bangna-Trad Km. 42 Road, Bangwua, Bangpakong'}</p>
             <p className="ml-24">{lang === 'th' ? 'จังหวัดฉะเชิงเทรา 24180' : 'Chachoengsao 24180, Thailand'}</p>
-            <p><span className="font-bold">Email:</span> double_a_talent@doublea1991.com</p>
+            <p><span className="font-bold">Email:</span> recruit@doublea1991.com</p>
           </div>
 
           <p className="text-sm leading-relaxed ml-4 mb-3">
