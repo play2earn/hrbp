@@ -109,6 +109,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     campaignTag: '',
     height: '',
     weight: '',
+    dateOfBirth: '',
+    age: '',
     photoUrl: ''
   });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
@@ -170,6 +172,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
         campaignTag: fd.campaignTag || editingApp.campaign_tag || '',
         height: fd.height || '',
         weight: fd.weight || '',
+        dateOfBirth: fd.dateOfBirth || '',
+        age: fd.age || '',
         photoUrl: fd.photoUrl || editingApp.photo_url || '',
       });
     }

@@ -18,6 +18,8 @@ interface EditFormState {
   campaignTag?: string;
   height?: string;
   weight?: string;
+  dateOfBirth?: string;
+  age?: string;
   photoUrl?: string;
 }
 
@@ -59,6 +61,8 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
     campaignTag: 'แท็กแคมเปญ',
     height: 'ส่วนสูง',
     weight: 'น้ำหนัก',
+    dateOfBirth: 'วันเดือนปีเกิด',
+    age: 'อายุ',
     photoUrl: 'รูปถ่าย',
   };
 
@@ -72,7 +76,7 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
       else if (key === 'sourceChannel') oldValue = editingApp.form_data?.sourceChannel || editingApp.source_channel;
       else if (key === 'campaignTag') oldValue = editingApp.form_data?.campaignTag || editingApp.campaign_tag;
       else if (key === 'photoUrl') oldValue = editingApp.form_data?.photoUrl || editingApp.photo_url;
-      else if (['height', 'weight', 'expectedSalary'].includes(key)) oldValue = editingApp.form_data?.[key];
+      else if (['height', 'weight', 'expectedSalary', 'dateOfBirth', 'age'].includes(key)) oldValue = editingApp.form_data?.[key];
       else oldValue = editingApp.form_data?.[key] || editingApp[key];
 
       // Standardize comparison
@@ -186,6 +190,41 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                   value={editForm.email}
                   onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">วันเดือนปีเกิด</label>
+                <input
+                  type="date"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  value={editForm.dateOfBirth || ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    let age = '';
+                    if (val) {
+                      const today = new Date();
+                      const birthDate = new Date(val);
+                      let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+                      const m = today.getMonth() - birthDate.getMonth();
+                      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                        calculatedAge--;
+                      }
+                      age = calculatedAge.toString();
+                    }
+                    setEditForm(prev => ({ ...prev, dateOfBirth: val, age }));
+                  }}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">อายุ</label>
+                <input
+                  type="text"
+                  readOnly
+                  className="w-full border rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500 outline-none"
+                  value={editForm.age || ''}
                 />
               </div>
             </div>
@@ -307,6 +346,8 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
                       campaignTag: editForm.campaignTag,
                       height: editForm.height,
                       weight: editForm.weight,
+                      dateOfBirth: editForm.dateOfBirth,
+                      age: editForm.age,
                       photoUrl: editForm.photoUrl,
                     };
                     // Only update columns that definitely exist in the database
