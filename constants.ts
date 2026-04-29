@@ -413,33 +413,109 @@ export const TRANSLATIONS = {
 export const LANDING_CONTENT = {
   en: {
     heroTitle: 'Build Your Future With Us',
-    heroSubtitle: 'Join a team of innovators, creators, and problem solvers. We are looking for passionate individuals to help us shape the future.',
+    heroSubtitle: 'Join a team of innovators driven by our culture (Transform, Think Forward, Team Synergy) to build a sustainable future together.',
     cta: 'View Open Positions',
-    aboutTitle: 'Why Join NovaRecruit?',
+    aboutTitle: 'Why Join Us?',
     values: [
-      { title: 'Growth', desc: 'Continuous learning and development opportunities.' },
-      { title: 'Innovation', desc: 'Work with cutting-edge technologies.' },
-      { title: 'Balance', desc: 'Flexible working hours and remote options.' },
-      { title: 'Culture', desc: 'Inclusive, diverse, and supportive team environment.' }
+      { 
+        title: 'Transform', 
+        desc: 'Ultimate Changing & Dependability. We adapt fast and stay reliable to survive and thrive in any situation.' 
+      },
+      { 
+        title: 'Think Forward', 
+        desc: 'Proactiveness & Worksmart Playhard. We think ahead and act immediately to conquer the digital world.' 
+      },
+      { 
+        title: 'Team Synergy', 
+        desc: 'One Team & Respect. We unite as one, leveraging our collective power for sustainable growth.' 
+      }
     ],
     jobsTitle: 'Open Positions',
     apply: 'Apply Now',
-    staffLogin: 'Staff Login'
+    staffLogin: 'Staff Login',
+    alliance: {
+      title: 'Our Alliance Group',
+      subtitle: 'Grow with a diverse, stable, and sustainable business ecosystem.',
+      groups: [
+        { 
+          name: 'Double A', 
+          desc: 'Global leader in premium paper and office stationary.', 
+          tag: 'Consumer Goods',
+          color: 'from-blue-600 to-indigo-600',
+          url: 'https://doubleapaper.com/',
+          logo: 'https://doubleapaper.com/logo.svg'
+        },
+        { 
+          name: 'NPS', 
+          desc: 'Leader in clean energy and green industrial solutions.', 
+          tag: 'Energy & Industrial',
+          color: 'from-yellow-500 to-orange-500',
+          url: 'https://www.npsplc.com/en/home',
+          logo: '/nps_logo.jpg'
+        },
+        { 
+          name: 'Real Estate', 
+          desc: 'Residential developer under "My Green Town" brand.', 
+          tag: 'Living & Housing',
+          color: 'from-teal-500 to-emerald-500',
+          url: 'https://mygreentownhousing.com/',
+          logo: '/relo_logo.png'
+        }
+      ]
+    }
   },
   th: {
     heroTitle: 'สร้างอนาคตไปกับเรา',
-    heroSubtitle: 'ร่วมเป็นส่วนหนึ่งของทีมนักนวัตกรรมและผู้สร้างสรรค์ เรากำลังมองหาผู้ที่มีความมุ่งมั่นเพื่อช่วยกันกำหนดอนาคต',
+    heroSubtitle: 'ร่วมเป็นส่วนหนึ่งของทีมนักนวัตกรรมที่ขับเคลื่อนด้วยวัฒนธรรม Transform ME Transform US เพื่อสร้างอนาคตที่ยั่งยืนไปด้วยกัน',
     cta: 'ดูตำแหน่งงานว่าง',
-    aboutTitle: 'ทำไมต้องทำงานกับ NovaRecruit?',
+    aboutTitle: 'ทำไมต้องทำงานกับเรา?',
     values: [
-      { title: 'การเติบโต', desc: 'โอกาสในการเรียนรู้และพัฒนาอย่างต่อเนื่อง' },
-      { title: 'นวัตกรรม', desc: 'ทำงานกับเทคโนโลยีที่ทันสมัย' },
-      { title: 'สมดุลชีวิต', desc: 'เวลาทำงานที่ยืดหยุ่นและทำงานทางไกลได้' },
-      { title: 'วัฒนธรรม', desc: 'สภาพแวดล้อมที่เปิดกว้างและสนับสนุนกัน' }
+      { 
+        title: 'Transform', 
+        desc: 'พร้อมเปลี่ยน ทรานส์ฟอร์มให้ไว ยังไงก็อยู่รอด (Ultimate Changing & Dependability)' 
+      },
+      { 
+        title: 'Think Forward', 
+        desc: 'คิดเพื่ออนาคต ปรับแนวคิดพิชิตองค์กรดิจิทัล (Proactiveness & Worksmart Playhard)' 
+      },
+      { 
+        title: 'Team Synergy', 
+        desc: 'รวมเราเป็นหนึ่ง ผนึกกำลังสร้างการเติบโตอย่างยั่งยืน (One Team & Respect)' 
+      }
     ],
     jobsTitle: 'ตำแหน่งงานว่าง',
     apply: 'สมัครทันที',
-    staffLogin: 'เข้าสู่ระบบเจ้าหน้าที่'
+    staffLogin: 'เข้าสู่ระบบเจ้าหน้าที่',
+    alliance: {
+      title: 'เครือบริษัทพันธมิตรของเรา',
+      subtitle: 'ก้าวหน้าไปกับกลุ่มธุรกิจที่หลากหลาย มั่นคง และยั่งยืน',
+      groups: [
+        { 
+          name: 'Double A', 
+          desc: 'ผู้นำด้านกระดาษและเครื่องใช้สำนักงานระดับโลก', 
+          tag: 'Consumer Goods',
+          color: 'from-blue-600 to-indigo-600',
+          url: 'https://doubleapaper.com/',
+          logo: 'https://doubleapaper.com/logo.svg'
+        },
+        { 
+          name: 'NPS', 
+          desc: 'ผู้นำด้านพลังงานสะอาดและโซลูชันอุตสาหกรรมเพื่อสิ่งแวดล้อม', 
+          tag: 'Energy & Industrial',
+          color: 'from-yellow-500 to-orange-500',
+          url: 'https://www.npsplc.com/en/home',
+          logo: '/nps_logo.jpg'
+        },
+        { 
+          name: 'Real Estate', 
+          desc: 'ผู้พัฒนาอสังหาริมทรัพย์และที่อยู่อาศัยภายใต้แบรนด์ My Green Town', 
+          tag: 'Living & Housing',
+          color: 'from-teal-500 to-emerald-500',
+          url: 'https://mygreentownhousing.com/',
+          logo: '/relo_logo.png'
+        }
+      ]
+    }
   }
 };
 

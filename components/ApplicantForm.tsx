@@ -172,16 +172,25 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
   useEffect(() => {
     if (formData.department) {
       // Find dept ID from name (assuming name is stored, but API needs ID to filter positions)
-      // Ideally we should store ID, but schema stores strings. 
-      // We'll find the ID from the departments list.
       const dept = departments.find(d => d.name_en === formData.department || d.name_th === formData.department);
       if (dept) {
-        api.master.getPositions(dept.id).then(setPositions);
+        api.master.getPositions(dept.id).then(newPositions => {
+          setPositions(newPositions);
+          
+          // Clear position if it's not valid for the current department
+          // We check both name_th and name_en just in case
+          const isValid = newPositions.some(p => p.name_th === formData.position || p.name_en === formData.position);
+          if (!isValid && formData.position) {
+            updateField('position', '');
+          }
+        });
       } else {
         setPositions([]);
+        if (formData.position) updateField('position', '');
       }
     } else {
       setPositions([]);
+      if (formData.position) updateField('position', '');
     }
   }, [formData.department, departments]);
 
@@ -680,7 +689,10 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                 <Select
                   label={<>{t.labels.department} <span className="text-red-500">*</span></>}
                   value={formData.department}
-                  onChange={(e) => updateField('department', e.target.value)}
+                  onChange={(e) => {
+                    updateField('department', e.target.value);
+                    updateField('position', ''); // Clear position immediately for UI responsiveness
+                  }}
                   options={departments.map(d => ({ label: lang === 'en' ? d.name_en : d.name_th, value: d.name_en }))}
                 />
                 {validationErrors.department && <p className="text-red-500 text-xs mt-1">{validationErrors.department}</p>}

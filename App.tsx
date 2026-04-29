@@ -8,10 +8,34 @@ import { LoginPage } from './components/LoginPage';
 import { PDFPreview } from './components/PDFPreview';
 import { SharedProfileView } from './components/SharedProfileView';
 import { Button, Card, Modal } from './components/UIComponents';
-import { Globe, Lock, User as UserIcon, ArrowRight, Briefcase, TrendingUp, Heart, Shield, MapPin, Building2, Search } from 'lucide-react';
+import { 
+  Users, 
+  Search, 
+  MapPin, 
+  Clock, 
+  Briefcase, 
+  ArrowRight, 
+  ChevronRight, 
+  Building2, 
+  Globe, 
+  Shield, 
+  CheckCircle2, 
+  Mail, 
+  Phone, 
+  Facebook,
+  Instagram,
+  Linkedin,
+  User as UserIcon,
+  Plus,
+  Heart,
+  ChevronDown,
+  Handshake,
+  Lock
+} from 'lucide-react';
 
 import { api, AuthUser } from './services/api';
 import TrackingSystem from './components/TrackingSystem';
+import { CookieConsent } from './components/CookieConsent';
 
 export default function App() {
   // Check for /share/:token path first
@@ -221,92 +245,286 @@ export default function App() {
           <div className="absolute top-[60%] left-[5%] w-8 h-8 bg-indigo-400 rounded-lg rotate-45 float-fast opacity-20"></div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          {/* Animated Badge */}
-          <div className="fade-in-up mb-6">
-            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-200/50 text-sm font-medium text-indigo-700 badge-pulse">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              We're Hiring — Join Our Team!
-            </span>
-          </div>
-
-          {/* Main Heading with Gradient */}
-          <h1 className="fade-in-up-delay-1 text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-tight">
-            <span className="text-gray-900">{landingText.heroTitle.split(' ').slice(0, 2).join(' ')}</span>{' '}
-            <span className="text-gradient">{landingText.heroTitle.split(' ').slice(2).join(' ')}</span>
-          </h1>
-
-          <p className="fade-in-up-delay-2 text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto mb-10 leading-relaxed">
-            {landingText.heroSubtitle}
-          </p>
-
-          <div className="fade-in-up-delay-3 flex flex-col sm:flex-row justify-center gap-4">
-            <Button
-              size="lg"
-              onClick={() => handleApplyClick()}
-              className="rounded-full px-8 py-4 shadow-xl shadow-indigo-300/50 hover:shadow-2xl hover:shadow-indigo-400/50 transition-all hover:-translate-y-1 btn-shine text-base"
-            >
-              {landingText.apply} <ArrowRight className="ml-2 w-5 h-5" />
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => setIsTrackingOpen(true)}
-              className="rounded-full px-8 py-4 border-2 hover:bg-gray-50 transition-all text-base"
-            >
-              <Search className="mr-2 w-5 h-5" /> {lang === 'th' ? 'ตรวจสอบสถานะใบสมัคร' : 'Track Application'}
-            </Button>
-          </div>
-
-          {/* Stats */}
-          <div className="mt-16 grid grid-cols-3 gap-8 max-w-xl mx-auto fade-in-up-delay-3">
-            {[
-              { value: '500+', label: 'Open Positions' },
-              { value: '50+', label: 'Companies' },
-              { value: '10K+', label: 'Hired' },
-            ].map((stat, idx) => (
-              <div key={idx} className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-gradient">{stat.value}</div>
-                <div className="text-sm text-gray-500 mt-1">{stat.label}</div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
+            <div className="flex-1 text-center lg:text-left">
+              {/* Animated Badge */}
+              <div className="fade-in-up mb-6">
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-200/50 text-sm font-medium text-indigo-700 badge-pulse">
+                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                  We're Hiring — Join Our Team!
+                </span>
               </div>
-            ))}
+
+              {/* Main Heading with Gradient */}
+              <h1 className="fade-in-up-delay-1 text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-tight">
+                <span className="text-gray-900">{landingText.heroTitle.split(' ').slice(0, 2).join(' ')}</span>{' '}
+                <span className="text-gradient">{landingText.heroTitle.split(' ').slice(2).join(' ')}</span>
+              </h1>
+
+              <p className="text-lg sm:text-xl text-gray-600 mb-10 leading-relaxed max-w-2xl mx-auto lg:mx-0 animate-fade-in-up delay-200">
+                {lang === 'th' 
+                  ? 'ร่วมเป็นส่วนหนึ่งของทีมนักนวัตกรรมที่ขับเคลื่อนด้วยวัฒนธรรม Transform ME Transform US เพื่อสร้างอนาคตที่ยั่งยืนไปด้วยกัน' 
+                  : 'Join a team of innovators driven by our culture (Transform, Think Forward, Team Synergy) to build a sustainable future together.'}
+              </p>
+
+              <div className="fade-in-up-delay-3 flex flex-col sm:flex-row justify-center lg:justify-start gap-4">
+                <Button
+                  size="lg"
+                  onClick={() => handleApplyClick()}
+                  className="rounded-full px-8 py-4 shadow-xl shadow-indigo-300/50 hover:shadow-2xl hover:shadow-indigo-400/50 transition-all hover:-translate-y-1 btn-shine text-base"
+                >
+                  {landingText.apply} <ArrowRight className="ml-2 w-5 h-5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => setIsTrackingOpen(true)}
+                  className="rounded-full px-8 py-4 border-2 hover:bg-gray-50 transition-all text-base"
+                >
+                  <Search className="mr-2 w-5 h-5" /> {lang === 'th' ? 'ตรวจสอบสถานะใบสมัคร' : 'Track Application'}
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex-1 fade-in-up-delay-2 relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-full blur-[100px] animate-pulse"></div>
+              <img 
+                src="/hero_artwork.png" 
+                alt="Digital Transformation Artwork" 
+                className="w-full h-auto rounded-[3rem] shadow-2xl relative z-10 border border-white/20 transform hover:scale-[1.02] transition-transform duration-700"
+              />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Values Section - Enhanced with glassmorphism */}
+      {/* Cinematic Video Background Section - MOVED UP TO TOP */}
+      <div className="relative h-[60vh] min-h-[400px] overflow-hidden flex items-center justify-center shadow-inner">
+        {/* YouTube Video Wrapper */}
+        <div className="absolute inset-0 z-0 pointer-events-none scale-110">
+          <iframe 
+            className="w-full h-full object-cover pointer-events-none"
+            src="https://www.youtube.com/embed/nsCyLNtTFug?autoplay=1&mute=1&loop=1&playlist=nsCyLNtTFug&controls=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1" 
+            title="Double A Culture Video"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            style={{ width: '100vw', height: '56.25vw', minHeight: '100vh', minWidth: '177.77vh', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
+          ></iframe>
+        </div>
+        
+        {/* Overlay for readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white via-indigo-900/60 to-slate-50 z-10 opacity-80"></div>
+        
+        <div className="relative z-20 max-w-4xl mx-auto px-4 text-center">
+          <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white font-medium mb-8 animate-pulse">
+            <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+            {lang === 'th' ? 'บรรยากาศการทำงานจริง' : 'Experience Our Real Worklife'}
+          </div>
+          <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-white mb-6 drop-shadow-2xl leading-tight">
+            {lang === 'th' ? 'สัมผัสวัฒนธรรม Transform ME Transform US' : 'Experience Our Transformative Culture'}
+          </h2>
+          <p className="text-xl text-white/90 font-medium max-w-2xl mx-auto drop-shadow-lg">
+            {lang === 'th' 
+              ? 'ก้าวหน้าไปกับเทคโนโลยีและพลังของทีมงานที่มุ่งเน้นผลลัพธ์และความสำเร็จร่วมกัน' 
+              : 'Grow with technology and the power of a team focused on results and shared success.'}
+          </p>
+        </div>
+      </div>
+
+      {/* Values Section - Enhanced with Double A 3Ts */}
       <div className="py-24 bg-white relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">{landingText.aboutTitle}</h2>
             <div className="w-24 h-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 mx-auto rounded-full"></div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { icon: TrendingUp, gradient: 'from-blue-500 to-cyan-500', bg: 'bg-blue-50', ...landingText.values[0] },
-              { icon: Briefcase, gradient: 'from-purple-500 to-pink-500', bg: 'bg-purple-50', ...landingText.values[1] },
-              { icon: Shield, gradient: 'from-emerald-500 to-teal-500', bg: 'bg-emerald-50', ...landingText.values[2] },
-              { icon: Heart, gradient: 'from-red-500 to-orange-500', bg: 'bg-red-50', ...landingText.values[3] },
+              { icon: Users, gradient: 'from-blue-600 to-indigo-600', bg: 'bg-blue-50', ...landingText.values[0] },
+              { icon: Handshake, gradient: 'from-purple-600 to-pink-600', bg: 'bg-purple-50', ...landingText.values[1] },
+              { icon: Shield, gradient: 'from-emerald-600 to-teal-600', bg: 'bg-emerald-50', ...landingText.values[2] },
             ].map((val, idx) => (
               <div
                 key={idx}
-                className="group p-6 rounded-2xl bg-white border border-gray-100 shadow-sm card-hover icon-bounce relative overflow-hidden"
+                className="group p-8 rounded-3xl bg-white border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-500 relative overflow-hidden"
               >
-                {/* Hover gradient overlay */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${val.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300`}></div>
-
-                <div className={`icon-inner w-14 h-14 ${val.bg} rounded-2xl flex items-center justify-center mb-5 relative`}>
-                  <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${val.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
-                  <val.icon className={`w-7 h-7 text-gray-600 group-hover:text-white transition-colors duration-300 relative z-10`} />
+                {/* Decorative circle */}
+                <div className={`absolute -right-4 -top-4 w-24 h-24 bg-gradient-to-br ${val.gradient} opacity-[0.03] rounded-full group-hover:scale-150 transition-transform duration-700 pointer-events-none`}></div>
+                
+                <div className={`w-16 h-16 ${val.bg} rounded-2xl flex items-center justify-center mb-6 relative`}>
+                  <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${val.gradient} opacity-0 group-hover:opacity-100 transition-all duration-300`}></div>
+                  <val.icon className={`w-8 h-8 text-gray-700 group-hover:text-white transition-colors duration-300 relative z-10`} />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{val.title}</h3>
-                <p className="text-gray-600 leading-relaxed">{val.desc}</p>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">{val.title}</h3>
+                <p className="text-gray-600 leading-relaxed text-lg">{val.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </div>
 
+
+      {/* Recruitment Process Section - Added for Transparency */}
+      <div className="py-24 bg-slate-50 relative overflow-hidden">
+        {/* Decorative background pattern */}
+        <div className="absolute top-0 left-0 w-full h-full opacity-[0.03] pointer-events-none">
+          <svg width="100%" height="100%"><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="1"/></pattern><rect width="100%" height="100%" fill="url(#grid)" /></svg>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center mb-16">
+            <span className="text-indigo-600 font-bold tracking-wider uppercase text-sm mb-3 block">Transparency</span>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              {lang === 'th' ? 'เส้นทางสู่การร่วมงานกับเรา' : 'Your Journey to Join Us'}
+            </h2>
+            <div className="w-24 h-1.5 bg-indigo-600 mx-auto rounded-full mb-6"></div>
+            <p className="text-gray-600 max-w-2xl mx-auto text-lg">
+              {lang === 'th' 
+                ? 'เราเชื่อในความโปร่งใส ทุกขั้นตอนการคัดเลือกถูกออกแบบมาเพื่อความยุติธรรมและประสบการณ์ที่ดีที่สุดของผู้สมัคร' 
+                : 'We believe in transparency. Every selection step is designed for fairness and the best candidate experience.'}
+            </p>
+          </div>
+          
+          <div className="relative">
+            {/* Connection Line (Desktop) */}
+            <div className="hidden lg:block absolute top-[45px] left-[10%] right-[10%] h-0.5 bg-dashed border-t-2 border-dashed border-gray-200 z-0"></div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative z-10">
+              {[
+                { 
+                  title: lang === 'th' ? 'สมัครออนไลน์' : 'Online Application', 
+                  desc: lang === 'th' ? 'กรอกข้อมูลส่วนตัวและแนบเรซูเม่ผ่านระบบที่ปลอดภัย' : 'Complete your profile and upload resume securely.',
+                  icon: Search,
+                  color: 'bg-blue-600'
+                },
+                { 
+                  title: lang === 'th' ? 'คัดเลือกประวัติ' : 'Profile Screening', 
+                  desc: lang === 'th' ? 'ทีม HR ตรวจสอบคุณสมบัติและทักษะให้เหมาะสมกับตำแหน่ง' : 'Our HR team reviews your skills for the best fit.',
+                  icon: UserIcon,
+                  color: 'bg-indigo-600'
+                },
+                { 
+                  title: lang === 'th' ? 'สัมภาษณ์' : 'Professional Interview', 
+                  desc: lang === 'th' ? 'พูดคุยแลกเปลี่ยนมุมมองและทัศนคติกับทีมงานตัวจริง' : 'Meet the team and share your vision and attitude.',
+                  icon: Briefcase,
+                  color: 'bg-purple-600'
+                },
+                { 
+                  title: lang === 'th' ? 'เริ่มงาน' : 'Welcome Onboard', 
+                  desc: lang === 'th' ? 'ยินดีต้อนรับเข้าสู่ครอบครัว Double A และเติบโตไปด้วยกัน' : 'Welcome to the family. Let\'s grow and succeed together.',
+                  icon: Heart,
+                  color: 'bg-pink-600'
+                }
+              ].map((step, i) => (
+                <div key={i} className="relative">
+                  <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-300 group h-full">
+                    <div className={`w-12 h-12 ${step.color} text-white rounded-2xl flex items-center justify-center mb-6 shadow-lg transform group-hover:scale-110 transition-transform duration-300`}>
+                      <step.icon className="w-6 h-6" />
+                    </div>
+                    <div className="absolute top-8 right-8 text-4xl font-black text-gray-50 opacity-10 group-hover:opacity-20 transition-opacity">
+                      0{i + 1}
+                    </div>
+                    <h4 className="text-xl font-bold text-gray-900 mb-3">{step.title}</h4>
+                    <p className="text-gray-500 text-sm leading-relaxed">{step.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* Alliance Group Section */}
+      <div className="py-24 bg-white relative overflow-hidden">
+        {/* Background decorative elements */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-indigo-50 rounded-full blur-[120px] opacity-30 pointer-events-none"></div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center mb-16">
+            <span className="text-indigo-600 font-bold tracking-wider uppercase text-sm mb-3 block">Global Alliance</span>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              {landingText.alliance.title}
+            </h2>
+            <div className="w-24 h-1.5 bg-indigo-600 mx-auto rounded-full mb-10"></div>
+            
+            <div className="mb-16 transform hover:scale-[1.01] transition-transform duration-700">
+              <img 
+                src="/alliance_artwork.png" 
+                alt="Alliance Ecosystem" 
+                className="max-w-4xl mx-auto w-full h-auto rounded-[3rem] shadow-2xl border border-gray-100"
+              />
+            </div>
+
+            <p className="text-gray-600 max-w-2xl mx-auto text-lg italic">
+              "{landingText.alliance.subtitle}"
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {landingText.alliance.groups.map((group: any, idx: number) => (
+              <div key={idx} className="group relative">
+                <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-500 h-full flex flex-col items-center text-center relative z-10 overflow-hidden">
+                  {/* Subtle color splash on hover */}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${group.color} opacity-0 group-hover:opacity-[0.03] transition-opacity duration-500 pointer-events-none`}></div>
+                  
+                  <div className={`w-20 h-20 rounded-3xl bg-gradient-to-br ${group.color} p-0.5 mb-8 shadow-lg transform group-hover:rotate-6 transition-transform duration-500`}>
+                    <div className="w-full h-full bg-white rounded-[1.4rem] flex items-center justify-center overflow-hidden p-2">
+                      <img 
+                        src={group.logo} 
+                        alt={group.name} 
+                        className="max-w-full max-h-full object-contain transform group-hover:scale-110 transition-transform duration-500"
+                      />
+                    </div>
+                  </div>
+
+                  <span className={`px-4 py-1 rounded-full bg-gradient-to-r ${group.color} text-white text-[10px] font-bold uppercase tracking-widest mb-4 shadow-sm`}>
+                    {group.tag}
+                  </span>
+
+                  <h3 className="text-2xl font-bold text-gray-900 mb-4">{group.name}</h3>
+                  <p className="text-gray-500 leading-relaxed text-sm mb-8 flex-1">
+                    {group.desc}
+                  </p>
+
+                  <a 
+                    href={group.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-indigo-600 font-bold text-sm flex items-center gap-2 group-hover:gap-3 transition-all cursor-pointer"
+                  >
+                    {lang === 'th' ? 'ดูข้อมูลเพิ่มเติม' : 'Learn More'} <ArrowRight className="w-4 h-4" />
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Group Philosophy Quote */}
+          <div className="mt-20 p-10 rounded-[3rem] bg-indigo-900 text-white relative overflow-hidden shadow-2xl">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl -ml-32 -mb-32"></div>
+            
+            <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
+              <div className="flex-1 text-center md:text-left">
+                <h4 className="text-2xl font-bold mb-4">
+                  {lang === 'th' ? 'สร้างความยั่งยืนไปกับเรา' : 'Build a Sustainable Future Together'}
+                </h4>
+                <p className="text-indigo-100 leading-relaxed text-lg opacity-90">
+                  {lang === 'th' 
+                    ? 'เราไม่ได้แค่ผลิตกระดาษ แต่เราสร้างพลังงานสะอาดและคุณภาพชีวิตที่ดียิ่งขึ้น ผ่านเครือข่ายธุรกิจที่ครอบคลุมและมั่นคง' 
+                    : 'We don\'t just produce paper; we create clean energy and better living quality through our comprehensive and stable business network.'}
+                </p>
+              </div>
+              <button 
+                onClick={() => handleApplyClick()}
+                className="bg-white text-indigo-900 hover:bg-indigo-50 px-10 py-4 rounded-2xl font-bold shadow-xl transition-all transform hover:-translate-y-1 active:scale-95 z-20"
+              >
+                {lang === 'th' ? 'ร่วมงานกับเรา' : 'Join Our Journey'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Footer - Enhanced with gradient */}
       <footer className="relative bg-gray-900 text-gray-300 pt-16 pb-8">
@@ -323,12 +541,13 @@ export default function App() {
               <p className="text-gray-400 max-w-sm leading-relaxed mb-6">
                 Empowering businesses with top talent. Streamlining recruitment for a better future.
               </p>
-              <div className="flex gap-3">
-                {['facebook', 'twitter', 'linkedin'].map((social) => (
-                  <a key={social} href="#" className="w-10 h-10 rounded-xl bg-gray-800 hover:bg-indigo-600 flex items-center justify-center transition-colors">
-                    <span className="text-xs text-gray-400 hover:text-white uppercase">{social[0]}</span>
-                  </a>
-                ))}
+              <div className="flex gap-4">
+                <a href="https://www.facebook.com/DoubleAGlobalOfficial/" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all">
+                  <Facebook className="w-5 h-5" />
+                </a>
+                <a href="https://doubleapaper.com/" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all" title="Official Website">
+                  <Globe className="w-5 h-5" />
+                </a>
               </div>
             </div>
             <div>
@@ -534,6 +753,7 @@ export default function App() {
 
       {/* Tracking System Modal */}
       <TrackingSystem isOpen={isTrackingOpen} onClose={() => setIsTrackingOpen(false)} lang={lang} />
+      <CookieConsent lang={lang} />
 
     </div>
   );
