@@ -170,7 +170,7 @@ export default function App() {
         <header className="bg-white shadow-sm sticky top-0 z-40 border-b border-slate-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
             <div className="flex items-center min-w-0">
-              <img src="https://doubleapaper.com/logo.svg" alt="Double A Logo" className="w-9 h-9 mr-3 flex-shrink-0 object-contain shadow-md" />
+              <img src="/doublea_logo.png" alt="Double A Logo" className="w-9 h-9 mr-3 flex-shrink-0 object-contain shadow-md" />
               <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight truncate">{t.appTitle}</h1>
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
@@ -209,7 +209,7 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center min-w-0">
-              <img src="https://doubleapaper.com/logo.svg" alt="Double A Logo" className="w-9 h-9 mr-2.5 flex-shrink-0 object-contain shadow-lg" />
+              <img src="/doublea_logo.png" alt="Double A Logo" className="w-9 h-9 mr-2.5 flex-shrink-0 object-contain shadow-lg" />
               <span className="font-bold text-sm sm:text-xl text-gray-900 truncate">{t.appTitle}</span>
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
