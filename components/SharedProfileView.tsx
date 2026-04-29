@@ -122,8 +122,8 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
       <div className="max-w-4xl mx-auto mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-md">N</div>
-            <span className="font-bold text-gray-900">NovaRecruit</span>
+            <img src="/doublea_logo.png" alt="Double A Logo" className="w-8 h-8 rounded-lg flex-shrink-0 object-contain shadow-sm" />
+            <span className="font-bold text-gray-900">Double A Network</span>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-white/80 rounded-full px-3 py-1.5 border border-gray-200">
             <Shield className="w-3.5 h-3.5" />
@@ -583,7 +583,7 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
         {/* Footer */}
         <div className="border-t border-gray-100 p-4 bg-gray-50/50 text-center">
           <p className="text-xs text-gray-400">
-            ลิงก์แชร์มีอายุ 30 วัน · สร้างจากระบบ NovaRecruit · เอกสารใช้ภายในเท่านั้น
+            ลิงก์แชร์มีอายุ 30 วัน · สร้างจากระบบ Double A Network · เอกสารใช้ภายในเท่านั้น
           </p>
         </div>
       </div>

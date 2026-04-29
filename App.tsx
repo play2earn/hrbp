@@ -169,9 +169,9 @@ export default function App() {
       <div className="min-h-screen flex flex-col bg-slate-50">
         <header className="bg-white shadow-sm sticky top-0 z-40 border-b border-slate-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
-            <div className="flex items-center">
-              <div className="w-9 h-9 bg-indigo-600 rounded-lg mr-3 flex items-center justify-center text-white font-bold text-lg shadow-md shadow-indigo-200">N</div>
-              <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">{t.appTitle}</h1>
+            <div className="flex items-center min-w-0">
+              <img src="/doublea_logo.png" alt="Double A Logo" className="w-9 h-9 rounded-lg mr-3 flex-shrink-0 object-contain shadow-md" />
+              <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight truncate">{t.appTitle}</h1>
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
               <button onClick={toggleLang} className="flex items-center text-slate-500 hover:text-indigo-600 transition-colors px-2 py-1 rounded-md hover:bg-slate-50">
@@ -193,7 +193,7 @@ export default function App() {
           />
         </main>
         <footer className="bg-white border-t border-slate-200 py-8 mt-12 text-center text-sm text-slate-500">
-          <p>© 2026 NovaRecruit System.</p>
+          <p>© 2026 Double A Network.</p>
           <p className="text-xs mt-1 text-slate-400">Powered by AI Technology</p>
         </footer>
       </div>
@@ -208,9 +208,9 @@ export default function App() {
       <nav className="fixed top-0 w-full z-50 glass border-b border-white/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <div className="w-9 h-9 animated-gradient rounded-xl mr-2.5 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-indigo-200">N</div>
-              <span className="font-bold text-xl text-gray-900">{t.appTitle}</span>
+            <div className="flex items-center min-w-0">
+              <img src="/doublea_logo.png" alt="Double A Logo" className="w-9 h-9 rounded-xl mr-2.5 flex-shrink-0 object-contain shadow-lg" />
+              <span className="font-bold text-sm sm:text-xl text-gray-900 truncate">{t.appTitle}</span>
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
               <button onClick={toggleLang} className="text-gray-500 hover:text-indigo-600 font-medium text-sm flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-indigo-50 transition-all">
@@ -222,7 +222,11 @@ export default function App() {
               <button onClick={() => setShowLogin(true)} className="text-sm font-medium text-gray-600 hover:text-indigo-600 transition-all px-3 py-2 rounded-lg hover:bg-indigo-50">
                 {lang === 'th' ? 'เข้าสู่ระบบ' : 'Login'}
               </button>
-              <Button onClick={() => handleApplyClick()} size="sm" className="btn-shine pulse-glow rounded-full">
+              <Button 
+                onClick={() => handleApplyClick()} 
+                size="sm" 
+                className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md rounded-full btn-shine pulse-glow"
+              >
                 <span className="hidden sm:inline">{landingText.apply}</span>
                 <span className="sm:hidden">Apply</span>
               </Button>
@@ -231,8 +235,53 @@ export default function App() {
         </div>
       </nav>
 
-      {/* Hero Section - Premium Redesign */}
-      <div className="pt-28 pb-20 sm:pt-36 sm:pb-28 relative overflow-hidden bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/30">
+      {/* Cinematic Video Background Section - NOW AT THE TOP */}
+      <div className="relative h-[85vh] min-h-[600px] overflow-hidden flex items-center justify-center shadow-inner">
+        {/* YouTube Video Wrapper */}
+        <div className="absolute inset-0 z-0 pointer-events-none scale-110">
+          <iframe 
+            className="w-full h-full object-cover pointer-events-none"
+            src="https://www.youtube.com/embed/nsCyLNtTFug?autoplay=1&mute=1&loop=1&playlist=nsCyLNtTFug&controls=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1" 
+            title="Double A Culture Video"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            style={{ width: '100vw', height: '56.25vw', minHeight: '100vh', minWidth: '177.77vh', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
+          ></iframe>
+        </div>
+        
+        {/* Overlay for readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-indigo-900/40 to-white z-10"></div>
+        
+        <div className="relative z-20 max-w-4xl mx-auto px-4 text-center">
+          <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white font-medium mb-8 animate-pulse">
+            <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+            {lang === 'th' ? 'บรรยากาศการทำงานจริง' : 'Experience Our Real Worklife'}
+          </div>
+          <h2 className="text-4xl sm:text-6xl md:text-7xl font-black text-white mb-6 drop-shadow-2xl leading-tight">
+            {lang === 'th' ? 'สัมผัสวัฒนธรรม Transform ME Transform US' : 'Experience Our Transformative Culture'}
+          </h2>
+          <p className="text-xl sm:text-2xl text-white/90 font-medium max-w-2xl mx-auto drop-shadow-lg">
+            {lang === 'th' 
+              ? 'ก้าวหน้าไปกับเทคโนโลยีและพลังของทีมงานที่มุ่งเน้นผลลัพธ์และความสำเร็จร่วมกัน' 
+              : 'Grow with technology and the power of a team focused on results and shared success.'}
+          </p>
+          <div className="mt-10">
+            <Button
+              size="lg"
+              onClick={() => handleApplyClick()}
+              className="rounded-full px-10 py-4 bg-white !text-indigo-900 hover:bg-indigo-600 hover:!text-white shadow-2xl shadow-black/30 transition-all duration-300 transform hover:-translate-y-1 font-bold text-lg border-none"
+            >
+              <span className="flex items-center gap-2">
+                {lang === 'th' ? 'สมัครงานเลย' : 'Apply Now'}
+                <ArrowRight className="w-5 h-5" />
+              </span>
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Hero Section - Premium Redesign - NOW SECOND */}
+      <div className="py-20 sm:py-28 relative overflow-hidden bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/30">
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-gradient-to-br from-indigo-300 to-purple-400 rounded-full blur-3xl opacity-20 float-slow"></div>
@@ -272,7 +321,7 @@ export default function App() {
                 <Button
                   size="lg"
                   onClick={() => handleApplyClick()}
-                  className="rounded-full px-8 py-4 shadow-xl shadow-indigo-300/50 hover:shadow-2xl hover:shadow-indigo-400/50 transition-all hover:-translate-y-1 btn-shine text-base"
+                  className="rounded-full px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-xl shadow-indigo-200 hover:shadow-2xl transition-all hover:-translate-y-1 btn-shine text-base font-bold"
                 >
                   {landingText.apply} <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
@@ -299,38 +348,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* Cinematic Video Background Section - MOVED UP TO TOP */}
-      <div className="relative h-[60vh] min-h-[400px] overflow-hidden flex items-center justify-center shadow-inner">
-        {/* YouTube Video Wrapper */}
-        <div className="absolute inset-0 z-0 pointer-events-none scale-110">
-          <iframe 
-            className="w-full h-full object-cover pointer-events-none"
-            src="https://www.youtube.com/embed/nsCyLNtTFug?autoplay=1&mute=1&loop=1&playlist=nsCyLNtTFug&controls=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1" 
-            title="Double A Culture Video"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            style={{ width: '100vw', height: '56.25vw', minHeight: '100vh', minWidth: '177.77vh', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
-          ></iframe>
-        </div>
-        
-        {/* Overlay for readability */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white via-indigo-900/60 to-slate-50 z-10 opacity-80"></div>
-        
-        <div className="relative z-20 max-w-4xl mx-auto px-4 text-center">
-          <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white font-medium mb-8 animate-pulse">
-            <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-            {lang === 'th' ? 'บรรยากาศการทำงานจริง' : 'Experience Our Real Worklife'}
-          </div>
-          <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-white mb-6 drop-shadow-2xl leading-tight">
-            {lang === 'th' ? 'สัมผัสวัฒนธรรม Transform ME Transform US' : 'Experience Our Transformative Culture'}
-          </h2>
-          <p className="text-xl text-white/90 font-medium max-w-2xl mx-auto drop-shadow-lg">
-            {lang === 'th' 
-              ? 'ก้าวหน้าไปกับเทคโนโลยีและพลังของทีมงานที่มุ่งเน้นผลลัพธ์และความสำเร็จร่วมกัน' 
-              : 'Grow with technology and the power of a team focused on results and shared success.'}
-          </p>
-        </div>
-      </div>
 
       {/* Values Section - Enhanced with Double A 3Ts */}
       <div className="py-24 bg-white relative">
@@ -468,12 +485,23 @@ export default function App() {
                   <div className={`absolute inset-0 bg-gradient-to-br ${group.color} opacity-0 group-hover:opacity-[0.03] transition-opacity duration-500 pointer-events-none`}></div>
                   
                   <div className={`w-20 h-20 rounded-3xl bg-gradient-to-br ${group.color} p-0.5 mb-8 shadow-lg transform group-hover:rotate-6 transition-transform duration-500`}>
-                    <div className="w-full h-full bg-white rounded-[1.4rem] flex items-center justify-center overflow-hidden p-2">
-                      <img 
-                        src={group.logo} 
-                        alt={group.name} 
-                        className="max-w-full max-h-full object-contain transform group-hover:scale-110 transition-transform duration-500"
-                      />
+                    <div className="w-full h-full bg-white rounded-[1.4rem] flex items-center justify-center overflow-hidden p-2 gap-2">
+                      {group.logos ? (
+                        group.logos.map((logo: string, lIdx: number) => (
+                          <img 
+                            key={lIdx}
+                            src={logo} 
+                            alt={`${group.name} logo ${lIdx + 1}`} 
+                            className="max-w-[45%] max-h-full object-contain transform group-hover:scale-110 transition-transform duration-500"
+                          />
+                        ))
+                      ) : (
+                        <img 
+                          src={group.logo} 
+                          alt={group.name} 
+                          className="max-w-full max-h-full object-contain transform group-hover:scale-110 transition-transform duration-500"
+                        />
+                      )}
                     </div>
                   </div>
 
@@ -566,7 +594,7 @@ export default function App() {
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 text-sm text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-gray-500">© 2026 NovaRecruit. All rights reserved.</p>
+            <p className="text-gray-500 text-xs sm:text-sm">© 2026 Double A Network. All rights reserved.</p>
             <div className="flex gap-6">
               <a href="#" className="text-gray-400 hover:text-white transition-colors">Privacy Policy</a>
               <a href="#" className="text-gray-400 hover:text-white transition-colors">Terms of Service</a>

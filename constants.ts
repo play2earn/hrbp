@@ -3,7 +3,7 @@ import { Language } from './types';
 
 export const TRANSLATIONS = {
   en: {
-    appTitle: 'NovaRecruit',
+    appTitle: 'Double A Network',
     welcome: 'Join Our Team',
     steps: {
       1: 'Job Interest',
@@ -206,7 +206,7 @@ export const TRANSLATIONS = {
     }
   },
   th: {
-    appTitle: 'NovaRecruit',
+    appTitle: 'Double A Network',
     welcome: 'ร่วมงานกับเรา',
     steps: {
       1: 'ตำแหน่งงาน',
@@ -446,12 +446,12 @@ export const LANDING_CONTENT = {
           logo: 'https://doubleapaper.com/logo.svg'
         },
         { 
-          name: 'NPS', 
-          desc: 'Leader in clean energy and green industrial solutions.', 
-          tag: 'Energy & Industrial',
+          name: 'NPS & GLH', 
+          desc: 'Leader in clean energy and sustainable industrial resource management.', 
+          tag: 'Energy & Utility',
           color: 'from-yellow-500 to-orange-500',
           url: 'https://www.npsplc.com/en/home',
-          logo: '/nps_logo.jpg'
+          logos: ['/nps_logo_new.jpg', '/glh_logo_new.jpg']
         },
         { 
           name: 'Real Estate', 
@@ -499,12 +499,12 @@ export const LANDING_CONTENT = {
           logo: 'https://doubleapaper.com/logo.svg'
         },
         { 
-          name: 'NPS', 
-          desc: 'ผู้นำด้านพลังงานสะอาดและโซลูชันอุตสาหกรรมเพื่อสิ่งแวดล้อม', 
-          tag: 'Energy & Industrial',
+          name: 'NPS & GLH', 
+          desc: 'ผู้นำด้านพลังงานสะอาดและการจัดการทรัพยากรอุตสาหกรรมอย่างยั่งยืน', 
+          tag: 'Energy & Utility',
           color: 'from-yellow-500 to-orange-500',
           url: 'https://www.npsplc.com/en/home',
-          logo: '/nps_logo.jpg'
+          logos: ['/nps_logo_new.jpg', '/glh_logo_new.jpg']
         },
         { 
           name: 'Real Estate', 

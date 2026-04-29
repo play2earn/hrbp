@@ -531,7 +531,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
           <Check className="w-12 h-12 text-green-600" />
         </div>
         <h2 className="text-3xl font-bold text-gray-900 mb-2">Application Submitted!</h2>
-        <p className="text-gray-600 mb-8">Thank you for your interest in NovaRecruit.</p>
+        <p className="text-gray-600 mb-8">Thank you for your interest in Double A Network.</p>
 
         {trackingId && (
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 max-w-md mx-auto mb-8 shadow-inner">
