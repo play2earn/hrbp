@@ -546,11 +546,11 @@ export const PDPA_TEXT = `
 `;
 
 export const MILITARY_STATUS_OPTIONS = [
-  { value: 'Completed', labelTh: 'ผ่านการเกณฑ์ทหารแล้ว', labelEn: 'ผ่านการเกณฑ์ทหารแล้ว' },
-  { value: 'ROTC', labelTh: 'จบหลักสูตร รด.', labelEn: 'จบหลักสูตร รด.' },
-  { value: 'ExemptFemale', labelTh: 'ได้รับการยกเว้น - เพศหญิง', labelEn: 'ได้รับการยกเว้น - เพศหญิง' },
-  { value: 'ExemptLaw', labelTh: 'ได้รับการยกเว้น - ตามกฎหมาย', labelEn: 'ได้รับการยกเว้น - ตามกฎหมาย' },
-  { value: 'NotYet', labelTh: 'ยังไม่เกณฑ์ทหาร', labelEn: 'ยังไม่เกณฑ์ทหาร' },
+  { value: 'Completed', labelTh: 'ผ่านการเกณฑ์ทหารแล้ว', labelEn: 'Completed Military Service' },
+  { value: 'ROTC', labelTh: 'จบหลักสูตร รด.', labelEn: 'Completed R.O.T.C.' },
+  { value: 'ExemptFemale', labelTh: 'ได้รับการยกเว้น - เพศหญิง', labelEn: 'Exempted - Female' },
+  { value: 'ExemptLaw', labelTh: 'ได้รับการยกเว้น - ตามกฎหมาย', labelEn: 'Exempted - Legal' },
+  { value: 'NotYet', labelTh: 'ยังไม่เกณฑ์ทหาร', labelEn: 'Not Yet Drafted' },
 ];
 
 export const UPCOUNTRY_LOCATIONS_DATA = [

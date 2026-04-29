@@ -122,6 +122,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
     campaignTag: urlParams.tag || 'General',
   });
   const [showPreview, setShowPreview] = useState(false);
+  const [isAgeModalOpen, setIsAgeModalOpen] = useState(false);
 
   // File upload states
   const [uploadingState, setUploadingState] = useState({
@@ -406,9 +407,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
       }
 
       if (age < 15) {
-        alert(lang === 'th'
-          ? 'ขออภัย ระบบรองรับผู้สมัครที่มีอายุ 15 ปีขึ้นไปเท่านั้น'
-          : 'Sorry, the system only supports applicants aged 15 and over.');
+        setIsAgeModalOpen(true);
         updateField('age', '');
         updateField('dateOfBirth', '');
         return;
@@ -795,7 +794,15 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                 <Input label={t.labels.height} type="number" value={formData.height} onChange={(e) => updateField('height', e.target.value)} />
               </div>
 
-              <Select label={t.labels.military} options={MILITARY_STATUS_OPTIONS.map(o => ({ label: o.labelTh, value: o.value }))} value={formData.militaryStatus} onChange={(e) => updateField('militaryStatus', e.target.value)} />
+              <Select 
+                label={t.labels.military} 
+                options={MILITARY_STATUS_OPTIONS.map(o => ({ 
+                  label: lang === 'th' ? o.labelTh : o.labelEn, 
+                  value: o.value 
+                }))} 
+                value={formData.militaryStatus} 
+                onChange={(e) => updateField('militaryStatus', e.target.value)} 
+              />
             </div>
           )}
 
@@ -1535,6 +1542,29 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
               {t.actions.submit}
             </Button>
           </div>
+        </div>
+      </Modal>
+      
+      {/* Age Warning Modal */}
+      <Modal
+        isOpen={isAgeModalOpen}
+        onClose={() => setIsAgeModalOpen(false)}
+        title={lang === 'th' ? 'การตรวจสอบอายุ' : 'Age Verification'}
+        size="md"
+      >
+        <div className="p-4 text-center">
+          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-2xl">⚠️</span>
+          </div>
+          <p className="text-gray-700 font-medium mb-6">
+            {lang === 'th'
+              ? 'ขออภัย ระบบรองรับผู้สมัครที่มีอายุ 15 ปีขึ้นไปเท่านั้น'
+              : 'Sorry, the system only supports applicants aged 15 and over.'
+            }
+          </p>
+          <Button onClick={() => setIsAgeModalOpen(false)} className="w-full bg-slate-900 text-white">
+            {lang === 'th' ? 'ตกลง' : 'OK'}
+          </Button>
         </div>
       </Modal>
     </div>
