@@ -649,11 +649,13 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
       <div className="form-step-enter" key={currentStep}>
         <Card className="min-h-[500px]">
 
-          {currentStep === 1 && (
+          {currentStep === 1 && (formData.businessUnit || (formData.sourceChannel && formData.sourceChannel !== 'Direct') || (formData.campaignTag && formData.campaignTag !== 'General')) && (
             <>
               {/* Application Info Header (New Request) */}
               <div className="bg-gray-50 rounded-xl p-6 mb-8">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">ข้อมูลการสมัคร</h3>
+                <h3 className="text-lg font-bold text-gray-900 mb-4">
+                  {lang === 'th' ? 'ข้อมูลการสมัคร' : 'Application Information'}
+                </h3>
                 <div className="flex flex-wrap gap-2 text-sm">
                   {formData.businessUnit && (
                     <span className="inline-flex items-center px-3 py-1 rounded-md bg-indigo-50 text-indigo-700 font-medium border border-indigo-100">
