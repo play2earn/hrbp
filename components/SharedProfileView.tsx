@@ -122,7 +122,7 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
       <div className="max-w-4xl mx-auto mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/doublea_logo.png" alt="Double A Logo" className="w-8 h-8 rounded-lg flex-shrink-0 object-contain shadow-sm" />
+            <img src="https://doubleapaper.com/logo.svg" alt="Double A Logo" className="w-8 h-8 flex-shrink-0 object-contain shadow-sm" />
             <span className="font-bold text-gray-900">Double A Network</span>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-white/80 rounded-full px-3 py-1.5 border border-gray-200">
