@@ -513,7 +513,11 @@ export default function App() {
                     {group.tag}
                   </span>
 
-                  <h3 className="text-2xl font-bold text-gray-900 mb-4">{group.name}</h3>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                    {group.name === 'Double A' ? (
+                      <span className="text-blue-700 italic">Double A</span>
+                    ) : group.name}
+                  </h3>
                   <p className="text-gray-500 leading-relaxed text-sm mb-8 flex-1">
                     {group.desc}
                   </p>
