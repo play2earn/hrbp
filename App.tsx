@@ -170,8 +170,10 @@ export default function App() {
         <header className="bg-white shadow-sm sticky top-0 z-40 border-b border-slate-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
             <div className="flex items-center min-w-0">
-              <img src="/doublea_logo.png" alt="Double A Logo" className="w-9 h-9 mr-3 flex-shrink-0 object-contain shadow-md" />
-              <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight truncate">{t.appTitle}</h1>
+              <img src="/doublea_logo.png" alt="Double A Logo" className="w-9 h-9 mr-3 flex-shrink-0 object-contain" />
+              <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight truncate">
+                <span className="text-blue-700 italic">Double A</span> Network
+              </h1>
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
               <button onClick={toggleLang} className="flex items-center text-slate-500 hover:text-indigo-600 transition-colors px-2 py-1 rounded-md hover:bg-slate-50">
@@ -209,8 +211,10 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center min-w-0">
-              <img src="/doublea_logo.png" alt="Double A Logo" className="w-9 h-9 mr-2.5 flex-shrink-0 object-contain shadow-lg" />
-              <span className="font-bold text-sm sm:text-xl text-gray-900 truncate">{t.appTitle}</span>
+              <img src="/doublea_logo.png" alt="Double A Logo" className="w-9 h-9 mr-2.5 flex-shrink-0 object-contain" />
+              <span className="font-bold text-sm sm:text-xl text-gray-900 truncate">
+                <span className="text-blue-700 italic">Double A</span> Network
+              </span>
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
               <button onClick={toggleLang} className="text-gray-500 hover:text-indigo-600 font-medium text-sm flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-indigo-50 transition-all">
