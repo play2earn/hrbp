@@ -559,7 +559,6 @@ export const UPCOUNTRY_LOCATIONS_DATA = [
   { key: 'ip2', en: 'Chachoengsao : Phanom Sarakham (IP2)', th: 'ฉะเชิงเทรา : พนมสารคาม (IP2)' },
   { key: 'ip1', en: 'Prachin Buri : 304 ดั๊บเบิ้ล เอ (IP1)', th: 'ปราจีนบุรี : 304 ดั๊บเบิ้ล เอ (IP1)' },
   { key: 'sriracha', en: 'Chonburi : Si Racha', th: 'ชลบุรี : ศรีราชา' },
-  { key: 'silom', en: 'Bangkok : Silom Edge Office', th: 'กรุงเทพฯ : สีลม เอดจ์ ออฟฟิศ' },
   { key: 'onebkk', en: 'Bangkok : One Bangkok', th: 'กรุงเทพฯ : One Bangkok' },
   { key: 'unable', en: "I'm unable to work in a different province", th: 'ไม่สามารถไปทำงานต่างจังหวัดได้' }
 ];
