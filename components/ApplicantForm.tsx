@@ -404,6 +404,16 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
       if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
         age--;
       }
+
+      if (age < 15) {
+        alert(lang === 'th'
+          ? 'ขออภัย ระบบรองรับผู้สมัครที่มีอายุ 15 ปีขึ้นไปเท่านั้น'
+          : 'Sorry, the system only supports applicants aged 15 and over.');
+        updateField('age', '');
+        updateField('dateOfBirth', '');
+        return;
+      }
+
       updateField('age', age.toString());
     }
   };
@@ -466,6 +476,10 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
         if (!emailRegex.test(formData.email)) {
           errors.email = lang === 'th' ? 'รูปแบบอีเมลไม่ถูกต้อง' : 'Invalid email format';
         }
+      }
+      // Age check (double validation)
+      if (formData.age && parseInt(formData.age) < 15) {
+        errors.age = lang === 'th' ? 'อายุต้องไม่ต่ำกว่า 15 ปี' : 'Age must be at least 15';
       }
     }
 
@@ -768,9 +782,12 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                   <Input label={t.labels.nicknameEn} value={formData.nicknameEn} onChange={(e) => updateField('nicknameEn', e.target.value)} placeholder={lang === 'th' ? 'ชื่อเล่นภาษาอังกฤษ' : 'English nickname'} />
                 </div>
               </div>
-              <div className="flex gap-4">
-                <div className="flex-1"><DatePicker label={t.labels.dob} value={formData.dateOfBirth} onChange={handleDateOfBirthChange} /></div>
-                <div className="w-24"><Input label={t.labels.age} type="number" value={formData.age} readOnly className="bg-gray-50 text-gray-500" /></div>
+              <div className="flex flex-col gap-1">
+                <div className="flex gap-4">
+                  <div className="flex-1"><DatePicker label={t.labels.dob} value={formData.dateOfBirth} onChange={handleDateOfBirthChange} /></div>
+                  <div className="w-24"><Input label={t.labels.age} type="number" value={formData.age} readOnly className="bg-gray-50 text-gray-500" /></div>
+                </div>
+                {validationErrors.age && <p className="text-red-500 text-xs mt-1">{validationErrors.age}</p>}
               </div>
 
               <div className="flex gap-4">
