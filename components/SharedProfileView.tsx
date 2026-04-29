@@ -244,20 +244,36 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
           {/* ที่อยู่ */}
           {(fd.registeredAddress || fd.currentAddress) && (
             <Section title="ที่อยู่" icon={MapPin}>
-              {fd.registeredAddress && (
-                <div className="mb-3">
-                  <p className="text-xs font-bold text-gray-600 mb-1">ที่อยู่ตามทะเบียนบ้าน</p>
-                  <p className="text-sm text-gray-800">{fd.registeredAddress}</p>
-                  {fd.registeredProvince && <p className="text-sm text-gray-600">{[fd.registeredDistrict, fd.registeredSubDistrict, fd.registeredProvince, fd.registeredPostalCode].filter(Boolean).join(', ')}</p>}
-                </div>
-              )}
-              {fd.currentAddress && (
-                <div>
-                  <p className="text-xs font-bold text-gray-600 mb-1">ที่อยู่ปัจจุบัน</p>
-                  <p className="text-sm text-gray-800">{fd.currentAddress}</p>
-                  {fd.currentProvince && <p className="text-sm text-gray-600">{[fd.currentDistrict, fd.currentSubDistrict, fd.currentProvince, fd.currentPostalCode].filter(Boolean).join(', ')}</p>}
-                </div>
-              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {fd.registeredAddress && (
+                  <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100">
+                    <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
+                      ที่อยู่ตามทะเบียนบ้าน
+                    </p>
+                    <p className="text-sm text-gray-800 leading-relaxed">{fd.registeredAddress}</p>
+                    {fd.registeredProvince && (
+                      <p className="text-sm text-gray-500 mt-1 font-medium">
+                        {[fd.registeredDistrict, fd.registeredSubDistrict, fd.registeredProvince, fd.registeredPostalCode].filter(Boolean).join(', ')}
+                      </p>
+                    )}
+                  </div>
+                )}
+                {fd.currentAddress && (
+                  <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100">
+                    <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                      ที่อยู่ปัจจุบัน
+                    </p>
+                    <p className="text-sm text-gray-800 leading-relaxed">{fd.currentAddress}</p>
+                    {fd.currentProvince && (
+                      <p className="text-sm text-gray-500 mt-1 font-medium">
+                        {[fd.currentDistrict, fd.currentSubDistrict, fd.currentProvince, fd.currentPostalCode].filter(Boolean).join(', ')}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             </Section>
           )}
 
@@ -281,28 +297,35 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
           {/* การศึกษา */}
           {fd.education && (
             <Section title="ประวัติการศึกษา" icon={GraduationCap}>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm border-collapse">
+              <div className="overflow-hidden border border-gray-100 rounded-xl shadow-sm">
+                <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-gray-50 text-gray-600">
-                      <th className="text-left py-2 px-3 font-medium border-b">ระดับ</th>
-                      <th className="text-left py-2 px-3 font-medium border-b">สถาบัน</th>
-                      <th className="text-left py-2 px-3 font-medium border-b">สาขา</th>
-                      <th className="text-center py-2 px-3 font-medium border-b">GPA</th>
-                      <th className="text-center py-2 px-3 font-medium border-b">ปี</th>
+                    <tr className="bg-slate-50 text-slate-500 border-b border-gray-100">
+                      <th className="text-left py-3 px-4 font-bold text-[11px] uppercase tracking-wider">ระดับ</th>
+                      <th className="text-left py-3 px-4 font-bold text-[11px] uppercase tracking-wider">สถาบัน / สาขา</th>
+                      <th className="text-center py-3 px-4 font-bold text-[11px] uppercase tracking-wider">GPA</th>
+                      <th className="text-center py-3 px-4 font-bold text-[11px] uppercase tracking-wider">ช่วงเวลา</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-gray-50">
                     {EDU_ORDER.map(key => {
                       const edu = fd.education?.[key];
                       if (!edu?.institute) return null;
                       return (
-                        <tr key={key} className="border-b border-gray-100 hover:bg-gray-50/50">
-                          <td className="py-2 px-3 font-medium text-indigo-700">{EDU_LEVELS[key]}</td>
-                          <td className="py-2 px-3">{edu.institute}</td>
-                          <td className="py-2 px-3">{edu.major || '-'}</td>
-                          <td className="py-2 px-3 text-center">{edu.gpa || '-'}</td>
-                          <td className="py-2 px-3 text-center">{edu.startDate && edu.endDate ? `${edu.startDate}–${edu.endDate}` : edu.endDate || '-'}</td>
+                        <tr key={key} className="hover:bg-indigo-50/30 transition-colors">
+                          <td className="py-4 px-4 align-top">
+                            <span className="font-bold text-indigo-700 block whitespace-nowrap">{EDU_LEVELS[key]}</span>
+                          </td>
+                          <td className="py-4 px-4 align-top">
+                            <div className="font-semibold text-gray-900">{edu.institute}</div>
+                            {edu.major && <div className="text-gray-500 text-xs mt-0.5">{edu.major}</div>}
+                          </td>
+                          <td className="py-4 px-4 text-center align-top font-medium text-slate-600">
+                            {edu.gpa || '-'}
+                          </td>
+                          <td className="py-4 px-4 text-center align-top text-xs text-slate-500 whitespace-nowrap">
+                            {edu.startDate && edu.endDate ? `${edu.startDate} – ${edu.endDate}` : edu.endDate || '-'}
+                          </td>
                         </tr>
                       );
                     })}
