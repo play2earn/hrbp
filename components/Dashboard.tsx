@@ -1697,6 +1697,39 @@ const MasterDataConfig = () => {
         </div>
       </Modal>
 
+      {/* Department Positions Modal */}
+      <Modal
+        isOpen={!!deptPositionsModal}
+        onClose={() => setDeptPositionsModal(null)}
+        title={`ตำแหน่งในแผนก: ${deptPositionsModal?.name}`}
+        size="md"
+        footer={(
+          <Button onClick={() => setDeptPositionsModal(null)} className="w-full">ปิดหน้าต่าง</Button>
+        )}
+      >
+        <div className="p-4 max-h-96 overflow-y-auto">
+          {isLoadingDeptPositions ? (
+            <div className="text-center py-8 text-gray-500">กำลังโหลดข้อมูล...</div>
+          ) : deptPositionsList.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">ไม่พบตำแหน่งในแผนกนี้</div>
+          ) : (
+            <div className="space-y-2">
+              {deptPositionsList.map(pos => (
+                <div key={pos.id} className="flex justify-between items-center p-3 border rounded-lg bg-white shadow-sm hover:border-indigo-200 transition-colors">
+                  <div>
+                    <div className="font-semibold text-gray-900">{pos.name_th || pos.name}</div>
+                    {pos.name_en && <div className="text-xs text-gray-500">{pos.name_en}</div>}
+                  </div>
+                  <span className={`text-xs px-2 py-1 rounded-full ${pos.is_active !== false ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    {pos.is_active !== false ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Modal>
+
     </div>
   );
 };
