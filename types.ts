@@ -6,6 +6,7 @@ export type Language = 'en' | 'th';
 export type SkillLevel = 'Advanced' | 'Good' | 'Fair' | 'No Skill';
 
 export interface EducationEntry {
+  level?: string;
   institute: string;
   major: string;
   gpa: string;
@@ -31,6 +32,7 @@ export interface ApplicationForm {
   expectedSalary: string;
   isSalaryNegotiable: boolean;
   availability: string;
+  isAvailableImmediately: boolean;
   sourceChannel: string;
   campaignTag: string;
 
@@ -38,6 +40,7 @@ export interface ApplicationForm {
   isThaiNational: boolean;
   nationalId?: string;
   passportNo?: string;
+  availableToWorkInThailand?: boolean;
   title: string;
   firstName: string;
   lastName: string;
@@ -60,6 +63,7 @@ export interface ApplicationForm {
   registeredDistrict: string;
   registeredSubDistrict: string;
   registeredPostcode: string;
+  isSameAddress: boolean;
   currentAddress: string;
   currentProvince: string;
   currentDistrict: string;
@@ -73,24 +77,18 @@ export interface ApplicationForm {
   spouseOccupation?: string;
   childrenCount: number;
 
+  fatherDeceased: boolean;
   fatherName: string;
   fatherAge: string;
   fatherOccupation: string;
+  motherDeceased: boolean;
   motherName: string;
   motherAge: string;
   motherOccupation: string;
   siblingCount: number;
 
   // Step 5: Education
-  education: {
-    primarySchool: EducationEntry;
-    juniorHighSchool: EducationEntry;
-    highSchool: EducationEntry;
-    vocational: EducationEntry;
-    bachelor: EducationEntry;
-    master: EducationEntry;
-    phd: EducationEntry;
-  };
+  education: EducationEntry[];
 
   // Step 6: Skills
   englishSkill: string;
@@ -169,7 +167,7 @@ export interface User {
   name: string;
 }
 
-const emptyEdu: EducationEntry = { institute: '', major: '', gpa: '', startDate: '', endDate: '' };
+const emptyEdu: EducationEntry = { level: '', institute: '', major: '', gpa: '', startDate: '', endDate: '' };
 
 export const INITIAL_FORM_STATE: ApplicationForm = {
   businessUnit: '',
@@ -178,10 +176,12 @@ export const INITIAL_FORM_STATE: ApplicationForm = {
   expectedSalary: '',
   isSalaryNegotiable: false,
   availability: '',
+  isAvailableImmediately: false,
   sourceChannel: 'Direct',
   campaignTag: 'General',
 
   isThaiNational: true,
+  availableToWorkInThailand: false,
   title: 'Mr.',
   firstName: '',
   lastName: '',
@@ -203,6 +203,7 @@ export const INITIAL_FORM_STATE: ApplicationForm = {
   registeredDistrict: '',
   registeredSubDistrict: '',
   registeredPostcode: '',
+  isSameAddress: false,
   currentAddress: '',
   currentProvince: '',
   currentDistrict: '',
@@ -211,23 +212,17 @@ export const INITIAL_FORM_STATE: ApplicationForm = {
 
   maritalStatus: 'Single',
   childrenCount: 0,
+  fatherDeceased: false,
   fatherName: '',
   fatherAge: '',
   fatherOccupation: '',
+  motherDeceased: false,
   motherName: '',
   motherAge: '',
   motherOccupation: '',
   siblingCount: 0,
 
-  education: {
-    primarySchool: { ...emptyEdu },
-    juniorHighSchool: { ...emptyEdu },
-    highSchool: { ...emptyEdu },
-    vocational: { ...emptyEdu },
-    bachelor: { ...emptyEdu },
-    master: { ...emptyEdu },
-    phd: { ...emptyEdu }
-  },
+  education: [],
 
   englishSkill: 'Fair',
   englishScore: '',

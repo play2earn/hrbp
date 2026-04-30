@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>พิมพ์ใบสมัคร - Double A Network</title>
+  <title>พิมพ์ใบสมัคร - Double A Alliance</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
@@ -1148,7 +1148,10 @@
         // Set document title for PDF filename: ชื่อ-สกุล-ตำแหน่ง-วันเดือนปี
         const today = new Date();
         const dateStr = `${today.getDate().toString().padStart(2, '0')}${(today.getMonth() + 1).toString().padStart(2, '0')}${today.getFullYear() + 543}`;
-        const fullName = [d.firstName, d.lastName].filter(Boolean).join('-') || 'Unknown';
+        const hasThaiName = d.firstName && d.lastName;
+        const fullName = hasThaiName 
+          ? [d.firstName, d.lastName].filter(Boolean).join('-') 
+          : [d.firstNameEn, d.lastNameEn].filter(Boolean).join('-') || 'Unknown';
         const position = d.position || 'Position';
         document.title = `${fullName}-${position}-${dateStr}`;
 
@@ -1208,7 +1211,31 @@
         set('weight', d.weight ? `${d.weight} กก.` : '-');
         set('height', d.height ? `${d.height} ซม.` : '-');
         set('militaryStatus', getMilitaryStatusLabel(d.militaryStatus));
-        set('nationalId', d.nationalId || (d.passportNo ? `Passport: ${d.passportNo}` : '-'));
+        const natIdLabel = document.querySelector('[data-i18n="nationalId"]');
+        if (d.isThaiNational === false && natIdLabel) {
+          natIdLabel.removeAttribute('data-i18n');
+          natIdLabel.textContent = 'Passport / หนังสือเดินทาง';
+        }
+        set('nationalId', d.nationalId || d.passportNo || '-');
+
+        if (d.isThaiNational === false) {
+          const emailBox = document.getElementById('email');
+          if (emailBox) {
+            const parentGrid = emailBox.closest('.grid');
+            if (parentGrid) {
+              const wpGrid = document.createElement('div');
+              wpGrid.className = 'grid grid-cols-1 q-row';
+              const wpText = d.availableToWorkInThailand ? '✅ มีสิทธิ์ทำงานในประเทศไทย (Available to work in Thailand)' : '⚠️ ยังไม่มีสิทธิ์ทำงานในประเทศไทย (Not available yet)';
+              wpGrid.innerHTML = `
+                <div class="box-field" style="border-right:none; border-bottom:none;">
+                  <div class="box-label">Work Permit / สิทธิ์ทำงานในไทย</div>
+                  <div class="box-value">${wpText}</div>
+                </div>
+              `;
+              parentGrid.parentNode.insertBefore(wpGrid, parentGrid.nextSibling);
+            }
+          }
+        }
         set('phone', d.phone);
         set('email', d.email);
 
@@ -1225,10 +1252,10 @@
         set('spouseName', d.spouseName || '-');
         set('spouseAge', d.spouseAge ? `${d.spouseAge} ปี` : '-');
         set('spouseOccupation', d.spouseOccupation || '-');
-        set('fatherName', d.fatherName);
-        set('fatherInfo', [d.fatherAge ? `${d.fatherAge} ปี` : '', d.fatherOccupation].filter(Boolean).join(' / '));
-        set('motherName', d.motherName);
-        set('motherInfo', [d.motherAge ? `${d.motherAge} ปี` : '', d.motherOccupation].filter(Boolean).join(' / '));
+        set('fatherName', d.fatherDeceased ? 'เสียชีวิตแล้ว (Deceased)' : d.fatherName);
+        set('fatherInfo', d.fatherDeceased ? '' : [d.fatherAge ? `${d.fatherAge} ปี` : '', d.fatherOccupation].filter(Boolean).join(' / '));
+        set('motherName', d.motherDeceased ? 'เสียชีวิตแล้ว (Deceased)' : d.motherName);
+        set('motherInfo', d.motherDeceased ? '' : [d.motherAge ? `${d.motherAge} ปี` : '', d.motherOccupation].filter(Boolean).join(' / '));
 
         // Photo
         if (d.photoUrl) {
@@ -1258,17 +1285,34 @@
         const eduOrder = ['primarySchool', 'juniorHighSchool', 'highSchool', 'vocational', 'bachelor', 'master', 'phd'];
         if (d.education) {
           let html = '';
-          for (const lvl of eduOrder) {
-            const info = d.education[lvl];
-            if (info && info.institute) {
-              const label = currentLang === 'en' ? (eduLevelsEn[lvl] || lvl) : (eduLevelsTh[lvl] || lvl);
-              html += `<div class="grid grid-cols-5 print-break">
-                <div class="box-field text-[11px] font-semibold">${label}</div>
-                <div class="box-field text-[11px]">${info.institute || '-'}</div>
-                <div class="box-field text-[11px]">${info.major || '-'}</div>
-                <div class="box-field text-[11px]">${info.gpa || '-'}</div>
-                <div class="box-field text-[11px]" style="border-right:none">${info.startDate || ''}-${info.endDate || ''}</div>
-              </div>`;
+          if (Array.isArray(d.education)) {
+            // New structure: Array
+            for (const info of d.education) {
+              if (info && info.institute) {
+                const label = currentLang === 'en' ? (eduLevelsEn[info.level] || info.level || '-') : (eduLevelsTh[info.level] || info.level || '-');
+                html += `<div class="grid grid-cols-5 print-break">
+                  <div class="box-field text-[11px] font-semibold">${label}</div>
+                  <div class="box-field text-[11px]">${info.institute || '-'}</div>
+                  <div class="box-field text-[11px]">${info.major || '-'}</div>
+                  <div class="box-field text-[11px]">${info.gpa || '-'}</div>
+                  <div class="box-field text-[11px]" style="border-right:none">${info.startDate || ''}-${info.endDate || ''}</div>
+                </div>`;
+              }
+            }
+          } else {
+            // Old structure: Object keyed by level
+            for (const lvl of eduOrder) {
+              const info = d.education[lvl];
+              if (info && info.institute) {
+                const label = currentLang === 'en' ? (eduLevelsEn[lvl] || lvl) : (eduLevelsTh[lvl] || lvl);
+                html += `<div class="grid grid-cols-5 print-break">
+                  <div class="box-field text-[11px] font-semibold">${label}</div>
+                  <div class="box-field text-[11px]">${info.institute || '-'}</div>
+                  <div class="box-field text-[11px]">${info.major || '-'}</div>
+                  <div class="box-field text-[11px]">${info.gpa || '-'}</div>
+                  <div class="box-field text-[11px]" style="border-right:none">${info.startDate || ''}-${info.endDate || ''}</div>
+                </div>`;
+              }
             }
           }
           eduRows.innerHTML = html || '<div class="p-2 text-[11px] text-gray-400">ไม่มีข้อมูล</div>';
@@ -1374,7 +1418,9 @@
         }
 
         // Consent section - auto-fill name and date
-        const consentName = [d.title, d.firstName, d.lastName].filter(Boolean).join(' ') || '-';
+        const consentName = (d.firstName && d.lastName) 
+          ? [d.title, d.firstName, d.lastName].filter(Boolean).join(' ') 
+          : [d.titleEn, d.firstNameEn, d.lastNameEn].filter(Boolean).join(' ') || '-';
         const consentToday = new Date();
         const consentDateFormatted = consentToday.toLocaleDateString(currentLang === 'th' ? 'th-TH' : 'en-GB', {
           day: 'numeric', month: 'long', year: 'numeric'

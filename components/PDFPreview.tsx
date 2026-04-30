@@ -400,15 +400,27 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
               <tbody className="divide-y divide-gray-400">
                 <tr>
                   <td className="py-2 px-2 border-r border-gray-400 font-bold bg-gray-50 text-black">Father</td>
-                  <td className="py-2 px-2 border-r border-gray-400 text-black">{data.fatherName || '-'}</td>
-                  <td className="py-2 px-2 border-r border-gray-400 text-black">{data.fatherAge || '-'}</td>
-                  <td className="py-2 px-2 text-black">{data.fatherOccupation || '-'}</td>
+                  {data.fatherDeceased ? (
+                    <td colSpan={3} className="py-2 px-2 text-black italic text-gray-500">เสียชีวิตแล้ว (Deceased)</td>
+                  ) : (
+                    <>
+                      <td className="py-2 px-2 border-r border-gray-400 text-black">{data.fatherName || '-'}</td>
+                      <td className="py-2 px-2 border-r border-gray-400 text-black">{data.fatherAge || '-'}</td>
+                      <td className="py-2 px-2 text-black">{data.fatherOccupation || '-'}</td>
+                    </>
+                  )}
                 </tr>
                 <tr>
                   <td className="py-2 px-2 border-r border-gray-400 font-bold bg-gray-50 text-black">Mother</td>
-                  <td className="py-2 px-2 border-r border-gray-400 text-black">{data.motherName || '-'}</td>
-                  <td className="py-2 px-2 border-r border-gray-400 text-black">{data.motherAge || '-'}</td>
-                  <td className="py-2 px-2 text-black">{data.motherOccupation || '-'}</td>
+                  {data.motherDeceased ? (
+                    <td colSpan={3} className="py-2 px-2 text-black italic text-gray-500">เสียชีวิตแล้ว (Deceased)</td>
+                  ) : (
+                    <>
+                      <td className="py-2 px-2 border-r border-gray-400 text-black">{data.motherName || '-'}</td>
+                      <td className="py-2 px-2 border-r border-gray-400 text-black">{data.motherAge || '-'}</td>
+                      <td className="py-2 px-2 text-black">{data.motherOccupation || '-'}</td>
+                    </>
+                  )}
                 </tr>
               </tbody>
             </table>
@@ -429,28 +441,53 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-400">
-              {(['primarySchool', 'juniorHighSchool', 'highSchool', 'vocational', 'bachelor', 'master', 'phd'] as const).map((key) => {
-                const edu = data.education[key as keyof typeof data.education];
-                const levelDisplayNames: Record<string, string> = {
-                  primarySchool: lang === 'th' ? 'ประถมศึกษา' : 'Primary School',
-                  juniorHighSchool: lang === 'th' ? 'มัธยมศึกษาตอนต้น' : 'Junior High School',
-                  highSchool: lang === 'th' ? 'มัธยมปลาย / ปวช.' : 'High School / Voc.Cert.',
-                  vocational: lang === 'th' ? 'ปวส.' : 'Higher Vocational',
-                  bachelor: lang === 'th' ? 'ปริญญาตรี' : 'Bachelor',
-                  master: lang === 'th' ? 'ปริญญาโท' : 'Master',
-                  phd: lang === 'th' ? 'ปริญญาเอก' : 'Ph.D.',
-                };
-                if (!edu) return null;
-                return (
-                  <tr key={key}>
-                    <td className="py-2 px-2 border-r border-gray-400 font-bold bg-gray-50 text-black text-xs">{levelDisplayNames[key]}</td>
-                    <td className="py-2 px-2 border-r border-gray-400 text-black">{edu.institute || '-'}</td>
-                    <td className="py-2 px-2 border-r border-gray-400 text-black">{edu.major || '-'}</td>
-                    <td className="py-2 px-2 border-r border-gray-400 text-black">{edu.gpa || '-'}</td>
-                    <td className="py-2 px-2 text-black">{edu.startDate && edu.endDate ? `${edu.startDate}-${edu.endDate}` : '-'}</td>
-                  </tr>
-                )
-              })}
+              {(() => {
+                const edu = data.education;
+                // New structure: Array
+                if (Array.isArray(edu)) {
+                  const levelDisplayNames: Record<string, string> = {
+                    primarySchool: lang === 'th' ? 'ประถมศึกษา' : 'Primary School',
+                    juniorHighSchool: lang === 'th' ? 'มัธยมศึกษาตอนต้น' : 'Junior High School',
+                    highSchool: lang === 'th' ? 'มัธยมปลาย / ปวช.' : 'High School / Voc.Cert.',
+                    vocational: lang === 'th' ? 'ปวส.' : 'Higher Vocational',
+                    bachelor: lang === 'th' ? 'ปริญญาตรี' : 'Bachelor',
+                    master: lang === 'th' ? 'ปริญญาโท' : 'Master',
+                    phd: lang === 'th' ? 'ปริญญาเอก' : 'Ph.D.',
+                  };
+                  return edu.filter(e => e.institute).map((e, i) => (
+                    <tr key={i}>
+                      <td className="py-2 px-2 border-r border-gray-400 font-bold bg-gray-50 text-black text-xs">{levelDisplayNames[e.level || ''] || e.level || '-'}</td>
+                      <td className="py-2 px-2 border-r border-gray-400 text-black">{e.institute || '-'}</td>
+                      <td className="py-2 px-2 border-r border-gray-400 text-black">{e.major || '-'}</td>
+                      <td className="py-2 px-2 border-r border-gray-400 text-black">{e.gpa || '-'}</td>
+                      <td className="py-2 px-2 text-black">{e.startDate && e.endDate ? `${e.startDate}-${e.endDate}` : '-'}</td>
+                    </tr>
+                  ));
+                }
+                // Old structure: Object
+                return (['primarySchool', 'juniorHighSchool', 'highSchool', 'vocational', 'bachelor', 'master', 'phd'] as const).map((key) => {
+                  const e = (edu as any)?.[key];
+                  const levelDisplayNames: Record<string, string> = {
+                    primarySchool: lang === 'th' ? 'ประถมศึกษา' : 'Primary School',
+                    juniorHighSchool: lang === 'th' ? 'มัธยมศึกษาตอนต้น' : 'Junior High School',
+                    highSchool: lang === 'th' ? 'มัธยมปลาย / ปวช.' : 'High School / Voc.Cert.',
+                    vocational: lang === 'th' ? 'ปวส.' : 'Higher Vocational',
+                    bachelor: lang === 'th' ? 'ปริญญาตรี' : 'Bachelor',
+                    master: lang === 'th' ? 'ปริญญาโท' : 'Master',
+                    phd: lang === 'th' ? 'ปริญญาเอก' : 'Ph.D.',
+                  };
+                  if (!e?.institute) return null;
+                  return (
+                    <tr key={key}>
+                      <td className="py-2 px-2 border-r border-gray-400 font-bold bg-gray-50 text-black text-xs">{levelDisplayNames[key]}</td>
+                      <td className="py-2 px-2 border-r border-gray-400 text-black">{e.institute || '-'}</td>
+                      <td className="py-2 px-2 border-r border-gray-400 text-black">{e.major || '-'}</td>
+                      <td className="py-2 px-2 border-r border-gray-400 text-black">{e.gpa || '-'}</td>
+                      <td className="py-2 px-2 text-black">{e.startDate && e.endDate ? `${e.startDate}-${e.endDate}` : '-'}</td>
+                    </tr>
+                  );
+                });
+              })()}
             </tbody>
           </table>
         </div>

@@ -172,7 +172,7 @@ export default function App() {
             <div className="flex items-center min-w-0">
               <img src="/doublea_logo.png" alt="Double A Logo" className="w-9 h-9 mr-3 flex-shrink-0 object-contain" />
               <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight truncate">
-                <span className="text-blue-700 italic">Double A</span> Network
+                <span className="text-blue-700 italic">Double A</span> Alliance
               </h1>
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
@@ -199,11 +199,11 @@ export default function App() {
             <div className="flex items-center gap-2">
               <img src="/doublea_logo.png" alt="Double A Logo" className="w-6 h-6 object-contain" />
               <span className="font-bold text-slate-900">
-                <span className="text-blue-700 italic">Double A</span> Network
+                <span className="text-blue-700 italic">Double A</span> Alliance
               </span>
             </div>
             <div>
-              <p>© 2026 Double A Network.</p>
+              <p>© 2026 Double A Alliance.</p>
               <p className="text-xs mt-1 text-slate-400">Powered by AI Technology</p>
             </div>
           </div>
@@ -223,7 +223,7 @@ export default function App() {
             <div className="flex items-center min-w-0">
               <img src="/doublea_logo.png" alt="Double A Logo" className="w-9 h-9 mr-2.5 flex-shrink-0 object-contain" />
               <span className="font-bold text-sm sm:text-xl text-gray-900 truncate">
-                <span className="text-blue-700 italic">Double A</span> Network
+                <span className="text-blue-700 italic">Double A</span> Alliance
               </span>
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
@@ -583,7 +583,7 @@ export default function App() {
               <div className="flex items-center mb-5">
                 <img src="/doublea_logo.png" alt="Double A Logo" className="w-10 h-10 mr-3 flex-shrink-0 object-contain" />
                 <span className="font-bold text-2xl text-white">
-                  <span className="text-blue-400 italic">Double A</span> Network
+                  <span className="text-blue-400 italic">Double A</span> Alliance
                 </span>
               </div>
               <p className="text-gray-400 max-w-sm leading-relaxed mb-6">
@@ -614,7 +614,7 @@ export default function App() {
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 text-sm text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-gray-500 text-xs sm:text-sm">© 2026 Double A Network. All rights reserved.</p>
+            <p className="text-gray-500 text-xs sm:text-sm">© 2026 Double A Alliance. All rights reserved.</p>
             <div className="flex gap-6">
               <a href="#" className="text-gray-400 hover:text-white transition-colors">Privacy Policy</a>
               <a href="#" className="text-gray-400 hover:text-white transition-colors">Terms of Service</a>

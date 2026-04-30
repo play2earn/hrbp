@@ -75,9 +75,10 @@ interface DatePickerProps {
   className?: string;
   min?: string;
   max?: string;
+  disabled?: boolean;
 }
 
-export const DatePicker: React.FC<DatePickerProps> = ({ label, value, onChange, error, className = '' }) => {
+export const DatePicker: React.FC<DatePickerProps> = ({ label, value, onChange, error, className = '', disabled = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -132,9 +133,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({ label, value, onChange, 
       {label && <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>}
       <div
         className={`relative cursor-pointer group`}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
       >
-        <div className={`block w-full rounded-lg border bg-white text-gray-900 shadow-sm sm:text-sm py-3 px-3 pl-10 transition-colors ${error ? 'border-red-500' : 'border-gray-300 group-hover:border-gray-400'} focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500`}>
+        <div className={`block w-full rounded-lg border bg-white text-gray-900 shadow-sm sm:text-sm py-3 px-3 pl-10 transition-colors ${error ? 'border-red-500' : 'border-gray-300 group-hover:border-gray-400'} focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 ${disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}>
           {value ? new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : <span className="text-gray-400">Select date...</span>}
         </div>
         <CalendarIcon className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />

@@ -137,6 +137,13 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
     }
   };
 
+  const fdTop = viewingApp?.form_data || {};
+  const hasThaiName = fdTop.firstName && fdTop.lastName;
+  const fullName = hasThaiName
+    ? [fdTop.title || fdTop.prefix, fdTop.firstName, fdTop.lastName].filter(Boolean).join(' ')
+    : [fdTop.titleEn, fdTop.firstNameEn, fdTop.lastNameEn].filter(Boolean).join(' ') || viewingApp?.full_name || '-';
+  const fullNameEn = hasThaiName ? [fdTop.titleEn, fdTop.firstNameEn, fdTop.lastNameEn].filter(Boolean).join(' ') : null;
+
   return (
     <>
       {/* View Application Modal - Comprehensive View */}
@@ -161,6 +168,8 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
               <span className="text-gray-500">{label}:</span> <span className="font-medium text-gray-900">{value || '-'}</span>
             </div>
           );
+
+
           return (
             <div className="max-h-[80vh] overflow-y-auto px-1">
               {/* Header with Photo */}
@@ -216,8 +225,9 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                 </div>
                 <div className="flex-1">
                   <h3 className="text-xl font-bold text-gray-900">
-                    {fd.title || fd.prefix || ''} {fd.firstName || viewingApp.full_name?.split(' ')[0] || ''} {fd.lastName || viewingApp.full_name?.split(' ')[1] || ''}
+                    {fullName}
                   </h3>
+                  {fullNameEn && <p className="text-sm text-gray-600 mb-1">{fullNameEn}</p>}
                   <p className="text-sm text-gray-600">{fd.nickname || fd.nicknameEn ? `(${[fd.nickname, fd.nicknameEn].filter(Boolean).join(' / ')})` : ''}</p>
                   <p className="text-sm text-indigo-600 font-medium mt-1">{fd.position || viewingApp.position || 'ไม่ระบุตำแหน่ง'}</p>
                   <p className="text-sm text-gray-500">{fd.department || viewingApp.department || ''}</p>
@@ -301,6 +311,9 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                 <InfoRow label="นามสกุล" value={fd.lastName} />
                 <InfoRow label="สัญชาติ" value={fd.isThaiNational ? 'ไทย' : 'ต่างชาติ'} />
                 <InfoRow label={fd.isThaiNational ? 'เลขบัตรประชาชน' : 'หมายเลขหนังสือเดินทาง'} value={fd.isThaiNational ? fd.nationalId : fd.passportNo} />
+                {!fd.isThaiNational && (
+                  <InfoRow label="Work Permit / สิทธิ์ทำงานในไทย" value={fd.availableToWorkInThailand ? '✅ มีสิทธิ์ทำงานในประเทศไทย' : '⚠️ ยังไม่มีสิทธิ์ทำงานในประเทศไทย'} />
+                )}
                 <InfoRow label="วันเกิด" value={fd.dateOfBirth} />
                 <InfoRow label="อายุ" value={fd.age ? `${fd.age} ปี` : '-'} />
                 <InfoRow label="ส่วนสูง" value={fd.height ? `${fd.height} ซม.` : '-'} />
@@ -351,25 +364,46 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                   <tbody className="divide-y">
                     <tr>
                       <td className="py-2 px-3 font-medium">บิดา</td>
-                      <td className="py-2 px-3">{fd.fatherName || '-'}</td>
-                      <td className="py-2 px-3">{fd.fatherAge || '-'}</td>
-                      <td className="py-2 px-3">{fd.fatherOccupation || '-'}</td>
+                      {fd.fatherDeceased ? (
+                        <td colSpan={3} className="py-2 px-3 italic text-gray-400">เสียชีวิตแล้ว (Deceased)</td>
+                      ) : (
+                        <>
+                          <td className="py-2 px-3">{fd.fatherName || '-'}</td>
+                          <td className="py-2 px-3">{fd.fatherAge || '-'}</td>
+                          <td className="py-2 px-3">{fd.fatherOccupation || '-'}</td>
+                        </>
+                      )}
                     </tr>
                     <tr>
                       <td className="py-2 px-3 font-medium">มารดา</td>
-                      <td className="py-2 px-3">{fd.motherName || '-'}</td>
-                      <td className="py-2 px-3">{fd.motherAge || '-'}</td>
-                      <td className="py-2 px-3">{fd.motherOccupation || '-'}</td>
+                      {fd.motherDeceased ? (
+                        <td colSpan={3} className="py-2 px-3 italic text-gray-400">เสียชีวิตแล้ว (Deceased)</td>
+                      ) : (
+                        <>
+                          <td className="py-2 px-3">{fd.motherName || '-'}</td>
+                          <td className="py-2 px-3">{fd.motherAge || '-'}</td>
+                          <td className="py-2 px-3">{fd.motherOccupation || '-'}</td>
+                        </>
+                      )}
                     </tr>
                   </tbody>
                 </table>
               </div>
               <div className="sm:hidden space-y-2">
-                {[{ rel: 'บิดา', name: fd.fatherName, age: fd.fatherAge, occ: fd.fatherOccupation }, { rel: 'มารดา', name: fd.motherName, age: fd.motherAge, occ: fd.motherOccupation }].map((p) => (
+                {[
+                  { rel: 'บิดา', deceased: fd.fatherDeceased, name: fd.fatherName, age: fd.fatherAge, occ: fd.fatherOccupation },
+                  { rel: 'มารดา', deceased: fd.motherDeceased, name: fd.motherName, age: fd.motherAge, occ: fd.motherOccupation }
+                ].map((p) => (
                   <div key={p.rel} className="bg-gray-50 rounded-lg p-3 text-sm">
                     <div className="font-semibold text-gray-800 mb-1">{p.rel}</div>
-                    <div className="text-gray-600">ชื่อ: <span className="text-gray-900 font-medium">{p.name || '-'}</span></div>
-                    <div className="flex gap-4 text-gray-600"><span>อายุ: <span className="text-gray-900 font-medium">{p.age || '-'}</span></span><span>อาชีพ: <span className="text-gray-900 font-medium">{p.occ || '-'}</span></span></div>
+                    {p.deceased ? (
+                      <div className="italic text-gray-400">เสียชีวิตแล้ว (Deceased)</div>
+                    ) : (
+                      <>
+                        <div className="text-gray-600">ชื่อ: <span className="text-gray-900 font-medium">{p.name || '-'}</span></div>
+                        <div className="flex gap-4 text-gray-600"><span>อายุ: <span className="text-gray-900 font-medium">{p.age || '-'}</span></span><span>อาชีพ: <span className="text-gray-900 font-medium">{p.occ || '-'}</span></span></div>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>
@@ -391,52 +425,79 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {(['primarySchool', 'juniorHighSchool', 'highSchool', 'vocational', 'bachelor', 'master', 'phd'] as const).map((key) => {
-                          const edu = fd.education?.[key];
-                          if (!edu?.institute) return null;
+                        {(() => {
+                          const edu = fd.education;
                           const levelNames: Record<string, string> = {
-                            primarySchool: 'ประถมศึกษา (ป.1-6)',
-                            juniorHighSchool: 'มัธยมต้น (ม.1-3)',
-                            highSchool: 'มัธยมปลาย / ปวช.',
-                            vocational: 'ปวส.',
-                            bachelor: 'ปริญญาตรี',
-                            master: 'ปริญญาโท',
-                            phd: 'ปริญญาเอก',
+                            primarySchool: 'ประถมศึกษา (ป.1-6)', juniorHighSchool: 'มัธยมต้น (ม.1-3)',
+                            highSchool: 'มัธยมปลาย / ปวช.', vocational: 'ปวส.',
+                            bachelor: 'ปริญญาตรี', master: 'ปริญญาโท', phd: 'ปริญญาเอก',
                           };
-                          return (
-                            <tr key={key}>
-                              <td className="py-2 px-3 font-medium">{levelNames[key]}</td>
-                              <td className="py-2 px-3">{edu.institute || '-'}</td>
-                              <td className="py-2 px-3">{edu.major || '-'}</td>
-                              <td className="py-2 px-3">{edu.gpa || '-'}</td>
-                              <td className="py-2 px-3 text-xs">{edu.startDate && edu.endDate ? `${edu.startDate}-${edu.endDate}` : '-'}</td>
-                            </tr>
-                          );
-                        })}
+                          if (Array.isArray(edu)) {
+                            return edu.filter(e => e?.institute).map((e, i) => (
+                              <tr key={i}>
+                                <td className="py-2 px-3 font-medium">{levelNames[e.level || ''] || e.level || '-'}</td>
+                                <td className="py-2 px-3">{e.institute || '-'}</td>
+                                <td className="py-2 px-3">{e.major || '-'}</td>
+                                <td className="py-2 px-3">{e.gpa || '-'}</td>
+                                <td className="py-2 px-3 text-xs">{e.startDate && e.endDate ? `${e.startDate}-${e.endDate}` : '-'}</td>
+                              </tr>
+                            ));
+                          }
+                          return (['primarySchool', 'juniorHighSchool', 'highSchool', 'vocational', 'bachelor', 'master', 'phd'] as const).map((key) => {
+                            const e = edu?.[key];
+                            if (!e?.institute) return null;
+                            return (
+                              <tr key={key}>
+                                <td className="py-2 px-3 font-medium">{levelNames[key]}</td>
+                                <td className="py-2 px-3">{e.institute || '-'}</td>
+                                <td className="py-2 px-3">{e.major || '-'}</td>
+                                <td className="py-2 px-3">{e.gpa || '-'}</td>
+                                <td className="py-2 px-3 text-xs">{e.startDate && e.endDate ? `${e.startDate}-${e.endDate}` : '-'}</td>
+                              </tr>
+                            );
+                          });
+                        })()}
                       </tbody>
                     </table>
                   </div>
                   {/* Mobile: Cards */}
                   <div className="sm:hidden space-y-2">
-                    {(['primarySchool', 'juniorHighSchool', 'highSchool', 'vocational', 'bachelor', 'master', 'phd'] as const).map((key) => {
-                      const edu = fd.education?.[key];
-                      if (!edu?.institute) return null;
+                    {(() => {
+                      const edu = fd.education;
                       const levelNames: Record<string, string> = {
-                        primarySchool: 'ประถมศึกษา (ป.1-6)', juniorHighSchool: 'มัธยมต้น (ม.1-3)', highSchool: 'มัธยมปลาย / ปวช.',
-                        vocational: 'ปวส.', bachelor: 'ปริญญาตรี', master: 'ปริญญาโท', phd: 'ปริญญาเอก',
+                        primarySchool: 'ประถมศึกษา (ป.1-6)', juniorHighSchool: 'มัธยมต้น (ม.1-3)',
+                        highSchool: 'มัธยมปลาย / ปวช.', vocational: 'ปวส.',
+                        bachelor: 'ปริญญาตรี', master: 'ปริญญาโท', phd: 'ปริญญาเอก',
                       };
-                      return (
-                        <div key={key} className="bg-gray-50 rounded-lg p-3 text-sm">
-                          <div className="font-semibold text-gray-800">{levelNames[key]}</div>
-                          <div className="text-gray-600 mt-0.5">{edu.institute || '-'}</div>
-                          <div className="flex flex-wrap gap-x-4 gap-y-0 text-xs text-gray-500 mt-1">
-                            <span>สาขา: {edu.major || '-'}</span>
-                            <span>GPA: {edu.gpa || '-'}</span>
-                            {edu.startDate && edu.endDate && <span>{edu.startDate}-{edu.endDate}</span>}
+                      if (Array.isArray(edu)) {
+                        return edu.filter(e => e?.institute).map((e, i) => (
+                          <div key={i} className="bg-gray-50 rounded-lg p-3 text-sm">
+                            <div className="font-semibold text-gray-800">{levelNames[e.level || ''] || e.level || '-'}</div>
+                            <div className="text-gray-600 mt-0.5">{e.institute || '-'}</div>
+                            <div className="flex flex-wrap gap-x-4 gap-y-0 text-xs text-gray-500 mt-1">
+                              <span>สาขา: {e.major || '-'}</span>
+                              <span>GPA: {e.gpa || '-'}</span>
+                              {e.startDate && e.endDate && <span>{e.startDate}-{e.endDate}</span>}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        ));
+                      }
+                      return (['primarySchool', 'juniorHighSchool', 'highSchool', 'vocational', 'bachelor', 'master', 'phd'] as const).map((key) => {
+                        const e = edu?.[key];
+                        if (!e?.institute) return null;
+                        return (
+                          <div key={key} className="bg-gray-50 rounded-lg p-3 text-sm">
+                            <div className="font-semibold text-gray-800">{levelNames[key]}</div>
+                            <div className="text-gray-600 mt-0.5">{e.institute || '-'}</div>
+                            <div className="flex flex-wrap gap-x-4 gap-y-0 text-xs text-gray-500 mt-1">
+                              <span>สาขา: {e.major || '-'}</span>
+                              <span>GPA: {e.gpa || '-'}</span>
+                              {e.startDate && e.endDate && <span>{e.startDate}-{e.endDate}</span>}
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
                   </div>
                 </>
               ) : (
@@ -805,7 +866,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
               <Link className="w-6 h-6 text-indigo-600" />
             </div>
             <p className="text-gray-700">
-              ต้องการสร้างลิงก์แชร์โปรไฟล์ <strong>{viewingApp?.full_name || viewingApp?.form_data?.firstName}</strong> หรือไม่?
+              ต้องการสร้างลิงก์แชร์โปรไฟล์ <strong>{fullName}</strong> หรือไม่?
             </p>
           </div>
           <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600 space-y-1.5">

@@ -163,7 +163,13 @@ export const api = {
   submitApplication: async (formData: ApplicationForm): Promise<ApiResponse<{ id: string }>> => {
     try {
       // Validate required fields
-      if (!formData.firstName || !formData.lastName || !formData.email) {
+      const hasThaiName = formData.firstName && formData.lastName;
+      const hasEnglishName = formData.firstNameEn && formData.lastNameEn;
+      
+      if (!hasThaiName && !hasEnglishName) {
+        return { success: false, error: { message: 'Please fill in all required name fields.' } };
+      }
+      if (!formData.email) {
         return { success: false, error: { message: 'Please fill in all required fields.' } };
       }
 
@@ -173,13 +179,17 @@ export const api = {
         return { success: false, error: { message: 'Please enter a valid email address.' } };
       }
 
+      const fullName = formData.isThaiNational && hasThaiName
+        ? `${formData.firstName} ${formData.lastName}`.trim()
+        : `${formData.firstNameEn} ${formData.lastNameEn}`.trim();
+
       const payload = {
         position: formData.position,
         department: formData.department,
         business_unit: formData.businessUnit,
         source_channel: formData.sourceChannel,
         campaign_tag: formData.campaignTag,
-        full_name: `${formData.firstName} ${formData.lastName}`.trim(),
+        full_name: fullName,
         email: formData.email.toLowerCase().trim(),
         phone: formData.phone,
         status: 'Pending',
@@ -200,7 +210,7 @@ export const api = {
         application_id: data.id,
         action: 'submitted',
         new_value: 'Pending',
-        performed_by: `${formData.firstName} ${formData.lastName}`.trim() || 'ผู้สมัคร',
+        performed_by: fullName || 'ผู้สมัคร',
       });
 
       return { success: true, data: { id: data.id } };

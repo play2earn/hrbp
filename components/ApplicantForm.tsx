@@ -435,6 +435,23 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
     updateField('experience', newExp);
   };
 
+  const updateEducation = (index: number, field: keyof EducationEntry, value: string) => {
+    const newEdu = [...formData.education];
+    if (!newEdu[index]) newEdu[index] = { level: '', institute: '', major: '', gpa: '', startDate: '', endDate: '' };
+    newEdu[index][field] = value;
+    updateField('education', newEdu);
+  };
+
+  const addEducation = () => {
+    updateField('education', [...formData.education, { level: '', institute: '', major: '', gpa: '', startDate: '', endDate: '' }]);
+  };
+
+  const removeEducation = (index: number) => {
+    const newEdu = [...formData.education];
+    newEdu.splice(index, 1);
+    updateField('education', newEdu);
+  };
+
   const steps = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
   const totalSteps = steps.length;
   const progressPercentage = ((currentStep / totalSteps) * 100);
@@ -455,42 +472,62 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
     }
 
     if (step === 2) {
-      // National ID: 13 digits
-      if (formData.isThaiNational && formData.nationalId) {
-        const cleaned = formData.nationalId.replace(/\D/g, '');
-        if (cleaned.length !== 13) {
-          errors.nationalId = lang === 'th' ? 'เลขบัตรประชาชนต้องมี 13 หลัก' : 'National ID must be 13 digits';
+      // National ID / Passport
+      if (formData.isThaiNational) {
+        if (!formData.nationalId) {
+          errors.nationalId = lang === 'th' ? 'กรุณากรอกเลขบัตรประชาชน' : 'Please enter National ID';
+        } else {
+          const cleaned = formData.nationalId.replace(/\D/g, '');
+          if (cleaned.length !== 13) {
+            errors.nationalId = lang === 'th' ? 'เลขบัตรประชาชนต้องมี 13 หลัก' : 'National ID must be 13 digits';
+          }
+        }
+        // Thai Name Required for Thai
+        if (!formData.firstName) errors.firstName = lang === 'th' ? 'กรุณากรอกชื่อจริง' : 'Required';
+        if (!formData.lastName) errors.lastName = lang === 'th' ? 'กรุณากรอกนามสกุล' : 'Required';
+      } else {
+        if (!formData.passportNo) {
+          errors.nationalId = lang === 'th' ? 'กรุณากรอกหมายเลขพาสปอร์ต' : 'Please enter Passport Number';
         }
       }
-      // Phone: 10 digits
-      if (formData.phone) {
-        const cleaned = formData.phone.replace(/\D/g, '');
-        if (cleaned.length !== 10) {
-          errors.phone = lang === 'th' ? 'เบอร์โทรศัพท์ต้องมี 10 หลัก' : 'Phone number must be 10 digits';
-        }
+
+      // English Name Required for ALL
+      if (!formData.firstNameEn) errors.firstNameEn = lang === 'th' ? 'กรุณากรอกชื่อจริง (EN)' : 'Required';
+      if (!formData.lastNameEn) errors.lastNameEn = lang === 'th' ? 'กรุณากรอกนามสกุล (EN)' : 'Required';
+
+      // General Required
+      if (!formData.dateOfBirth) errors.dateOfBirth = lang === 'th' ? 'กรุณาระบุวันเกิด' : 'Required';
+      if (!formData.email) {
+        // Not required in step 2 if we move it to step 3
       }
-      // Email format
-      if (formData.email) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(formData.email)) {
-          errors.email = lang === 'th' ? 'รูปแบบอีเมลไม่ถูกต้อง' : 'Invalid email format';
-        }
-      }
-      // Age check (double validation)
+
+      // Age check
       if (formData.age && parseInt(formData.age) < 15) {
         errors.age = lang === 'th' ? 'อายุต้องไม่ต่ำกว่า 15 ปี' : 'Age must be at least 15';
       }
     }
 
-    // Step 3 also has phone/email
+    // Step 3: Contact Info
     if (step === 3) {
-      if (formData.phone) {
-        const cleaned = formData.phone.replace(/\D/g, '');
-        if (cleaned.length !== 10) {
-          errors.phone = lang === 'th' ? 'เบอร์โทรศัพท์ต้องมี 10 หลัก' : 'Phone number must be 10 digits';
+      if (!formData.phone) {
+        errors.phone = lang === 'th' ? 'กรุณากรอกเบอร์โทรศัพท์' : 'Required';
+      } else {
+        if (formData.isThaiNational) {
+          const cleaned = formData.phone.replace(/\D/g, '');
+          if (cleaned.length !== 10) {
+            errors.phone = lang === 'th' ? 'เบอร์โทรศัพท์ต้องมี 10 หลัก' : 'Phone number must be 10 digits';
+          }
+        } else {
+          const cleaned = formData.phone.replace(/[^\d+]/g, '');
+          if (cleaned.replace(/\D/g, '').length < 8) {
+            errors.phone = lang === 'th' ? 'เบอร์โทรศัพท์ไม่ถูกต้อง (อย่างน้อย 8 หลัก)' : 'Invalid phone number (min 8 digits)';
+          }
         }
       }
-      if (formData.email) {
+
+      if (!formData.email) {
+        errors.email = lang === 'th' ? 'กรุณากรอกอีเมล' : 'Required';
+      } else {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(formData.email)) {
           errors.email = lang === 'th' ? 'รูปแบบอีเมลไม่ถูกต้อง' : 'Invalid email format';
@@ -544,7 +581,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
           <Check className="w-12 h-12 text-green-600" />
         </div>
         <h2 className="text-3xl font-bold text-gray-900 mb-2">Application Submitted!</h2>
-        <p className="text-gray-600 mb-8">Thank you for your interest in Double A Network.</p>
+        <p className="text-gray-600 mb-8">Thank you for your interest in Double A Alliance.</p>
 
         {trackingId && (
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 max-w-md mx-auto mb-8 shadow-inner">
@@ -737,7 +774,21 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                   />
                 </div>
               </div>
-              <DatePicker label={t.labels.startDate} value={formData.availability} onChange={(val) => updateField('availability', val)} />
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
+                <div className="flex-1 w-full">
+                  <DatePicker label={t.labels.startDate} value={formData.availability} onChange={(val) => updateField('availability', val)} disabled={formData.isAvailableImmediately} />
+                </div>
+                <div className="mb-3">
+                  <CheckboxOption
+                    label={lang === 'th' ? 'พร้อมเริ่มงานทันที' : 'Available Immediately'}
+                    checked={formData.isAvailableImmediately}
+                    onChange={(checked) => {
+                      updateField('isAvailableImmediately', checked);
+                      if (checked) updateField('availability', '');
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           )}
 
@@ -755,25 +806,48 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
               <div>
                 <Input label={formData.isThaiNational ? t.labels.idCard : t.labels.passport} value={formData.isThaiNational ? formData.nationalId : formData.passportNo} onChange={(e) => updateField(formData.isThaiNational ? 'nationalId' : 'passportNo', e.target.value)} maxLength={formData.isThaiNational ? 13 : 20} />
                 {validationErrors.nationalId && <p className="text-red-500 text-xs mt-1">{validationErrors.nationalId}</p>}
+                {!formData.isThaiNational && (
+                  <div className="mt-4">
+                    <CheckboxOption
+                      label={lang === 'th' ? 'สามารถทำงานในประเทศไทยได้' : 'Available to work in Thailand'}
+                      checked={formData.availableToWorkInThailand || false}
+                      onChange={(checked) => updateField('availableToWorkInThailand', checked)}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Thai Name */}
-              <div className="md:col-span-2">
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">ชื่อภาษาไทย / Thai Name</label>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="col-span-1"><Select label={t.labels.title} options={[{ label: 'นาย', value: 'นาย' }, { label: 'นาง', value: 'นาง' }, { label: 'นางสาว', value: 'นางสาว' }]} value={formData.title} onChange={(e) => updateField('title', e.target.value)} /></div>
-                  <div className="col-span-1"><Input label={t.labels.firstName} value={formData.firstName} onChange={(e) => updateField('firstName', e.target.value)} placeholder="ชื่อ" /></div>
-                  <div className="col-span-1"><Input label={t.labels.lastName} value={formData.lastName} onChange={(e) => updateField('lastName', e.target.value)} placeholder="นามสกุล" /></div>
+              {formData.isThaiNational && (
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">ชื่อภาษาไทย / Thai Name</label>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="col-span-1"><Select label={t.labels.title} options={[{ label: 'นาย', value: 'นาย' }, { label: 'นาง', value: 'นาง' }, { label: 'นางสาว', value: 'นางสาว' }]} value={formData.title} onChange={(e) => updateField('title', e.target.value)} /></div>
+                    <div className="col-span-1">
+                      <Input label={t.labels.firstName} value={formData.firstName} onChange={(e) => updateField('firstName', e.target.value)} placeholder="ชื่อ" />
+                      {validationErrors.firstName && <p className="text-red-500 text-xs mt-1">{validationErrors.firstName}</p>}
+                    </div>
+                    <div className="col-span-1">
+                      <Input label={t.labels.lastName} value={formData.lastName} onChange={(e) => updateField('lastName', e.target.value)} placeholder="นามสกุล" />
+                      {validationErrors.lastName && <p className="text-red-500 text-xs mt-1">{validationErrors.lastName}</p>}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* English Name */}
               <div className="md:col-span-2">
                 <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">ชื่อภาษาอังกฤษ / English Name</label>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="col-span-1"><Select label="Title (EN)" options={[{ label: 'Mr.', value: 'Mr.' }, { label: 'Ms.', value: 'Ms.' }, { label: 'Mrs.', value: 'Mrs.' }]} value={formData.titleEn} onChange={(e) => updateField('titleEn', e.target.value)} /></div>
-                  <div className="col-span-1"><Input label="First Name (EN)" value={formData.firstNameEn} onChange={(e) => updateField('firstNameEn', e.target.value)} placeholder="First Name" /></div>
-                  <div className="col-span-1"><Input label="Last Name (EN)" value={formData.lastNameEn} onChange={(e) => updateField('lastNameEn', e.target.value)} placeholder="Last Name" /></div>
+                  <div className="col-span-1">
+                    <Input label="First Name (EN)" value={formData.firstNameEn} onChange={(e) => updateField('firstNameEn', e.target.value)} placeholder="First Name" />
+                    {validationErrors.firstNameEn && <p className="text-red-500 text-xs mt-1">{validationErrors.firstNameEn}</p>}
+                  </div>
+                  <div className="col-span-1">
+                    <Input label="Last Name (EN)" value={formData.lastNameEn} onChange={(e) => updateField('lastNameEn', e.target.value)} placeholder="Last Name" />
+                    {validationErrors.lastNameEn && <p className="text-red-500 text-xs mt-1">{validationErrors.lastNameEn}</p>}
+                  </div>
                 </div>
               </div>
 
@@ -785,7 +859,10 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
               </div>
               <div className="flex flex-col gap-1">
                 <div className="flex gap-4">
-                  <div className="flex-1"><DatePicker label={t.labels.dob} value={formData.dateOfBirth} onChange={handleDateOfBirthChange} /></div>
+                  <div className="flex-1">
+                    <DatePicker label={t.labels.dob} value={formData.dateOfBirth} onChange={handleDateOfBirthChange} />
+                    {validationErrors.dateOfBirth && <p className="text-red-500 text-xs mt-1">{validationErrors.dateOfBirth}</p>}
+                  </div>
                   <div className="w-24"><Input label={t.labels.age} type="number" value={formData.age} readOnly className="bg-gray-50 text-gray-500" /></div>
                 </div>
                 {validationErrors.age && <p className="text-red-500 text-xs mt-1">{validationErrors.age}</p>}
@@ -796,15 +873,17 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                 <Input label={t.labels.height} type="number" value={formData.height} onChange={(e) => updateField('height', e.target.value)} />
               </div>
 
-              <Select 
-                label={t.labels.military} 
-                options={MILITARY_STATUS_OPTIONS.map(o => ({ 
-                  label: lang === 'th' ? o.labelTh : o.labelEn, 
-                  value: o.value 
-                }))} 
-                value={formData.militaryStatus} 
-                onChange={(e) => updateField('militaryStatus', e.target.value)} 
-              />
+              {formData.isThaiNational && (
+                <Select 
+                  label={t.labels.military} 
+                  options={MILITARY_STATUS_OPTIONS.map(o => ({ 
+                    label: lang === 'th' ? o.labelTh : o.labelEn, 
+                    value: o.value 
+                  }))} 
+                  value={formData.militaryStatus} 
+                  onChange={(e) => updateField('militaryStatus', e.target.value)} 
+                />
+              )}
             </div>
           )}
 
@@ -814,7 +893,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
               {/* Registered Address */}
               <div className="bg-gray-50 p-4 rounded-lg space-y-4">
                 <h3 className="font-semibold text-gray-800">{t.labels.registeredAddress}</h3>
-                <Input label={t.labels.registeredAddress} value={formData.registeredAddress} onChange={(e) => updateField('registeredAddress', e.target.value)} placeholder="บ้านเลขที่ หมู่ ซอย ถนน" />
+                <Input label={t.labels.registeredAddress} value={formData.registeredAddress} onChange={(e) => updateField('registeredAddress', e.target.value)} placeholder={lang === 'th' ? 'บ้านเลขที่ หมู่ ซอย ถนน' : 'House No., Moo, Soi, Street'} />
 
                 {/* Thai National: Cascading Dropdowns + Postcode Search */}
                 {formData.isThaiNational ? (
@@ -925,8 +1004,25 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
 
               {/* Current Address */}
               <div className="bg-white border p-4 rounded-lg space-y-4">
-                <h3 className="font-semibold text-gray-800">{t.labels.currentAddress}</h3>
-                <Input label={t.labels.currentAddress} value={formData.currentAddress} onChange={(e) => updateField('currentAddress', e.target.value)} placeholder="บ้านเลขที่ หมู่ ซอย ถนน" />
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                  <h3 className="font-semibold text-gray-800">{t.labels.currentAddress}</h3>
+                  <CheckboxOption
+                    label={lang === 'th' ? 'ใช้ที่อยู่เดียวกับที่อยู่ตามทะเบียนบ้าน' : 'Same as Registered Address'}
+                    checked={formData.isSameAddress}
+                    onChange={(checked) => {
+                      updateField('isSameAddress', checked);
+                      if (checked) {
+                        updateField('currentAddress', formData.registeredAddress);
+                        updateField('currentProvince', formData.registeredProvince);
+                        updateField('currentDistrict', formData.registeredDistrict);
+                        updateField('currentSubDistrict', formData.registeredSubDistrict);
+                        updateField('currentPostcode', formData.registeredPostcode);
+                      }
+                    }}
+                  />
+                </div>
+                <div className={`space-y-4 ${formData.isSameAddress ? "opacity-60 pointer-events-none" : ""}`}>
+                  <Input label={t.labels.currentAddress} value={formData.currentAddress} onChange={(e) => updateField('currentAddress', e.target.value)} placeholder={lang === 'th' ? 'บ้านเลขที่ หมู่ ซอย ถนน' : 'House No., Moo, Soi, Street'} />
 
                 {/* Thai National: Cascading Dropdowns + Postcode Search */}
                 {formData.isThaiNational ? (
@@ -1033,11 +1129,12 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                     <Input label="Postal Code" value={formData.currentPostcode} onChange={(e) => updateField('currentPostcode', e.target.value)} placeholder="Postal Code" />
                   </div>
                 )}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Input label={t.labels.phone} value={formData.phone} onChange={(e) => updateField('phone', e.target.value)} maxLength={10} />
+                  <Input label={t.labels.phone} value={formData.phone} onChange={(e) => updateField('phone', e.target.value)} maxLength={formData.isThaiNational ? 10 : 20} placeholder={formData.isThaiNational ? "08xxxxxxxx" : "+xxxxxxxxxx"} />
                   {validationErrors.phone && <p className="text-red-500 text-xs mt-1">{validationErrors.phone}</p>}
                 </div>
                 <div>
@@ -1061,9 +1158,15 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                     { label: t.options.widowed, value: 'Widowed' }
                   ]}
                   value={formData.maritalStatus}
-                  onChange={(e) => updateField('maritalStatus', e.target.value)}
+                  onChange={(e) => {
+                    const status = e.target.value;
+                    updateField('maritalStatus', status);
+                    if (status === 'Single') updateField('childrenCount', 0);
+                  }}
                 />
-                <Input label={t.labels.children} type="number" value={formData.childrenCount} onChange={(e) => updateField('childrenCount', parseInt(e.target.value))} />
+                {formData.maritalStatus !== 'Single' && (
+                  <Input label={t.labels.children} type="number" value={formData.childrenCount} onChange={(e) => updateField('childrenCount', parseInt(e.target.value))} />
+                )}
                 {formData.maritalStatus === 'Married' && (
                   <>
                     <Input label={t.labels.spouseName} value={formData.spouseName} onChange={(e) => updateField('spouseName', e.target.value)} />
@@ -1076,20 +1179,52 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
               </div>
 
               <div className="space-y-4">
-                <h4 className="font-medium text-gray-900">{t.options.fatherInfo}</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Input label={t.labels.fatherName} value={formData.fatherName} onChange={(e) => updateField('fatherName', e.target.value)} />
-                  <Input label={t.labels.fatherAge} value={formData.fatherAge} onChange={(e) => updateField('fatherAge', e.target.value)} />
-                  <Input label={t.labels.fatherOccupation} value={formData.fatherOccupation} onChange={(e) => updateField('fatherOccupation', e.target.value)} />
+                <div className="flex justify-between items-center">
+                  <h4 className="font-medium text-gray-900">{t.options.fatherInfo}</h4>
+                  <CheckboxOption
+                    label={lang === 'th' ? 'เสียชีวิต (Deceased)' : 'Deceased'}
+                    checked={formData.fatherDeceased}
+                    onChange={(checked) => {
+                      updateField('fatherDeceased', checked);
+                      if (checked) {
+                        updateField('fatherName', '');
+                        updateField('fatherAge', '');
+                        updateField('fatherOccupation', '');
+                      }
+                    }}
+                  />
                 </div>
+                {!formData.fatherDeceased && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Input label={t.labels.fatherName} value={formData.fatherName} onChange={(e) => updateField('fatherName', e.target.value)} />
+                    <Input label={t.labels.fatherAge} value={formData.fatherAge} onChange={(e) => updateField('fatherAge', e.target.value)} />
+                    <Input label={t.labels.fatherOccupation} value={formData.fatherOccupation} onChange={(e) => updateField('fatherOccupation', e.target.value)} />
+                  </div>
+                )}
               </div>
               <div className="space-y-4">
-                <h4 className="font-medium text-gray-900">{t.options.motherInfo}</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Input label={t.labels.motherName} value={formData.motherName} onChange={(e) => updateField('motherName', e.target.value)} />
-                  <Input label={t.labels.motherAge} value={formData.motherAge} onChange={(e) => updateField('motherAge', e.target.value)} />
-                  <Input label={t.labels.motherOccupation} value={formData.motherOccupation} onChange={(e) => updateField('motherOccupation', e.target.value)} />
+                <div className="flex justify-between items-center">
+                  <h4 className="font-medium text-gray-900">{t.options.motherInfo}</h4>
+                  <CheckboxOption
+                    label={lang === 'th' ? 'เสียชีวิต (Deceased)' : 'Deceased'}
+                    checked={formData.motherDeceased}
+                    onChange={(checked) => {
+                      updateField('motherDeceased', checked);
+                      if (checked) {
+                        updateField('motherName', '');
+                        updateField('motherAge', '');
+                        updateField('motherOccupation', '');
+                      }
+                    }}
+                  />
                 </div>
+                {!formData.motherDeceased && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Input label={t.labels.motherName} value={formData.motherName} onChange={(e) => updateField('motherName', e.target.value)} />
+                    <Input label={t.labels.motherAge} value={formData.motherAge} onChange={(e) => updateField('motherAge', e.target.value)} />
+                    <Input label={t.labels.motherOccupation} value={formData.motherOccupation} onChange={(e) => updateField('motherOccupation', e.target.value)} />
+                  </div>
+                )}
               </div>
               <Input label={t.labels.siblings} type="number" value={formData.siblingCount} onChange={(e) => updateField('siblingCount', parseInt(e.target.value))} />
             </div>
@@ -1098,47 +1233,50 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
           {/* --- Step 5: Education --- */}
           {currentStep === 5 && (
             <div className="space-y-6">
-              {([
-                { level: 'primarySchool', noAutocomplete: true },
-                { level: 'juniorHighSchool', noAutocomplete: true },
-                { level: 'High School', noAutocomplete: false },
-                { level: 'Vocational', noAutocomplete: false },
-                { level: 'Bachelor', noAutocomplete: false },
-                { level: 'Master', noAutocomplete: false },
-                { level: 'phd', noAutocomplete: false },
-              ] as Array<{ level: string; noAutocomplete: boolean }>).map(({ level, noAutocomplete }) => {
-                const key = level === 'primarySchool' ? 'primarySchool'
-                  : level === 'juniorHighSchool' ? 'juniorHighSchool'
-                  : level === 'phd' ? 'phd'
-                  : level.toLowerCase().replace(' ', '') === 'highschool' ? 'highSchool'
-                  : level.toLowerCase() as keyof typeof formData.education;
-                const data = formData.education[key];
+              <div className="flex justify-between items-center">
+                <h3 className="font-bold text-lg">{t.sections.education}</h3>
+                <Button size="sm" onClick={addEducation} variant="outline">{lang === 'th' ? 'เพิ่มประวัติการศึกษา' : 'Add Education'}</Button>
+              </div>
+
+              {formData.education.length === 0 && (
+                <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-300 text-gray-500">
+                  {lang === 'th' ? 'ยังไม่ได้เพิ่มประวัติการศึกษา คลิก "เพิ่มประวัติการศึกษา"' : 'No education added yet. Click "Add Education".'}
+                </div>
+              )}
+
+              {formData.education.map((data, idx) => {
                 const currentYear = new Date().getFullYear();
                 const years = Array.from({ length: currentYear - 1940 + 11 }, (_, i) => currentYear + 10 - i);
+                
+                const levelOptions = [
+                  { label: t.options.primarySchool, value: 'primarySchool' },
+                  { label: t.options.juniorHighSchool, value: 'juniorHighSchool' },
+                  { label: t.options.highSchool, value: 'highSchool' },
+                  { label: t.options.vocational, value: 'vocational' },
+                  { label: t.options.bachelor, value: 'bachelor' },
+                  { label: t.options.master, value: 'master' },
+                  { label: t.options.phd, value: 'phd' }
+                ];
 
-                // Determine which list to use for autocomplete
-                const isUniversity = level === 'Bachelor' || level === 'Master' || level === 'phd';
-                const isCollege = level === 'Vocational' || level === 'High School';
+                const isUniversity = data.level === 'bachelor' || data.level === 'master' || data.level === 'phd';
+                const isCollege = data.level === 'vocational' || data.level === 'highSchool';
                 const instituteList = isUniversity ? universities : isCollege ? colleges : null;
-                const listId = isUniversity ? 'universities-list' : isCollege ? 'colleges-list' : null;
-
-                const eduLabelMap: Record<string, string> = {
-                  primarySchool: 'primarySchool',
-                  juniorHighSchool: 'juniorHighSchool',
-                  'High School': 'highSchool',
-                  Vocational: 'vocational',
-                  Bachelor: 'bachelor',
-                  Master: 'master',
-                  phd: 'phd',
-                };
-
-                const eduLabel = t.options[eduLabelMap[level] as keyof typeof t.options] || level;
+                const listId = isUniversity ? `universities-list-${idx}` : isCollege ? `colleges-list-${idx}` : null;
+                const noAutocomplete = !isUniversity && !isCollege;
 
                 return (
-                  <div key={level} className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-bold text-gray-800 mb-3">{eduLabel}</h3>
+                  <div key={idx} className="bg-gray-50 p-4 rounded-lg relative">
+                    <button onClick={() => removeEducation(idx)} className="absolute top-4 right-4 text-red-500 text-xs hover:underline">{t.options.removeExperience}</button>
+                    <div className="mb-4 md:w-1/2">
+                      <Select 
+                        label={lang === 'th' ? 'ระดับการศึกษา' : 'Education Level'} 
+                        options={levelOptions} 
+                        value={data.level || ''} 
+                        onChange={(e) => updateEducation(idx, 'level', e.target.value)} 
+                      />
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Institute field - with autocomplete unless noAutocomplete */}
+                      {/* Institute field */}
                       <div className="flex flex-col">
                         <label className="text-sm font-medium text-gray-700 mb-1">{t.labels.institute}</label>
                         {instituteList && !noAutocomplete ? (
@@ -1148,8 +1286,8 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                               list={listId!}
                               className="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                               value={data.institute}
-                              onChange={(e) => updateNested('education', key as string, { ...data, institute: e.target.value })}
-                              placeholder={`เลือกหรือพิมพ์ชื่อสถาบัน...`}
+                              onChange={(e) => updateEducation(idx, 'institute', e.target.value)}
+                              placeholder={lang === 'th' ? `เลือกหรือพิมพ์ชื่อสถาบัน...` : `Search or type institution name...`}
                             />
                             <datalist id={listId!}>
                               {instituteList.map((item: any) => (
@@ -1162,22 +1300,22 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                             type="text"
                             className="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             value={data.institute}
-                            onChange={(e) => updateNested('education', key as string, { ...data, institute: e.target.value })}
-                            placeholder="ชื่อสถาบัน..."
+                            onChange={(e) => updateEducation(idx, 'institute', e.target.value)}
+                            placeholder={lang === 'th' ? 'ชื่อสถาบัน...' : 'Institution name...'}
                           />
                         )}
                       </div>
-                      <Input label={level === 'primarySchool' || level === 'High School' || level === 'juniorHighSchool' ? t.labels.program : t.labels.major} value={data.major} onChange={(e) => updateNested('education', key as string, { ...data, major: e.target.value })} />
-                      <Input label={t.labels.gpa} value={data.gpa} onChange={(e) => updateNested('education', key as string, { ...data, gpa: e.target.value })} />
+                      <Input label={data.level === 'primarySchool' || data.level === 'highSchool' || data.level === 'juniorHighSchool' ? t.labels.program : t.labels.major} value={data.major} onChange={(e) => updateEducation(idx, 'major', e.target.value)} />
+                      <Input label={t.labels.gpa} value={data.gpa} onChange={(e) => updateEducation(idx, 'gpa', e.target.value)} />
                       <div className="flex gap-2">
                         <div className="flex-1 flex flex-col">
                           <label className="text-sm font-medium text-gray-700 mb-1">{t.labels.yearStart}</label>
                           <select
                             className="border border-gray-300 rounded-lg p-2"
                             value={data.startDate}
-                            onChange={(e) => updateNested('education', key as string, { ...data, startDate: e.target.value })}
+                            onChange={(e) => updateEducation(idx, 'startDate', e.target.value)}
                           >
-                            <option value="">เลือกปี</option>
+                            <option value="">{lang === 'th' ? 'เลือกปี' : 'Select Year'}</option>
                             {years.map(year => <option key={year} value={year.toString()}>{year}</option>)}
                           </select>
                         </div>
@@ -1186,9 +1324,9 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                           <select
                             className="border border-gray-300 rounded-lg p-2"
                             value={data.endDate}
-                            onChange={(e) => updateNested('education', key as string, { ...data, endDate: e.target.value })}
+                            onChange={(e) => updateEducation(idx, 'endDate', e.target.value)}
                           >
-                            <option value="">เลือกปี</option>
+                            <option value="">{lang === 'th' ? 'เลือกปี' : 'Select Year'}</option>
                             {years.map(year => <option key={year} value={year.toString()}>{year}</option>)}
                           </select>
                         </div>
@@ -1328,7 +1466,12 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
           {currentStep === 7 && (
             <div className="space-y-6">
               <div className="flex justify-between items-center">
-                <h3 className="font-bold text-lg">{t.sections.experience}</h3>
+                <div>
+                  <h3 className="font-bold text-lg flex items-center">
+                    {t.sections.experience}
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1">{lang === 'th' ? '(กรุณาเรียงลำดับจากล่าสุดไปเก่าสุด)' : '(Please order from most recent to oldest)'}</p>
+                </div>
                 <Button size="sm" onClick={addExperience} variant="outline">{t.options.addExperience}</Button>
               </div>
 
@@ -1349,7 +1492,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                     <Input label={t.labels.lastSalary} value={exp.salary} onChange={(e) => updateExperience(idx, 'salary', e.target.value)} />
                     <Input label={t.labels.businessType} value={exp.businessType} onChange={(e) => updateExperience(idx, 'businessType', e.target.value)} />
                   </div>
-                  <TextArea label={t.labels.jobDesc} rows={2} value={exp.description} onChange={(e) => updateExperience(idx, 'description', e.target.value)} />
+                  <TextArea label={`${t.labels.jobDesc} ${lang === 'th' ? '(สูงสุด 250 ตัวอักษร)' : '(Max 250 characters)'}`} rows={2} value={exp.description} onChange={(e) => updateExperience(idx, 'description', e.target.value)} maxLength={250} />
                 </div>
               ))}
             </div>
@@ -1361,6 +1504,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
               <div className="bg-gray-50 p-6 rounded-lg">
                 <label className="block text-sm font-bold text-gray-900 mb-4 flex items-center">
                   {t.labels.upcountry} <span className="text-red-500 ml-1">*</span>
+                  <span className="text-xs text-gray-500 font-normal ml-2">{lang === 'th' ? '(สามารถเลือกได้มากกว่า 1 รายการ)' : '(You can select multiple locations)'}</span>
                 </label>
                 <div className="space-y-3">
                   {UPCOUNTRY_LOCATIONS_DATA.map(locData => {
@@ -1421,7 +1565,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                     </div>
                     {formData.hasChronicDisease && (
                       <div className="animate-in fade-in slide-in-from-top-2">
-                        <Input placeholder={t.labels.pleaseSpecify} value={formData.chronicDiseaseDetail} onChange={(e) => updateField('chronicDiseaseDetail', e.target.value)} />
+                        <Input placeholder={t.labels.pleaseSpecify} value={formData.chronicDiseaseDetail} onChange={(e) => updateField('chronicDiseaseDetail', e.target.value)} maxLength={250} />
                       </div>
                     )}
                   </div>
@@ -1433,7 +1577,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                     </div>
                     {formData.hasSurgery && (
                       <div className="animate-in fade-in slide-in-from-top-2">
-                        <Input placeholder={t.labels.pleaseSpecify} value={formData.surgeryDetail} onChange={(e) => updateField('surgeryDetail', e.target.value)} />
+                        <Input placeholder={t.labels.pleaseSpecify} value={formData.surgeryDetail} onChange={(e) => updateField('surgeryDetail', e.target.value)} maxLength={250} />
                       </div>
                     )}
                   </div>
@@ -1445,7 +1589,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                     </div>
                     {formData.hasMedicalRecord && (
                       <div className="animate-in fade-in slide-in-from-top-2">
-                        <Input placeholder={t.labels.pleaseSpecify} value={formData.medicalRecordDetail} onChange={(e) => updateField('medicalRecordDetail', e.target.value)} />
+                        <Input placeholder={t.labels.pleaseSpecify} value={formData.medicalRecordDetail} onChange={(e) => updateField('medicalRecordDetail', e.target.value)} maxLength={250} />
                       </div>
                     )}
                   </div>

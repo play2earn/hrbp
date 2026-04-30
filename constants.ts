@@ -3,7 +3,7 @@ import { Language } from './types';
 
 export const TRANSLATIONS = {
   en: {
-    appTitle: 'Double A Network',
+    appTitle: 'Double A Alliance',
     welcome: 'Join Our Team',
     steps: {
       1: 'Job Interest',
@@ -127,8 +127,8 @@ export const TRANSLATIONS = {
 
       // Step 8
       upcountry: 'Are you willing to work upcountry?',
-      strength: 'My strength (max 250 character)',
-      weakness: 'My weaknesses (max 250 character)',
+      strength: 'My strength',
+      weakness: 'My weaknesses',
       lessFit: 'Type of work that less fit my own interest and reason why',
       principles: 'My principles in working are',
       troubleResolve: 'When troubles in a job arise, I resolve them by',
@@ -182,15 +182,15 @@ export const TRANSLATIONS = {
       noIdont: 'No, I don\'t',
       notHave: 'Not have license',
       privateCar: 'Private Car',
-      privateMotorcycle: 'รถจักรยานยนต์ส่วนบุคคล',
+      privateMotorcycle: 'Private Motorcycle',
       publicVehicle2: 'Public Vehicle Class 2',
       publicVehicle3: 'Public Vehicle Class 3',
       fatherInfo: "Father's Information",
       motherInfo: "Mother's Information",
       primarySchool: 'Primary School (P.1-P.6)',
       juniorHighSchool: 'Junior High School (M.1-M.3)',
-      highSchool: 'High School / Vocational Cert. (ม.4-ม.6 / ปวช.)',
-      vocational: 'Higher Vocational (Diploma / ปวส.)',
+      highSchool: 'High School / Vocational Cert.',
+      vocational: 'Higher Vocational (Diploma)',
       bachelor: 'Bachelor',
       master: 'Master',
       phd: 'Doctorate (Ph.D.)',
@@ -206,7 +206,7 @@ export const TRANSLATIONS = {
     }
   },
   th: {
-    appTitle: 'Double A Network',
+    appTitle: 'Double A Alliance',
     welcome: 'ร่วมงานกับเรา',
     steps: {
       1: 'ตำแหน่งงาน',
@@ -557,7 +557,7 @@ export const UPCOUNTRY_LOCATIONS_DATA = [
   { key: 'dap', en: 'Chachoengsao : Bangna Trat km.42 (DAP)', th: 'ฉะเชิงเทรา : บางนา-ตราด กม.42 (DAP)' },
   { key: 'ip5', en: 'Chachoengsao : Bangprakong (IP5)', th: 'ฉะเชิงเทรา : บางปะกง (IP5)' },
   { key: 'ip2', en: 'Chachoengsao : Phanom Sarakham (IP2)', th: 'ฉะเชิงเทรา : พนมสารคาม (IP2)' },
-  { key: 'ip1', en: 'Prachin Buri : 304 ดั๊บเบิ้ล เอ (IP1)', th: 'ปราจีนบุรี : 304 ดั๊บเบิ้ล เอ (IP1)' },
+  { key: 'ip1', en: 'Prachin Buri : 304 Double A (IP1)', th: 'ปราจีนบุรี : 304 ดั๊บเบิ้ล เอ (IP1)' },
   { key: 'sriracha', en: 'Chonburi : Si Racha', th: 'ชลบุรี : ศรีราชา' },
   { key: 'onebkk', en: 'Bangkok : One Bangkok', th: 'กรุงเทพฯ : One Bangkok' },
   { key: 'unable', en: "I'm unable to work in a different province", th: 'ไม่สามารถไปทำงานต่างจังหวัดได้' }
