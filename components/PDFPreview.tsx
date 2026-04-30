@@ -55,15 +55,17 @@ const ConsentSection: React.FC<{ data: ApplicationForm; lang: Language }> = ({ d
           <div>
             <div className="border-b border-black h-8 mb-1"></div>
             <p className="text-xs text-gray-600">{lang === 'th' ? 'ตำแหน่ง' : 'Position'}</p>
+            <p className="text-sm font-semibold mt-1">{(lang === 'en' ? (data.positionEn || data.position) : data.position) || '-'}</p>
           </div>
           <div>
             <div className="border-b border-black h-8 mb-1"></div>
             <p className="text-xs text-gray-600">{lang === 'th' ? 'เบอร์โทรติดต่อ' : 'Contact Number'}</p>
+            <p className="text-sm font-semibold mt-1">{data.phone || '-'}</p>
           </div>
         </div>
 
         <div className="text-center mt-6 text-sm font-bold">{lang === 'th' ? 'ผู้สมัครงาน' : 'Applicant'}</div>
-        <div className="text-center mt-1 text-xs text-gray-500">{lang === 'th' ? 'วัน/ เดือน/ ปี' : 'Day / Month / Year'}</div>
+        <div className="text-center mt-1 text-xs text-gray-500">{formattedDate}</div>
       </div>
 
       {/* ===== Section 2: รายละเอียดเกี่ยวกับข้อมูลส่วนบุคคล (Privacy Notice) ===== */}
@@ -289,7 +291,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
           {/* Position Details Table */}
           <div className="flex-1 border-2 border-black">
             <div className="grid grid-cols-2">
-              <BoxField label={t.labels.position} value={data.position} />
+              <BoxField label={t.labels.position} value={lang === 'en' ? (data.positionEn || data.position) : data.position} />
               <BoxField label={t.labels.salary} value={`${data.expectedSalary || '-'} ${data.isSalaryNegotiable ? '(Negotiable)' : ''}`} className="border-r-0" />
             </div>
             <div className="grid grid-cols-2">

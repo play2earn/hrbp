@@ -70,7 +70,22 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
       setLoading(true);
       const result = await api.getApplicationByShareToken(token);
       if (result.success && result.data) {
-        setApp(result.data);
+        const appData = result.data;
+        // Legacy data fallback: if foreigner but missing positionEn, try to fetch it
+        if (appData.form_data && appData.form_data.isThaiNational === false && !appData.form_data.positionEn && appData.form_data.position) {
+          try {
+            const posResult = await api.master.getAll('positions');
+            if (posResult.success && posResult.data) {
+              const matchedPos = posResult.data.find((p: any) => p.name_th === appData.form_data.position);
+              if (matchedPos && matchedPos.name_en) {
+                appData.form_data.positionEn = matchedPos.name_en;
+              }
+            }
+          } catch (e) {
+            console.error('Failed to fetch positions for legacy mapping', e);
+          }
+        }
+        setApp(appData);
       } else {
         setError(result.error?.message || 'ไม่สามารถโหลดข้อมูลได้');
       }
@@ -283,7 +298,7 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
             <div>
               <h1 className="text-xl font-bold">{fullName}</h1>
               {fullNameEn && <p className="text-white/70 text-sm">{fullNameEn}</p>}
-              <p className="text-indigo-200 font-medium mt-1">{fd.position || app.position || '-'}</p>
+              <p className="text-indigo-200 font-medium mt-1">{isForeigner ? (fd.positionEn || fd.position || app.position || '-') : (fd.position || app.position || '-')}</p>
               <p className="text-indigo-200/70 text-sm">{fd.department || app.department || ''}</p>
               {fd.expectedSalary && <p className="text-white/80 text-xs mt-1">{t.expectedSalary}: {fd.expectedSalary}</p>}
             </div>
@@ -435,14 +450,44 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
           {/* การศึกษา */}
           {fd.education && (
             <Section title={t.education} icon={GraduationCap}>
-              <div className="overflow-hidden border border-gray-100 rounded-xl shadow-sm">
+              {/* Mobile: Card layout */}
+              <div className="sm:hidden space-y-3">
+                {(() => {
+                  const edu = fd.education;
+                  const renderCard = (e: any, key: string | number, levelLabel: string) => {
+                    if (!e?.institute) return null;
+                    return (
+                      <div key={key} className="bg-slate-50/80 rounded-xl p-4 border border-slate-100">
+                        <p className="font-bold text-indigo-700 text-sm mb-1">{levelLabel}</p>
+                        <p className="font-semibold text-gray-900 text-sm">{e.institute}</p>
+                        {e.major && <p className="text-gray-500 text-xs mt-0.5">{e.major}</p>}
+                        <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
+                          <span>GPA: <strong className="text-gray-700">{e.gpa || '-'}</strong></span>
+                          <span>{e.startDate && e.endDate ? `${e.startDate} – ${e.endDate}` : e.endDate || '-'}</span>
+                        </div>
+                      </div>
+                    );
+                  };
+                  if (Array.isArray(edu)) {
+                    return edu.filter(e => e?.institute).map((e, i) =>
+                      renderCard(e, i, EDU_LEVEL_MAP[lang][e.level || ''] || e.level || '-')
+                    );
+                  }
+                  return EDU_ORDER.map(key => {
+                    const e = edu?.[key];
+                    return renderCard(e, key, EDU_LEVEL_MAP[lang][key]);
+                  });
+                })()}
+              </div>
+              {/* Desktop: Table layout */}
+              <div className="hidden sm:block overflow-x-auto border border-gray-100 rounded-xl shadow-sm">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-slate-50 text-slate-500 border-b border-gray-100">
-                      <th className="text-left py-3 px-4 font-bold text-[11px] uppercase tracking-wider">{lang === 'th' ? 'ระดับ' : 'Level'}</th>
-                      <th className="text-left py-3 px-4 font-bold text-[11px] uppercase tracking-wider">{lang === 'th' ? 'สถาบัน / สาขา' : 'Institute / Major'}</th>
-                      <th className="text-center py-3 px-4 font-bold text-[11px] uppercase tracking-wider">GPA</th>
-                      <th className="text-center py-3 px-4 font-bold text-[11px] uppercase tracking-wider">{lang === 'th' ? 'ช่วงเวลา' : 'Period'}</th>
+                      <th className="text-left py-3 px-3 font-bold text-[11px] uppercase tracking-wider">{lang === 'th' ? 'ระดับ' : 'Level'}</th>
+                      <th className="text-left py-3 px-3 font-bold text-[11px] uppercase tracking-wider">{lang === 'th' ? 'สถาบัน / สาขา' : 'Institute / Major'}</th>
+                      <th className="text-center py-3 px-3 font-bold text-[11px] uppercase tracking-wider">GPA</th>
+                      <th className="text-center py-3 px-3 font-bold text-[11px] uppercase tracking-wider">{lang === 'th' ? 'ช่วงเวลา' : 'Period'}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -451,15 +496,15 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
                       if (Array.isArray(edu)) {
                         return edu.filter(e => e?.institute).map((e, i) => (
                           <tr key={i} className="hover:bg-indigo-50/30 transition-colors">
-                            <td className="py-4 px-4 align-top">
+                            <td className="py-3 px-3 align-top">
                               <span className="font-bold text-indigo-700 block whitespace-nowrap">{EDU_LEVEL_MAP[lang][e.level || ''] || e.level || '-'}</span>
                             </td>
-                            <td className="py-4 px-4 align-top">
+                            <td className="py-3 px-3 align-top">
                               <div className="font-semibold text-gray-900">{e.institute}</div>
                               {e.major && <div className="text-gray-500 text-xs mt-0.5">{e.major}</div>}
                             </td>
-                            <td className="py-4 px-4 text-center align-top font-medium text-slate-600">{e.gpa || '-'}</td>
-                            <td className="py-4 px-4 text-center align-top text-xs text-slate-500 whitespace-nowrap">
+                            <td className="py-3 px-3 text-center align-top font-medium text-slate-600">{e.gpa || '-'}</td>
+                            <td className="py-3 px-3 text-center align-top text-xs text-slate-500 whitespace-nowrap">
                               {e.startDate && e.endDate ? `${e.startDate} – ${e.endDate}` : e.endDate || '-'}
                             </td>
                           </tr>
@@ -470,15 +515,15 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
                         if (!e?.institute) return null;
                         return (
                           <tr key={key} className="hover:bg-indigo-50/30 transition-colors">
-                            <td className="py-4 px-4 align-top">
+                            <td className="py-3 px-3 align-top">
                               <span className="font-bold text-indigo-700 block whitespace-nowrap">{EDU_LEVEL_MAP[lang][key]}</span>
                             </td>
-                            <td className="py-4 px-4 align-top">
+                            <td className="py-3 px-3 align-top">
                               <div className="font-semibold text-gray-900">{e.institute}</div>
                               {e.major && <div className="text-gray-500 text-xs mt-0.5">{e.major}</div>}
                             </td>
-                            <td className="py-4 px-4 text-center align-top font-medium text-slate-600">{e.gpa || '-'}</td>
-                            <td className="py-4 px-4 text-center align-top text-xs text-slate-500 whitespace-nowrap">
+                            <td className="py-3 px-3 text-center align-top font-medium text-slate-600">{e.gpa || '-'}</td>
+                            <td className="py-3 px-3 text-center align-top text-xs text-slate-500 whitespace-nowrap">
                               {e.startDate && e.endDate ? `${e.startDate} – ${e.endDate}` : e.endDate || '-'}
                             </td>
                           </tr>
@@ -494,7 +539,22 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
           {/* ประสบการณ์ทำงาน */}
           {fd.experience && fd.experience.length > 0 && (
             <Section title={t.experience} icon={Briefcase}>
-              <div className="overflow-x-auto">
+              {/* Mobile: Card layout */}
+              <div className="sm:hidden space-y-3">
+                {fd.experience.map((exp: any, i: number) => (
+                  <div key={i} className="bg-slate-50/80 rounded-xl p-4 border border-slate-100">
+                    <div className="flex justify-between items-start mb-1">
+                      <p className="font-semibold text-gray-900 text-sm">{exp.company || '-'}</p>
+                      <span className="text-xs text-gray-500 whitespace-nowrap ml-2">{exp.salary || '-'}</span>
+                    </div>
+                    <p className="text-indigo-700 text-sm font-medium">{exp.position || '-'}</p>
+                    <p className="text-xs text-gray-500 mt-1">{exp.from || '-'} — {exp.to || (lang === 'th' ? 'ปัจจุบัน' : 'Present')}</p>
+                    {exp.description && <p className="text-xs text-gray-500 italic mt-2">📌 {exp.description}</p>}
+                  </div>
+                ))}
+              </div>
+              {/* Desktop: Table layout */}
+              <div className="hidden sm:block overflow-x-auto">
                 <table className="w-full text-sm border-collapse">
                   <thead>
                     <tr className="bg-gray-50 text-gray-600">

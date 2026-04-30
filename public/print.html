@@ -885,10 +885,12 @@
             <div>
               <div class="border-b border-gray-400 h-8 mb-1"></div>
               <p class="text-[10px] text-gray-500" data-i18n="consentPosition">ตำแหน่ง</p>
+              <p class="text-[12px] font-semibold mt-1" id="consent-position">-</p>
             </div>
             <div>
               <div class="border-b border-gray-400 h-8 mb-1"></div>
               <p class="text-[10px] text-gray-500" data-i18n="consentPhone">เบอร์โทรติดต่อ</p>
+              <p class="text-[12px] font-semibold mt-1" id="consent-phone">-</p>
             </div>
           </div>
           <p class="text-center mt-4 text-[12px] font-bold" data-i18n="consentApplicantLabel">ผู้สมัครงาน</p>
@@ -1144,6 +1146,9 @@
     if (dataStr) {
       try {
         const d = JSON.parse(dataStr);
+        if (d.isThaiNational === false) {
+          setLang('en');
+        }
 
         // Set document title for PDF filename: ชื่อ-สกุล-ตำแหน่ง-วันเดือนปี
         const today = new Date();
@@ -1186,8 +1191,9 @@
 
         set('app-id', d.id || `${dateStr}-${Math.floor(Math.random() * 1000)}`);
 
-        // Position
-        set('position', d.position);
+        // Position - show English for foreigners
+        const displayPosition = (d.isThaiNational === false) ? (d.positionEn || d.position) : d.position;
+        set('position', displayPosition);
         set('department', d.department);
         set('salary', d.expectedSalary ? `${formatMoney(d.expectedSalary)}${d.isSalaryNegotiable ? ' (ต่อรองได้)' : ''}` : '-');
         set('availability', formatDateValue(d.availability));
@@ -1225,7 +1231,7 @@
             if (parentGrid) {
               const wpGrid = document.createElement('div');
               wpGrid.className = 'grid grid-cols-1 q-row';
-              const wpText = d.availableToWorkInThailand ? '✅ มีสิทธิ์ทำงานในประเทศไทย (Available to work in Thailand)' : '⚠️ ยังไม่มีสิทธิ์ทำงานในประเทศไทย (Not available yet)';
+              const wpText = d.availableToWorkInThailand ? '✅ มีสิทธิ์ทำงานในประเทศไทย (Eligible to work in Thailand)' : '⚠️ ยังไม่มีสิทธิ์ทำงานในประเทศไทย (Not eligible yet)';
               wpGrid.innerHTML = `
                 <div class="box-field" style="border-right:none; border-bottom:none;">
                   <div class="box-label">Work Permit / สิทธิ์ทำงานในไทย</div>
@@ -1439,6 +1445,8 @@
           : 'ทั้งนี้ยินยอมให้จัดเก็บและใช้งานข้อมูลดังกล่าวเป็นระยะเวลา 5 ปี นับแต่วันที่สมัครงาน';
         ['consent-applicant-name', 'consent-applicant-name-2'].forEach(id => set(id, consentName));
         ['consent-date-1', 'consent-date-2'].forEach(id => set(id, consentDateFormatted));
+        set('consent-position', displayPosition);
+        set('consent-phone', d.phone);
 
         // Privacy Notice section - auto-fill
         const isEN = currentLang === 'en';

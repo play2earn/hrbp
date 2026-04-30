@@ -29,6 +29,7 @@ export interface ApplicationForm {
   businessUnit: string;
   department: string;
   position: string;
+  positionEn: string;
   expectedSalary: string;
   isSalaryNegotiable: boolean;
   availability: string;
@@ -173,6 +174,7 @@ export const INITIAL_FORM_STATE: ApplicationForm = {
   businessUnit: '',
   department: '',
   position: '',
+  positionEn: '',
   expectedSalary: '',
   isSalaryNegotiable: false,
   availability: '',

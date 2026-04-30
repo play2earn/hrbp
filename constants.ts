@@ -106,8 +106,8 @@ export const TRANSLATIONS = {
       chinese: 'Chinese skill',
       chineseScore: 'Chinese Test score (HSK, Etc.)',
       driving: 'Driving (For positions that require the use of vehicles)',
-      motorcycle: 'รถจักรยานยนต์',
-      car: 'รถยนต์',
+      motorcycle: 'Motorcycle',
+      car: 'Car',
       canDrive: 'Can you drive/ride?',
       haveLicense: 'Do you have a license?',
       licenseList: 'Driving License',
@@ -123,7 +123,7 @@ export const TRANSLATIONS = {
       lastPosition: 'Position',
       lastSalary: 'Salary per month',
       businessType: 'Business type (Explain business type)',
-      jobDesc: 'Job description (Max 250 Character)',
+      jobDesc: 'Job description',
 
       // Step 8
       upcountry: 'Are you willing to work upcountry?',

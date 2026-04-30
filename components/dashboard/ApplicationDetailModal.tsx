@@ -62,6 +62,28 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
         }
       };
       fetchExistingToken();
+
+      // Legacy data fallback: Fetch English position if missing for foreigners
+      const fd = viewingApp.form_data;
+      if (fd && fd.isThaiNational === false && !fd.positionEn && (fd.position || viewingApp.position)) {
+        const fetchPosEn = async () => {
+          try {
+            const posResult = await api.master.getAll('positions');
+            if (posResult.success && posResult.data) {
+              const matchedPos = posResult.data.find((p: any) => p.name_th === (fd.position || viewingApp.position));
+              if (matchedPos && matchedPos.name_en) {
+                // Mutate the local viewingApp copy so subsequent renders and print preview use the English name
+                const updatedApp = { ...viewingApp };
+                updatedApp.form_data.positionEn = matchedPos.name_en;
+                setViewingApp(updatedApp);
+              }
+            }
+          } catch (e) {
+            console.error('Failed to map legacy position', e);
+          }
+        };
+        fetchPosEn();
+      }
     } else {
       setShareLink(null);
       setShareToken(null);
@@ -138,6 +160,8 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   };
 
   const fdTop = viewingApp?.form_data || {};
+  const isForeignerTop = fdTop.isThaiNational === false;
+  const langTop = isForeignerTop ? 'en' : 'th';
   const hasThaiName = fdTop.firstName && fdTop.lastName;
   const fullName = hasThaiName
     ? [fdTop.title || fdTop.prefix, fdTop.firstName, fdTop.lastName].filter(Boolean).join(' ')
@@ -150,12 +174,14 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
       <Modal
         isOpen={!!viewingApp}
         onClose={() => setViewingApp(null)}
-        title="รายละเอียดผู้สมัคร"
+        title={langTop === 'en' ? 'Application Details' : 'รายละเอียดผู้สมัคร'}
         size="full"
         footer={null}
       >
         {viewingApp && (() => {
           const fd = viewingApp.form_data || {};
+          const isForeigner = fd.isThaiNational === false;
+          const lang = isForeigner ? 'en' : 'th';
           const SectionHeader = ({ title, icon: Icon }: { title: string; icon?: any }) => (
             <div className="bg-gray-100 border-y border-gray-300 py-2 px-3 -mx-1 mt-4 mb-3">
               <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
@@ -229,7 +255,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                   </h3>
                   {fullNameEn && <p className="text-sm text-gray-600 mb-1">{fullNameEn}</p>}
                   <p className="text-sm text-gray-600">{fd.nickname || fd.nicknameEn ? `(${[fd.nickname, fd.nicknameEn].filter(Boolean).join(' / ')})` : ''}</p>
-                  <p className="text-sm text-indigo-600 font-medium mt-1">{fd.position || viewingApp.position || 'ไม่ระบุตำแหน่ง'}</p>
+                  <p className="text-sm text-indigo-600 font-medium mt-1">{fd.isThaiNational === false ? (fd.positionEn || fd.position || viewingApp.position || 'ไม่ระบุตำแหน่ง') : (fd.position || viewingApp.position || 'ไม่ระบุตำแหน่ง')}</p>
                   <p className="text-sm text-gray-500">{fd.department || viewingApp.department || ''}</p>
                   <div className="flex flex-wrap gap-2 mt-2">
                     <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(viewingApp.status)}`}>
@@ -295,59 +321,59 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
 
               {/* 1. Position Applied */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 bg-indigo-50 p-3 rounded-lg mb-4">
-                <InfoRow label="ตำแหน่งที่สมัคร" value={fd.position || viewingApp.position} />
-                <InfoRow label="เงินเดือนที่ต้องการ" value={fd.expectedSalary ? `${fd.expectedSalary} ${fd.isSalaryNegotiable ? '(ต่อรองได้)' : ''}` : '-'} />
-                <InfoRow label="แผนก/ฝ่าย" value={fd.department} />
-                <InfoRow label="วันที่สามารถเริ่มงาน" value={fd.availability} />
+                <InfoRow label={lang === 'en' ? 'Position Applied' : 'ตำแหน่งที่สมัคร'} value={fd.isThaiNational === false ? (fd.positionEn || fd.position || viewingApp.position) : (fd.position || viewingApp.position)} />
+                <InfoRow label={lang === 'en' ? 'Expected Salary' : 'เงินเดือนที่ต้องการ'} value={fd.expectedSalary ? `${fd.expectedSalary} ${fd.isSalaryNegotiable ? '(ต่อรองได้)' : ''}` : '-'} />
+                <InfoRow label={lang === 'en' ? 'Department' : 'แผนก/ฝ่าย'} value={fd.department} />
+                <InfoRow label={lang === 'en' ? 'Availability' : 'วันที่สามารถเริ่มงาน'} value={fd.availability} />
               </div>
 
               {/* 2. Personal Info */}
-              <SectionHeader title="ข้อมูลส่วนตัว" icon={User} />
+              <SectionHeader title={lang === 'en' ? 'Personal Information' : 'ข้อมูลส่วนตัว'} icon={User} />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
-                <InfoRow label="คำนำหน้า" value={fd.title || fd.prefix} />
+                <InfoRow label={lang === 'en' ? 'Title' : 'คำนำหน้า'} value={fd.title || fd.prefix} />
                 <InfoRow label="ชื่อเล่น (ไทย)" value={fd.nickname} />
                 <InfoRow label="ชื่อเล่น (อังกฤษ)" value={fd.nicknameEn} />
-                <InfoRow label="ชื่อ" value={fd.firstName} />
-                <InfoRow label="นามสกุล" value={fd.lastName} />
-                <InfoRow label="สัญชาติ" value={fd.isThaiNational ? 'ไทย' : 'ต่างชาติ'} />
-                <InfoRow label={fd.isThaiNational ? 'เลขบัตรประชาชน' : 'หมายเลขหนังสือเดินทาง'} value={fd.isThaiNational ? fd.nationalId : fd.passportNo} />
+                <InfoRow label={lang === 'en' ? 'First Name' : 'ชื่อ'} value={fd.firstName} />
+                <InfoRow label={lang === 'en' ? 'Last Name' : 'นามสกุล'} value={fd.lastName} />
+                <InfoRow label={lang === 'en' ? 'Nationality' : 'สัญชาติ'} value={fd.isThaiNational ? (lang === 'en' ? 'Thai' : 'ไทย') : (lang === 'en' ? 'Foreigner' : 'ต่างชาติ')} />
+                <InfoRow label={lang === 'en' ? 'ID Card / Passport' : (fd.isThaiNational ? 'เลขบัตรประชาชน' : 'หมายเลขหนังสือเดินทาง')} value={fd.isThaiNational ? fd.nationalId : fd.passportNo} />
                 {!fd.isThaiNational && (
-                  <InfoRow label="Work Permit / สิทธิ์ทำงานในไทย" value={fd.availableToWorkInThailand ? '✅ มีสิทธิ์ทำงานในประเทศไทย' : '⚠️ ยังไม่มีสิทธิ์ทำงานในประเทศไทย'} />
+                  <InfoRow label={lang === 'en' ? 'Work Permit' : 'Work Permit / สิทธิ์ทำงานในไทย'} value={fd.availableToWorkInThailand ? (lang === 'en' ? '✅ Eligible to work in Thailand' : '✅ มีสิทธิ์ทำงานในประเทศไทย') : (lang === 'en' ? '⚠️ Not eligible to work in Thailand yet' : '⚠️ ยังไม่มีสิทธิ์ทำงานในประเทศไทย')} />
                 )}
-                <InfoRow label="วันเกิด" value={fd.dateOfBirth} />
-                <InfoRow label="อายุ" value={fd.age ? `${fd.age} ปี` : '-'} />
-                <InfoRow label="ส่วนสูง" value={fd.height ? `${fd.height} ซม.` : '-'} />
-                <InfoRow label="น้ำหนัก" value={fd.weight ? `${fd.weight} กก.` : '-'} />
-                <InfoRow label="สถานะทางทหาร" value={getMilitaryStatusLabel(fd.militaryStatus)} />
-                <InfoRow label="เบอร์โทร" value={fd.phone || viewingApp.phone} />
-                <InfoRow label="อีเมล" value={fd.email || viewingApp.email} className="col-span-2" />
+                <InfoRow label={lang === 'en' ? 'Date of Birth' : 'วันเกิด'} value={fd.dateOfBirth} />
+                <InfoRow label={lang === 'en' ? 'Age' : 'อายุ'} value={fd.age ? `${fd.age} ${lang === 'en' ? 'Years' : 'ปี'}` : '-'} />
+                <InfoRow label={lang === 'en' ? 'Height' : 'ส่วนสูง'} value={fd.height ? `${fd.height} ${lang === 'en' ? 'cm' : 'ซม.'}` : '-'} />
+                <InfoRow label={lang === 'en' ? 'Weight' : 'น้ำหนัก'} value={fd.weight ? `${fd.weight} ${lang === 'en' ? 'kg' : 'กก.'}` : '-'} />
+                <InfoRow label={lang === 'en' ? 'Military Status' : 'สถานะทางทหาร'} value={lang === 'en' ? (fd.militaryStatus === 'ExemptLaw' || fd.militaryStatus === 'ExemptFemale' ? 'Exempted' : fd.militaryStatus) : getMilitaryStatusLabel(fd.militaryStatus)} />
+                <InfoRow label={lang === 'en' ? 'Phone' : 'เบอร์โทร'} value={fd.phone || viewingApp.phone} />
+                <InfoRow label={lang === 'en' ? 'Email' : 'อีเมล'} value={fd.email || viewingApp.email} className="col-span-2" />
               </div>
 
               {/* 3. Contact Address */}
-              <SectionHeader title="ที่อยู่" icon={MapPin} />
+              <SectionHeader title={lang === 'en' ? 'Address' : 'ที่อยู่'} icon={MapPin} />
               <div className="space-y-2 text-sm">
                 <div>
-                  <span className="text-gray-500 font-medium">ที่อยู่ตามทะเบียนบ้าน:</span>
-                  <p className="text-gray-900">{fd.registeredAddress || '-'} {fd.registeredSubDistrict ? `ต.${fd.registeredSubDistrict}` : ''} {fd.registeredDistrict ? `อ.${fd.registeredDistrict}` : ''} {fd.registeredProvince ? `จ.${fd.registeredProvince}` : ''} {fd.registeredPostcode || ''}</p>
+                  <span className="text-gray-500 font-medium">{lang === 'en' ? 'Registered Address:' : 'ที่อยู่ตามทะเบียนบ้าน:'}</span>
+                  <p className="text-gray-900">{fd.registeredAddress || '-'} {fd.registeredSubDistrict ? `${lang === 'en' ? 'Sub-district ' : 'ต.'}${fd.registeredSubDistrict}` : ''} {fd.registeredDistrict ? `${lang === 'en' ? 'District ' : 'อ.'}${fd.registeredDistrict}` : ''} {fd.registeredProvince ? `${lang === 'en' ? 'Province ' : 'จ.'}${fd.registeredProvince}` : ''} {fd.registeredPostcode || ''}</p>
                 </div>
                 <div>
-                  <span className="text-gray-500 font-medium">ที่อยู่ปัจจุบัน:</span>
-                  <p className="text-gray-900">{fd.currentAddress || '-'} {fd.currentSubDistrict ? `ต.${fd.currentSubDistrict}` : ''} {fd.currentDistrict ? `อ.${fd.currentDistrict}` : ''} {fd.currentProvince ? `จ.${fd.currentProvince}` : ''} {fd.currentPostcode || ''}</p>
+                  <span className="text-gray-500 font-medium">{lang === 'en' ? 'Current Address:' : 'ที่อยู่ปัจจุบัน:'}</span>
+                  <p className="text-gray-900">{fd.currentAddress || '-'} {fd.currentSubDistrict ? `${lang === 'en' ? 'Sub-district ' : 'ต.'}${fd.currentSubDistrict}` : ''} {fd.currentDistrict ? `${lang === 'en' ? 'District ' : 'อ.'}${fd.currentDistrict}` : ''} {fd.currentProvince ? `${lang === 'en' ? 'Province ' : 'จ.'}${fd.currentProvince}` : ''} {fd.currentPostcode || ''}</p>
                 </div>
               </div>
 
               {/* 4. Family Info */}
-              <SectionHeader title="ข้อมูลครอบครัว" icon={Users} />
+              <SectionHeader title={lang === 'en' ? 'Family Information' : 'ข้อมูลครอบครัว'} icon={Users} />
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-1 mb-3">
-                <InfoRow label="สถานภาพ" value={fd.maritalStatus} />
-                <InfoRow label="จำนวนบุตร" value={fd.childrenCount} />
-                <InfoRow label="จำนวนพี่น้อง" value={fd.siblingCount} />
+                <InfoRow label={lang === 'en' ? 'Marital Status' : 'สถานภาพ'} value={fd.maritalStatus} />
+                <InfoRow label={lang === 'en' ? 'No. of Children' : 'จำนวนบุตร'} value={fd.childrenCount} />
+                <InfoRow label={lang === 'en' ? 'No. of Siblings' : 'จำนวนพี่น้อง'} value={fd.siblingCount} />
               </div>
               {fd.maritalStatus === 'สมรส' && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-1 mb-3 bg-gray-50 p-2 rounded">
-                  <InfoRow label="ชื่อคู่สมรส" value={fd.spouseName} />
-                  <InfoRow label="อาชีพคู่สมรส" value={fd.spouseOccupation} />
-                  <InfoRow label="อายุคู่สมรส" value={fd.spouseAge} />
+                  <InfoRow label={lang === 'en' ? 'Spouse Name' : 'ชื่อคู่สมรส'} value={fd.spouseName} />
+                  <InfoRow label={lang === 'en' ? 'Spouse Occupation' : 'อาชีพคู่สมรส'} value={fd.spouseOccupation} />
+                  <InfoRow label={lang === 'en' ? 'Spouse Age' : 'อายุคู่สมรส'} value={fd.spouseAge} />
                 </div>
               )}
               {/* Desktop: Table | Mobile: Cards */}
@@ -355,15 +381,15 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                 <table className="w-full text-sm">
                   <thead className="bg-gray-100">
                     <tr>
-                      <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">ความสัมพันธ์</th>
-                      <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">ชื่อ-สกุล</th>
-                      <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">อายุ</th>
-                      <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">อาชีพ</th>
+                      <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">{lang === 'en' ? 'Relationship' : 'ความสัมพันธ์'}</th>
+                      <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">{lang === 'en' ? 'Full Name' : 'ชื่อ-สกุล'}</th>
+                      <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">{lang === 'en' ? 'Age' : 'อายุ'}</th>
+                      <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">{lang === 'en' ? 'Occupation' : 'อาชีพ'}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     <tr>
-                      <td className="py-2 px-3 font-medium">บิดา</td>
+                      <td className="py-2 px-3 font-medium">{lang === 'en' ? 'Father' : 'บิดา'}</td>
                       {fd.fatherDeceased ? (
                         <td colSpan={3} className="py-2 px-3 italic text-gray-400">เสียชีวิตแล้ว (Deceased)</td>
                       ) : (
@@ -375,7 +401,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                       )}
                     </tr>
                     <tr>
-                      <td className="py-2 px-3 font-medium">มารดา</td>
+                      <td className="py-2 px-3 font-medium">{lang === 'en' ? 'Mother' : 'มารดา'}</td>
                       {fd.motherDeceased ? (
                         <td colSpan={3} className="py-2 px-3 italic text-gray-400">เสียชีวิตแล้ว (Deceased)</td>
                       ) : (
@@ -391,8 +417,8 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
               </div>
               <div className="sm:hidden space-y-2">
                 {[
-                  { rel: 'บิดา', deceased: fd.fatherDeceased, name: fd.fatherName, age: fd.fatherAge, occ: fd.fatherOccupation },
-                  { rel: 'มารดา', deceased: fd.motherDeceased, name: fd.motherName, age: fd.motherAge, occ: fd.motherOccupation }
+                  { rel: lang === 'en' ? 'Father' : 'บิดา', deceased: fd.fatherDeceased, name: fd.fatherName, age: fd.fatherAge, occ: fd.fatherOccupation },
+                  { rel: lang === 'en' ? 'Mother' : 'มารดา', deceased: fd.motherDeceased, name: fd.motherName, age: fd.motherAge, occ: fd.motherOccupation }
                 ].map((p) => (
                   <div key={p.rel} className="bg-gray-50 rounded-lg p-3 text-sm">
                     <div className="font-semibold text-gray-800 mb-1">{p.rel}</div>
@@ -401,7 +427,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                     ) : (
                       <>
                         <div className="text-gray-600">ชื่อ: <span className="text-gray-900 font-medium">{p.name || '-'}</span></div>
-                        <div className="flex gap-4 text-gray-600"><span>อายุ: <span className="text-gray-900 font-medium">{p.age || '-'}</span></span><span>อาชีพ: <span className="text-gray-900 font-medium">{p.occ || '-'}</span></span></div>
+                        <div className="flex gap-4 text-gray-600"><span>อายุ: <span className="text-gray-900 font-medium">{p.age || '-'}</span></span><span>{lang === 'en' ? 'Occupation:' : 'อาชีพ:'} <span className="text-gray-900 font-medium">{p.occ || '-'}</span></span></div>
                       </>
                     )}
                   </div>
@@ -409,7 +435,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
               </div>
 
               {/* 5. Education */}
-              <SectionHeader title="การศึกษา" icon={GraduationCap} />
+              <SectionHeader title={lang === 'en' ? 'Education' : 'การศึกษา'} icon={GraduationCap} />
               {fd.education ? (
                 <>
                   {/* Desktop: Table */}
@@ -417,17 +443,21 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                     <table className="w-full text-sm">
                       <thead className="bg-gray-100">
                         <tr>
-                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-1/5">ระดับ</th>
-                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-1/3">สถาบัน</th>
-                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">สาขา</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-1/5">{lang === 'en' ? 'Level' : 'ระดับ'}</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-1/3">{lang === 'en' ? 'Institute' : 'สถาบัน'}</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">{lang === 'en' ? 'Major' : 'สาขา'}</th>
                           <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-16">GPA</th>
-                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-20">ปี</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-20">{lang === 'en' ? 'Year' : 'ปี'}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
                         {(() => {
                           const edu = fd.education;
-                          const levelNames: Record<string, string> = {
+                          const levelNames: Record<string, string> = lang === 'en' ? {
+                            primarySchool: 'Primary School', juniorHighSchool: 'Junior High School',
+                            highSchool: 'High School / Voc.Cert.', vocational: 'Higher Vocational',
+                            bachelor: 'Bachelor', master: 'Master', phd: 'Ph.D.',
+                          } : {
                             primarySchool: 'ประถมศึกษา (ป.1-6)', juniorHighSchool: 'มัธยมต้น (ม.1-3)',
                             highSchool: 'มัธยมปลาย / ปวช.', vocational: 'ปวส.',
                             bachelor: 'ปริญญาตรี', master: 'ปริญญาโท', phd: 'ปริญญาเอก',
@@ -464,7 +494,11 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                   <div className="sm:hidden space-y-2">
                     {(() => {
                       const edu = fd.education;
-                      const levelNames: Record<string, string> = {
+                      const levelNames: Record<string, string> = lang === 'en' ? {
+                        primarySchool: 'Primary School', juniorHighSchool: 'Junior High School',
+                        highSchool: 'High School / Voc.Cert.', vocational: 'Higher Vocational',
+                        bachelor: 'Bachelor', master: 'Master', phd: 'Ph.D.',
+                      } : {
                         primarySchool: 'ประถมศึกษา (ป.1-6)', juniorHighSchool: 'มัธยมต้น (ม.1-3)',
                         highSchool: 'มัธยมปลาย / ปวช.', vocational: 'ปวส.',
                         bachelor: 'ปริญญาตรี', master: 'ปริญญาโท', phd: 'ปริญญาเอก',
@@ -505,7 +539,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
               )}
 
               {/* 6. Work Experience */}
-              <SectionHeader title="ประสบการณ์ทำงาน" icon={Building2} />
+              <SectionHeader title={lang === 'en' ? 'Work Experience' : 'ประสบการณ์ทำงาน'} icon={Building2} />
               {fd.experience && fd.experience.length > 0 ? (
                 <>
                   {/* Desktop: Table */}
@@ -513,17 +547,17 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                     <table className="w-full text-sm">
                       <thead className="bg-gray-100">
                         <tr>
-                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-24">ช่วงเวลา</th>
-                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">บริษัท</th>
-                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">ตำแหน่ง</th>
-                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-20">เงินเดือน</th>
-                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">หน้าที่</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-24">{lang === 'en' ? 'Period' : 'ช่วงเวลา'}</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">{lang === 'en' ? 'Company' : 'บริษัท'}</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">{lang === 'en' ? 'Position' : 'ตำแหน่ง'}</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-20">{lang === 'en' ? 'Salary' : 'เงินเดือน'}</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">{lang === 'en' ? 'Responsibilities' : 'หน้าที่'}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
                         {fd.experience.map((exp: any, i: number) => (
                           <tr key={i}>
-                            <td className="py-2 px-3 text-xs">{exp.from}<br />{exp.to || 'ปัจจุบัน'}</td>
+                            <td className="py-2 px-3 text-xs">{exp.from}<br />{exp.to || (lang === 'en' ? 'Present' : 'ปัจจุบัน')}</td>
                             <td className="py-2 px-3 font-medium">{exp.company || '-'}</td>
                             <td className="py-2 px-3">{exp.position || '-'}</td>
                             <td className="py-2 px-3">{exp.salary || '-'}</td>
@@ -539,7 +573,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                       <div key={i} className="bg-gray-50 rounded-lg p-3 text-sm border-l-3 border-indigo-300">
                         <div className="flex justify-between items-start">
                           <div className="font-semibold text-gray-800">{exp.company || '-'}</div>
-                          <span className="text-[11px] text-gray-400 flex-shrink-0">{exp.from} - {exp.to || 'ปัจจุบัน'}</span>
+                          <span className="text-[11px] text-gray-400 flex-shrink-0">{exp.from} - {exp.to || (lang === 'en' ? 'Present' : 'ปัจจุบัน')}</span>
                         </div>
                         <div className="text-gray-600 text-xs mt-0.5">{exp.position || '-'}{exp.salary ? ` · ${exp.salary}` : ''}</div>
                         {exp.description && <div className="text-xs text-gray-500 mt-1">{exp.description}</div>}
@@ -552,7 +586,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
               )}
 
               {/* 7. Skills */}
-              <SectionHeader title="ทักษะ" />
+              <SectionHeader title={lang === 'en' ? 'Skills' : 'ทักษะ'} />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Languages */}
                 <div className="bg-gray-50 p-3 rounded-lg">
@@ -600,7 +634,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
               </div>
 
               {/* 8. Questionnaire */}
-              <SectionHeader title="แบบสอบถามเพิ่มเติม" />
+              <SectionHeader title={lang === 'en' ? 'Additional Questionnaire' : 'แบบสอบถามเพิ่มเติม'} />
               <div className="space-y-3">
                 <div className="bg-gray-50 p-3 rounded text-sm">
                   <span className="text-gray-500 font-medium block mb-1">สามารถทำงานต่างจังหวัดได้:</span>
@@ -643,7 +677,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
               </div>
 
               {/* 9. Health & Emergency */}
-              <SectionHeader title="สุขภาพและผู้ติดต่อฉุกเฉิน" />
+              <SectionHeader title={lang === 'en' ? 'Health & Emergency Contact' : 'สุขภาพและผู้ติดต่อฉุกเฉิน'} />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-blue-50 p-3 rounded-lg">
                   <h5 className="font-semibold text-sm text-blue-800 mb-2">ผู้ติดต่อฉุกเฉิน</h5>

@@ -753,7 +753,12 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                 <Select
                   label={<>{t.labels.position} <span className="text-red-500">*</span></>}
                   value={formData.position}
-                  onChange={(e) => updateField('position', e.target.value)}
+                  onChange={(e) => {
+                    const selectedTh = e.target.value;
+                    updateField('position', selectedTh);
+                    const matchedPos = positions.find(p => p.name_th === selectedTh);
+                    updateField('positionEn', matchedPos?.name_en || selectedTh);
+                  }}
                   options={positions.map(p => ({ label: lang === 'en' ? (p.name_en || p.name_th) : p.name_th, value: p.name_th }))}
                 />
                 {validationErrors.position && <p className="text-red-500 text-xs mt-1">{validationErrors.position}</p>}
@@ -809,7 +814,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                 {!formData.isThaiNational && (
                   <div className="mt-4">
                     <CheckboxOption
-                      label={lang === 'th' ? 'สามารถทำงานในประเทศไทยได้' : 'Available to work in Thailand'}
+                      label={lang === 'th' ? 'มีสิทธิ์ทำงานในประเทศไทย (เช่น มี Work Permit)' : 'I am eligible to work in Thailand (e.g., currently hold a valid Work Permit)'}
                       checked={formData.availableToWorkInThailand || false}
                       onChange={(checked) => updateField('availableToWorkInThailand', checked)}
                     />
@@ -1233,9 +1238,14 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
           {/* --- Step 5: Education --- */}
           {currentStep === 5 && (
             <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h3 className="font-bold text-lg">{t.sections.education}</h3>
-                <Button size="sm" onClick={addEducation} variant="outline">{lang === 'th' ? 'เพิ่มประวัติการศึกษา' : 'Add Education'}</Button>
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-bold text-lg">{t.sections.education}</h3>
+                  <p className="text-sm text-indigo-600 mt-1">
+                    {lang === 'th' ? '* แนะนำให้ระบุประวัติการศึกษาอย่างน้อย 2 ระดับ (เช่น มัธยมศึกษา และ ปริญญาตรี)' : '* We recommend providing at least 2 levels of education (e.g., High School and Bachelor\'s Degree)'}
+                  </p>
+                </div>
+                <Button size="sm" onClick={addEducation} variant="outline" className="shrink-0 ml-4">{lang === 'th' ? 'เพิ่มประวัติการศึกษา' : 'Add Education'}</Button>
               </div>
 
               {formData.education.length === 0 && (
