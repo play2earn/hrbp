@@ -73,6 +73,24 @@ const fmtSalary = (val: string | number | undefined | null): string => {
   return suffix ? `${formatted} ${suffix}` : formatted;
 };
 
+// Format date string as YYYY-MM
+const fmtYearMonth = (dateStr: string | undefined | null): string => {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  return `${d.getFullYear()}-${month}`;
+};
+
+// BU tag color: ReLo=green, NPS=yellow/amber, Double A / DA=blue, fallback=indigo
+const getBuTagStyle = (bu: string): string => {
+  const v = (bu || '').toLowerCase();
+  if (v.includes('relo')) return 'bg-emerald-100 text-emerald-700';
+  if (v.includes('nps')) return 'bg-amber-100 text-amber-700';
+  if (v.includes('double') || v === 'da') return 'bg-blue-100 text-blue-700';
+  return 'bg-indigo-100 text-indigo-700';
+};
+
 
 export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) => {
   const [loading, setLoading] = useState(true);
@@ -314,7 +332,7 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
               {fullNameEn && <p className="text-white/70 text-sm">{fullNameEn}</p>}
               <p className="text-indigo-200 font-medium mt-1">{isForeigner ? (fd.positionEn || fd.position || app.position || '-') : (fd.position || app.position || '-')}</p>
               <p className="text-indigo-200/70 text-sm">{fd.department || app.department || ''}</p>
-              {fd.expectedSalary && <p className="text-white/80 text-xs mt-1">{t.expectedSalary}: {fd.expectedSalary}</p>}
+              {fd.expectedSalary && <p className="text-white/80 text-xs mt-1">{t.expectedSalary}: {fmtSalary(fd.expectedSalary)}</p>}
             </div>
           </div>
         </div>
@@ -344,10 +362,10 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
           </div>
 
           {/* ช่องทางที่มา & Links */}
-          {(fd.businessUnit || fd.sourceChannel || fd.campaignTag || fd.profileLinks) && (
+          {(fd.businessUnit || fd.sourceChannel || fd.campaignTag || fd.profileLinks || fd.resumeUrl || fd.certificateUrl || fd.transcriptUrl) && (
             <div className="flex flex-wrap gap-2 mb-4">
               {fd.businessUnit && (
-                <span className="px-2.5 py-1 text-xs rounded-full bg-indigo-100 text-indigo-700 font-medium">BU: {fd.businessUnit}</span>
+                <span className={`px-2.5 py-1 text-xs rounded-full font-medium ${getBuTagStyle(fd.businessUnit)}`}>BU: {fd.businessUnit}</span>
               )}
               {fd.sourceChannel && (
                 <span className="px-2.5 py-1 text-xs rounded-full bg-blue-100 text-blue-700 font-medium">CH: {fd.sourceChannel}</span>
@@ -359,6 +377,25 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
                 <a href={fd.profileLinks} target="_blank" rel="noopener noreferrer"
                   className="px-2.5 py-1 text-xs rounded-full bg-emerald-100 text-emerald-700 font-medium hover:bg-emerald-200 transition underline">
                   🔗 {fd.profileLinks}
+                </a>
+              )}
+              {/* เอกสารแนบ inline ใต้ tags */}
+              {fd.resumeUrl && (
+                <a href={fd.resumeUrl} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium transition">
+                  📄 {t.resume}
+                </a>
+              )}
+              {fd.certificateUrl && (
+                <a href={fd.certificateUrl} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-full bg-purple-50 hover:bg-purple-100 text-purple-700 font-medium transition">
+                  📋 {t.certificate}
+                </a>
+              )}
+              {fd.transcriptUrl && (
+                <a href={fd.transcriptUrl} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium transition">
+                  🎓 {t.transcript}
                 </a>
               )}
             </div>
@@ -562,7 +599,7 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
                       <span className="text-xs text-gray-500 whitespace-nowrap ml-2">{fmtSalary(exp.salary)}</span>
                     </div>
                     <p className="text-indigo-700 text-sm font-medium">{exp.position || '-'}</p>
-                    <p className="text-xs text-gray-500 mt-1">{exp.from || '-'} — {exp.to || (lang === 'th' ? 'ปัจจุบัน' : 'Present')}</p>
+                    <p className="text-xs text-gray-500 mt-1">{fmtYearMonth(exp.from)} — {exp.to ? fmtYearMonth(exp.to) : (lang === 'th' ? 'ปัจจุบัน' : 'Present')}</p>
                     {exp.description && <p className="text-xs text-gray-500 italic mt-2">📌 {exp.description}</p>}
                   </div>
                 ))}
@@ -584,7 +621,7 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
                         <tr key={`${i}-main`} className="border-b border-gray-50 hover:bg-gray-50/30">
                           <td className="pt-3 pb-1 px-3 font-semibold text-gray-800">{exp.company || '-'}</td>
                           <td className="pt-3 pb-1 px-3 text-indigo-700">{exp.position || '-'}</td>
-                          <td className="pt-3 pb-1 px-3 text-center text-xs text-gray-500 whitespace-nowrap">{exp.from || '-'} — {exp.to || (lang === 'th' ? 'ปัจจุบัน' : 'Present')}</td>
+                          <td className="pt-3 pb-1 px-3 text-center text-xs text-gray-500 whitespace-nowrap">{fmtYearMonth(exp.from)} — {exp.to ? fmtYearMonth(exp.to) : (lang === 'th' ? 'ปัจจุบัน' : 'Present')}</td>
                           <td className="pt-3 pb-1 px-3 text-right font-medium">{fmtSalary(exp.salary)}</td>
                         </tr>
                         <tr key={`${i}-desc`} className="border-b border-gray-100">
@@ -690,34 +727,10 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
             </Section>
           )}
 
-          {/* เอกสารแนบ */}
-          {(fd.resumeUrl || fd.certificateUrl || fd.transcriptUrl) && (
-            <Section title={t.attachments} icon={FileText}>
-              <div className="flex flex-wrap gap-2">
-                {fd.resumeUrl && (
-                  <a href={fd.resumeUrl} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-sm text-indigo-700 font-medium transition">
-                    📄 {t.resume}
-                  </a>
-                )}
-                {fd.certificateUrl && (
-                  <a href={fd.certificateUrl} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 hover:bg-purple-100 rounded-lg text-sm text-purple-700 font-medium transition">
-                    📋 {t.certificate}
-                  </a>
-                )}
-                {fd.transcriptUrl && (
-                  <a href={fd.transcriptUrl} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-sm text-emerald-700 font-medium transition">
-                    🎓 {t.transcript}
-                  </a>
-                )}
-              </div>
-            </Section>
-          )}
+          {/* เอกสารแนบ — ถูก render แล้วใน tags section ด้านบน */}
 
           {/* ===== หนังสือยินยอมและรับรอง ===== */}
-          <div className="mb-6 mt-12 pt-8 border-t border-gray-100">
+          <div className="mb-6 mt-16 pt-10 border-t-2 border-gray-200">
             <div className="flex items-center gap-2 mb-3 pb-2 border-b-2 border-indigo-200">
               <Shield className="w-4 h-4 text-indigo-600" />
               <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">{t.consent}</h3>
@@ -745,7 +758,7 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
           </div>
 
           {/* ===== รายละเอียดเกี่ยวกับข้อมูลส่วนบุคคล (Privacy Notice) ===== */}
-          <div className="mb-6 mt-4">
+          <div className="mb-6 mt-12 pt-8 border-t border-gray-100">
             <div className="flex items-center gap-2 mb-3 pb-2 border-b-2 border-indigo-200">
               <Shield className="w-4 h-4 text-indigo-600" />
               <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">{t.privacyNotice}</h3>
@@ -830,7 +843,7 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
           </div>
 
           {/* ===== ความยินยอมในการประมวลผลข้อมูล ===== */}
-          <div className="mb-6 mt-4">
+          <div className="mb-6 mt-12 pt-8 border-t border-gray-100">
             <div className="flex items-center gap-2 mb-3 pb-2 border-b-2 border-indigo-200">
               <Shield className="w-4 h-4 text-indigo-600" />
               <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">{t.consentProcessing}</h3>
