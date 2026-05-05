@@ -271,10 +271,10 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
   const t = labels;
 
   const Section = ({ title, icon: Icon, children }: { title: string; icon?: any; children: React.ReactNode }) => (
-    <div className="mb-6">
-      <div className="flex items-center gap-2 mb-3 pb-2 border-b-2 border-indigo-200">
-        {Icon && <Icon className="w-4 h-4 text-indigo-600" />}
-        <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">{title}</h3>
+    <div className="mt-8 pt-6 border-t border-gray-100 first:mt-0 first:pt-0 first:border-t-0">
+      <div className="flex items-center gap-2 mb-4 pb-2 border-b-2 border-indigo-100">
+        {Icon && <Icon className="w-4 h-4 text-indigo-500" />}
+        <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">{title}</h3>
       </div>
       {children}
     </div>
