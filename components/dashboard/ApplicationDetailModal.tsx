@@ -194,6 +194,28 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
               <span className="text-gray-500">{label}:</span> <span className="font-medium text-gray-900">{value || '-'}</span>
             </div>
           );
+          // Format date as YYYY-MM (year-month only, no day)
+          const fmtYearMonth = (dateStr: string | undefined | null): string => {
+            if (!dateStr) return '';
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            return `${year}-${month}`;
+          };
+          // Normalize salary: strip existing commas/spaces, parse number, re-format with commas + preserve suffix
+          const fmtSalary = (val: string | number | undefined | null): string => {
+            if (val === null || val === undefined || val === '') return '-';
+            const str = String(val);
+            // Extract numeric part and suffix (e.g. "บาท", "THB")
+            const match = str.replace(/,/g, '').match(/^[\s]*([\d.]+)([\s\S]*)$/);
+            if (!match) return str;
+            const num = parseFloat(match[1]);
+            if (isNaN(num)) return str;
+            const suffix = match[2].trim();
+            const formatted = num.toLocaleString('en-US', { maximumFractionDigits: 0 });
+            return suffix ? `${formatted} ${suffix}` : formatted;
+          };
 
 
           return (
@@ -322,7 +344,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
               {/* 1. Position Applied */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 bg-indigo-50 p-3 rounded-lg mb-4">
                 <InfoRow label={lang === 'en' ? 'Position Applied' : 'ตำแหน่งที่สมัคร'} value={fd.isThaiNational === false ? (fd.positionEn || fd.position || viewingApp.position) : (fd.position || viewingApp.position)} />
-                <InfoRow label={lang === 'en' ? 'Expected Salary' : 'เงินเดือนที่ต้องการ'} value={fd.expectedSalary ? `${fd.expectedSalary} ${fd.isSalaryNegotiable ? '(ต่อรองได้)' : ''}` : '-'} />
+                <InfoRow label={lang === 'en' ? 'Expected Salary' : 'เงินเดือนที่ต้องการ'} value={fd.expectedSalary ? `${fmtSalary(fd.expectedSalary)} ${fd.isSalaryNegotiable ? '(ต่อรองได้)' : ''}`.trim() : '-'} />
                 <InfoRow label={lang === 'en' ? 'Department' : 'แผนก/ฝ่าย'} value={fd.department} />
                 <InfoRow label={lang === 'en' ? 'Availability' : 'วันที่สามารถเริ่มงาน'} value={fd.availability} />
               </div>
@@ -557,10 +579,10 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                       <tbody className="divide-y">
                         {fd.experience.map((exp: any, i: number) => (
                           <tr key={i}>
-                            <td className="py-2 px-3 text-xs">{exp.from}<br />{exp.to || (lang === 'en' ? 'Present' : 'ปัจจุบัน')}</td>
+                            <td className="py-2 px-3 text-xs">{fmtYearMonth(exp.from)}<br />{exp.to ? fmtYearMonth(exp.to) : (lang === 'en' ? 'Present' : 'ปัจจุบัน')}</td>
                             <td className="py-2 px-3 font-medium">{exp.company || '-'}</td>
                             <td className="py-2 px-3">{exp.position || '-'}</td>
-                            <td className="py-2 px-3">{exp.salary || '-'}</td>
+                            <td className="py-2 px-3">{fmtSalary(exp.salary)}</td>
                             <td className="py-2 px-3 text-xs">{exp.description || '-'}</td>
                           </tr>
                         ))}
@@ -573,9 +595,9 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                       <div key={i} className="bg-gray-50 rounded-lg p-3 text-sm border-l-3 border-indigo-300">
                         <div className="flex justify-between items-start">
                           <div className="font-semibold text-gray-800">{exp.company || '-'}</div>
-                          <span className="text-[11px] text-gray-400 flex-shrink-0">{exp.from} - {exp.to || (lang === 'en' ? 'Present' : 'ปัจจุบัน')}</span>
+                          <span className="text-[11px] text-gray-400 flex-shrink-0">{fmtYearMonth(exp.from)} - {exp.to ? fmtYearMonth(exp.to) : (lang === 'en' ? 'Present' : 'ปัจจุบัน')}</span>
                         </div>
-                        <div className="text-gray-600 text-xs mt-0.5">{exp.position || '-'}{exp.salary ? ` · ${exp.salary}` : ''}</div>
+                        <div className="text-gray-600 text-xs mt-0.5">{exp.position || '-'}{exp.salary ? ` · ${fmtSalary(exp.salary)}` : ''}</div>
                         {exp.description && <div className="text-xs text-gray-500 mt-1">{exp.description}</div>}
                       </div>
                     ))}

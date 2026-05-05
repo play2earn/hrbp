@@ -238,6 +238,19 @@ const ConsentSection: React.FC<{ data: ApplicationForm; lang: Language }> = ({ d
 export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSubmit, isSubmitting }) => {
   const t = TRANSLATIONS[lang];
 
+  // Normalize salary strings: strip existing commas, reformat with commas, preserve suffix
+  const fmtSalary = (val: string | number | undefined | null): string => {
+    if (val === null || val === undefined || val === '') return '-';
+    const str = String(val);
+    const match = str.replace(/,/g, '').match(/^[\s]*([\d.]+)([\s\S]*)$/);
+    if (!match) return str;
+    const num = parseFloat(match[1]);
+    if (isNaN(num)) return str;
+    const suffix = match[2].trim();
+    const formatted = num.toLocaleString('en-US', { maximumFractionDigits: 0 });
+    return suffix ? `${formatted} ${suffix}` : formatted;
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -292,7 +305,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
           <div className="flex-1 border-2 border-black">
             <div className="grid grid-cols-2">
               <BoxField label={t.labels.position} value={lang === 'en' ? (data.positionEn || data.position) : data.position} />
-              <BoxField label={t.labels.salary} value={`${data.expectedSalary || '-'} ${data.isSalaryNegotiable ? '(Negotiable)' : ''}`} className="border-r-0" />
+              <BoxField label={t.labels.salary} value={`${fmtSalary(data.expectedSalary)} ${data.isSalaryNegotiable ? '(Negotiable)' : ''}`.trim()} className="border-r-0" />
             </div>
             <div className="grid grid-cols-2">
               <BoxField label={t.labels.department} value={data.department} className="border-b-0" />
@@ -514,7 +527,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
                     <td className="py-2 px-2 border-r border-gray-400 text-xs text-black">{exp.from}<br />{exp.to}</td>
                     <td className="py-2 px-2 border-r border-gray-400 font-semibold text-black">{exp.company}</td>
                     <td className="py-2 px-2 border-r border-gray-400 text-black">{exp.position}</td>
-                    <td className="py-2 px-2 border-r border-gray-400 text-black">{exp.salary}</td>
+                    <td className="py-2 px-2 border-r border-gray-400 text-black">{fmtSalary(exp.salary)}</td>
                     <td className="py-2 px-2 text-xs text-black">{exp.description}</td>
                   </tr>
                 ))

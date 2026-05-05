@@ -60,6 +60,20 @@ const MILITARY_STATUS_MAP: Record<string, Record<string, string>> = {
 
 const EDU_ORDER = ['primarySchool', 'juniorHighSchool', 'highSchool', 'vocational', 'bachelor', 'master', 'phd'];
 
+// Normalize salary: strip commas, reformat with commas, preserve text suffix
+const fmtSalary = (val: string | number | undefined | null): string => {
+  if (val === null || val === undefined || val === '') return '-';
+  const str = String(val);
+  const match = str.replace(/,/g, '').match(/^[\s]*([\d.]+)([\s\S]*)$/);
+  if (!match) return str;
+  const num = parseFloat(match[1]);
+  if (isNaN(num)) return str;
+  const suffix = match[2].trim();
+  const formatted = num.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  return suffix ? `${formatted} ${suffix}` : formatted;
+};
+
+
 export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -545,7 +559,7 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
                   <div key={i} className="bg-slate-50/80 rounded-xl p-4 border border-slate-100">
                     <div className="flex justify-between items-start mb-1">
                       <p className="font-semibold text-gray-900 text-sm">{exp.company || '-'}</p>
-                      <span className="text-xs text-gray-500 whitespace-nowrap ml-2">{exp.salary || '-'}</span>
+                      <span className="text-xs text-gray-500 whitespace-nowrap ml-2">{fmtSalary(exp.salary)}</span>
                     </div>
                     <p className="text-indigo-700 text-sm font-medium">{exp.position || '-'}</p>
                     <p className="text-xs text-gray-500 mt-1">{exp.from || '-'} — {exp.to || (lang === 'th' ? 'ปัจจุบัน' : 'Present')}</p>
@@ -571,7 +585,7 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
                           <td className="pt-3 pb-1 px-3 font-semibold text-gray-800">{exp.company || '-'}</td>
                           <td className="pt-3 pb-1 px-3 text-indigo-700">{exp.position || '-'}</td>
                           <td className="pt-3 pb-1 px-3 text-center text-xs text-gray-500 whitespace-nowrap">{exp.from || '-'} — {exp.to || (lang === 'th' ? 'ปัจจุบัน' : 'Present')}</td>
-                          <td className="pt-3 pb-1 px-3 text-right font-medium">{exp.salary || '-'}</td>
+                          <td className="pt-3 pb-1 px-3 text-right font-medium">{fmtSalary(exp.salary)}</td>
                         </tr>
                         <tr key={`${i}-desc`} className="border-b border-gray-100">
                           <td colSpan={4} className="pb-3 pt-0 px-3 text-xs text-gray-500 italic">
