@@ -66,7 +66,7 @@ interface ApplicationDetailModalProps {
   onApplicationUpdated?: (app: any) => void;
 }
 
-const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
+export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
   viewingApp, setViewingApp, appLogs, isLoadingLogs,
   setEditingApp, setClaimingApp, setTransferringApp, setUnassigningApp,
   setInterviewingApp, setInterviewDate,
@@ -986,5 +986,3 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
     </>
   );
 });
-
-export default ApplicationDetailModal;
