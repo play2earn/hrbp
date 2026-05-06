@@ -538,7 +538,8 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
     if (step === 5) {
       const filledEdu = formData.education.filter(e => e.institute && e.institute.trim() !== '');
       if (filledEdu.length < 2) {
-        errors.education = lang === 'th' ? 'กรุณาระบุประวัติการศึกษาอย่างน้อย 2 ระดับ' : 'Please provide at least 2 levels of education';
+        errors.education = lang === 'th' ? 'กรุณาระบุประวัติการศึกษาอย่างน้อย 2 รายการ' : 'Please provide at least 2 education entries';
+
       }
     }
 
@@ -1250,9 +1251,10 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                   <h3 className="font-bold text-lg">{t.sections.education}</h3>
                   <p className="text-sm text-indigo-600 mt-1">
                     {lang === 'th' 
-                      ? '* กรุณาระบุประวัติการศึกษาอย่างน้อย 2 ระดับ โดยเรียงลำดับจากล่าสุดไปหาอดีต (เช่น ปริญญาตรี และ มัธยมศึกษา)' 
-                      : '* Please provide at least 2 levels of education, starting from the most recent to the oldest (e.g., Bachelor\'s Degree and High School)'}
+                      ? '* กรุณาระบุประวัติการศึกษาอย่างน้อย 2 รายการ โดยเรียงลำดับจากล่าสุดไปหาอดีต (สามารถระบุวุฒิระดับเดียวกันได้มากกว่า 1 ใบ)' 
+                      : '* Please provide at least 2 education entries, ordered from most recent to oldest (Multiple degrees of the same level are allowed)'}
                   </p>
+
 
                 </div>
                 <Button size="sm" onClick={addEducation} variant="outline" className="shrink-0 ml-4">{lang === 'th' ? 'เพิ่มประวัติการศึกษา' : 'Add Education'}</Button>
