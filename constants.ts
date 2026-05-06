@@ -198,11 +198,11 @@ export const TRANSLATIONS = {
       removeExperience: 'Remove',
       noExperienceYet: 'No experience added yet. Click "Add Experience" if applicable.',
       // Military Status
-      militaryCompleted: 'ผ่านการเกณฑ์ทหารแล้ว',
-      militaryRotc: 'จบหลักสูตร รด.',
-      militaryExemptFemale: 'ได้รับการยกเว้น - เพศหญิง',
-      militaryExemptLaw: 'ได้รับการยกเว้น - ตามกฎหมาย',
-      militaryNotYet: 'ยังไม่เกณฑ์ทหาร'
+      militaryCompleted: 'Completed Military Service',
+      militaryRotc: 'Completed R.O.T.C.',
+      militaryExemptFemale: 'Exempted - Female',
+      militaryExemptLaw: 'Exempted - Legal',
+      militaryNotYet: 'Not Yet Drafted'
     }
   },
   th: {

@@ -15,9 +15,16 @@ interface PDFPreviewProps {
 
 // ===== ConsentSection Component =====
 const ConsentSection: React.FC<{ data: ApplicationForm; lang: Language }> = ({ data, lang }) => {
-  const applicantName = [data.title, data.firstName, data.lastName].filter(Boolean).join(' ') || '............................................';
+  const isForeigner = !data.isThaiNational;
+  const effectiveLang = isForeigner ? 'en' : lang;
+  const t = TRANSLATIONS[effectiveLang];
+
+  const applicantName = effectiveLang === 'en'
+    ? [data.titleEn, data.firstNameEn, data.lastNameEn].filter(Boolean).join(' ')
+    : [data.title, data.firstName, data.lastName].filter(Boolean).join(' ') || '............................................';
+
   const today = new Date();
-  const formattedDate = today.toLocaleDateString(lang === 'th' ? 'th-TH' : 'en-GB', {
+  const formattedDate = today.toLocaleDateString(effectiveLang === 'th' ? 'th-TH' : 'en-GB', {
     day: 'numeric', month: 'long', year: 'numeric'
   });
 
@@ -26,12 +33,12 @@ const ConsentSection: React.FC<{ data: ApplicationForm; lang: Language }> = ({ d
       {/* ===== Section 1: หนังสือยินยอมและรับรอง ===== */}
       <div className="bg-blue-700 py-2 px-3 mb-0">
         <h3 className="text-sm font-extrabold uppercase tracking-wider text-white">
-          {lang === 'th' ? 'หนังสือยินยอมและรับรอง' : 'Declaration & Consent Letter'}
+          {effectiveLang === 'th' ? 'หนังสือยินยอมและรับรอง' : 'Declaration & Consent Letter'}
         </h3>
       </div>
       <div className="border-2 border-t-0 border-black p-6 text-black">
         <p className="text-sm leading-relaxed text-center mb-6 indent-8">
-          {lang === 'th'
+          {effectiveLang === 'th'
             ? 'ข้าพเจ้าได้อ่าน ศึกษาเอกสารและพิจารณาคำยินยอมจากผู้ให้ข้อมูลกับบริษัทฯเจ้าขอรับรองว่า รายละเอียดทั้งหมดที่ให้ไว้ในใบสมัครงานนี้ ถูกต้องและเป็นความจริงทุกประการ หากภายหลังบริษัทฯ ตรวจพบว่าข้อใดเป็นเท็จ ข้าพเจ้ายินยอมให้บริษัทฯบอกเลิกการว่าจ้างข้าพเจ้าได้ทันที โดยข้าพเจ้าจะไม่เรียกร้องค่าสินไหมทดแทนหรือเงินทดแทนใดๆ ทั้งสิ้นจากบริษัท'
             : 'I hereby certify that all information provided in this application form is true and complete to the best of my knowledge. I understand that any misrepresentation or omission of facts may result in immediate termination of employment, without any claim for compensation or damages from the company.'
           }
@@ -41,12 +48,12 @@ const ConsentSection: React.FC<{ data: ApplicationForm; lang: Language }> = ({ d
         <div className="grid grid-cols-2 gap-8 mt-8">
           <div>
             <div className="border-b border-black h-8 mb-1"></div>
-            <p className="text-xs text-gray-600">{lang === 'th' ? 'ชื่อ-นามสกุล (ผู้สมัคร)' : 'Name (Applicant)'}</p>
+            <p className="text-xs text-gray-600">{effectiveLang === 'th' ? 'ชื่อ-นามสกุล (ผู้สมัคร)' : 'Name (Applicant)'}</p>
             <p className="text-sm font-semibold mt-1">{applicantName}</p>
           </div>
           <div>
             <div className="border-b border-black h-8 mb-1"></div>
-            <p className="text-xs text-gray-600">{lang === 'th' ? 'วัน/เดือน/ปี' : 'Date'}</p>
+            <p className="text-xs text-gray-600">{effectiveLang === 'th' ? 'วัน/เดือน/ปี' : 'Date'}</p>
             <p className="text-sm font-semibold mt-1">{formattedDate}</p>
           </div>
         </div>
@@ -54,17 +61,17 @@ const ConsentSection: React.FC<{ data: ApplicationForm; lang: Language }> = ({ d
         <div className="grid grid-cols-2 gap-8 mt-6">
           <div>
             <div className="border-b border-black h-8 mb-1"></div>
-            <p className="text-xs text-gray-600">{lang === 'th' ? 'ตำแหน่ง' : 'Position'}</p>
-            <p className="text-sm font-semibold mt-1">{(lang === 'en' ? (data.positionEn || data.position) : data.position) || '-'}</p>
+            <p className="text-xs text-gray-600">{effectiveLang === 'th' ? 'ตำแหน่ง' : 'Position'}</p>
+            <p className="text-sm font-semibold mt-1">{(effectiveLang === 'en' ? (data.positionEn || data.position) : data.position) || '-'}</p>
           </div>
           <div>
             <div className="border-b border-black h-8 mb-1"></div>
-            <p className="text-xs text-gray-600">{lang === 'th' ? 'เบอร์โทรติดต่อ' : 'Contact Number'}</p>
+            <p className="text-xs text-gray-600">{effectiveLang === 'th' ? 'เบอร์โทรติดต่อ' : 'Contact Number'}</p>
             <p className="text-sm font-semibold mt-1">{data.phone || '-'}</p>
           </div>
         </div>
 
-        <div className="text-center mt-6 text-sm font-bold">{lang === 'th' ? 'ผู้สมัครงาน' : 'Applicant'}</div>
+        <div className="text-center mt-6 text-sm font-bold">{effectiveLang === 'th' ? 'ผู้สมัครงาน' : 'Applicant'}</div>
         <div className="text-center mt-1 text-xs text-gray-500">{formattedDate}</div>
       </div>
 
@@ -72,12 +79,12 @@ const ConsentSection: React.FC<{ data: ApplicationForm; lang: Language }> = ({ d
       <div className="mt-6 break-before-page">
         <div className="bg-blue-700 py-2 px-3 mb-0">
           <h3 className="text-sm font-extrabold uppercase tracking-wider text-white">
-            {lang === 'th' ? 'รายละเอียดเกี่ยวกับข้อมูลส่วนบุคคล' : 'Privacy Notice'}
+            {effectiveLang === 'th' ? 'รายละเอียดเกี่ยวกับข้อมูลส่วนบุคคล' : 'Privacy Notice'}
           </h3>
         </div>
         <div className="border-2 border-t-0 border-black p-6 text-black">
           <p className="text-sm leading-relaxed mb-4">
-            {lang === 'th'
+            {effectiveLang === 'th'
               ? 'หนังสือนี้จัดทำขึ้นเพื่อชี้แจงรายละเอียดเกี่ยวกับข้อมูลส่วนบุคคลระหว่างบริษัท ดั๊บเบิ้ล เอ (1991) จำกัด (มหาชน) ("บริษัทฯ") และผู้ที่มีความประสงค์จะสมัครงานเพื่อเข้าทำงานกับบริษัทฯ และ/หรือบริษัทในเครือพันธมิตรของบริษัทฯ ("ผู้สมัครงาน") ตามหลักเกณฑ์และนโยบายของบริษัทฯ ดังนี้'
               : 'This Privacy Notice is to clarify the personal data processing between Double A (1991) Public Company Limited (the "Company") and the applicant who intends to apply for a job at the Company and/or the Company\'s alliance (the "Applicant") according to the Policy of the Company.'
             }
@@ -85,10 +92,10 @@ const ConsentSection: React.FC<{ data: ApplicationForm; lang: Language }> = ({ d
 
           {/* 1. การเก็บรวบรวมข้อมูลส่วนบุคคล */}
           <p className="text-sm font-bold mt-4 mb-1">
-            {lang === 'th' ? '1. การเก็บรวบรวมข้อมูลส่วนบุคคล' : '1. Processing of the Personal Data'}
+            {effectiveLang === 'th' ? '1. การเก็บรวบรวมข้อมูลส่วนบุคคล' : '1. Processing of the Personal Data'}
           </p>
           <p className="text-sm leading-relaxed ml-4 mb-3">
-            {lang === 'th'
+            {effectiveLang === 'th'
               ? 'บริษัทฯ จะเก็บ รวบรวม ใช้ ประมวลผล และเปิดเผยข้อมูลส่วนบุคคลของผู้สมัครงาน ได้แก่ ชื่อ นามสกุล เลขประจำตัวประชาชน ที่อยู่ ประวัติการศึกษา ประวัติการทำงานหรือการอบรม ประวัติการเกณฑ์ทหาร อีเมล เบอร์โทรศัพท์ ข้อมูลตามที่ผู้สมัครงานระบุใน Resume และ CV ที่ผู้สมัครนำส่งให้บริษัทฯ ที่ไม่ใช่ข้อมูลอ่อนไหว เพื่อประโยชน์ของผู้สมัครงานในการยืนยันตัวบุคคลของผู้สมัครงาน และเพื่อการพิจารณาความเหมาะสมในการเข้าทำสัญญาจ้างแรงงานกับบริษัทฯ'
               : 'The Company will collect, use, or disclose the Applicant\'s personal data, including name, surname, identification number, address, education background, work/training experience, military status, email, contact number, photo, and the information in the Applicant\'s resume or CV, which is not sensitive personal data (the "Personal Data") for the benefit of the Applicant, to verify identity and to consider the employment.'
             }
@@ -96,10 +103,10 @@ const ConsentSection: React.FC<{ data: ApplicationForm; lang: Language }> = ({ d
 
           {/* 2. การเปิดเผยข้อมูลส่วนบุคคล */}
           <p className="text-sm font-bold mt-4 mb-1">
-            {lang === 'th' ? '2. การเปิดเผยข้อมูลส่วนบุคคล' : '2. Disclosure of Personal Data'}
+            {effectiveLang === 'th' ? '2. การเปิดเผยข้อมูลส่วนบุคคล' : '2. Disclosure of Personal Data'}
           </p>
           <p className="text-sm leading-relaxed ml-4 mb-3">
-            {lang === 'th'
+            {effectiveLang === 'th'
               ? 'บริษัทฯ อาจเปิดเผยข้อมูลส่วนบุคคลของผู้สมัครงานต่อบริษัทในเครือพันธมิตรของบริษัทฯ เพื่อผลประโยชน์ของผู้สมัครงานในการพิจารณาความเหมาะสมในการเข้าทำสัญญาจ้างแรงงานกับบริษัทในเครือพันธมิตรของบริษัทฯ รวมถึงเพื่อการดำเนินการตามวัตถุประสงค์ที่เกี่ยวข้องกับวัตถุประสงค์ดังกล่าว'
               : 'The Company may disclose the Applicant\'s personal data to the Company\'s alliance for considering the employment and processing for the said purpose.'
             }
@@ -107,10 +114,10 @@ const ConsentSection: React.FC<{ data: ApplicationForm; lang: Language }> = ({ d
 
           {/* 3. การประมวลผลข้อมูล */}
           <p className="text-sm font-bold mt-4 mb-1">
-            {lang === 'th' ? '3. การประมวลผลข้อมูล' : '3. Data Processing'}
+            {effectiveLang === 'th' ? '3. การประมวลผลข้อมูล' : '3. Data Processing'}
           </p>
           <p className="text-sm leading-relaxed ml-4 mb-3">
-            {lang === 'th'
+            {effectiveLang === 'th'
               ? 'ข้อมูลส่วนบุคคลของผู้สมัครงานจะถูกประมวลผลโดยผู้ที่ได้รับอนุมัติจากบริษัทฯ และ/หรือบริษัทในเครือพันธมิตรของบริษัทฯ เพื่อการพิจารณารับบุคคลเข้าทำงาน'
               : 'The Applicant\'s personal data will be processed by authorized persons of the Company and/or the Company\'s alliance for employment consideration.'
             }
@@ -118,10 +125,10 @@ const ConsentSection: React.FC<{ data: ApplicationForm; lang: Language }> = ({ d
 
           {/* 4. ระยะเวลาในการจัดเก็บข้อมูล */}
           <p className="text-sm font-bold mt-4 mb-1">
-            {lang === 'th' ? '4. ระยะเวลาในการจัดเก็บข้อมูล' : '4. Data Retention Period'}
+            {effectiveLang === 'th' ? '4. ระยะเวลาในการจัดเก็บข้อมูล' : '4. Data Retention Period'}
           </p>
           <p className="text-sm leading-relaxed ml-4 mb-3">
-            {lang === 'th'
+            {effectiveLang === 'th'
               ? 'บริษัทฯ จะเก็บข้อมูลส่วนบุคคลของผู้สมัครงานเพื่อการดำเนินการตามวัตถุประสงค์เป็นระยะเวลา 5 ปี นับแต่วันที่ผู้สมัครงานทำการสมัครงานเพื่อเข้าทำงานกับบริษัทฯ และ/หรือบริษัทในเครือพันธมิตรของบริษัทฯ'
               : 'The Company shall collect the Personal Data for 5 years from the date that the Applicant applies for a job with the Company and/or the Company\'s alliance.'
             }
@@ -129,16 +136,16 @@ const ConsentSection: React.FC<{ data: ApplicationForm; lang: Language }> = ({ d
 
           {/* 5. สิทธิของผู้สมัครงาน */}
           <p className="text-sm font-bold mt-4 mb-1">
-            {lang === 'th' ? '5. สิทธิของผู้สมัครงาน' : '5. Rights of the Applicant'}
+            {effectiveLang === 'th' ? '5. สิทธิของผู้สมัครงาน' : '5. Rights of the Applicant'}
           </p>
           <p className="text-sm leading-relaxed ml-4 mb-2">
-            {lang === 'th'
+            {effectiveLang === 'th'
               ? 'รายละเอียดปรากฏตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 นโยบายคุ้มครองข้อมูลส่วนบุคคลของบริษัทฯ เรื่อง "สิทธิของเจ้าของข้อมูล"'
               : 'Rights of the Applicant are in accordance with the Personal Data Protection Act, B.E. 2562 (2019) and the Company\'s Personal Information Protection Policy.'
             }
           </p>
           <p className="text-sm leading-relaxed ml-4 mb-2">
-            {lang === 'th'
+            {effectiveLang === 'th'
               ? 'กรณีที่ผู้สมัครงานต้องการเข้าถึง แก้ไข ลบข้อมูลส่วนบุคคลที่ให้ไว้แก่บริษัทฯ ผู้สมัครงานสามารถติดต่อมายังบริษัทฯ เพื่อยื่นคำขอเกี่ยวกับข้อมูลส่วนบุคคลของท่านผ่านช่องทางการติดต่อดังนี้'
               : 'If the Applicant would like access, rectification, erasure of the Personal Data provided to the Company, please submit the request to the contact below:'
             }
@@ -146,29 +153,29 @@ const ConsentSection: React.FC<{ data: ApplicationForm; lang: Language }> = ({ d
 
           {/* DPO Contact Info */}
           <div className="ml-4 bg-gray-50 border border-gray-200 rounded p-3 text-xs mb-3">
-            <p><span className="font-bold">{lang === 'th' ? 'ผู้ควบคุมข้อมูลส่วนบุคคล:' : 'Data Controller:'}</span> {lang === 'th' ? 'บริษัท ดั๊บเบิ้ล เอ (1991) จำกัด (มหาชน)' : 'Double A (1991) Public Company Limited'}</p>
-            <p><span className="font-bold">{lang === 'th' ? 'สถานที่ติดต่อ:' : 'Address:'}</span> {lang === 'th' ? 'ฝ่ายสรรหาและคัดเลือกบุคลากร' : 'Recruitment Department'}</p>
-            <p className="ml-24">{lang === 'th' ? '187/3 หมู่ที่ 1 ถนนบางนา-ตราด กม. 42 ตำบลบางวัว อำเภอบางปะกง' : '187/3 Moo 1, Bangna-Trad Km. 42 Road, Bangwua, Bangpakong'}</p>
-            <p className="ml-24">{lang === 'th' ? 'จังหวัดฉะเชิงเทรา 24180' : 'Chachoengsao 24180, Thailand'}</p>
+            <p><span className="font-bold">{effectiveLang === 'th' ? 'ผู้ควบคุมข้อมูลส่วนบุคคล:' : 'Data Controller:'}</span> {effectiveLang === 'th' ? 'บริษัท ดั๊บเบิ้ล เอ (1991) จำกัด (มหาชน)' : 'Double A (1991) Public Company Limited'}</p>
+            <p><span className="font-bold">{effectiveLang === 'th' ? 'สถานที่ติดต่อ:' : 'Address:'}</span> {effectiveLang === 'th' ? 'ฝ่ายสรรหาและคัดเลือกบุคลากร' : 'Recruitment Department'}</p>
+            <p className="ml-24">{effectiveLang === 'th' ? '187/3 หมู่ที่ 1 ถนนบางนา-ตราด กม. 42 ตำบลบางวัว อำเภอบางปะกง' : '187/3 Moo 1, Bangna-Trad Km. 42 Road, Bangwua, Bangpakong'}</p>
+            <p className="ml-24">{effectiveLang === 'th' ? 'จังหวัดฉะเชิงเทรา 24180' : 'Chachoengsao 24180, Thailand'}</p>
             <p><span className="font-bold">Email:</span> recruit@doublea1991.com</p>
           </div>
 
           <p className="text-sm leading-relaxed ml-4 mb-3">
-            {lang === 'th'
+            {effectiveLang === 'th'
               ? <>ผู้สมัครงานสามารถตรวจสอบรายละเอียดเกี่ยวกับสิทธิอื่นๆ ของผู้สมัครงานได้ที่ <a href="https://www.doubleapaper.com/privacy-policy" className="text-blue-600 underline">https://www.doubleapaper.com/privacy-policy</a></>
               : <>The Application can find the information of the Personal Data Protection Policy at <a href="https://www.doubleapaper.com/privacy-policy" className="text-blue-600 underline">https://www.doubleapaper.com/privacy-policy</a></>
             }
           </p>
 
           <p className="text-sm leading-relaxed ml-4 mb-3">
-            {lang === 'th'
+            {effectiveLang === 'th'
               ? 'ทั้งนี้ผู้สมัครงานยืนยันว่าข้อมูลส่วนบุคคลของบุคคลที่สามที่ผู้สมัครงานให้แก่บริษัทฯ เพื่อผลประโยชน์ของผู้สมัครงานในการพิจารณาความเหมาะสมในการเข้าทำสัญญาจ้างแรงงานกับบริษัทฯ หรือบริษัทในเครือ ถูกต้อง และเจ้าของข้อมูลส่วนบุคคลทราบถึงการเปิดเผยข้อมูลดังกล่าวแก่บริษัทฯ แล้ว'
               : 'The Applicant certifies that the third party\'s personal data provided to the Company is true and correct, and the third party has acknowledged the said disclosure of their personal data to the Company.'
             }
           </p>
 
           <p className="text-sm leading-relaxed font-semibold mb-6">
-            {lang === 'th'
+            {effectiveLang === 'th'
               ? 'ผู้สมัครงาน อ่าน เข้าใจ และรายละเอียดซึ่งระบุไว้ข้างต้นแล้ว โดยยอมรับรองว่าข้อมูลที่นำส่งให้แก่บริษัทฯ เพื่อการประมวลผลข้อมูลนั้นถูกต้อง และเป็นความจริงทุกประการ'
               : 'The Applicant has read and understood this Privacy Notice including the above terms and conditions. The Applicant certifies that the Personal Data provided to the Company is true and correct.'
             }
@@ -178,17 +185,17 @@ const ConsentSection: React.FC<{ data: ApplicationForm; lang: Language }> = ({ d
           <div className="grid grid-cols-2 gap-8 mt-6">
             <div>
               <div className="border-b border-black h-8 mb-1"></div>
-              <p className="text-xs text-gray-600">{lang === 'th' ? 'ชื่อ-นามสกุล (ผู้สมัคร)' : 'Name (Applicant)'}</p>
+              <p className="text-xs text-gray-600">{effectiveLang === 'th' ? 'ชื่อ-นามสกุล (ผู้สมัคร)' : 'Name (Applicant)'}</p>
               <p className="text-sm font-semibold mt-1">{applicantName}</p>
             </div>
             <div>
               <div className="border-b border-black h-8 mb-1"></div>
-              <p className="text-xs text-gray-600">{lang === 'th' ? 'วัน/เดือน/ปี' : 'Date'}</p>
+              <p className="text-xs text-gray-600">{effectiveLang === 'th' ? 'วัน/เดือน/ปี' : 'Date'}</p>
               <p className="text-sm font-semibold mt-1">{formattedDate}</p>
             </div>
           </div>
-          <div className="text-center mt-6 text-sm font-bold">{lang === 'th' ? 'ผู้สมัครงาน' : 'Applicant'}</div>
-          <div className="text-center mt-1 text-xs text-gray-500">{lang === 'th' ? 'วัน/ เดือน/ ปี' : 'Day / Month / Year'}</div>
+          <div className="text-center mt-6 text-sm font-bold">{effectiveLang === 'th' ? 'ผู้สมัครงาน' : 'Applicant'}</div>
+          <div className="text-center mt-1 text-xs text-gray-500">{effectiveLang === 'th' ? 'วัน/ เดือน/ ปี' : 'Day / Month / Year'}</div>
         </div>
       </div>
 
@@ -196,18 +203,18 @@ const ConsentSection: React.FC<{ data: ApplicationForm; lang: Language }> = ({ d
       <div className="mt-6">
         <div className="bg-blue-700 py-2 px-3 mb-0">
           <h3 className="text-sm font-extrabold uppercase tracking-wider text-white">
-            {lang === 'th' ? 'ความยินยอมในการประมวลผลข้อมูล' : 'Data Processing Consent'}
+            {effectiveLang === 'th' ? 'ความยินยอมในการประมวลผลข้อมูล' : 'Data Processing Consent'}
           </h3>
         </div>
         <div className="border-2 border-t-0 border-black p-6 text-black">
           <p className="text-sm leading-relaxed mb-4">
-            {lang === 'th'
+            {effectiveLang === 'th'
               ? 'ผู้สมัครงานให้บริษัทฯ เก็บ รวบรวม ใช้ ประมวลผล ข้อมูลส่วนบุคคลที่มีอยู่ในข้อมูลผู้สมัครงานโดยเป็นอนุโลมของโครงการฯ เพื่อการดำเนินงานในการทำงาน ได้แก่ เพื่อการพิจารณาจ้างงานของบริษัทฯ และเพื่อบริหารจัดการแรงงานของบริษัทฯ โดยโปรดทราบว่าที่ผู้สมัครงานยินยอมให้ใช้ข้อมูลดังกล่าว บริษัทฯ สัญญาว่าจะเก็บรักษาข้อมูลไว้เป็นความลับอย่างเคร่งครัด และจะไม่เปิดเผยข้อมูลของผู้สมัครงาน ยกเว้นต่อผู้ที่เกี่ยวข้องกับกระบวนการพิจารณาว่าจ้าง และ/หรือ บริษัทในเครือ หรือตามที่กฎหมายกำหนด'
               : 'The applicant consents to the company collecting, using, and processing personal data contained in the job application for employment consideration and workforce management purposes. The company commits to strictly maintaining data confidentiality and will not disclose applicant information except to those involved in the hiring process, affiliated companies, or as required by law.'
             }
           </p>
           <p className="text-sm leading-relaxed mb-6">
-            {lang === 'th'
+            {effectiveLang === 'th'
               ? 'ทั้งนี้ที่ผู้สมัครงานยินยอม จะจัดเก็บและใช้งานข้อมูลดังกล่าวไว้เป็นระยะเวลา 5 ปี นับแต่วันที่ผู้สมัครงานทำการสมัครงาน เพื่อใช้ในการติดต่อและดำเนินการพิจารณาคัดเลือกบริษัทฯ และ/หรือพิจารณาให้บริษัทในเครือรับผู้สมัครงาน'
               : 'This consent covers data storage and use for a period of 5 years from the application date, to facilitate contact and selection processes within the company and/or affiliated companies.'
             }
@@ -236,7 +243,9 @@ const ConsentSection: React.FC<{ data: ApplicationForm; lang: Language }> = ({ d
 // ===== End ConsentSection =====
 
 export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSubmit, isSubmitting }) => {
-  const t = TRANSLATIONS[lang];
+  const isForeigner = !data.isThaiNational;
+  const effectiveLang = isForeigner ? 'en' : lang;
+  const t = TRANSLATIONS[effectiveLang];
 
   // Normalize salary strings: strip existing commas, reformat with commas, preserve suffix
   const fmtSalary = (val: string | number | undefined | null): string => {
@@ -249,6 +258,29 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
     const suffix = match[2].trim();
     const formatted = num.toLocaleString('en-US', { maximumFractionDigits: 0 });
     return suffix ? `${formatted} ${suffix}` : formatted;
+  };
+
+  const fmtDate = (val: string): string => {
+    if (!val) return '-';
+    // If it's already YYYY-MM, return it. If it's YYYY-MM-DD, slice it.
+    if (val.match(/^\d{4}-\d{2}$/)) return val;
+    if (val.match(/^\d{4}-\d{2}-\d{2}$/)) return val.substring(0, 7);
+    return val;
+  };
+
+  const getMilitaryLabel = (status: string) => {
+    const key = `military${status}` as keyof typeof t.options;
+    return t.options[key] || t.options[status as keyof typeof t.options] || status;
+  };
+
+  const getMaritalLabel = (status: string) => {
+    const key = status.toLowerCase() as keyof typeof t.options;
+    return t.options[key] || status;
+  };
+
+  const getSkillLabel = (skill: string) => {
+    const key = skill.toLowerCase() === 'no skill' ? 'noSkill' : skill.toLowerCase() as keyof typeof t.options;
+    return t.options[key] || skill;
   };
 
   const handlePrint = () => {
@@ -304,12 +336,12 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
           {/* Position Details Table */}
           <div className="flex-1 border-2 border-black">
             <div className="grid grid-cols-2">
-              <BoxField label={t.labels.position} value={lang === 'en' ? (data.positionEn || data.position) : data.position} />
+              <BoxField label={t.labels.position} value={effectiveLang === 'en' ? (data.positionEn || data.position) : data.position} />
               <BoxField label={t.labels.salary} value={`${fmtSalary(data.expectedSalary)} ${data.isSalaryNegotiable ? '(Negotiable)' : ''}`.trim()} className="border-r-0" />
             </div>
             <div className="grid grid-cols-2">
               <BoxField label={t.labels.department} value={data.department} className="border-b-0" />
-              <BoxField label={t.labels.startDate} value={data.availability} className="border-r-0 border-b-0" />
+              <BoxField label={t.labels.startDate} value={data.availability || (data.isAvailableImmediately ? (effectiveLang === 'th' ? 'พร้อมเริ่มงานทันที' : 'Immediately') : '-')} className="border-r-0 border-b-0" />
             </div>
           </div>
           {/* Photo */}
@@ -353,9 +385,9 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
         <SectionTitle title={t.sections.personal} />
         <div className="border-2 border-t-0 border-black">
           <div className="grid grid-cols-5">
-            <BoxField label={t.labels.title} value={data.title} />
-            <BoxField label={t.labels.firstName} value={data.firstName} />
-            <BoxField label={t.labels.lastName} value={data.lastName} />
+            <BoxField label={t.labels.title} value={effectiveLang === 'en' ? data.titleEn : data.title} />
+            <BoxField label={t.labels.firstName} value={effectiveLang === 'en' ? data.firstNameEn : data.firstName} />
+            <BoxField label={t.labels.lastName} value={effectiveLang === 'en' ? data.lastNameEn : data.lastName} />
             <BoxField label={t.labels.nickname} value={data.nickname} />
             <BoxField label={t.labels.nicknameEn} value={data.nicknameEn} className="border-r-0" />
           </div>
@@ -368,7 +400,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
             <BoxField label={t.labels.age} value={data.age} />
             <BoxField label={t.labels.height} value={data.height ? `${data.height} cm` : '-'} />
             <BoxField label={t.labels.weight} value={data.weight ? `${data.weight} kg` : '-'} />
-            <BoxField label={t.labels.military} value={data.militaryStatus} className="border-r-0" />
+            <BoxField label={t.labels.military} value={getMilitaryLabel(data.militaryStatus)} className="border-r-0" />
           </div>
           <div className="grid grid-cols-2">
             <BoxField label={t.labels.email} value={data.email} className="border-b-0" />
@@ -390,7 +422,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
         <div className="border-2 border-t-0 border-black">
           {/* Status Row */}
           <div className="grid grid-cols-3">
-            <BoxField label={t.labels.maritalStatus} value={data.maritalStatus} />
+            <BoxField label={t.labels.maritalStatus} value={getMaritalLabel(data.maritalStatus)} />
             <BoxField label={t.labels.children} value={data.childrenCount} />
             <BoxField label={t.labels.siblings} value={data.siblingCount} className="border-r-0" />
           </div>
@@ -461,13 +493,13 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
                 // New structure: Array
                 if (Array.isArray(edu)) {
                   const levelDisplayNames: Record<string, string> = {
-                    primarySchool: lang === 'th' ? 'ประถมศึกษา' : 'Primary School',
-                    juniorHighSchool: lang === 'th' ? 'มัธยมศึกษาตอนต้น' : 'Junior High School',
-                    highSchool: lang === 'th' ? 'มัธยมปลาย / ปวช.' : 'High School / Voc.Cert.',
-                    vocational: lang === 'th' ? 'ปวส.' : 'Higher Vocational',
-                    bachelor: lang === 'th' ? 'ปริญญาตรี' : 'Bachelor',
-                    master: lang === 'th' ? 'ปริญญาโท' : 'Master',
-                    phd: lang === 'th' ? 'ปริญญาเอก' : 'Ph.D.',
+                    primarySchool: t.options.primarySchool,
+                    juniorHighSchool: t.options.juniorHighSchool,
+                    highSchool: t.options.highSchool,
+                    vocational: t.options.vocational,
+                    bachelor: t.options.bachelor,
+                    master: t.options.master,
+                    phd: t.options.phd,
                   };
                   return edu.filter(e => e.institute).map((e, i) => (
                     <tr key={i}>
@@ -483,13 +515,13 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
                 return (['primarySchool', 'juniorHighSchool', 'highSchool', 'vocational', 'bachelor', 'master', 'phd'] as const).map((key) => {
                   const e = (edu as any)?.[key];
                   const levelDisplayNames: Record<string, string> = {
-                    primarySchool: lang === 'th' ? 'ประถมศึกษา' : 'Primary School',
-                    juniorHighSchool: lang === 'th' ? 'มัธยมศึกษาตอนต้น' : 'Junior High School',
-                    highSchool: lang === 'th' ? 'มัธยมปลาย / ปวช.' : 'High School / Voc.Cert.',
-                    vocational: lang === 'th' ? 'ปวส.' : 'Higher Vocational',
-                    bachelor: lang === 'th' ? 'ปริญญาตรี' : 'Bachelor',
-                    master: lang === 'th' ? 'ปริญญาโท' : 'Master',
-                    phd: lang === 'th' ? 'ปริญญาเอก' : 'Ph.D.',
+                    primarySchool: t.options.primarySchool,
+                    juniorHighSchool: t.options.juniorHighSchool,
+                    highSchool: t.options.highSchool,
+                    vocational: t.options.vocational,
+                    bachelor: t.options.bachelor,
+                    master: t.options.master,
+                    phd: t.options.phd,
                   };
                   if (!e?.institute) return null;
                   return (
@@ -524,7 +556,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
               {data.experience.length > 0 ? (
                 data.experience.map((exp, i) => (
                   <tr key={i}>
-                    <td className="py-2 px-2 border-r border-gray-400 text-xs text-black">{exp.from}<br />{exp.to}</td>
+                    <td className="py-2 px-2 border-r border-gray-400 text-xs text-black">{fmtDate(exp.from)}<br />{fmtDate(exp.to)}</td>
                     <td className="py-2 px-2 border-r border-gray-400 font-semibold text-black">{exp.company}</td>
                     <td className="py-2 px-2 border-r border-gray-400 text-black">{exp.position}</td>
                     <td className="py-2 px-2 border-r border-gray-400 text-black">{fmtSalary(exp.salary)}</td>
@@ -555,8 +587,8 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
               <div>
                 <h4 className="font-bold border-b border-black mb-2 pb-1 text-sm uppercase text-black">{t.labels.langSkill}</h4>
                 <div className="space-y-1 text-sm text-black">
-                  <div className="flex justify-between"><span className="text-gray-600">English:</span> <span className="font-semibold">{data.englishSkill} (Score: {data.englishScore || '-'})</span></div>
-                  <div className="flex justify-between"><span className="text-gray-600">Chinese:</span> <span className="font-semibold">{data.chineseSkill} (Score: {data.chineseScore || '-'})</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">English:</span> <span className="font-semibold">{getSkillLabel(data.englishSkill)} (Score: {data.englishScore || '-'})</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">Chinese:</span> <span className="font-semibold">{getSkillLabel(data.chineseSkill)} (Score: {data.chineseScore || '-'})</span></div>
                 </div>
 
                 <h4 className="font-bold border-b border-black mb-2 pb-1 text-sm uppercase mt-6 text-black">{t.labels.driving}</h4>
@@ -573,15 +605,15 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
                   {Object.entries(data.computerSkills).map(([k, v]) => (
                     <div key={k} className="flex justify-between items-center border-b border-dotted border-gray-300 pb-0.5">
                       <span className="capitalize text-gray-700">{k}</span>
-                      <span className="font-bold text-xs">{v}</span>
+                      <span className="font-bold text-xs">{getSkillLabel(v)}</span>
                     </div>
                   ))}
                 </div>
 
                 <h4 className="font-bold border-b border-black mb-2 pb-1 text-sm uppercase mt-6 text-black">{t.labels.graphics}</h4>
                 <div className="space-y-1 text-sm text-black">
-                  <div className="flex justify-between"><span className="text-gray-600">Canva:</span> <span className="font-semibold">{data.graphicsSkills.canva}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-600">Video Editor:</span> <span className="font-semibold">{data.graphicsSkills.videoEditor}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">Canva:</span> <span className="font-semibold">{getSkillLabel(data.graphicsSkills.canva)}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">Video Editor:</span> <span className="font-semibold">{getSkillLabel(data.graphicsSkills.videoEditor)}</span></div>
                 </div>
               </div>
             </div>
@@ -676,7 +708,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
 
 
         {/* ===== หนังสือยินยอมและรับรอง ===== */}
-        <ConsentSection data={data} lang={lang} />
+        <ConsentSection data={data} lang={effectiveLang} />
 
       </div>
     </div>
