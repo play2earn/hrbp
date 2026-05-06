@@ -315,8 +315,9 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                         const fd = app.form_data || {};
                         const fullName = app.full_name || `${fd.prefix || ''} ${fd.firstName || ''} ${fd.lastName || ''}`.trim() || 'ไม่ระบุ';
                         const phone = app.phone || fd.phone || '-';
-                        const dept = app.department || fd.department || '-';
-                        const pos = app.position || fd.position || '-';
+                        const isForeigner = fd.isThaiNational === false;
+                        const dept = isForeigner ? (fd.departmentEn || app.department || fd.department || '-') : (app.department || fd.department || '-');
+                        const pos = isForeigner ? (fd.positionEn || app.position || fd.position || '-') : (app.position || fd.position || '-');
                         const bu = fd.businessUnit || app.business_unit || '';
                         const ch = fd.sourceChannel || app.source_channel || '';
 
@@ -404,8 +405,9 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                         const fd = app.form_data || {};
                         const fullName = app.full_name || `${fd.prefix || ''} ${fd.firstName || ''} ${fd.lastName || ''}`.trim() || 'ไม่ระบุ';
                         const phone = app.phone || fd.phone || '-';
-                        const dept = app.department || fd.department || '-';
-                        const pos = app.position || fd.position || '-';
+                        const isForeigner = fd.isThaiNational === false;
+                        const dept = isForeigner ? (fd.departmentEn || app.department || fd.department || '-') : (app.department || fd.department || '-');
+                        const pos = isForeigner ? (fd.positionEn || app.position || fd.position || '-') : (app.position || fd.position || '-');
                         const bu = fd.businessUnit || app.business_unit || '';
                         const ch = fd.sourceChannel || app.source_channel || '';
                         const tag = fd.campaignTag || app.campaign_tag || '';

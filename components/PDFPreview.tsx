@@ -269,11 +269,14 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
   };
 
   const getMilitaryLabel = (status: string) => {
+    if (!status) return '-';
     const key = `military${status}` as keyof typeof t.options;
-    return t.options[key] || t.options[status as keyof typeof t.options] || status;
+    const lowerKey = status.toLowerCase() as keyof typeof t.options;
+    return t.options[key] || t.options[lowerKey] || status;
   };
 
   const getMaritalLabel = (status: string) => {
+    if (!status) return '-';
     const key = status.toLowerCase() as keyof typeof t.options;
     return t.options[key] || status;
   };
@@ -340,7 +343,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
               <BoxField label={t.labels.salary} value={`${fmtSalary(data.expectedSalary)} ${data.isSalaryNegotiable ? '(Negotiable)' : ''}`.trim()} className="border-r-0" />
             </div>
             <div className="grid grid-cols-2">
-              <BoxField label={t.labels.department} value={data.department} className="border-b-0" />
+              <BoxField label={t.labels.department} value={effectiveLang === 'en' ? (data.departmentEn || data.department) : data.department} className="border-b-0" />
               <BoxField label={t.labels.startDate} value={data.availability || (data.isAvailableImmediately ? (effectiveLang === 'th' ? 'พร้อมเริ่มงานทันที' : 'Immediately') : '-')} className="border-r-0 border-b-0" />
             </div>
           </div>
@@ -587,15 +590,15 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
               <div>
                 <h4 className="font-bold border-b border-black mb-2 pb-1 text-sm uppercase text-black">{t.labels.langSkill}</h4>
                 <div className="space-y-1 text-sm text-black">
-                  <div className="flex justify-between"><span className="text-gray-600">English:</span> <span className="font-semibold">{getSkillLabel(data.englishSkill)} (Score: {data.englishScore || '-'})</span></div>
-                  <div className="flex justify-between"><span className="text-gray-600">Chinese:</span> <span className="font-semibold">{getSkillLabel(data.chineseSkill)} (Score: {data.chineseScore || '-'})</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">{t.labels.english}:</span> <span className="font-semibold">{getSkillLabel(data.englishSkill)} (Score: {data.englishScore || '-'})</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">{t.labels.chinese}:</span> <span className="font-semibold">{getSkillLabel(data.chineseSkill)} (Score: {data.chineseScore || '-'})</span></div>
                 </div>
 
                 <h4 className="font-bold border-b border-black mb-2 pb-1 text-sm uppercase mt-6 text-black">{t.labels.driving}</h4>
                 <div className="space-y-1 text-sm text-black">
-                  <div className="flex justify-between"><span className="text-gray-600">Motorcycle:</span> <span className="font-semibold">{data.driving.motorcycle ? 'Yes' : 'No'} (Lic: {data.driving.motorcycleLicense ? 'Yes' : 'No'})</span></div>
-                  <div className="flex justify-between"><span className="text-gray-600">Car:</span> <span className="font-semibold">{data.driving.car ? 'Yes' : 'No'} (Lic: {data.driving.carLicense ? 'Yes' : 'No'})</span></div>
-                  <div className="text-xs mt-1 text-gray-500">Types: {data.driving.licenseClasses.join(', ') || '-'}</div>
+                  <div className="flex justify-between"><span className="text-gray-600">{t.labels.motorcycle}:</span> <span className="font-semibold">{data.driving.motorcycle ? t.options.yes : t.options.no} ({t.options.license}: {data.driving.motorcycleLicense ? t.options.yes : t.options.no})</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">{t.labels.car}:</span> <span className="font-semibold">{data.driving.car ? t.options.yes : t.options.no} ({t.options.license}: {data.driving.carLicense ? t.options.yes : t.options.no})</span></div>
+                  <div className="text-xs mt-1 text-gray-500">{t.options.types}: {data.driving.licenseClasses.join(', ') || '-'}</div>
                 </div>
               </div>
 
@@ -611,9 +614,9 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
                 </div>
 
                 <h4 className="font-bold border-b border-black mb-2 pb-1 text-sm uppercase mt-6 text-black">{t.labels.graphics}</h4>
-                <div className="space-y-1 text-sm text-black">
-                  <div className="flex justify-between"><span className="text-gray-600">Canva:</span> <span className="font-semibold">{getSkillLabel(data.graphicsSkills.canva)}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-600">Video Editor:</span> <span className="font-semibold">{getSkillLabel(data.graphicsSkills.videoEditor)}</span></div>
+                 <div className="space-y-1 text-sm text-black">
+                  <div className="flex justify-between"><span className="text-gray-600">{t.options.canva}:</span> <span className="font-semibold">{getSkillLabel(data.graphicsSkills.canva)}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">{t.options.videoEditor}:</span> <span className="font-semibold">{getSkillLabel(data.graphicsSkills.videoEditor)}</span></div>
                 </div>
               </div>
             </div>

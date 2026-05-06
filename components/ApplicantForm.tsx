@@ -537,8 +537,8 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
 
     if (step === 5) {
       const filledEdu = formData.education.filter(e => e.institute && e.institute.trim() !== '');
-      if (filledEdu.length < 2) {
-        errors.education = lang === 'th' ? 'กรุณาระบุประวัติการศึกษาอย่างน้อย 2 รายการ' : 'Please provide at least 2 education entries';
+      if (filledEdu.length < 1) {
+        errors.education = lang === 'th' ? 'กรุณาระบุประวัติการศึกษาอย่างน้อย 1 รายการ' : 'Please provide at least 1 education entry';
 
       }
     }
@@ -750,10 +750,13 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                   label={<>{t.labels.department} <span className="text-red-500">*</span></>}
                   value={formData.department}
                   onChange={(e) => {
-                    updateField('department', e.target.value);
+                    const selectedValue = e.target.value;
+                    updateField('department', selectedValue);
+                    const matchedDept = departments.find(d => d.name_th === selectedValue || d.name_en === selectedValue);
+                    updateField('departmentEn', matchedDept?.name_en || selectedValue);
                     updateField('position', ''); // Clear position immediately for UI responsiveness
                   }}
-                  options={departments.map(d => ({ label: lang === 'en' ? d.name_en : d.name_th, value: d.name_en }))}
+                  options={departments.map(d => ({ label: lang === 'en' ? (d.name_en || d.name_th) : d.name_th, value: d.name_th }))}
                 />
                 {validationErrors.department && <p className="text-red-500 text-xs mt-1">{validationErrors.department}</p>}
               </div>
@@ -1562,7 +1565,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                 <TextArea label={`${t.labels.principles} ${lang === 'th' ? '(สูงสุด 250 ตัวอักษร)' : '(Max 250 characters)'}`} error={validationErrors.principles} value={formData.principles} onChange={(e) => updateField('principles', e.target.value)} maxLength={250} />
                 <TextArea label={`${t.labels.troubleResolve} ${lang === 'th' ? '(สูงสุด 250 ตัวอักษร)' : '(Max 250 characters)'}`} error={validationErrors.troubleResolve} value={formData.troubleResolve} onChange={(e) => updateField('troubleResolve', e.target.value)} maxLength={250} />
                 <TextArea label={`${t.labels.jobCriteria} ${lang === 'th' ? '(สูงสุด 250 ตัวอักษร)' : '(Max 250 characters)'}`} error={validationErrors.jobCriteria} value={formData.jobCriteria} onChange={(e) => updateField('jobCriteria', e.target.value)} maxLength={250} />
-                <TextArea label={`${t.labels.interests} ${lang === 'th' ? '(สูงสุด 250 ตัวอักษร)' : '(Max 250 characters)'}`} error={validationErrors.interests} value={formData.interests} onChange={(e) => updateField('interests', e.target.value)} maxLength={250} />
+                <TextArea label={t.labels.interests} error={validationErrors.interests} value={formData.interests} onChange={(e) => updateField('interests', e.target.value)} maxLength={250} />
                 <TextArea label={`${t.labels.digitalTransform} ${lang === 'th' ? '(สูงสุด 250 ตัวอักษร)' : '(Max 250 characters)'}`} error={validationErrors.digitalTransformOpinion} value={formData.digitalTransformOpinion} onChange={(e) => updateField('digitalTransformOpinion', e.target.value)} maxLength={250} />
               </div>
             </div>
@@ -1642,33 +1645,35 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                 />
                 <FileUpload
                   label={t.labels.resume}
-                  description={lang === 'th' ? "อัปโหลด Resume (PDF เท่านั้น, ขนาดไม่เกิน 10MB)" : "Upload resume (PDF only, max 10MB)"}
+                  description={lang === 'th' ? "อัปโหลด Resume (PDF หรือรูปภาพ, ไม่เกิน 10MB)" : "Upload resume (PDF or Image, max 10MB)"}
                   value={formData.resumeUrl}
                   error={validationErrors.resumeUrl}
                   onChange={() => { }}
                   onFileSelect={(file) => handleFileUpload(file, 'resumeUrl', 'resume')}
                   uploading={uploadingState.resume}
-                  accept=".pdf"
+                  accept=".pdf,.jpg,.jpeg,.png"
                   maxSizeMB={10}
                 />
                 <FileUpload
                   label={<>{t.labels.transcript} <span className="text-red-500">*</span></>}
-                  description={lang === 'th' ? "แนบ Transcript / ใบรับรองผลการศึกษา (PDF เท่านั้น, ไม่เกิน 10MB)" : "Upload Academic Transcript (PDF only, max 10MB)"}
+                  description={lang === 'th' ? "แนบ Transcript / ใบรับรองผลการศึกษา (PDF หรือรูปภาพ, ไม่เกิน 10MB)" : "Upload Academic Transcript (PDF or Image, max 10MB)"}
                   value={formData.transcriptUrl}
                   error={validationErrors.transcriptUrl}
                   onChange={() => { }}
                   onFileSelect={(file) => handleFileUpload(file, 'transcriptUrl', 'transcript')}
                   uploading={uploadingState.transcript}
-                  accept=".pdf"
+                  accept=".pdf,.jpg,.jpeg,.png"
                   maxSizeMB={10}
                 />
                 <FileUpload
                   label={t.labels.otherDocs}
-                  description={lang === 'th' ? "เอกสารประกอบอื่นๆ (PDF/JPG/PNG, ขนาดไม่เกิน 10MB)" : "Other documents (PDF/JPG/PNG, max 10MB)"}
+                  description={lang === 'th' ? "เอกสารสำคัญอื่นๆ เช่น ใบอนุญาตขับขี่, TOEIC, ใบเซอร์ (PDF หรือรูปภาพ, ไม่เกิน 10MB)" : "Other important documents like Driving License, TOEIC, Cert. (PDF or Image, max 10MB)"}
                   value={formData.certificateUrl}
+                  error={validationErrors.certificateUrl}
                   onChange={() => { }}
                   onFileSelect={(file) => handleFileUpload(file, 'certificateUrl', 'certificate')}
                   uploading={uploadingState.certificate}
+                  accept=".pdf,.jpg,.jpeg,.png"
                   maxSizeMB={10}
                 />
                 <Input

@@ -76,6 +76,14 @@ export const TRANSLATIONS = {
       subDistrict: 'Sub-district',
       phone: 'Phone number',
       email: 'Official Email Address',
+      applicationDetail: 'Application Details',
+      uploading: 'Uploading...',
+      changePhoto: 'Change Photo',
+      expectedSalary: 'Expected Salary',
+      availability: 'Availability',
+      nationalId: 'Identification Card Number',
+      dateOfBirth: 'Date of Birth',
+      militaryStatus: 'Military Status',
 
       // Step 4
       maritalStatus: 'Marital Status',
@@ -133,7 +141,7 @@ export const TRANSLATIONS = {
       principles: 'My principles in working are',
       troubleResolve: 'When troubles in a job arise, I resolve them by',
       jobCriteria: 'My criteria in choosing a job in any company is',
-      interests: 'I\'m interested in News, Trends, Technology, Etc.',
+      interests: 'I\'m interested in News, Trends, Technology, Etc. Please identify "Which Categories" and "Which channel/ Media to perceive." (Max 250 characters)',
       digitalTransform: 'What do you think about Digital Transform?',
 
       // Step 9
@@ -145,10 +153,21 @@ export const TRANSLATIONS = {
 
       // Step 10
       photo: 'Your current photo (.JPG/ .PNG) limit 2MB',
-      resume: 'Resume / CV (.PDF)',
-      transcript: 'Academic Transcript (.PDF) *Required',
-      otherDocs: 'Others important documents (TOEIC, Cert., etc.)',
-      links: 'Another link about you (LinkedIn, JobThai, etc.)'
+      resume: 'Resume / CV (PDF, JPG, PNG)',
+      transcript: 'Academic Transcript (PDF, JPG, PNG) *Required',
+      otherDocs: 'Others important documents (PDF, JPG, PNG)',
+      links: 'Another link about you (LinkedIn, JobThai, etc.)',
+      sourceChannel: 'Source Channel',
+      attachments: 'Attachments',
+      interviewDate: 'Interview Date',
+      actionHistory: 'Action History',
+      noHistory: 'No history yet',
+      shareProfile: 'Profile Share Link',
+      expires: 'Expires',
+      copied: 'Copied!',
+      copy: 'Copy',
+      stopSharing: 'Stop Sharing',
+      openFullPreview: 'Open Full Preview'
     },
     dashboard: {
       totalApps: 'Total Applications',
@@ -185,6 +204,15 @@ export const TRANSLATIONS = {
       privateMotorcycle: 'Private Motorcycle',
       publicVehicle2: 'Public Vehicle Class 2',
       publicVehicle3: 'Public Vehicle Class 3',
+      present: 'Present',
+      period: 'Period',
+      responsibilities: 'Responsibilities',
+      medicalHistory: 'Medical History',
+      noInfo: 'No information',
+      canva: 'Canva',
+      videoEditor: 'Video Editor',
+      license: 'Lic',
+      types: 'Types',
       fatherInfo: "Father's Information",
       motherInfo: "Mother's Information",
       primarySchool: 'Primary School (P.1-P.6)',
@@ -202,7 +230,13 @@ export const TRANSLATIONS = {
       militaryRotc: 'Completed R.O.T.C.',
       militaryExemptFemale: 'Exempted - Female',
       militaryExemptLaw: 'Exempted - Legal',
-      militaryNotYet: 'Not Yet Drafted'
+      militaryNotYet: 'Not Yet Drafted',
+      years: 'Years',
+      cm: 'cm',
+      kg: 'kg',
+      negotiable: 'Negotiable',
+      foreigner: 'Foreigner',
+      thai: 'Thai',
     }
   },
   th: {
@@ -279,6 +313,14 @@ export const TRANSLATIONS = {
       subDistrict: 'ตำบล/แขวง',
       phone: 'เบอร์โทรศัพท์',
       email: 'อีเมล',
+      applicationDetail: 'รายละเอียดผู้สมัคร',
+      uploading: 'กำลังโหลด...',
+      changePhoto: 'เปลี่ยนรูป',
+      expectedSalary: 'เงินเดือนที่คาดหวัง',
+      availability: 'วันที่สามารถเริ่มงาน',
+      nationalId: 'เลขบัตรประชาชน',
+      dateOfBirth: 'วันเกิด',
+      militaryStatus: 'สถานภาพทางทหาร',
 
       // Step 4
       maritalStatus: 'สถานภาพสมรส',
@@ -336,7 +378,7 @@ export const TRANSLATIONS = {
       principles: 'หลักการทำงานของฉัน',
       troubleResolve: 'เมื่อเจอปัญหาในงาน ฉันแก้ไขโดย',
       jobCriteria: 'เกณฑ์ในการเลือกงานของฉัน',
-      interests: 'ฉันสนใจข่าวสาร เทรนด์ เทคโนโลยี ฯลฯ (โปรดระบุ)',
+      interests: 'ฉันมีความสนใจในข่าวสาร เทรนด์ เทคโนโลยี ฯลฯ โปรดระบุ "หมวดหมู่ที่สนใจ" และ "ช่องทาง/สื่อที่ใช้ในการติดตาม" (ไม่เกิน 250 ตัวอักษร)',
       digitalTransform: 'คุณคิดอย่างไรกับ Digital Transformation?',
 
       // Step 9
@@ -348,10 +390,21 @@ export const TRANSLATIONS = {
 
       // Step 10
       photo: 'รูปถ่ายปัจจุบัน (.JPG/ .PNG) ไม่เกิน 2MB',
-      resume: 'เรซูเม่ / CV (.PDF)',
-      transcript: 'Transcript / ใบรับรองผลการศึกษา (.PDF) *จำเป็น',
-      otherDocs: 'เอกสารสำคัญอื่นๆ (ใบเซอร์, TOEIC ฯลฯ)',
-      links: 'ลิงก์เพิ่มเติม (LinkedIn, JobThai, Portfolio)'
+      resume: 'เรซูเม่ / CV (PDF, JPG, PNG)',
+      transcript: 'Transcript / ใบรับรองผลการศึกษา (PDF, JPG, PNG) *จำเป็น',
+      otherDocs: 'เอกสารสำคัญอื่นๆ (PDF, JPG, PNG)',
+      links: 'ลิงก์เพิ่มเติม (LinkedIn, JobThai, Portfolio)',
+      sourceChannel: 'ช่องทางที่มา',
+      attachments: 'ไฟล์แนบ & ลิงก์',
+      interviewDate: 'วันนัดสัมภาษณ์',
+      actionHistory: 'ประวัติการดำเนินการ',
+      noHistory: 'ยังไม่มีประวัติ',
+      shareProfile: 'ลิงก์แชร์โปรไฟล์',
+      expires: 'หมดอายุ',
+      copied: 'คัดลอกแล้ว!',
+      copy: 'คัดลอก',
+      stopSharing: 'หยุดแชร์',
+      openFullPreview: 'เปิด Preview เต็มจอ'
     },
     dashboard: {
       totalApps: 'ใบสมัครทั้งหมด',
@@ -381,8 +434,8 @@ export const TRANSLATIONS = {
       no: 'ไม่ใช่',
       yesIcan: 'ได้',
       noIcannot: 'ไม่ได้',
-      yesIdo: 'มี',
-      noIdont: 'ไม่มี',
+      yesIdo: 'มี / ใช่',
+      noIdont: 'ไม่มี / ไม่ใช่',
       notHave: 'ไม่มีใบขับขี่',
       privateCar: 'รถยนต์ส่วนบุคคล',
       privateMotorcycle: 'รถจักรยานยนต์ส่วนบุคคล',
@@ -400,12 +453,27 @@ export const TRANSLATIONS = {
       addExperience: 'เพิ่มประสบการณ์',
       removeExperience: 'ลบ',
       noExperienceYet: 'ยังไม่ได้เพิ่มประสบการณ์ กด "เพิ่มประสบการณ์" หากมี',
+      present: 'ปัจจุบัน',
+      period: 'ช่วงเวลา',
+      responsibilities: 'หน้าที่ความรับผิดชอบ',
+      medicalHistory: 'ประวัติทางการแพทย์',
+      noInfo: 'ไม่มีข้อมูล',
+      canva: 'Canva',
+      videoEditor: 'ตัดต่อวิดีโอ (Video Editor)',
+      license: 'ใบอนุญาต',
+      types: 'ประเภท',
       // Military Status
       militaryCompleted: 'ผ่านการเกณฑ์ทหารแล้ว',
       militaryRotc: 'จบหลักสูตร รด.',
       militaryExemptFemale: 'ได้รับการยกเว้น - เพศหญิง',
       militaryExemptLaw: 'ได้รับการยกเว้น - ตามกฎหมาย',
-      militaryNotYet: 'ยังไม่เกณฑ์ทหาร'
+      militaryNotYet: 'ยังไม่เกณฑ์ทหาร',
+      years: 'ปี',
+      cm: 'ซม.',
+      kg: 'กก.',
+      negotiable: 'ต่อรองได้',
+      foreigner: 'ต่างชาติ',
+      thai: 'ไทย',
     }
   }
 };

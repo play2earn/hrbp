@@ -11,6 +11,7 @@ import {
   LOG_LABELS, getStatusBadgeClass, getStatusLabel,
   getMilitaryStatusLabel, isInterviewScheduledStatus, isClosedStatus
 } from './dashboardConstants';
+import { TRANSLATIONS } from '../../constants';
 
 const fmtYearMonth = (dateStr: string | undefined | null): string => {
   if (!dateStr) return '';
@@ -105,9 +106,14 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
             if (posResult.success && posResult.data) {
               const matchedPos = posResult.data.find((p: any) => p.name_th === (fd.position || viewingApp.position));
               if (matchedPos && matchedPos.name_en) {
-                const updatedApp = { ...viewingApp };
-                updatedApp.form_data.positionEn = matchedPos.name_en;
-                setViewingApp(updatedApp);
+                // Immutable update to prevent flickering/state issues
+                setViewingApp({
+                  ...viewingApp,
+                  form_data: {
+                    ...viewingApp.form_data,
+                    positionEn: matchedPos.name_en
+                  }
+                });
               }
             }
           } catch (e) {
@@ -190,26 +196,25 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
     }
   };
 
-  const fdTop = viewingApp?.form_data || {};
-  const isForeignerTop = fdTop.isThaiNational === false;
-  const langTop = isForeignerTop ? 'en' : 'th';
-  const hasThaiName = fdTop.firstName && fdTop.lastName;
-  const fullName = hasThaiName
-    ? [fdTop.title || fdTop.prefix, fdTop.firstName, fdTop.lastName].filter(Boolean).join(' ')
-    : [fdTop.titleEn, fdTop.firstNameEn, fdTop.lastNameEn].filter(Boolean).join(' ') || viewingApp?.full_name || '-';
-  const fullNameEn = hasThaiName ? [fdTop.titleEn, fdTop.firstNameEn, fdTop.lastNameEn].filter(Boolean).join(' ') : null;
-
   const fd = viewingApp?.form_data || {};
   const isForeigner = fd.isThaiNational === false;
   const lang = isForeigner ? 'en' : 'th';
+  const t = TRANSLATIONS[lang];
+
+  const hasThaiName = fd.firstName && fd.lastName;
+  const fullName = hasThaiName
+    ? [fd.title || fd.prefix, fd.firstName, fd.lastName].filter(Boolean).join(' ')
+    : [fd.titleEn, fd.firstNameEn, fd.lastNameEn].filter(Boolean).join(' ') || viewingApp?.full_name || '-';
+  const fullNameEn = hasThaiName ? [fd.titleEn, fd.firstNameEn, fd.lastNameEn].filter(Boolean).join(' ') : null;
 
   return (
     <>
       {/* View Application Modal - Comprehensive View */}
       <Modal
+        key={viewingApp?.id || 'none'}
         isOpen={!!viewingApp}
         onClose={() => setViewingApp(null)}
-        title={langTop === 'en' ? 'Application Details' : 'รายละเอียดผู้สมัคร'}
+        title={t.labels.applicationDetail}
         size="full"
         footer={null}
       >
@@ -228,7 +233,7 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
                   {/* Hover Overlay for Upload */}
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer">
                     <label className="cursor-pointer flex flex-col items-center justify-center w-full h-full text-white text-xs text-center p-1 font-semibold">
-                      {isUploadingPhoto ? 'กำลังโหลด...' : 'เปลี่ยนรูป'}
+                      {isUploadingPhoto ? t.labels.uploading : t.labels.changePhoto}
                       <input
                         type="file"
                         className="hidden"
@@ -273,7 +278,7 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
                   {fullNameEn && <p className="text-sm text-gray-600 mb-1">{fullNameEn}</p>}
                   <p className="text-sm text-gray-600">{fd.nickname || fd.nicknameEn ? `(${[fd.nickname, fd.nicknameEn].filter(Boolean).join(' / ')})` : ''}</p>
                   <p className="text-sm text-indigo-600 font-medium mt-1">{fd.isThaiNational === false ? (fd.positionEn || fd.position || viewingApp.position || 'ไม่ระบุตำแหน่ง') : (fd.position || viewingApp.position || 'ไม่ระบุตำแหน่ง')}</p>
-                  <p className="text-sm text-gray-500">{fd.department || viewingApp.department || ''}</p>
+                  <p className="text-sm text-gray-500">{fd.isThaiNational === false ? (fd.departmentEn || fd.department || viewingApp.department || '') : (fd.department || viewingApp.department || '')}</p>
                   <div className="flex flex-wrap gap-2 mt-2">
                     <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(viewingApp.status)}`}>
                       {getStatusLabel(viewingApp.status)}
@@ -336,61 +341,61 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
                 </div>
               </div>
 
-              {/* 1. Position Applied */}
+               {/* 1. Position Applied */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 bg-indigo-50 p-3 rounded-lg mb-4">
-                <InfoRow label={lang === 'en' ? 'Position Applied' : 'ตำแหน่งที่สมัคร'} value={fd.isThaiNational === false ? (fd.positionEn || fd.position || viewingApp.position) : (fd.position || viewingApp.position)} />
-                <InfoRow label={lang === 'en' ? 'Expected Salary' : 'เงินเดือนที่ต้องการ'} value={fd.expectedSalary ? `${fmtSalary(fd.expectedSalary)} ${fd.isSalaryNegotiable ? '(ต่อรองได้)' : ''}`.trim() : '-'} />
-                <InfoRow label={lang === 'en' ? 'Department' : 'แผนก/ฝ่าย'} value={fd.department} />
-                <InfoRow label={lang === 'en' ? 'Availability' : 'วันที่สามารถเริ่มงาน'} value={fd.availability} />
+                <InfoRow label={t.labels.position} value={fd.isThaiNational === false ? (fd.positionEn || fd.position || viewingApp.position) : (fd.position || viewingApp.position)} />
+                <InfoRow label={t.labels.expectedSalary} value={fd.expectedSalary ? `${fmtSalary(fd.expectedSalary)} ${fd.isSalaryNegotiable ? `(${t.options.negotiable})` : ''}`.trim() : '-'} />
+                <InfoRow label={t.labels.department} value={fd.department} />
+                <InfoRow label={t.labels.availability} value={fd.availability} />
               </div>
 
               {/* 2. Personal Info */}
-              <SectionHeader title={lang === 'en' ? 'Personal Information' : 'ข้อมูลส่วนตัว'} icon={User} />
+              <SectionHeader title={t.sections.personal} icon={User} />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
-                <InfoRow label={lang === 'en' ? 'Title' : 'คำนำหน้า'} value={fd.title || fd.prefix} />
-                <InfoRow label="ชื่อเล่น (ไทย)" value={fd.nickname} />
-                <InfoRow label="ชื่อเล่น (อังกฤษ)" value={fd.nicknameEn} />
-                <InfoRow label={lang === 'en' ? 'First Name' : 'ชื่อ'} value={fd.firstName} />
-                <InfoRow label={lang === 'en' ? 'Last Name' : 'นามสกุล'} value={fd.lastName} />
-                <InfoRow label={lang === 'en' ? 'Nationality' : 'สัญชาติ'} value={fd.isThaiNational ? (lang === 'en' ? 'Thai' : 'ไทย') : (lang === 'en' ? 'Foreigner' : 'ต่างชาติ')} />
-                <InfoRow label={lang === 'en' ? 'ID Card / Passport' : (fd.isThaiNational ? 'เลขบัตรประชาชน' : 'หมายเลขหนังสือเดินทาง')} value={fd.isThaiNational ? fd.nationalId : fd.passportNo} />
+                <InfoRow label={t.labels.title} value={fd.title || fd.prefix} />
+                <InfoRow label={`${t.labels.nickname} (TH)`} value={fd.nickname} />
+                <InfoRow label={`${t.labels.nickname} (EN)`} value={fd.nicknameEn} />
+                <InfoRow label={t.labels.firstName} value={fd.firstName} />
+                <InfoRow label={t.labels.lastName} value={fd.lastName} />
+                <InfoRow label={t.labels.nationality} value={fd.isThaiNational ? t.options.thai : t.options.foreigner} />
+                <InfoRow label={fd.isThaiNational ? t.labels.nationalId : t.labels.passport} value={fd.isThaiNational ? fd.nationalId : fd.passportNo} />
                 {!fd.isThaiNational && (
-                  <InfoRow label={lang === 'en' ? 'Work Permit' : 'Work Permit / สิทธิ์ทำงานในไทย'} value={fd.availableToWorkInThailand ? (lang === 'en' ? '✅ Eligible to work in Thailand' : '✅ มีสิทธิ์ทำงานในประเทศไทย') : (lang === 'en' ? '⚠️ Not eligible to work in Thailand yet' : '⚠️ ยังไม่มีสิทธิ์ทำงานในประเทศไทย')} />
+                  <InfoRow label={t.labels.haveLicense} value={fd.availableToWorkInThailand ? `✅ ${t.options.yesIdo}` : `⚠️ ${t.options.noIdont}`} />
                 )}
-                <InfoRow label={lang === 'en' ? 'Date of Birth' : 'วันเกิด'} value={fd.dateOfBirth} />
-                <InfoRow label={lang === 'en' ? 'Age' : 'อายุ'} value={fd.age ? `${fd.age} ${lang === 'en' ? 'Years' : 'ปี'}` : '-'} />
-                <InfoRow label={lang === 'en' ? 'Height' : 'ส่วนสูง'} value={fd.height ? `${fd.height} ${lang === 'en' ? 'cm' : 'ซม.'}` : '-'} />
-                <InfoRow label={lang === 'en' ? 'Weight' : 'น้ำหนัก'} value={fd.weight ? `${fd.weight} ${lang === 'en' ? 'kg' : 'กก.'}` : '-'} />
-                <InfoRow label={lang === 'en' ? 'Military Status' : 'สถานะทางทหาร'} value={lang === 'en' ? (fd.militaryStatus === 'ExemptLaw' || fd.militaryStatus === 'ExemptFemale' ? 'Exempted' : fd.militaryStatus) : getMilitaryStatusLabel(fd.militaryStatus)} />
-                <InfoRow label={lang === 'en' ? 'Phone' : 'เบอร์โทร'} value={fd.phone || viewingApp.phone} />
-                <InfoRow label={lang === 'en' ? 'Email' : 'อีเมล'} value={fd.email || viewingApp.email} className="col-span-2" />
+                <InfoRow label={t.labels.dateOfBirth} value={fd.dateOfBirth} />
+                <InfoRow label={t.labels.age} value={fd.age ? `${fd.age} ${t.options.years}` : '-'} />
+                <InfoRow label={t.labels.height} value={fd.height ? `${fd.height} ${t.options.cm}` : '-'} />
+                <InfoRow label={t.labels.weight} value={fd.weight ? `${fd.weight} ${t.options.kg}` : '-'} />
+                <InfoRow label={t.labels.militaryStatus} value={t.options[fd.militaryStatus?.toLowerCase() as keyof typeof t.options] || getMilitaryStatusLabel(fd.militaryStatus)} />
+                <InfoRow label={t.labels.phone} value={fd.phone || viewingApp.phone} />
+                <InfoRow label={t.labels.email} value={fd.email || viewingApp.email} className="col-span-2" />
               </div>
 
               {/* 3. Contact Address */}
-              <SectionHeader title={lang === 'en' ? 'Address' : 'ที่อยู่'} icon={MapPin} />
+              <SectionHeader title={t.sections.contact} icon={MapPin} />
               <div className="space-y-2 text-sm">
                 <div>
-                  <span className="text-gray-500 font-medium">{lang === 'en' ? 'Registered Address:' : 'ที่อยู่ตามทะเบียนบ้าน:'}</span>
+                  <span className="text-gray-500 font-medium">{t.labels.registeredAddress}:</span>
                   <p className="text-gray-900">{fd.registeredAddress || '-'} {fd.registeredSubDistrict ? `${lang === 'en' ? 'Sub-district ' : 'ต.'}${fd.registeredSubDistrict}` : ''} {fd.registeredDistrict ? `${lang === 'en' ? 'District ' : 'อ.'}${fd.registeredDistrict}` : ''} {fd.registeredProvince ? `${lang === 'en' ? 'Province ' : 'จ.'}${fd.registeredProvince}` : ''} {fd.registeredPostcode || ''}</p>
                 </div>
                 <div>
-                  <span className="text-gray-500 font-medium">{lang === 'en' ? 'Current Address:' : 'ที่อยู่ปัจจุบัน:'}</span>
+                  <span className="text-gray-500 font-medium">{t.labels.currentAddress}:</span>
                   <p className="text-gray-900">{fd.currentAddress || '-'} {fd.currentSubDistrict ? `${lang === 'en' ? 'Sub-district ' : 'ต.'}${fd.currentSubDistrict}` : ''} {fd.currentDistrict ? `${lang === 'en' ? 'District ' : 'อ.'}${fd.currentDistrict}` : ''} {fd.currentProvince ? `${lang === 'en' ? 'Province ' : 'จ.'}${fd.currentProvince}` : ''} {fd.currentPostcode || ''}</p>
                 </div>
               </div>
 
               {/* 4. Family Info */}
-              <SectionHeader title={lang === 'en' ? 'Family Information' : 'ข้อมูลครอบครัว'} icon={Users} />
+              <SectionHeader title={t.sections.family} icon={Users} />
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-1 mb-3">
-                <InfoRow label={lang === 'en' ? 'Marital Status' : 'สถานภาพ'} value={fd.maritalStatus} />
-                <InfoRow label={lang === 'en' ? 'No. of Children' : 'จำนวนบุตร'} value={fd.childrenCount} />
-                <InfoRow label={lang === 'en' ? 'No. of Siblings' : 'จำนวนพี่น้อง'} value={fd.siblingCount} />
+                <InfoRow label={t.labels.maritalStatus} value={t.options[fd.maritalStatus?.toLowerCase() as keyof typeof t.options] || fd.maritalStatus} />
+                <InfoRow label={t.labels.children} value={fd.childrenCount} />
+                <InfoRow label={t.labels.siblings} value={fd.siblingCount} />
               </div>
-              {fd.maritalStatus === 'สมรส' && (
+              {(fd.maritalStatus === 'สมรส' || fd.maritalStatus === 'Married') && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-1 mb-3 bg-gray-50 p-2 rounded">
-                  <InfoRow label={lang === 'en' ? 'Spouse Name' : 'ชื่อคู่สมรส'} value={fd.spouseName} />
-                  <InfoRow label={lang === 'en' ? 'Spouse Occupation' : 'อาชีพคู่สมรส'} value={fd.spouseOccupation} />
-                  <InfoRow label={lang === 'en' ? 'Spouse Age' : 'อายุคู่สมรส'} value={fd.spouseAge} />
+                  <InfoRow label={t.labels.spouseName} value={fd.spouseName} />
+                  <InfoRow label={t.labels.spouseOccupation} value={fd.spouseOccupation} />
+                  <InfoRow label={t.labels.spouseAge} value={fd.spouseAge} />
                 </div>
               )}
               {/* Desktop: Table | Mobile: Cards */}
@@ -398,15 +403,15 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
                 <table className="w-full text-sm">
                   <thead className="bg-gray-100">
                     <tr>
-                      <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">{lang === 'en' ? 'Relationship' : 'ความสัมพันธ์'}</th>
-                      <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">{lang === 'en' ? 'Full Name' : 'ชื่อ-สกุล'}</th>
-                      <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">{lang === 'en' ? 'Age' : 'อายุ'}</th>
-                      <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">{lang === 'en' ? 'Occupation' : 'อาชีพ'}</th>
+                      <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">{t.labels.relationship}</th>
+                      <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">{t.labels.firstName} - {t.labels.lastName}</th>
+                      <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">{t.labels.age}</th>
+                      <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">{t.labels.lastPosition} / {t.labels.department}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     <tr>
-                      <td className="py-2 px-3 font-medium">{lang === 'en' ? 'Father' : 'บิดา'}</td>
+                      <td className="py-2 px-3 font-medium">{t.options.fatherInfo}</td>
                       {fd.fatherDeceased ? (
                         <td colSpan={3} className="py-2 px-3 italic text-gray-400">เสียชีวิตแล้ว (Deceased)</td>
                       ) : (
@@ -418,7 +423,7 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
                       )}
                     </tr>
                     <tr>
-                      <td className="py-2 px-3 font-medium">{lang === 'en' ? 'Mother' : 'มารดา'}</td>
+                      <td className="py-2 px-3 font-medium">{t.options.motherInfo}</td>
                       {fd.motherDeceased ? (
                         <td colSpan={3} className="py-2 px-3 italic text-gray-400">เสียชีวิตแล้ว (Deceased)</td>
                       ) : (
@@ -434,8 +439,8 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
               </div>
               <div className="sm:hidden space-y-2">
                 {[
-                  { rel: lang === 'en' ? 'Father' : 'บิดา', deceased: fd.fatherDeceased, name: fd.fatherName, age: fd.fatherAge, occ: fd.fatherOccupation },
-                  { rel: lang === 'en' ? 'Mother' : 'มารดา', deceased: fd.motherDeceased, name: fd.motherName, age: fd.motherAge, occ: fd.motherOccupation }
+                  { rel: t.options.fatherInfo, deceased: fd.fatherDeceased, name: fd.fatherName, age: fd.fatherAge, occ: fd.fatherOccupation },
+                  { rel: t.options.motherInfo, deceased: fd.motherDeceased, name: fd.motherName, age: fd.motherAge, occ: fd.motherOccupation }
                 ].map((p) => (
                   <div key={p.rel} className="bg-gray-50 rounded-lg p-3 text-sm">
                     <div className="font-semibold text-gray-800 mb-1">{p.rel}</div>
@@ -443,8 +448,8 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
                       <div className="italic text-gray-400">เสียชีวิตแล้ว (Deceased)</div>
                     ) : (
                       <>
-                        <div className="text-gray-600">ชื่อ: <span className="text-gray-900 font-medium">{p.name || '-'}</span></div>
-                        <div className="flex gap-4 text-gray-600"><span>อายุ: <span className="text-gray-900 font-medium">{p.age || '-'}</span></span><span>{lang === 'en' ? 'Occupation:' : 'อาชีพ:'} <span className="text-gray-900 font-medium">{p.occ || '-'}</span></span></div>
+                        <div className="text-gray-600">{t.labels.firstName}: <span className="text-gray-900 font-medium">{p.name || '-'}</span></div>
+                        <div className="flex gap-4 text-gray-600"><span>{t.labels.age}: <span className="text-gray-900 font-medium">{p.age || '-'}</span></span><span>{t.labels.lastPosition}: <span className="text-gray-900 font-medium">{p.occ || '-'}</span></span></div>
                       </>
                     )}
                   </div>
@@ -460,25 +465,19 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
                     <table className="w-full text-sm">
                       <thead className="bg-gray-100">
                         <tr>
-                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-1/5">{lang === 'en' ? 'Level' : 'ระดับ'}</th>
-                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-1/3">{lang === 'en' ? 'Institute' : 'สถาบัน'}</th>
-                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">{lang === 'en' ? 'Major' : 'สาขา'}</th>
-                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-16">GPA</th>
-                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-20">{lang === 'en' ? 'Year' : 'ปี'}</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-1/5">{t.labels.program}</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-1/3">{t.labels.institute}</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">{t.labels.major}</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-16">{t.labels.gpa}</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-20">{t.options.period}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
                         {(() => {
                           const edu = fd.education;
-                          const levelNames: Record<string, string> = lang === 'en' ? {
-                            primarySchool: 'Primary School', juniorHighSchool: 'Junior High School',
-                            highSchool: 'High School / Voc.Cert.', vocational: 'Higher Vocational',
-                            bachelor: 'Bachelor', master: 'Master', phd: 'Ph.D.',
-                          } : {
-                            primarySchool: 'ประถมศึกษา (ป.1-6)', juniorHighSchool: 'มัธยมต้น (ม.1-3)',
-                            highSchool: 'มัธยมปลาย / ปวช.', vocational: 'ปวส.',
-                            bachelor: 'ปริญญาตรี', master: 'ปริญญาโท', phd: 'ปริญญาเอก',
-                          };
+                          const levelNames: Record<string, string> = Object.keys(t.options).reduce((acc, key) => ({
+                            ...acc, [key]: t.options[key as keyof typeof t.options]
+                          }), {});
                           if (Array.isArray(edu)) {
                             return edu.filter(e => e?.institute).map((e, i) => (
                               <tr key={i}>
@@ -511,22 +510,16 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
                   <div className="sm:hidden space-y-2">
                     {(() => {
                       const edu = fd.education;
-                      const levelNames: Record<string, string> = lang === 'en' ? {
-                        primarySchool: 'Primary School', juniorHighSchool: 'Junior High School',
-                        highSchool: 'High School / Voc.Cert.', vocational: 'Higher Vocational',
-                        bachelor: 'Bachelor', master: 'Master', phd: 'Ph.D.',
-                      } : {
-                        primarySchool: 'ประถมศึกษา (ป.1-6)', juniorHighSchool: 'มัธยมต้น (ม.1-3)',
-                        highSchool: 'มัธยมปลาย / ปวช.', vocational: 'ปวส.',
-                        bachelor: 'ปริญญาตรี', master: 'ปริญญาโท', phd: 'ปริญญาเอก',
-                      };
+                      const levelNames: Record<string, string> = Object.keys(t.options).reduce((acc, key) => ({
+                        ...acc, [key]: t.options[key as keyof typeof t.options]
+                      }), {});
                       if (Array.isArray(edu)) {
                         return edu.filter(e => e?.institute).map((e, i) => (
                           <div key={i} className="bg-gray-50 rounded-lg p-3 text-sm">
                             <div className="font-semibold text-gray-800">{levelNames[e.level || ''] || e.level || '-'}</div>
                             <div className="text-gray-600 mt-0.5">{e.institute || '-'}</div>
                             <div className="flex flex-wrap gap-x-4 gap-y-0 text-xs text-gray-500 mt-1">
-                              <span>สาขา: {e.major || '-'}</span>
+                              <span>{t.labels.major}: {e.major || '-'}</span>
                               <span>GPA: {e.gpa || '-'}</span>
                               {e.startDate && e.endDate && <span>{e.startDate}-{e.endDate}</span>}
                             </div>
@@ -541,7 +534,7 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
                             <div className="font-semibold text-gray-800">{levelNames[key]}</div>
                             <div className="text-gray-600 mt-0.5">{e.institute || '-'}</div>
                             <div className="flex flex-wrap gap-x-4 gap-y-0 text-xs text-gray-500 mt-1">
-                              <span>สาขา: {e.major || '-'}</span>
+                              <span>{t.labels.major}: {e.major || '-'}</span>
                               <span>GPA: {e.gpa || '-'}</span>
                               {e.startDate && e.endDate && <span>{e.startDate}-{e.endDate}</span>}
                             </div>
@@ -552,7 +545,7 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
                   </div>
                 </>
               ) : (
-                <p className="text-sm text-gray-500">ไม่มีข้อมูล</p>
+                <p className="text-sm text-gray-500">{t.options.noInfo}</p>
               )}
 
               {/* 6. Work Experience */}
@@ -564,17 +557,17 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
                     <table className="w-full text-sm">
                       <thead className="bg-gray-100">
                         <tr>
-                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-24">{lang === 'en' ? 'Period' : 'ช่วงเวลา'}</th>
-                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">{lang === 'en' ? 'Company' : 'บริษัท'}</th>
-                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">{lang === 'en' ? 'Position' : 'ตำแหน่ง'}</th>
-                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-20">{lang === 'en' ? 'Salary' : 'เงินเดือน'}</th>
-                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">{lang === 'en' ? 'Responsibilities' : 'หน้าที่'}</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-24">{t.options.period}</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">{t.labels.company}</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">{t.labels.lastPosition}</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600 w-20">{t.labels.salary}</th>
+                          <th className="py-2 px-3 text-left text-xs font-semibold text-gray-600">{t.options.responsibilities}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
                         {fd.experience.map((exp: any, i: number) => (
                           <tr key={i}>
-                            <td className="py-2 px-3 text-xs">{fmtYearMonth(exp.from)}<br />{exp.to ? fmtYearMonth(exp.to) : (lang === 'en' ? 'Present' : 'ปัจจุบัน')}</td>
+                            <td className="py-2 px-3 text-xs">{fmtYearMonth(exp.from)}<br />{exp.to ? fmtYearMonth(exp.to) : t.options.present}</td>
                             <td className="py-2 px-3 font-medium">{exp.company || '-'}</td>
                             <td className="py-2 px-3">{exp.position || '-'}</td>
                             <td className="py-2 px-3">{fmtSalary(exp.salary)}</td>
@@ -590,7 +583,7 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
                       <div key={i} className="bg-gray-50 rounded-lg p-3 text-sm border-l-3 border-indigo-300">
                         <div className="flex justify-between items-start">
                           <div className="font-semibold text-gray-800">{exp.company || '-'}</div>
-                          <span className="text-[11px] text-gray-400 flex-shrink-0">{fmtYearMonth(exp.from)} - {exp.to ? fmtYearMonth(exp.to) : (lang === 'en' ? 'Present' : 'ปัจจุบัน')}</span>
+                          <span className="text-[11px] text-gray-400 flex-shrink-0">{fmtYearMonth(exp.from)} - {exp.to ? fmtYearMonth(exp.to) : t.options.present}</span>
                         </div>
                         <div className="text-gray-600 text-xs mt-0.5">{exp.position || '-'}{exp.salary ? ` · ${fmtSalary(exp.salary)}` : ''}</div>
                         {exp.description && <div className="text-xs text-gray-500 mt-1">{exp.description}</div>}
@@ -609,23 +602,23 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
                 <div className="bg-gray-50 p-3 rounded-lg">
                   <h5 className="font-semibold text-sm text-gray-700 mb-2 border-b pb-1">ภาษา</h5>
                   <div className="space-y-1 text-sm">
-                    <div className="flex justify-between"><span className="text-gray-600">ภาษาอังกฤษ:</span><span className="font-medium">{fd.englishSkill || '-'} {fd.englishScore ? `(${fd.englishScore})` : ''}</span></div>
-                    <div className="flex justify-between"><span className="text-gray-600">ภาษาจีน:</span><span className="font-medium">{fd.chineseSkill || '-'} {fd.chineseScore ? `(${fd.chineseScore})` : ''}</span></div>
+                    <div className="flex justify-between"><span className="text-gray-600">{t.labels.english}:</span><span className="font-medium">{fd.englishSkill || '-'} {fd.englishScore ? `(${fd.englishScore})` : ''}</span></div>
+                    <div className="flex justify-between"><span className="text-gray-600">{t.labels.chinese}:</span><span className="font-medium">{fd.chineseSkill || '-'} {fd.chineseScore ? `(${fd.chineseScore})` : ''}</span></div>
                   </div>
                 </div>
                 {/* Driving */}
                 <div className="bg-gray-50 p-3 rounded-lg">
-                  <h5 className="font-semibold text-sm text-gray-700 mb-2 border-b pb-1">การขับขี่</h5>
+                  <h5 className="font-semibold text-sm text-gray-700 mb-2 border-b pb-1">{t.labels.driving}</h5>
                   <div className="space-y-1 text-sm">
-                    <div className="flex justify-between"><span className="text-gray-600">รถจักรยานยนต์:</span><span className="font-medium">{fd.driving?.motorcycle ? 'ได้' : 'ไม่ได้'} {fd.driving?.motorcycleLicense ? '(มีใบขับขี่)' : ''}</span></div>
-                    <div className="flex justify-between"><span className="text-gray-600">รถยนต์:</span><span className="font-medium">{fd.driving?.car ? 'ได้' : 'ไม่ได้'} {fd.driving?.carLicense ? '(มีใบขับขี่)' : ''}</span></div>
-                    {fd.driving?.licenseClasses?.length > 0 && <div className="text-xs text-gray-500">ประเภท: {fd.driving.licenseClasses.join(', ')}</div>}
+                    <div className="flex justify-between"><span className="text-gray-600">{t.labels.motorcycle}:</span><span className="font-medium">{fd.driving?.motorcycle ? t.options.yesIcan : t.options.noIcannot} {fd.driving?.motorcycleLicense ? `(${t.options.yesIdo}${t.options.license})` : ''}</span></div>
+                    <div className="flex justify-between"><span className="text-gray-600">{t.labels.car}:</span><span className="font-medium">{fd.driving?.car ? t.options.yesIcan : t.options.noIcannot} {fd.driving?.carLicense ? `(${t.options.yesIdo}${t.options.license})` : ''}</span></div>
+                    {fd.driving?.licenseClasses?.length > 0 && <div className="text-xs text-gray-500">{t.options.types}: {fd.driving.licenseClasses.join(', ')}</div>}
                   </div>
                 </div>
                 {/* Computer Skills */}
                 {fd.computerSkills && (
                   <div className="bg-gray-50 p-3 rounded-lg">
-                    <h5 className="font-semibold text-sm text-gray-700 mb-2 border-b pb-1">คอมพิวเตอร์</h5>
+                    <h5 className="font-semibold text-sm text-gray-700 mb-2 border-b pb-1">{t.labels.computer}</h5>
                     <div className="grid grid-cols-2 gap-1 text-sm">
                       {Object.entries(fd.computerSkills).map(([k, v]) => (
                         <div key={k} className="flex justify-between"><span className="text-gray-600 capitalize">{k}:</span><span className="font-medium text-xs">{v as string}</span></div>
@@ -636,80 +629,80 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
                 {/* Graphics Skills */}
                 {fd.graphicsSkills && (
                   <div className="bg-gray-50 p-3 rounded-lg">
-                    <h5 className="font-semibold text-sm text-gray-700 mb-2 border-b pb-1">กราฟิก/มีเดีย</h5>
+                    <h5 className="font-semibold text-sm text-gray-700 mb-2 border-b pb-1">{t.labels.graphics}</h5>
                     <div className="space-y-1 text-sm">
-                      <div className="flex justify-between"><span className="text-gray-600">Canva:</span><span className="font-medium">{fd.graphicsSkills.canva || '-'}</span></div>
-                      <div className="flex justify-between"><span className="text-gray-600">Video Editor:</span><span className="font-medium">{fd.graphicsSkills.videoEditor || '-'}</span></div>
+                      <div className="flex justify-between"><span className="text-gray-600">{t.options.canva}:</span><span className="font-medium">{fd.graphicsSkills.canva || '-'}</span></div>
+                      <div className="flex justify-between"><span className="text-gray-600">{t.options.videoEditor}:</span><span className="font-medium">{fd.graphicsSkills.videoEditor || '-'}</span></div>
                     </div>
                   </div>
                 )}
               </div>
               {/* Special Skills & Hobbies */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
-                <div className="text-sm"><span className="text-gray-500 font-medium">ความสามารถพิเศษ:</span> <span className="text-gray-900">{fd.specialAbility || '-'}</span></div>
-                <div className="text-sm"><span className="text-gray-500 font-medium">งานอดิเรก:</span> <span className="text-gray-900">{fd.hobbies || '-'}</span></div>
+                <div className="text-sm"><span className="text-gray-500 font-medium">{t.labels.specialAbility}:</span> <span className="text-gray-900">{fd.specialAbility || '-'}</span></div>
+                <div className="text-sm"><span className="text-gray-500 font-medium">{t.labels.hobbies}:</span> <span className="text-gray-900">{fd.hobbies || '-'}</span></div>
               </div>
 
               {/* 8. Questionnaire */}
-              <SectionHeader title={lang === 'en' ? 'Additional Questionnaire' : 'แบบสอบถามเพิ่มเติม'} />
+              <SectionHeader title={t.sections.questionnaire} />
               <div className="space-y-3">
                 <div className="bg-gray-50 p-3 rounded text-sm">
-                  <span className="text-gray-500 font-medium block mb-1">สามารถทำงานต่างจังหวัดได้:</span>
-                  <span className="text-gray-900">{fd.upcountryLocations?.length > 0 ? fd.upcountryLocations.join(', ') : '-'}</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="bg-gray-50 p-3 rounded text-sm">
-                    <span className="text-gray-500 font-medium block mb-1">จุดเด่น:</span>
-                    <span className="text-gray-900">{fd.strength || '-'}</span>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded text-sm">
-                    <span className="text-gray-500 font-medium block mb-1">จุดด้อย:</span>
-                    <span className="text-gray-900">{fd.weakness || '-'}</span>
-                  </div>
-                </div>
-                <div className="bg-gray-50 p-3 rounded text-sm">
-                  <span className="text-gray-500 font-medium block mb-1">งานที่ไม่ถนัด:</span>
-                  <span className="text-gray-900">{fd.lessFitTask || '-'}</span>
-                </div>
-                <div className="bg-gray-50 p-3 rounded text-sm">
-                  <span className="text-gray-500 font-medium block mb-1">หลักการทำงาน:</span>
-                  <span className="text-gray-900">{fd.principles || '-'}</span>
-                </div>
-                <div className="bg-gray-50 p-3 rounded text-sm">
-                  <span className="text-gray-500 font-medium block mb-1">วิธีแก้ปัญหา:</span>
-                  <span className="text-gray-900">{fd.troubleResolve || '-'}</span>
-                </div>
-                <div className="bg-gray-50 p-3 rounded text-sm">
-                  <span className="text-gray-500 font-medium block mb-1">เกณฑ์เลือกงาน:</span>
-                  <span className="text-gray-900">{fd.jobCriteria || '-'}</span>
-                </div>
-                <div className="bg-gray-50 p-3 rounded text-sm">
-                  <span className="text-gray-500 font-medium block mb-1">สิ่งที่สนใจ:</span>
-                  <span className="text-gray-900">{fd.interests || '-'}</span>
-                </div>
-                <div className="bg-gray-50 p-3 rounded text-sm">
-                  <span className="text-gray-500 font-medium block mb-1">ความคิดเห็น Digital Transformation:</span>
-                  <span className="text-gray-900">{fd.digitalTransformOpinion || '-'}</span>
-                </div>
+                   <span className="text-gray-500 font-medium block mb-1">{t.labels.upcountry}:</span>
+                   <span className="text-gray-900">{fd.upcountryLocations?.length > 0 ? fd.upcountryLocations.join(', ') : '-'}</span>
+                 </div>
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                   <div className="bg-gray-50 p-3 rounded text-sm">
+                     <span className="text-gray-500 font-medium block mb-1">{t.labels.strength}:</span>
+                     <span className="text-gray-900">{fd.strength || '-'}</span>
+                   </div>
+                   <div className="bg-gray-50 p-3 rounded text-sm">
+                     <span className="text-gray-500 font-medium block mb-1">{t.labels.weakness}:</span>
+                     <span className="text-gray-900">{fd.weakness || '-'}</span>
+                   </div>
+                 </div>
+                 <div className="bg-gray-50 p-3 rounded text-sm">
+                   <span className="text-gray-500 font-medium block mb-1">{t.labels.lessFit}:</span>
+                   <span className="text-gray-900">{fd.lessFitTask || '-'}</span>
+                 </div>
+                 <div className="bg-gray-50 p-3 rounded text-sm">
+                   <span className="text-gray-500 font-medium block mb-1">{t.labels.principles}:</span>
+                   <span className="text-gray-900">{fd.principles || '-'}</span>
+                 </div>
+                 <div className="bg-gray-50 p-3 rounded text-sm">
+                   <span className="text-gray-500 font-medium block mb-1">{t.labels.troubleResolve}:</span>
+                   <span className="text-gray-900">{fd.troubleResolve || '-'}</span>
+                 </div>
+                 <div className="bg-gray-50 p-3 rounded text-sm">
+                   <span className="text-gray-500 font-medium block mb-1">{t.labels.jobCriteria}:</span>
+                   <span className="text-gray-900">{fd.jobCriteria || '-'}</span>
+                 </div>
+                 <div className="bg-gray-50 p-3 rounded text-sm">
+                   <span className="text-gray-500 font-medium block mb-1">{t.labels.interests}:</span>
+                   <span className="text-gray-900">{fd.interests || '-'}</span>
+                 </div>
+                 <div className="bg-gray-50 p-3 rounded text-sm">
+                   <span className="text-gray-500 font-medium block mb-1">{t.labels.digitalTransform}:</span>
+                   <span className="text-gray-900">{fd.digitalTransformOpinion || '-'}</span>
+                 </div>
               </div>
 
               {/* 9. Health & Emergency */}
-              <SectionHeader title={lang === 'en' ? 'Health & Emergency Contact' : 'สุขภาพและผู้ติดต่อฉุกเฉิน'} />
+              <SectionHeader title={t.sections.health} />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-blue-50 p-3 rounded-lg">
-                  <h5 className="font-semibold text-sm text-blue-800 mb-2">ผู้ติดต่อฉุกเฉิน</h5>
+                  <h5 className="font-semibold text-sm text-blue-800 mb-2">{t.sections.emergency}</h5>
                   <div className="space-y-1 text-sm">
-                    <div><span className="text-gray-600">ชื่อ:</span> <span className="font-medium">{fd.emergencyContactName || '-'}</span></div>
-                    <div><span className="text-gray-600">ความสัมพันธ์:</span> <span className="font-medium">{fd.emergencyContactRelation || '-'}</span></div>
-                    <div><span className="text-gray-600">เบอร์โทร:</span> <span className="font-medium">{fd.emergencyContactPhone || '-'}</span></div>
+                    <div><span className="text-gray-600">{t.labels.firstName}:</span> <span className="font-medium">{fd.emergencyContactName || '-'}</span></div>
+                    <div><span className="text-gray-600">{t.labels.relationship}:</span> <span className="font-medium">{fd.emergencyContactRelation || '-'}</span></div>
+                    <div><span className="text-gray-600">{t.labels.phone}:</span> <span className="font-medium">{fd.emergencyContactPhone || '-'}</span></div>
                   </div>
                 </div>
                 <div className="bg-red-50 p-3 rounded-lg">
-                  <h5 className="font-semibold text-sm text-red-800 mb-2">ประวัติสุขภาพ</h5>
+                  <h5 className="font-semibold text-sm text-red-800 mb-2">{t.options.medicalHistory}</h5>
                   <div className="space-y-1 text-sm">
-                    <div><span className="text-gray-600">โรคประจำตัว:</span> <span className="font-medium">{fd.hasChronicDisease ? fd.chronicDiseaseDetail : 'ไม่มี'}</span></div>
-                    <div><span className="text-gray-600">ประวัติผ่าตัด:</span> <span className="font-medium">{fd.hasSurgery ? fd.surgeryDetail : 'ไม่มี'}</span></div>
-                    <div><span className="text-gray-600">ประวัติการรักษา:</span> <span className="font-medium">{fd.hasMedicalRecord ? fd.medicalRecordDetail : 'ไม่มี'}</span></div>
+                    <div><span className="text-gray-600">{t.labels.chronic}:</span> <span className="font-medium">{fd.hasChronicDisease ? fd.chronicDiseaseDetail : t.options.no}</span></div>
+                    <div><span className="text-gray-600">{t.labels.surgery}:</span> <span className="font-medium">{fd.hasSurgery ? fd.surgeryDetail : t.options.no}</span></div>
+                    <div><span className="text-gray-600">{t.labels.medicalRecord}:</span> <span className="font-medium">{fd.hasMedicalRecord ? fd.medicalRecordDetail : t.options.no}</span></div>
                   </div>
                 </div>
               </div>
@@ -717,7 +710,7 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
               {/* Source Tags */}
               <div className="mt-4 pt-3 border-t">
                 <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                  <Tag className="w-4 h-4" /> ช่องทางที่มา
+                  <Tag className="w-4 h-4" /> {t.labels.sourceChannel}
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {(fd.businessUnit || viewingApp.business_unit) && <span className="px-2.5 py-1 text-xs rounded-full bg-indigo-100 text-indigo-700 font-medium">BU: {fd.businessUnit || viewingApp.business_unit}</span>}
@@ -729,7 +722,7 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
               {/* Attachments */}
               {(fd.resumeUrl || fd.transcriptUrl || fd.certificateUrl || fd.profileLinks) && (
                 <div className="mt-4 pt-3 border-t">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-2">ไฟล์แนบ & Links</h4>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">{t.labels.attachments}</h4>
                   <div className="flex flex-wrap gap-2">
                     {fd.resumeUrl && (
                       <a href={fd.resumeUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 rounded text-sm text-indigo-700 transition border border-indigo-100">
@@ -743,7 +736,7 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
                     )}
                     {fd.certificateUrl && (
                       <a href={fd.certificateUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded text-sm text-gray-700 transition border border-gray-200">
-                        <FileText className="w-4 h-4" /> เอกสารแนบ
+                        <FileText className="w-4 h-4" /> {t.sections.documents}
                       </a>
                     )}
                     {fd.profileLinks && (
@@ -760,9 +753,9 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
                 <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-start gap-3">
                   <Calendar className="w-5 h-5 text-orange-600 mt-0.5" />
                   <div>
-                    <h4 className="text-sm font-bold text-orange-800">วันนัดสัมภาษณ์</h4>
+                    <h4 className="text-sm font-bold text-orange-800">{t.labels.interviewDate}</h4>
                     <p className="text-sm text-orange-700">
-                      {new Date(viewingApp.interview_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
+                      {new Date(viewingApp.interview_date).toLocaleDateString(lang === 'th' ? 'th-TH' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                     </p>
                   </div>
                 </div>
@@ -771,12 +764,12 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
               {/* Activity Log Timeline */}
               <div className="mt-4 pt-3 border-t">
                 <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                  <History className="w-4 h-4" /> ประวัติการดำเนินการ
+                  <History className="w-4 h-4" /> {t.labels.actionHistory}
                 </h4>
                 {isLoadingLogs ? (
                   <div className="text-center py-4 text-sm text-gray-400">กำลังโหลด...</div>
                 ) : appLogs.length === 0 ? (
-                  <div className="text-center py-4 text-sm text-gray-400">ยังไม่มีประวัติ</div>
+                  <div className="text-center py-4 text-sm text-gray-400">{t.labels.noHistory}</div>
                 ) : (
                   <div className="space-y-4 max-h-64 overflow-y-auto pl-2 py-2">
                     {[...appLogs].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map((log: any, index: number) => {
@@ -800,7 +793,7 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
                             <div className="text-[11px] text-slate-400 mt-2.5 flex items-center gap-1.5 font-medium tracking-wide">
                               <User className="w-3 h-3" /> {log.performed_by}
                               <span>•</span>
-                              <Clock className="w-3 h-3" /> {new Date(log.created_at).toLocaleDateString('th-TH')} {new Date(log.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                              <Clock className="w-3 h-3" /> {new Date(log.created_at).toLocaleDateString(lang === 'th' ? 'th-TH' : 'en-US')} {new Date(log.created_at).toLocaleTimeString(lang === 'th' ? 'th-TH' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
                             </div>
                           </div>
                         </div>
@@ -814,9 +807,9 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
               {shareLink && (
                 <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-bold text-emerald-800 flex items-center gap-1"><Link className="w-3.5 h-3.5" /> ลิงก์แชร์โปรไฟล์</span>
+                    <span className="text-xs font-bold text-emerald-800 flex items-center gap-1"><Link className="w-3.5 h-3.5" /> {t.labels.shareProfile}</span>
                     <span className="text-[10px] text-emerald-600">
-                      หมดอายุ: {shareLinkExpiry ? new Date(shareLinkExpiry).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                      {t.labels.expires}: {shareLinkExpiry ? new Date(shareLinkExpiry).toLocaleDateString(lang === 'th' ? 'th-TH' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -825,15 +818,15 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
                       onClick={handleCopyShareLink}
                       className="flex-shrink-0 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-semibold flex items-center gap-1 transition"
                     >
-                      {shareLinkCopied ? <><Check className="w-3.5 h-3.5" /> คัดลอกแล้ว!</> : <><Copy className="w-3.5 h-3.5" /> คัดลอก</>}
+                      {shareLinkCopied ? <><Check className="w-3.5 h-3.5" /> {t.labels.copied}</> : <><Copy className="w-3.5 h-3.5" /> {t.labels.copy}</>}
                     </button>
                     <button
                       onClick={handleRevokeShareLink}
                       disabled={isGeneratingLink}
                       className="flex-shrink-0 px-2.5 py-1.5 bg-red-100 hover:bg-red-200 text-red-600 rounded text-xs font-semibold flex items-center gap-1 transition disabled:opacity-50"
-                      title="หยุดการแชร์ (ยกเลิกลิงก์)"
+                      title={t.labels.stopSharing}
                     >
-                      <XCircle className="w-3.5 h-3.5" /> หยุดแชร์
+                      <XCircle className="w-3.5 h-3.5" /> {t.labels.stopSharing}
                     </button>
                   </div>
                 </div>
@@ -849,7 +842,7 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
                   localStorage.setItem('printPreviewData', JSON.stringify(fd));
                   window.open('/print.html', '_blank');
                 }}>
-                  <ExternalLink className="w-4 h-4 mr-2" /> เปิด Preview เต็มจอ
+                  <ExternalLink className="w-4 h-4 mr-2" /> {t.labels.openFullPreview}
                 </Button>
                 <Button
                   variant="outline"
@@ -858,51 +851,51 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
                   disabled={isGeneratingLink}
                 >
                   <Link className="w-4 h-4 mr-2" />
-                  {isGeneratingLink ? 'กำลังสร้าง...' : shareLink ? 'ดูลิงก์แชร์' : 'สร้างลิงก์แชร์'}
+                  {isGeneratingLink ? (lang === 'en' ? 'Generating...' : 'กำลังสร้าง...') : shareLink ? (lang === 'en' ? 'View Link' : 'ดูลิงก์แชร์') : (lang === 'en' ? 'Create Link' : 'สร้างลิงก์แชร์')}
                 </Button>
                 <Button variant="outline" onClick={() => { setEditingApp(viewingApp); setViewingApp(null); }}>
-                  <Edit className="w-4 h-4 mr-2" /> แก้ไขข้อมูล
+                  <Edit className="w-4 h-4 mr-2" /> {t.actions.edit}
                 </Button>
                 {!viewingApp.assigned_to && !isClosedStatus(viewingApp.status) ? (
                   <Button variant="outline" className="border-indigo-200 text-indigo-700 hover:bg-indigo-50" onClick={() => { setClaimingApp(viewingApp); setViewingApp(null); }}>
-                    <User className="w-4 h-4 mr-2" /> รับเคสนี้ (Claim)
+                    <User className="w-4 h-4 mr-2" /> {lang === 'en' ? 'Claim Case' : 'รับเคสนี้ (Claim)'}
                   </Button>
                 ) : viewingApp.assigned_to && !isClosedStatus(viewingApp.status) ? (
                   <>
                     <Button variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50" onClick={() => { setTransferringApp(viewingApp); setViewingApp(null); }}>
-                      <Users className="w-4 h-4 mr-2" /> โอนเคส
+                      <Users className="w-4 h-4 mr-2" /> {lang === 'en' ? 'Transfer Case' : 'โอนเคส'}
                     </Button>
                     <Button variant="outline" className="border-slate-200 text-slate-700 hover:bg-slate-50" onClick={() => { setUnassigningApp(viewingApp); setViewingApp(null); }}>
-                      <User className="w-4 h-4 mr-2" /> ยกเลิกการรับเคส
+                      <User className="w-4 h-4 mr-2" /> {lang === 'en' ? 'Unassign Case' : 'ยกเลิกการรับเคส'}
                     </Button>
                   </>
                 ) : null}
                 {viewingApp.status === 'Reviewing' && (
                   <>
                     <Button className="bg-yellow-500 hover:bg-yellow-600 text-white" onClick={() => { setInterviewingApp(viewingApp); setInterviewDate(''); setViewingApp(null); }}>
-                      <Calendar className="w-4 h-4 mr-2" /> นัดสัมภาษณ์
+                      <Calendar className="w-4 h-4 mr-2" /> {lang === 'en' ? 'Schedule Interview' : 'นัดสัมภาษณ์'}
                     </Button>
                     <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => { setRejectingApp(viewingApp); setViewingApp(null); setRejectComment(''); setRejectionReason(''); }}>
-                      <XCircle className="w-4 h-4 mr-2" /> ไม่รับ
+                      <XCircle className="w-4 h-4 mr-2" /> {lang === 'en' ? 'Reject' : 'ไม่รับ'}
                     </Button>
                   </>
                 )}
                 {isInterviewScheduledStatus(viewingApp.status) && (
                   <Button className="bg-yellow-500 hover:bg-yellow-600 text-white" onClick={() => { setInterviewingApp(viewingApp); setInterviewDate(viewingApp.interview_date || ''); setViewingApp(null); }}>
-                    <Calendar className="w-4 h-4 mr-2" /> เปลี่ยนวันสัมภาษณ์
+                    <Calendar className="w-4 h-4 mr-2" /> {lang === 'en' ? 'Reschedule Interview' : 'เปลี่ยนวันสัมภาษณ์'}
                   </Button>
                 )}
                 {(isInterviewScheduledStatus(viewingApp.status) || viewingApp.status === 'Interviewed' || viewingApp.status === 'Offer') && (
                   <>
                     <Button className="bg-green-600 hover:bg-green-700" onClick={() => { setApprovingApp(viewingApp); setViewingApp(null); }}>
-                      <CheckCircle className="w-4 h-4 mr-2" /> รับเข้าทำงาน
+                      <CheckCircle className="w-4 h-4 mr-2" /> {lang === 'en' ? 'Hire' : 'รับเข้าทำงาน'}
                     </Button>
                     <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => { setRejectingApp(viewingApp); setViewingApp(null); setRejectComment(''); setRejectionReason(''); }}>
-                      <XCircle className="w-4 h-4 mr-2" /> ไม่ผ่าน
+                      <XCircle className="w-4 h-4 mr-2" /> {lang === 'en' ? 'Not Pass' : 'ไม่ผ่าน'}
                     </Button>
                   </>
                 )}
-                <Button variant="outline" onClick={() => setViewingApp(null)} className="ml-auto">ปิด</Button>
+                <Button variant="outline" onClick={() => setViewingApp(null)} className="ml-auto">{lang === 'en' ? 'Close' : 'ปิด'}</Button>
               </div>
             </div>
         )}

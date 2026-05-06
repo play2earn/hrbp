@@ -28,6 +28,7 @@ export interface ApplicationForm {
   // Step 1: Job Interest
   businessUnit: string;
   department: string;
+  departmentEn: string;
   position: string;
   positionEn: string;
   expectedSalary: string;
@@ -173,6 +174,7 @@ const emptyEdu: EducationEntry = { level: '', institute: '', major: '', gpa: '',
 export const INITIAL_FORM_STATE: ApplicationForm = {
   businessUnit: '',
   department: '',
+  departmentEn: '',
   position: '',
   positionEn: '',
   expectedSalary: '',
