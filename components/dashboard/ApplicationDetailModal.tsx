@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { supabase } from '../../supabaseClient';
 import { api } from '../../services/api';
 import { Modal, Button } from '../UIComponents';
@@ -11,6 +11,41 @@ import {
   LOG_LABELS, getStatusBadgeClass, getStatusLabel,
   getMilitaryStatusLabel, isInterviewScheduledStatus, isClosedStatus
 } from './dashboardConstants';
+
+const fmtYearMonth = (dateStr: string | undefined | null): string => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${year}-${month}`;
+};
+
+const fmtSalary = (val: string | number | undefined | null): string => {
+  if (val === null || val === undefined || val === '') return '-';
+  const str = String(val);
+  const match = str.replace(/,/g, '').match(/^[\s]*([\d.]+)([\s\S]*)$/);
+  if (!match) return str;
+  const num = parseFloat(match[1]);
+  if (isNaN(num)) return str;
+  const suffix = match[2].trim();
+  const formatted = num.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  return suffix ? `${formatted} ${suffix}` : formatted;
+};
+
+const SectionHeader = ({ title, icon: Icon }: { title: string; icon?: any }) => (
+  <div className="bg-gray-100 border-y border-gray-300 py-2 px-3 -mx-1 mt-4 mb-3">
+    <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
+      {Icon && <Icon className="w-4 h-4" />} {title}
+    </h4>
+  </div>
+);
+
+const InfoRow = memo(({ label, value, className = '' }: { label: string; value: any; className?: string }) => (
+  <div className={`text-sm py-1 ${className}`}>
+    <span className="text-gray-500">{label}:</span> <span className="font-medium text-gray-900">{value || '-'}</span>
+  </div>
+));
 
 interface ApplicationDetailModalProps {
   viewingApp: any;
@@ -30,7 +65,7 @@ interface ApplicationDetailModalProps {
   onApplicationUpdated?: (app: any) => void;
 }
 
-export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
+const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
   viewingApp, setViewingApp, appLogs, isLoadingLogs,
   setEditingApp, setClaimingApp, setTransferringApp, setUnassigningApp,
   setInterviewingApp, setInterviewDate,
@@ -46,7 +81,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   const [showShareConfirm, setShowShareConfirm] = useState(false);
   const [showRevokeConfirm, setShowRevokeConfirm] = useState(false);
 
-  // Load existing share link when modal opens
   useEffect(() => {
     if (viewingApp?.id) {
       const fetchExistingToken = async () => {
@@ -63,7 +97,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
       };
       fetchExistingToken();
 
-      // Legacy data fallback: Fetch English position if missing for foreigners
       const fd = viewingApp.form_data;
       if (fd && fd.isThaiNational === false && !fd.positionEn && (fd.position || viewingApp.position)) {
         const fetchPosEn = async () => {
@@ -72,7 +105,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
             if (posResult.success && posResult.data) {
               const matchedPos = posResult.data.find((p: any) => p.name_th === (fd.position || viewingApp.position));
               if (matchedPos && matchedPos.name_en) {
-                // Mutate the local viewingApp copy so subsequent renders and print preview use the English name
                 const updatedApp = { ...viewingApp };
                 updatedApp.form_data.positionEn = matchedPos.name_en;
                 setViewingApp(updatedApp);
@@ -124,7 +156,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
       setShareLinkCopied(true);
       setTimeout(() => setShareLinkCopied(false), 2500);
     } catch {
-      // fallback
       const el = document.createElement('textarea');
       el.value = shareLink;
       document.body.appendChild(el);
@@ -168,6 +199,10 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
     : [fdTop.titleEn, fdTop.firstNameEn, fdTop.lastNameEn].filter(Boolean).join(' ') || viewingApp?.full_name || '-';
   const fullNameEn = hasThaiName ? [fdTop.titleEn, fdTop.firstNameEn, fdTop.lastNameEn].filter(Boolean).join(' ') : null;
 
+  const fd = viewingApp?.form_data || {};
+  const isForeigner = fd.isThaiNational === false;
+  const lang = isForeigner ? 'en' : 'th';
+
   return (
     <>
       {/* View Application Modal - Comprehensive View */}
@@ -178,49 +213,9 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
         size="full"
         footer={null}
       >
-        {viewingApp && (() => {
-          const fd = viewingApp.form_data || {};
-          const isForeigner = fd.isThaiNational === false;
-          const lang = isForeigner ? 'en' : 'th';
-          const SectionHeader = ({ title, icon: Icon }: { title: string; icon?: any }) => (
-            <div className="bg-gray-100 border-y border-gray-300 py-2 px-3 -mx-1 mt-4 mb-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
-                {Icon && <Icon className="w-4 h-4" />} {title}
-              </h4>
-            </div>
-          );
-          const InfoRow = ({ label, value, className = '' }: { label: string; value: any; className?: string }) => (
-            <div className={`text-sm py-1 ${className}`}>
-              <span className="text-gray-500">{label}:</span> <span className="font-medium text-gray-900">{value || '-'}</span>
-            </div>
-          );
-          // Format date as YYYY-MM (year-month only, no day)
-          const fmtYearMonth = (dateStr: string | undefined | null): string => {
-            if (!dateStr) return '';
-            const d = new Date(dateStr);
-            if (isNaN(d.getTime())) return dateStr;
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const year = d.getFullYear();
-            return `${year}-${month}`;
-          };
-          // Normalize salary: strip existing commas/spaces, parse number, re-format with commas + preserve suffix
-          const fmtSalary = (val: string | number | undefined | null): string => {
-            if (val === null || val === undefined || val === '') return '-';
-            const str = String(val);
-            // Extract numeric part and suffix (e.g. "บาท", "THB")
-            const match = str.replace(/,/g, '').match(/^[\s]*([\d.]+)([\s\S]*)$/);
-            if (!match) return str;
-            const num = parseFloat(match[1]);
-            if (isNaN(num)) return str;
-            const suffix = match[2].trim();
-            const formatted = num.toLocaleString('en-US', { maximumFractionDigits: 0 });
-            return suffix ? `${formatted} ${suffix}` : formatted;
-          };
-
-
-          return (
-            <div className="max-h-[80vh] overflow-y-auto px-1">
-              {/* Header with Photo */}
+        {viewingApp && (
+          <div className="px-1">
+            {/* Header with Photo */}
               <div className="flex items-start gap-4 pb-4 border-b border-gray-200 mb-4">
                 <div className="relative w-24 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border group">
                   {fd.photoUrl ? (
@@ -910,8 +905,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                 <Button variant="outline" onClick={() => setViewingApp(null)} className="ml-auto">ปิด</Button>
               </div>
             </div>
-          );
-        })()}
+        )}
       </Modal>
 
       {/* Share Link Confirm Modal */}
@@ -998,4 +992,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
       </Modal>
     </>
   );
-};
+});
+
+export default ApplicationDetailModal;

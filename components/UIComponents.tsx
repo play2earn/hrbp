@@ -474,6 +474,18 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
     full: 'w-full h-full rounded-none m-0'
   };
 
+  React.useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
   const modalContent = (
     <div className="fixed inset-0 z-[9999] overflow-hidden flex items-center justify-center">
       {/* Backdrop */}
