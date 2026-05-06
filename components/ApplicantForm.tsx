@@ -555,7 +555,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
         errors.photoUrl = lang === 'th' ? 'กรุณาอัปโหลดรูปถ่าย' : 'Please upload a photo';
       }
       if (!formData.transcriptUrl) {
-        errors.transcriptUrl = lang === 'th' ? 'กรุณาแนบ Transcript / ใบรับรองผลการศึกษา' : 'Please upload your Academic Transcript';
+        errors.transcriptUrl = lang === 'th' ? 'กรุณาอัปโหลด Transcript' : 'Please upload a transcript';
       }
     }
 
@@ -1626,6 +1626,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                   label={t.labels.resume}
                   description={lang === 'th' ? "อัปโหลด Resume (PDF เท่านั้น, ขนาดไม่เกิน 10MB)" : "Upload resume (PDF only, max 10MB)"}
                   value={formData.resumeUrl}
+                  error={validationErrors.resumeUrl}
                   onChange={() => { }}
                   onFileSelect={(file) => handleFileUpload(file, 'resumeUrl', 'resume')}
                   uploading={uploadingState.resume}

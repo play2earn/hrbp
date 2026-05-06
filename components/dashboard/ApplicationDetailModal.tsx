@@ -732,22 +732,27 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
               </div>
 
               {/* Attachments */}
-              {(fd.resumeUrl || fd.certificateUrl || fd.profileLinks) && (
+              {(fd.resumeUrl || fd.transcriptUrl || fd.certificateUrl || fd.profileLinks) && (
                 <div className="mt-4 pt-3 border-t">
                   <h4 className="text-sm font-semibold text-gray-700 mb-2">ไฟล์แนบ & Links</h4>
                   <div className="flex flex-wrap gap-2">
                     {fd.resumeUrl && (
-                      <a href={fd.resumeUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded text-sm text-gray-700 transition">
+                      <a href={fd.resumeUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 rounded text-sm text-indigo-700 transition border border-indigo-100">
                         <FileText className="w-4 h-4" /> Resume
                       </a>
                     )}
+                    {fd.transcriptUrl && (
+                      <a href={fd.transcriptUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 rounded text-sm text-amber-700 transition border border-amber-100">
+                        <FileText className="w-4 h-4" /> Transcript
+                      </a>
+                    )}
                     {fd.certificateUrl && (
-                      <a href={fd.certificateUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded text-sm text-gray-700 transition">
+                      <a href={fd.certificateUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded text-sm text-gray-700 transition border border-gray-200">
                         <FileText className="w-4 h-4" /> เอกสารแนบ
                       </a>
                     )}
                     {fd.profileLinks && (
-                      <a href={fd.profileLinks} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-100 hover:bg-blue-200 rounded text-sm text-blue-700 transition">
+                      <a href={fd.profileLinks} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 rounded text-sm text-blue-700 transition border border-blue-100">
                         <ExternalLink className="w-4 h-4" /> Profile Link
                       </a>
                     )}

@@ -145,7 +145,7 @@ export const TRANSLATIONS = {
 
       // Step 10
       photo: 'Your current photo (.JPG/ .PNG) limit 2MB',
-      resume: 'Resume/ CV (.PDF) limit 2MB',
+      resume: 'Resume / CV (.PDF)',
       transcript: 'Academic Transcript (.PDF) *Required',
       otherDocs: 'Others important documents (TOEIC, Cert., etc.)',
       links: 'Another link about you (LinkedIn, JobThai, etc.)'
@@ -348,7 +348,7 @@ export const TRANSLATIONS = {
 
       // Step 10
       photo: 'รูปถ่ายปัจจุบัน (.JPG/ .PNG) ไม่เกิน 2MB',
-      resume: 'เรซูเม่ / CV (.PDF) ไม่เกิน 2MB',
+      resume: 'เรซูเม่ / CV (.PDF)',
       transcript: 'Transcript / ใบรับรองผลการศึกษา (.PDF) *จำเป็น',
       otherDocs: 'เอกสารสำคัญอื่นๆ (ใบเซอร์, TOEIC ฯลฯ)',
       links: 'ลิงก์เพิ่มเติม (LinkedIn, JobThai, Portfolio)'
