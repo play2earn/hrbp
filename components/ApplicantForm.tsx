@@ -1249,8 +1249,11 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                 <div>
                   <h3 className="font-bold text-lg">{t.sections.education}</h3>
                   <p className="text-sm text-indigo-600 mt-1">
-                    {lang === 'th' ? '* แนะนำให้ระบุประวัติการศึกษาอย่างน้อย 2 ระดับ (เช่น มัธยมศึกษา และ ปริญญาตรี)' : '* We recommend providing at least 2 levels of education (e.g., High School and Bachelor\'s Degree)'}
+                    {lang === 'th' 
+                      ? '* กรุณาระบุประวัติการศึกษาอย่างน้อย 2 ระดับ โดยเรียงลำดับจากล่าสุดไปหาอดีต (เช่น ปริญญาตรี และ มัธยมศึกษา)' 
+                      : '* Please provide at least 2 levels of education, starting from the most recent to the oldest (e.g., Bachelor\'s Degree and High School)'}
                   </p>
+
                 </div>
                 <Button size="sm" onClick={addEducation} variant="outline" className="shrink-0 ml-4">{lang === 'th' ? 'เพิ่มประวัติการศึกษา' : 'Add Education'}</Button>
               </div>
