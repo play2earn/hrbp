@@ -360,13 +360,17 @@ export const api = {
           return matches ? matches[1] : null;
         };
 
-        const photoPath = extractPathFromUrl(formData.photoUrl);
-        const resumePath = extractPathFromUrl(formData.resumeUrl);
-        const certPath = extractPathFromUrl(formData.certificateUrl);
+        const photoPath      = extractPathFromUrl(formData.photoUrl);
+        const resumePath     = extractPathFromUrl(formData.resumeUrl);
+        const certPath       = extractPathFromUrl(formData.certificateUrl);
+        const transcriptPath = extractPathFromUrl(formData.transcriptUrl);
+        const otherDocsPath  = extractPathFromUrl(formData.otherDocsUrl);
 
-        if (photoPath) filesToDelete.push(photoPath);
-        if (resumePath) filesToDelete.push(resumePath);
-        if (certPath) filesToDelete.push(certPath);
+        if (photoPath)      filesToDelete.push(photoPath);
+        if (resumePath)     filesToDelete.push(resumePath);
+        if (certPath)       filesToDelete.push(certPath);
+        if (transcriptPath) filesToDelete.push(transcriptPath);
+        if (otherDocsPath)  filesToDelete.push(otherDocsPath);
       }
 
       if (filesToDelete.length > 0) {
