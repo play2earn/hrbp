@@ -535,6 +535,13 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
       }
     }
 
+    if (step === 5) {
+      const filledEdu = formData.education.filter(e => e.institute && e.institute.trim() !== '');
+      if (filledEdu.length < 2) {
+        errors.education = lang === 'th' ? 'กรุณาระบุประวัติการศึกษาอย่างน้อย 2 ระดับ' : 'Please provide at least 2 levels of education';
+      }
+    }
+
     if (step === 8) {
       if (formData.upcountryLocations.length === 0) {
         errors.upcountryLocations = lang === 'th' ? 'กรุณาเลือกพื้นที่' : 'Please select location';
@@ -1247,6 +1254,12 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                 </div>
                 <Button size="sm" onClick={addEducation} variant="outline" className="shrink-0 ml-4">{lang === 'th' ? 'เพิ่มประวัติการศึกษา' : 'Add Education'}</Button>
               </div>
+
+              {validationErrors.education && (
+                <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm font-medium border border-red-200 animate-in fade-in slide-in-from-top-1">
+                  ⚠️ {validationErrors.education}
+                </div>
+              )}
 
               {formData.education.length === 0 && (
                 <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-300 text-gray-500">

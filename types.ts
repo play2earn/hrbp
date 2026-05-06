@@ -224,7 +224,10 @@ export const INITIAL_FORM_STATE: ApplicationForm = {
   motherOccupation: '',
   siblingCount: 0,
 
-  education: [],
+  education: [
+    { level: 'bachelor', institute: '', major: '', gpa: '', startDate: '', endDate: '' },
+    { level: 'highSchool', institute: '', major: '', gpa: '', startDate: '', endDate: '' }
+  ],
 
   englishSkill: 'Fair',
   englishScore: '',
