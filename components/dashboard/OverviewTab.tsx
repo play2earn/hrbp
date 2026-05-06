@@ -43,7 +43,7 @@ interface OverviewTabProps {
   openActionMenu: (app: any, e: React.MouseEvent) => void;
 }
 
-export const OverviewTab: React.FC<OverviewTabProps> = ({
+export const OverviewTab = React.memo<OverviewTabProps>(({
   stats, fetchData, applications, positions, departments, businessUnits, channels,
   appFilters, setAppFilters, appPage, setAppPage,
   actionMenu, setActionMenu, setViewingApp, setEditingApp,
@@ -51,6 +51,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   setRejectingApp, setApprovingApp, currentUserId,
   appPerPage, setAppPerPage, openActionMenu
 }) => {
+
   const appsByBU = useMemo(() => {
     const acc: Record<string, number> = {};
     applications.forEach((app: any) => {
@@ -620,4 +621,5 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
     </>
   );
-};
+});
+

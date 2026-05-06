@@ -87,12 +87,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
   const [deletingApp, setDeletingApp] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [actionMenu, setActionMenu] = useState<{ id: string; x: number; y: number; openUp: boolean } | null>(null);
-  const openActionMenu = (appId: string, e: React.MouseEvent) => {
+  const openActionMenu = React.useCallback((appId: string, e: React.MouseEvent) => {
     if (actionMenu?.id === appId) { setActionMenu(null); return; }
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const openUp = rect.bottom + 250 > window.innerHeight;
     setActionMenu({ id: appId, x: rect.right, y: openUp ? rect.top : rect.bottom + 4, openUp });
-  };
+  }, [actionMenu]);
+
   const [appLogs, setAppLogs] = useState<any[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [editingApp, setEditingApp] = useState<any | null>(null);
@@ -194,7 +195,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
 
   // Fetch activity logs when viewing an application
   useEffect(() => {
-    if (viewingApp) {
+    if (viewingApp?.id) {
       setIsLoadingLogs(true);
       api.getApplicationLogs(viewingApp.id).then(logs => {
         setAppLogs(logs);
@@ -203,7 +204,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     } else {
       setAppLogs([]);
     }
-  }, [viewingApp]);
+  }, [viewingApp?.id]);
 
   // Helper to open full preview in new tab
   const openFullPreview = (app: any) => {
@@ -212,6 +213,158 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     localStorage.setItem('previewData', previewData);
     window.open('/preview', '_blank');
   };
+
+
+
+  const fetchQrMasterData = React.useCallback(async () => {
+    const [chData, buData, posData, deptData] = await Promise.all([
+      api.master.getAll('channels'),
+      api.master.getBusinessUnits(),
+      api.master.getAll('positions'),
+      api.master.getAll('departments')
+    ]);
+    setChannels(chData.data || []);
+    setBusinessUnits(buData || []);
+    setPositions(posData.data || []);
+    setDepartments(deptData.data || []);
+  }, []);
+
+  const fetchData = React.useCallback(async () => {
+    setLoading(true);
+    const data = await api.getApplications();
+    setApplications(data);
+
+    // Calculate simple stats
+    const total = data.length;
+    const pending = data.filter((a: any) => a.status === 'Pending').length;
+    const reviewing = data.filter((a: any) => a.status === 'Reviewing').length;
+    const interviewing = data.filter((a: any) => isInterviewScheduledStatus(a.status) || a.status === 'Interviewed' || a.status === 'Offer').length;
+    const hired = data.filter((a: any) => a.status === 'Hired').length;
+    const rejected = data.filter((a: any) => a.status === 'Rejected' || a.status === 'Withdrawn' || a.status === 'NoShow').length;
+
+    setStats({ total, pending, reviewing, interviewing, hired, rejected });
+    setLoading(false);
+  }, []);
+
+  const fetchPendingUsers = React.useCallback(async () => {
+    const { data } = await api.auth.getPendingUsers();
+    if (data) setPendingUsers(data);
+  }, []);
+
+  const fetchActiveUsers = React.useCallback(async () => {
+    const { data } = await api.auth.getActiveUsers();
+    if (data) setActiveUsers(data);
+  }, []);
+
+
+  const handleUserAction = React.useCallback(async (id: string, status: 'Active' | 'Rejected' | 'Inactive') => {
+    await api.auth.updateUserStatus(id, status);
+    fetchPendingUsers();
+    fetchActiveUsers();
+  }, [fetchPendingUsers, fetchActiveUsers]);
+
+  const handleUpdateUser = React.useCallback(async (status: 'Active' | 'Rejected' | 'Inactive') => {
+    if (!editingUser) return;
+    await api.auth.updateUserStatus(editingUser.id, status);
+    setEditingUser(null);
+    setIsConfirmingDisable(false);
+    fetchActiveUsers();
+    fetchPendingUsers();
+  }, [editingUser, fetchActiveUsers, fetchPendingUsers]);
+
+
+  const handleAppAction = React.useCallback(async (id: string, status: string) => {
+    if (!currentUserId) {
+      showToast('ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่', 'error');
+      return;
+    }
+    const result = await api.updateApplicationStatus(id, status as any, { performedByUserId: currentUserId });
+    if (!result.success) {
+      showToast(result.error?.message || 'อัปเดตสถานะไม่สำเร็จ', 'error');
+      return;
+    }
+    fetchData(); // Refresh list
+  }, [currentUserId, fetchData]);
+
+  const handleDeleteApplication = React.useCallback(async () => {
+    if (!deletingApp) return;
+    setIsDeleting(true);
+    const result = await api.deleteApplication(deletingApp.id);
+    setIsDeleting(false);
+    setDeletingApp(null);
+
+    if (result.success) {
+      showToast('Application deleted successfully');
+      fetchData(); // Refresh list
+    } else {
+      showToast(result.error?.message || 'Failed to delete application', 'error');
+    }
+  }, [deletingApp, fetchData]);
+
+  const fetchQrLogs = React.useCallback(async () => {
+    const logs = await api.getQrLogs(50);
+    setQrLogs(logs);
+  }, []);
+
+
+  // Derived: unique creators from logs + filtered logs
+  const qrLogCreators = React.useMemo(() => 
+    Array.from(new Set(qrLogs.map(l => l.created_by).filter(Boolean))),
+    [qrLogs]
+  );
+  
+  const filteredQrLogs = React.useMemo(() => 
+    qrLogCreatorFilter === 'all'
+      ? qrLogs
+      : qrLogs.filter(l => l.created_by === qrLogCreatorFilter),
+    [qrLogs, qrLogCreatorFilter]
+  );
+
+
+  const generateLink = React.useCallback(() => {
+    if (!qrParams.bu || !qrParams.ch) {
+      setConfirmQrAction('empty');
+    } else {
+      setConfirmQrAction('filled');
+    }
+  }, [qrParams.bu, qrParams.ch]);
+
+  const executeGenerateLink = React.useCallback(async () => {
+    setConfirmQrAction(null);
+    const baseUrl = window.location.href.split('?')[0]; // Current base
+    const params = new URLSearchParams();
+    if (qrParams.bu) params.append('bu', qrParams.bu);
+    if (qrParams.ch) params.append('ch', qrParams.ch);
+    if (qrParams.tag) params.append('tag', qrParams.tag);
+
+    const url = `${baseUrl}?${params.toString()}`;
+    setGeneratedLink(url);
+    setIsCopied(false);
+
+    // Save to database
+    await api.logQrGeneration({
+      business_unit: qrParams.bu || undefined,
+      channel: qrParams.ch || undefined,
+      campaign_tag: qrParams.tag || undefined,
+      generated_url: url,
+      created_by: currentUser ? `${currentUser.full_name} (${currentUser.email})` : 'Unknown'
+    });
+
+    // Refresh logs
+    fetchQrLogs();
+  }, [qrParams, currentUser, fetchQrLogs]);
+
+  const handleCopy = React.useCallback(async () => {
+    if (!generatedLink) return;
+    try {
+      await navigator.clipboard.writeText(generatedLink);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  }, [generatedLink]);
+
 
   useEffect(() => {
     // Load current user from localStorage
@@ -257,148 +410,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
       fetchPendingUsers();
       fetchActiveUsers();
     }
-  }, [role]);
-
-  const fetchQrMasterData = async () => {
-    const [chData, buData, posData, deptData] = await Promise.all([
-      api.master.getAll('channels'),
-      api.master.getBusinessUnits(),
-      api.master.getAll('positions'),
-      api.master.getAll('departments')
-    ]);
-    setChannels(chData.data || []);
-    setBusinessUnits(buData || []);
-    setPositions(posData.data || []);
-    setDepartments(deptData.data || []);
-  };
-
-  const fetchData = async () => {
-    setLoading(true);
-    const data = await api.getApplications();
-    setApplications(data);
-
-    // Calculate simple stats
-    const total = data.length;
-    const pending = data.filter((a: any) => a.status === 'Pending').length;
-    const reviewing = data.filter((a: any) => a.status === 'Reviewing').length;
-    const interviewing = data.filter((a: any) => isInterviewScheduledStatus(a.status) || a.status === 'Interviewed' || a.status === 'Offer').length;
-    const hired = data.filter((a: any) => a.status === 'Hired').length;
-    const rejected = data.filter((a: any) => a.status === 'Rejected' || a.status === 'Withdrawn' || a.status === 'NoShow').length;
-
-    setStats({ total, pending, reviewing, interviewing, hired, rejected });
-    setLoading(false);
-  };
-
-  const fetchPendingUsers = async () => {
-    const { data } = await api.auth.getPendingUsers();
-    if (data) setPendingUsers(data);
-  };
-
-  const fetchActiveUsers = async () => {
-    const { data } = await api.auth.getActiveUsers();
-    if (data) setActiveUsers(data);
-  };
-
-  const handleUserAction = async (id: string, status: 'Active' | 'Rejected' | 'Inactive') => {
-    await api.auth.updateUserStatus(id, status);
-    fetchPendingUsers();
-    fetchActiveUsers();
-  };
-
-  const handleUpdateUser = async (status: 'Active' | 'Rejected' | 'Inactive') => {
-    if (!editingUser) return;
-    await api.auth.updateUserStatus(editingUser.id, status);
-    await api.auth.updateUserStatus(editingUser.id, status);
-    setEditingUser(null);
-    setIsConfirmingDisable(false);
-    fetchActiveUsers();
-    fetchPendingUsers();
-  };
-
-  const handleAppAction = async (id: string, status: string) => {
-    if (!currentUserId) {
-      showToast('ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่', 'error');
-      return;
-    }
-    const result = await api.updateApplicationStatus(id, status as any, { performedByUserId: currentUserId });
-    if (!result.success) {
-      showToast(result.error?.message || 'อัปเดตสถานะไม่สำเร็จ', 'error');
-      return;
-    }
-    fetchData(); // Refresh list
-  };
-
-  const handleDeleteApplication = async () => {
-    if (!deletingApp) return;
-    setIsDeleting(true);
-    const result = await api.deleteApplication(deletingApp.id);
-    setIsDeleting(false);
-    setDeletingApp(null);
-
-    if (result.success) {
-      showToast('Application deleted successfully');
-      fetchData(); // Refresh list
-    } else {
-      showToast(result.error?.message || 'Failed to delete application', 'error');
-    }
-  };
-
-  const fetchQrLogs = async () => {
-    const logs = await api.getQrLogs(50);
-    setQrLogs(logs);
-  };
-
-  // Derived: unique creators from logs + filtered logs
-  const qrLogCreators = Array.from(new Set(qrLogs.map(l => l.created_by).filter(Boolean)));
-  const filteredQrLogs = qrLogCreatorFilter === 'all'
-    ? qrLogs
-    : qrLogs.filter(l => l.created_by === qrLogCreatorFilter);
-
-  const generateLink = () => {
-    if (!qrParams.bu || !qrParams.ch) {
-      setConfirmQrAction('empty');
-    } else {
-      setConfirmQrAction('filled');
-    }
-  };
-
-  const executeGenerateLink = async () => {
-    setConfirmQrAction(null);
-    const baseUrl = window.location.href.split('?')[0]; // Current base
-    const params = new URLSearchParams();
-    if (qrParams.bu) params.append('bu', qrParams.bu);
-    if (qrParams.ch) params.append('ch', qrParams.ch);
-    if (qrParams.tag) params.append('tag', qrParams.tag);
-
-    const url = `${baseUrl}?${params.toString()}`;
-    setGeneratedLink(url);
-    setIsCopied(false);
-
-    // Save to database
-    await api.logQrGeneration({
-      business_unit: qrParams.bu || undefined,
-      channel: qrParams.ch || undefined,
-      campaign_tag: qrParams.tag || undefined,
-      generated_url: url,
-      created_by: currentUser ? `${currentUser.full_name} (${currentUser.email})` : 'Unknown'
-    });
-
-    // Refresh logs
-    fetchQrLogs();
-  };
-
-  const handleCopy = async () => {
-    if (!generatedLink) return;
-    try {
-      await navigator.clipboard.writeText(generatedLink);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-    }
-  };
+  }, [role, fetchData, fetchQrMasterData, fetchQrLogs, fetchPendingUsers, fetchActiveUsers]);
 
   const SidebarItem = ({ id, label, icon: Icon }: { id: typeof activeTab, label: string, icon: any }) => (
+
     <button
       onClick={() => {
         setActiveTab(id);
