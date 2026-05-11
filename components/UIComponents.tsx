@@ -303,6 +303,25 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       setInternalError(`File size exceeds ${maxSizeMB}MB limit.`);
       return false;
     }
+    if (accept) {
+      const fileExtension = '.' + (file.name.split('.').pop()?.toLowerCase() || '');
+      const acceptedTypes = accept.split(',').map(t => t.trim().toLowerCase());
+      
+      const isAccepted = acceptedTypes.some(type => {
+        if (type.startsWith('.')) {
+          return fileExtension === type;
+        }
+        if (type.endsWith('/*')) {
+           return file.type.startsWith(type.replace('/*', ''));
+        }
+        return file.type === type;
+      });
+
+      if (!isAccepted) {
+        setInternalError(`Invalid file type. Accepted: ${accept}`);
+        return false;
+      }
+    }
     return true;
   };
 

@@ -319,13 +319,25 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
         <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white">
           <div className="flex items-center gap-4">
             <div className="w-24 h-28 bg-white/20 rounded-xl overflow-hidden flex-shrink-0 border-2 border-white/30">
-              {fd.photoUrl || app.photo_url ? (
-                <img src={fd.photoUrl || app.photo_url} alt="Photo" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <User className="w-10 h-10 text-white/60" />
-                </div>
-              )}
+              {(() => {
+                const photo = fd.photoUrl || app.photo_url;
+                if (!photo) {
+                  return (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <User className="w-10 h-10 text-white/60" />
+                    </div>
+                  );
+                }
+                if (photo.toLowerCase().endsWith('.pdf')) {
+                  return (
+                    <a href={photo} target="_blank" rel="noopener noreferrer" className="w-full h-full flex flex-col items-center justify-center bg-indigo-50/10 hover:bg-indigo-50/20 transition-colors">
+                      <FileText className="w-8 h-8 text-white/80" />
+                      <span className="text-[10px] text-white/60 mt-1">View PDF</span>
+                    </a>
+                  );
+                }
+                return <img src={photo} alt="Photo" className="w-full h-full object-cover" />;
+              })()}
             </div>
             <div>
               <h1 className="text-xl font-bold">{fullName}</h1>

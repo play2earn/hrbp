@@ -223,13 +223,24 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
             {/* Header with Photo */}
               <div className="flex items-start gap-4 pb-4 border-b border-gray-200 mb-4">
                 <div className="relative w-24 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border group">
-                  {fd.photoUrl ? (
-                    <img src={fd.photoUrl} alt="Photo" className="w-full h-full object-cover" key={fd.photoUrl} />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400">
-                      <User className="w-10 h-10" />
-                    </div>
-                  )}
+                  {(() => {
+                    if (!fd.photoUrl) {
+                      return (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400">
+                          <User className="w-10 h-10" />
+                        </div>
+                      );
+                    }
+                    if (fd.photoUrl.toLowerCase().endsWith('.pdf')) {
+                      return (
+                        <div className="w-full h-full flex flex-col items-center justify-center bg-indigo-50/10">
+                          <FileText className="w-8 h-8 text-indigo-400" />
+                          <span className="text-[10px] text-gray-500 mt-1">PDF File</span>
+                        </div>
+                      );
+                    }
+                    return <img src={fd.photoUrl} alt="Photo" className="w-full h-full object-cover" key={fd.photoUrl} />;
+                  })()}
                   {/* Hover Overlay for Upload */}
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer">
                     <label className="cursor-pointer flex flex-col items-center justify-center w-full h-full text-white text-xs text-center p-1 font-semibold">
