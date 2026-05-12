@@ -12,6 +12,8 @@ import {
   getMilitaryStatusLabel, isInterviewScheduledStatus, isClosedStatus
 } from './dashboardConstants';
 import { TRANSLATIONS } from '../../constants';
+import { ImageCropperModal } from './ImageCropperModal';
+import { Crop } from 'lucide-react';
 
 const fmtYearMonth = (dateStr: string | undefined | null): string => {
   if (!dateStr) return '';
@@ -81,6 +83,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
   const [shareLinkExpiry, setShareLinkExpiry] = useState<string | null>(null);
   const [showShareConfirm, setShowShareConfirm] = useState(false);
   const [showRevokeConfirm, setShowRevokeConfirm] = useState(false);
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
 
   useEffect(() => {
     if (viewingApp?.id) {
@@ -207,6 +210,49 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
     : [fd.titleEn, fd.firstNameEn, fd.lastNameEn].filter(Boolean).join(' ') || viewingApp?.full_name || '-';
   const fullNameEn = hasThaiName ? [fd.titleEn, fd.firstNameEn, fd.lastNameEn].filter(Boolean).join(' ') : null;
 
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    setIsUploadingPhoto(true);
+    try {
+      // Create a File from the Blob
+      const file = new File([croppedBlob], `photo_cropped_${Date.now()}.jpg`, { type: 'image/jpeg' });
+      
+      const url = await api.uploadFile(file, 'photos');
+      if (url) {
+        const updatedFormData = { ...fd, photoUrl: url };
+        const { error } = await supabase
+          .from('applications')
+          .update({ form_data: updatedFormData, photo_url: url })
+          .eq('id', viewingApp.id);
+        
+        if (!error) {
+          const updatedApp = { ...viewingApp, form_data: updatedFormData, photo_url: url };
+          setViewingApp(updatedApp);
+          onApplicationUpdated?.(updatedApp);
+          
+          // Log the action
+          const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+          await api.addApplicationLog({
+            application_id: viewingApp.id,
+            action: 'updated',
+            note: 'ปรับแต่งรูปภาพผู้สมัคร',
+            performed_by: currentUser.full_name || 'ระบบ'
+          });
+
+          // Close cropper modal on success
+          setIsCropperOpen(false);
+        } else {
+          throw error;
+        }
+      }
+    } catch (err) {
+      console.error('Failed to upload cropped photo:', err);
+      alert('เกิดข้อผิดพลาดในการอัปโหลดรูปภาพที่ปรับแต่ง');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+
   return (
     <>
       {/* View Application Modal - Comprehensive View */}
@@ -239,7 +285,22 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                         </div>
                       );
                     }
-                    return <img src={fd.photoUrl} alt="Photo" className="w-full h-full object-cover" key={fd.photoUrl} />;
+                    return (
+                      <div className="relative w-full h-full">
+                        <img src={fd.photoUrl} alt="Photo" className="w-full h-full object-cover" key={fd.photoUrl} />
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setIsCropperOpen(true);
+                          }}
+                          className="absolute bottom-1 right-1 p-1.5 bg-white/90 hover:bg-white text-indigo-600 rounded-md shadow-sm border border-indigo-100 transition-colors z-10"
+                          title="ปรับแต่งรูปภาพ"
+                        >
+                          <Crop className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    );
                   })()}
                   {/* Hover Overlay for Upload */}
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer">
@@ -994,6 +1055,17 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
           </div>
         </div>
       </Modal>
+
+      {/* Image Cropper Modal */}
+      {fd.photoUrl && (
+        <ImageCropperModal
+          isOpen={isCropperOpen}
+          onClose={() => setIsCropperOpen(false)}
+          imageUrl={fd.photoUrl}
+          onCropComplete={handleCropComplete}
+          isUploading={isUploadingPhoto}
+        />
+      )}
     </>
   );
 });

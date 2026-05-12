@@ -169,7 +169,11 @@ export const TRANSLATIONS = {
       stopSharing: 'Stop Sharing',
       openFullPreview: 'Open Full Preview',
       date: 'Date',
-      signature: 'Signature'
+      signature: 'Signature',
+      adjustPhoto: 'Adjust Photo',
+      rotate: 'Rotate',
+      cropAndSave: 'Crop & Save',
+      crop: 'Crop'
     },
     dashboard: {
       totalApps: 'Total Applications',
@@ -408,7 +412,11 @@ export const TRANSLATIONS = {
       stopSharing: 'หยุดแชร์',
       openFullPreview: 'เปิด Preview เต็มจอ',
       date: 'วันที่',
-      signature: 'ลายเซ็น'
+      signature: 'ลายเซ็น',
+      adjustPhoto: 'ปรับแต่งรูปภาพ',
+      rotate: 'หมุน',
+      cropAndSave: 'ตัดและบันทึกรูป',
+      crop: 'ตัดรูป'
     },
     dashboard: {
       totalApps: 'ใบสมัครทั้งหมด',
