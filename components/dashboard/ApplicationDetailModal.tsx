@@ -83,6 +83,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
   const [shareLinkExpiry, setShareLinkExpiry] = useState<string | null>(null);
   const [showShareConfirm, setShowShareConfirm] = useState(false);
   const [showRevokeConfirm, setShowRevokeConfirm] = useState(false);
+  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
 
   useEffect(() => {
@@ -277,8 +278,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
   const handleRestoreOriginal = async () => {
     if (!fd.originalPhotoUrl) return;
     
-    if (!confirm(lang === 'en' ? 'Restore to original photo?' : 'ยืนยันคืนค่ารูปภาพต้นฉบับ?')) return;
-
     setIsUploadingPhoto(true);
     try {
       const extractPathFromUrl = (url: string | undefined | null) => {
@@ -317,6 +316,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
           note: 'คืนค่ารูปภาพต้นฉบับ',
           performed_by: currentUser.full_name || 'ระบบ'
         });
+        setShowRestoreConfirm(false);
       } else {
         throw error;
       }
@@ -370,7 +370,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                handleRestoreOriginal();
+                                setShowRestoreConfirm(true);
                               }}
                               className="p-1.5 bg-white/90 hover:bg-white text-orange-600 rounded-md shadow-sm border border-orange-100 transition-colors"
                               title={lang === 'en' ? 'Restore Original' : 'คืนค่ารูปภาพเดิม'}
@@ -1159,6 +1159,45 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
               className="flex-1 bg-red-600 hover:bg-red-700"
             >
               {isGeneratingLink ? 'กำลังดำเนินการ...' : 'ยืนยันการหยุดแชร์'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Restore Original Photo Confirm Modal */}
+      <Modal
+        isOpen={showRestoreConfirm}
+        onClose={() => setShowRestoreConfirm(false)}
+        title={lang === 'en' ? 'Restore Original Photo' : 'คืนค่ารูปภาพต้นฉบับ'}
+        footer={null}
+      >
+        <div className="space-y-4">
+          <div className="text-center py-2">
+            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <RotateCcw className="w-6 h-6 text-orange-600" />
+            </div>
+            <p className="text-gray-700">
+              {lang === 'en' 
+                ? 'Are you sure you want to restore the original photo? The current cropped version will be deleted.' 
+                : 'ยืนยันคืนค่ารูปภาพต้นฉบับ? รูปภาพที่ตัดแต่งปัจจุบันจะถูกลบออก'}
+            </p>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowRestoreConfirm(false)} 
+              className="flex-1"
+            >
+              {lang === 'en' ? 'Cancel' : 'ยกเลิก'}
+            </Button>
+            <Button 
+              onClick={handleRestoreOriginal}
+              disabled={isUploadingPhoto}
+              className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
+            >
+              {isUploadingPhoto 
+                ? (lang === 'en' ? 'Restoring...' : 'กำลังคืนค่า...') 
+                : (lang === 'en' ? 'Restore' : 'ยืนยันคืนค่า')}
             </Button>
           </div>
         </div>
