@@ -167,7 +167,9 @@ export const TRANSLATIONS = {
       copied: 'Copied!',
       copy: 'Copy',
       stopSharing: 'Stop Sharing',
-      openFullPreview: 'Open Full Preview'
+      openFullPreview: 'Open Full Preview',
+      date: 'Date',
+      signature: 'Signature'
     },
     dashboard: {
       totalApps: 'Total Applications',
@@ -404,7 +406,9 @@ export const TRANSLATIONS = {
       copied: 'คัดลอกแล้ว!',
       copy: 'คัดลอก',
       stopSharing: 'หยุดแชร์',
-      openFullPreview: 'เปิด Preview เต็มจอ'
+      openFullPreview: 'เปิด Preview เต็มจอ',
+      date: 'วันที่',
+      signature: 'ลายเซ็น'
     },
     dashboard: {
       totalApps: 'ใบสมัครทั้งหมด',

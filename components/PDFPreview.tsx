@@ -29,7 +29,7 @@ const ConsentSection: React.FC<{ data: ApplicationForm; lang: Language }> = ({ d
   });
 
   return (
-    <div className="mt-8 break-before-page text-black">
+    <div className="mt-8 break-before-page break-inside-avoid text-black">
       {/* ===== Section 1: หนังสือยินยอมและรับรอง ===== */}
       <div className="bg-blue-700 py-2 px-3 mb-0">
         <h3 className="text-sm font-extrabold uppercase tracking-wider text-white">
@@ -47,36 +47,35 @@ const ConsentSection: React.FC<{ data: ApplicationForm; lang: Language }> = ({ d
         {/* Signature rows */}
         <div className="grid grid-cols-2 gap-8 mt-8">
           <div>
-            <div className="border-b border-black h-8 mb-1"></div>
             <p className="text-xs text-gray-600">{effectiveLang === 'th' ? 'ชื่อ-นามสกุล (ผู้สมัคร)' : 'Name (Applicant)'}</p>
             <p className="text-sm font-semibold mt-1">{applicantName}</p>
+            <div className="border-b border-black h-4 mb-1"></div>
           </div>
           <div>
-            <div className="border-b border-black h-8 mb-1"></div>
             <p className="text-xs text-gray-600">{effectiveLang === 'th' ? 'วัน/เดือน/ปี' : 'Date'}</p>
             <p className="text-sm font-semibold mt-1">{formattedDate}</p>
+            <div className="border-b border-black h-4 mb-1"></div>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-8 mt-6">
           <div>
-            <div className="border-b border-black h-8 mb-1"></div>
             <p className="text-xs text-gray-600">{effectiveLang === 'th' ? 'ตำแหน่ง' : 'Position'}</p>
             <p className="text-sm font-semibold mt-1">{(effectiveLang === 'en' ? (data.positionEn || data.position) : data.position) || '-'}</p>
+            <div className="border-b border-black h-4 mb-1"></div>
           </div>
           <div>
-            <div className="border-b border-black h-8 mb-1"></div>
             <p className="text-xs text-gray-600">{effectiveLang === 'th' ? 'เบอร์โทรติดต่อ' : 'Contact Number'}</p>
             <p className="text-sm font-semibold mt-1">{data.phone || '-'}</p>
+            <div className="border-b border-black h-4 mb-1"></div>
           </div>
         </div>
 
-        <div className="text-center mt-6 text-sm font-bold">{effectiveLang === 'th' ? 'ผู้สมัครงาน' : 'Applicant'}</div>
-        <div className="text-center mt-1 text-xs text-gray-500">{formattedDate}</div>
+
       </div>
 
       {/* ===== Section 2: รายละเอียดเกี่ยวกับข้อมูลส่วนบุคคล (Privacy Notice) ===== */}
-      <div className="mt-6 break-before-page">
+      <div className="mt-6 break-before-page break-inside-avoid">
         <div className="bg-blue-700 py-2 px-3 mb-0">
           <h3 className="text-sm font-extrabold uppercase tracking-wider text-white">
             {effectiveLang === 'th' ? 'รายละเอียดเกี่ยวกับข้อมูลส่วนบุคคล' : 'Privacy Notice'}
@@ -184,23 +183,22 @@ const ConsentSection: React.FC<{ data: ApplicationForm; lang: Language }> = ({ d
           {/* Signature rows */}
           <div className="grid grid-cols-2 gap-8 mt-6">
             <div>
-              <div className="border-b border-black h-8 mb-1"></div>
               <p className="text-xs text-gray-600">{effectiveLang === 'th' ? 'ชื่อ-นามสกุล (ผู้สมัคร)' : 'Name (Applicant)'}</p>
               <p className="text-sm font-semibold mt-1">{applicantName}</p>
+              <div className="border-b border-black h-4 mb-1"></div>
             </div>
             <div>
-              <div className="border-b border-black h-8 mb-1"></div>
               <p className="text-xs text-gray-600">{effectiveLang === 'th' ? 'วัน/เดือน/ปี' : 'Date'}</p>
               <p className="text-sm font-semibold mt-1">{formattedDate}</p>
+              <div className="border-b border-black h-4 mb-1"></div>
             </div>
           </div>
-          <div className="text-center mt-6 text-sm font-bold">{effectiveLang === 'th' ? 'ผู้สมัครงาน' : 'Applicant'}</div>
-          <div className="text-center mt-1 text-xs text-gray-500">{effectiveLang === 'th' ? 'วัน/ เดือน/ ปี' : 'Day / Month / Year'}</div>
+
         </div>
       </div>
 
       {/* ===== Section 3: ความยินยอมในการประมวลผลข้อมูล ===== */}
-      <div className="mt-6">
+      <div className="mt-6 break-inside-avoid">
         <div className="bg-blue-700 py-2 px-3 mb-0">
           <h3 className="text-sm font-extrabold uppercase tracking-wider text-white">
             {effectiveLang === 'th' ? 'ความยินยอมในการประมวลผลข้อมูล' : 'Data Processing Consent'}
@@ -223,18 +221,17 @@ const ConsentSection: React.FC<{ data: ApplicationForm; lang: Language }> = ({ d
           {/* Signature rows */}
           <div className="grid grid-cols-2 gap-8 mt-6">
             <div>
-              <div className="border-b border-black h-8 mb-1"></div>
               <p className="text-xs text-gray-600">{lang === 'th' ? 'ชื่อ-นามสกุล (ผู้สมัคร)' : 'Name (Applicant)'}</p>
               <p className="text-sm font-semibold mt-1">{applicantName}</p>
+              <div className="border-b border-black h-4 mb-1"></div>
             </div>
             <div>
-              <div className="border-b border-black h-8 mb-1"></div>
               <p className="text-xs text-gray-600">{lang === 'th' ? 'วัน/เดือน/ปี' : 'Date'}</p>
               <p className="text-sm font-semibold mt-1">{formattedDate}</p>
+              <div className="border-b border-black h-4 mb-1"></div>
             </div>
           </div>
-          <div className="text-center mt-6 text-sm font-bold">{lang === 'th' ? 'ผู้สมัครงาน' : 'Applicant'}</div>
-          <div className="text-center mt-1 text-xs text-gray-500">{lang === 'th' ? 'วัน/ เดือน/ ปี' : 'Day / Month / Year'}</div>
+
         </div>
       </div>
     </div>

@@ -742,7 +742,7 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
           {/* เอกสารแนบ — ถูก render แล้วใน tags section ด้านบน */}
 
           {/* ===== หนังสือยินยอมและรับรอง ===== */}
-          <div className="mb-6 mt-16 pt-10 border-t-2 border-gray-200">
+          <div className="mb-6 mt-16 pt-10 border-t-2 border-gray-200 break-inside-avoid">
             <div className="flex items-center gap-2 mb-3 pb-2 border-b-2 border-indigo-200">
               <Shield className="w-4 h-4 text-indigo-600" />
               <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">{t.consent}</h3>
@@ -755,22 +755,24 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
               )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mt-6">
-              <div className="border-b border-gray-300 pb-1">
-                <p className="text-xs text-gray-500">{t.applicantName}</p>
-                <p className="text-sm font-semibold mt-1">{fullName}</p>
+              <div>
+                <p className="text-[10px] text-gray-500">{t.applicantName}</p>
+                <p className="text-[12px] font-semibold mt-1">{fullName}</p>
+                <div className="border-b border-gray-300 h-4 mb-1"></div>
               </div>
-              <div className="border-b border-gray-300 pb-1 h-12 flex flex-col justify-end">
-                <p className="text-[10px] text-gray-400 mb-1">{t.signature}</p>
-                <div className="border-t border-dashed border-gray-400 w-full"></div>
+              <div>
+                <p className="text-[10px] text-gray-500">{t.date}</p>
+                <p className="text-[12px] font-semibold mt-1">
+                  {app.created_at ? new Date(app.created_at).toLocaleDateString(lang === 'th' ? 'th-TH' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
+                </p>
+                <div className="border-b border-gray-300 h-4 mb-1"></div>
               </div>
             </div>
-            <p className="text-center mt-3 text-xs text-gray-500">
-              {lang === 'th' ? 'ผู้สมัครงาน' : 'Applicant'} &nbsp;|&nbsp; {app.created_at ? new Date(app.created_at).toLocaleDateString(lang === 'th' ? 'th-TH' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString(lang === 'th' ? 'th-TH' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
-            </p>
+
           </div>
 
           {/* ===== รายละเอียดเกี่ยวกับข้อมูลส่วนบุคคล (Privacy Notice) ===== */}
-          <div className="mb-6 mt-12 pt-8 border-t border-gray-100">
+          <div className="mb-6 mt-12 pt-8 border-t border-gray-100 break-inside-avoid">
             <div className="flex items-center gap-2 mb-3 pb-2 border-b-2 border-indigo-200">
               <Shield className="w-4 h-4 text-indigo-600" />
               <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">{t.privacyNotice}</h3>
@@ -843,19 +845,23 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
               <p className="font-semibold">{lang === 'th' ? 'ผู้สมัครงาน อ่าน เข้าใจ และรายละเอียดซึ่งระบุไว้ข้างต้นแล้ว โดยยอมรับรองว่าข้อมูลที่นำส่งให้แก่บริษัทฯ เพื่อการประมวลผลข้อมูลนั้นถูกต้อง และเป็นความจริงทุกประการ' : 'The Applicant has read and understood the details specified above and certifies that the information submitted for data processing is accurate and true in all respects.'}</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mt-6">
-              <div className="border-b border-gray-300 pb-1">
-                <p className="text-xs text-gray-500">{t.applicantName}</p>
-                <p className="text-sm font-semibold mt-1">{fullName}</p>
+              <div>
+                <p className="text-[10px] text-gray-500">{t.applicantName}</p>
+                <p className="text-[12px] font-semibold mt-1">{fullName}</p>
+                <div className="border-b border-gray-300 h-4 mb-1"></div>
               </div>
-              <div className="border-b border-gray-300 pb-1 h-12 flex flex-col justify-end">
-                <p className="text-[10px] text-gray-400 mb-1">{t.signature}</p>
-                <div className="border-t border-dashed border-gray-400 w-full"></div>
+              <div>
+                <p className="text-[10px] text-gray-500">{t.date}</p>
+                <p className="text-[12px] font-semibold mt-1">
+                  {app.created_at ? new Date(app.created_at).toLocaleDateString(lang === 'th' ? 'th-TH' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
+                </p>
+                <div className="border-b border-gray-300 h-4 mb-1"></div>
               </div>
             </div>
           </div>
 
           {/* ===== ความยินยอมในการประมวลผลข้อมูล ===== */}
-          <div className="mb-6 mt-12 pt-8 border-t border-gray-100">
+          <div className="mb-6 mt-12 pt-8 border-t border-gray-100 break-inside-avoid">
             <div className="flex items-center gap-2 mb-3 pb-2 border-b-2 border-indigo-200">
               <Shield className="w-4 h-4 text-indigo-600" />
               <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">{t.consentProcessing}</h3>
@@ -865,13 +871,17 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
               <p>{lang === 'th' ? 'ทั้งนี้ยินยอมให้จัดเก็บและใช้งานข้อมูลดังกล่าวเป็นระยะเวลา 5 ปี นับแต่วันที่สมัครงาน' : 'Consent is given for storage and use of such data for a period of 5 years from the application date.'}</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mt-6">
-              <div className="border-b border-gray-300 pb-1">
-                <p className="text-xs text-gray-500">{t.applicantName}</p>
-                <p className="text-sm font-semibold mt-1">{fullName}</p>
+              <div>
+                <p className="text-[10px] text-gray-500">{t.applicantName}</p>
+                <p className="text-[12px] font-semibold mt-1">{fullName}</p>
+                <div className="border-b border-gray-300 h-4 mb-1"></div>
               </div>
-              <div className="border-b border-gray-300 pb-1 h-12 flex flex-col justify-end">
-                <p className="text-[10px] text-gray-400 mb-1">{t.signature}</p>
-                <div className="border-t border-dashed border-gray-400 w-full"></div>
+              <div>
+                <p className="text-[10px] text-gray-500">{t.date}</p>
+                <p className="text-[12px] font-semibold mt-1">
+                  {app.created_at ? new Date(app.created_at).toLocaleDateString(lang === 'th' ? 'th-TH' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
+                </p>
+                <div className="border-b border-gray-300 h-4 mb-1"></div>
               </div>
             </div>
           </div>
