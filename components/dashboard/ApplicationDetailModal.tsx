@@ -5,7 +5,8 @@ import { Modal, Button } from '../UIComponents';
 import {
   User, MapPin, Users, Building2, GraduationCap, Tag,
   FileText, ExternalLink, Edit, Calendar, History, Clock,
-  CheckCircle, XCircle, UserPlus, UserCheck, Link, Copy, Check
+  CheckCircle, XCircle, UserPlus, UserCheck, Link, Copy, Check,
+  Crop, RotateCcw
 } from 'lucide-react';
 import {
   LOG_LABELS, getStatusBadgeClass, getStatusLabel,
@@ -13,7 +14,6 @@ import {
 } from './dashboardConstants';
 import { TRANSLATIONS } from '../../constants';
 import { ImageCropperModal } from './ImageCropperModal';
-import { Crop } from 'lucide-react';
 
 const fmtYearMonth = (dateStr: string | undefined | null): string => {
   if (!dateStr) return '';
@@ -213,12 +213,34 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
   const handleCropComplete = async (croppedBlob: Blob) => {
     setIsUploadingPhoto(true);
     try {
+      // Helper to extract path from URL (for cleanup)
+      const extractPathFromUrl = (url: string | undefined | null) => {
+        if (!url) return null;
+        const matches = url.match(/\/public\/applicants\/(.+)$/);
+        return matches ? matches[1] : null;
+      };
+
       // Create a File from the Blob
       const file = new File([croppedBlob], `photo_cropped_${Date.now()}.jpg`, { type: 'image/jpeg' });
       
       const url = await api.uploadFile(file, 'photos');
       if (url) {
+        const oldPhotoUrl = fd.photoUrl;
+        const isAlreadyCropped = !!fd.originalPhotoUrl;
+        
+        // If this is the first crop, save the current photo as originalPhotoUrl
+        // Otherwise, delete the previous cropped photo to save space
         const updatedFormData = { ...fd, photoUrl: url };
+        if (!isAlreadyCropped) {
+          updatedFormData.originalPhotoUrl = oldPhotoUrl;
+        } else {
+          // Cleanup previous intermediate cropped photo
+          const oldPath = extractPathFromUrl(oldPhotoUrl);
+          if (oldPath && oldPhotoUrl !== fd.originalPhotoUrl) {
+            await supabase.storage.from('applicants').remove([oldPath]);
+          }
+        }
+
         const { error } = await supabase
           .from('applications')
           .update({ form_data: updatedFormData, photo_url: url })
@@ -234,7 +256,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
           await api.addApplicationLog({
             application_id: viewingApp.id,
             action: 'updated',
-            note: 'ปรับแต่งรูปภาพผู้สมัคร',
+            note: 'ปรับแต่งรูปภาพผู้สมัคร (Crop/Rotate)',
             performed_by: currentUser.full_name || 'ระบบ'
           });
 
@@ -247,6 +269,60 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
     } catch (err) {
       console.error('Failed to upload cropped photo:', err);
       alert('เกิดข้อผิดพลาดในการอัปโหลดรูปภาพที่ปรับแต่ง');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleRestoreOriginal = async () => {
+    if (!fd.originalPhotoUrl) return;
+    
+    if (!confirm(lang === 'en' ? 'Restore to original photo?' : 'ยืนยันคืนค่ารูปภาพต้นฉบับ?')) return;
+
+    setIsUploadingPhoto(true);
+    try {
+      const extractPathFromUrl = (url: string | undefined | null) => {
+        if (!url) return null;
+        const matches = url.match(/\/public\/applicants\/(.+)$/);
+        return matches ? matches[1] : null;
+      };
+
+      const currentCroppedUrl = fd.photoUrl;
+      const originalUrl = fd.originalPhotoUrl;
+      
+      const updatedFormData = { ...fd, photoUrl: originalUrl };
+      delete updatedFormData.originalPhotoUrl;
+
+      const { error } = await supabase
+        .from('applications')
+        .update({ form_data: updatedFormData, photo_url: originalUrl })
+        .eq('id', viewingApp.id);
+      
+      if (!error) {
+        // Cleanup the cropped photo from storage
+        const croppedPath = extractPathFromUrl(currentCroppedUrl);
+        if (croppedPath) {
+          await supabase.storage.from('applicants').remove([croppedPath]);
+        }
+
+        const updatedApp = { ...viewingApp, form_data: updatedFormData, photo_url: originalUrl };
+        setViewingApp(updatedApp);
+        onApplicationUpdated?.(updatedApp);
+        
+        // Log the action
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        await api.addApplicationLog({
+          application_id: viewingApp.id,
+          action: 'updated',
+          note: 'คืนค่ารูปภาพต้นฉบับ',
+          performed_by: currentUser.full_name || 'ระบบ'
+        });
+      } else {
+        throw error;
+      }
+    } catch (err) {
+      console.error('Failed to restore original photo:', err);
+      alert('เกิดข้อผิดพลาดในการคืนค่ารูปภาพ');
     } finally {
       setIsUploadingPhoto(false);
     }
@@ -288,17 +364,32 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                     return (
                       <div className="relative w-full h-full">
                         <img src={fd.photoUrl} alt="Photo" className="w-full h-full object-cover" key={fd.photoUrl} />
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setIsCropperOpen(true);
-                          }}
-                          className="absolute bottom-1 right-1 p-1.5 bg-white/90 hover:bg-white text-indigo-600 rounded-md shadow-sm border border-indigo-100 transition-colors z-10"
-                          title="ปรับแต่งรูปภาพ"
-                        >
-                          <Crop className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="absolute bottom-1 right-1 flex gap-1 z-10">
+                          {fd.originalPhotoUrl && (
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleRestoreOriginal();
+                              }}
+                              className="p-1.5 bg-white/90 hover:bg-white text-orange-600 rounded-md shadow-sm border border-orange-100 transition-colors"
+                              title={lang === 'en' ? 'Restore Original' : 'คืนค่ารูปภาพเดิม'}
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setIsCropperOpen(true);
+                            }}
+                            className="p-1.5 bg-white/90 hover:bg-white text-indigo-600 rounded-md shadow-sm border border-indigo-100 transition-colors"
+                            title="ปรับแต่งรูปภาพ"
+                          >
+                            <Crop className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     );
                   })()}
@@ -318,7 +409,24 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                           try {
                             const url = await api.uploadFile(file, 'photos');
                             if (url) {
+                              // Cleanup previous photos if they exist
+                              const extractPathFromUrl = (url: string | undefined | null) => {
+                                if (!url) return null;
+                                const matches = url.match(/\/public\/applicants\/(.+)$/);
+                                return matches ? matches[1] : null;
+                              };
+
+                              const oldPhotoPath = extractPathFromUrl(fd.photoUrl);
+                              const originalPhotoPath = extractPathFromUrl(fd.originalPhotoUrl);
+                              const pathsToDelete = [oldPhotoPath, originalPhotoPath].filter((p): p is string => !!p);
+                              
+                              if (pathsToDelete.length > 0) {
+                                await supabase.storage.from('applicants').remove(pathsToDelete);
+                              }
+
                               const updatedFormData = { ...fd, photoUrl: url };
+                              delete updatedFormData.originalPhotoUrl; // Clear original since we have a brand new photo
+
                               const { error } = await supabase
                                 .from('applications')
                                 .update({ form_data: updatedFormData, photo_url: url })

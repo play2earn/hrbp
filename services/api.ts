@@ -361,12 +361,14 @@ export const api = {
         };
 
         const photoPath      = extractPathFromUrl(formData.photoUrl);
+        const originalPath   = extractPathFromUrl(formData.originalPhotoUrl);
         const resumePath     = extractPathFromUrl(formData.resumeUrl);
         const certPath       = extractPathFromUrl(formData.certificateUrl);
         const transcriptPath = extractPathFromUrl(formData.transcriptUrl);
         const otherDocsPath  = extractPathFromUrl(formData.otherDocsUrl);
 
         if (photoPath)      filesToDelete.push(photoPath);
+        if (originalPath)   filesToDelete.push(originalPath);
         if (resumePath)     filesToDelete.push(resumePath);
         if (certPath)       filesToDelete.push(certPath);
         if (transcriptPath) filesToDelete.push(transcriptPath);
