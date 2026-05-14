@@ -90,7 +90,9 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                   <tbody className="divide-y">
                     {pendingUsers.map(user => (
                       <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3 text-gray-600">{new Date(user.created_at).toLocaleDateString('th-TH')}</td>
+                        <td className="px-4 py-3 text-gray-600">
+                          {new Date(user.created_at).toLocaleDateString('th-TH')} {new Date(user.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                        </td>
                         <td className="px-4 py-3 font-medium text-gray-900">{user.full_name}</td>
                         <td className="px-4 py-3 text-gray-600">{user.email}</td>
                         <td className="px-4 py-3 text-gray-600">{user.phone || '-'}</td>
@@ -126,7 +128,9 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                       </span>
                     </div>
                     <div className="flex justify-between items-center mt-2 border-t pt-3">
-                      <span className="text-xs text-gray-400">{new Date(user.created_at).toLocaleDateString('th-TH')}</span>
+                      <span className="text-xs text-gray-400">
+                        {new Date(user.created_at).toLocaleDateString('th-TH')} {new Date(user.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
                       <div className="flex gap-2">
                         <Button size="sm" className="bg-green-600 hover:bg-green-700 h-8 px-3 text-xs" onClick={() => handleUserAction(user.id, 'Active')}>Approve</Button>
                         <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 h-8 px-3 text-xs" onClick={() => handleUserAction(user.id, 'Rejected')}>Reject</Button>
@@ -167,7 +171,9 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                   <tbody className="divide-y">
                     {activeUsers.map(user => (
                       <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3 text-gray-600">{new Date(user.created_at).toLocaleDateString('th-TH')}</td>
+                        <td className="px-4 py-3 text-gray-600">
+                          {new Date(user.created_at).toLocaleDateString('th-TH')} {new Date(user.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                        </td>
                         <td className="px-4 py-3 font-medium text-gray-900">{user.full_name}</td>
                         <td className="px-4 py-3 text-gray-600">{user.email}</td>
                         <td className="px-4 py-3 text-gray-600">{user.phone || '-'}</td>
@@ -206,7 +212,9 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                       </div>
                     </div>
                     <div className="flex justify-between items-center mt-2 border-t pt-3">
-                      <span className="text-xs text-gray-400">{new Date(user.created_at).toLocaleDateString('th-TH')}</span>
+                      <span className="text-xs text-gray-400">
+                        {new Date(user.created_at).toLocaleDateString('th-TH')} {new Date(user.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
                       <Button size="sm" variant="outline" className="h-8 px-4 text-xs" onClick={() => { setEditingUser(user); setIsConfirmingDisable(false); }}>Manage</Button>
                     </div>
                   </div>
@@ -233,6 +241,9 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                       <p className="font-semibold text-gray-900">{editingUser.full_name}</p>
                       <p className="text-gray-500">{editingUser.email}</p>
                       <p className="text-gray-500 capitalize">Role: {editingUser.role}</p>
+                      <p className="text-gray-400 text-xs mt-1">
+                        Created: {new Date(editingUser.created_at).toLocaleDateString('th-TH')} {new Date(editingUser.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
                     </div>
                   </div>
 
