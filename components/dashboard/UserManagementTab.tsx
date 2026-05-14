@@ -14,19 +14,11 @@ interface UserManagementTabProps {
   setEditingUser: React.Dispatch<React.SetStateAction<any>>;
   isConfirmingDisable: boolean;
   setIsConfirmingDisable: React.Dispatch<React.SetStateAction<boolean>>;
-  isAddUserOpen: boolean;
-  setIsAddUserOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  newUserForm: any;
-  setNewUserForm: React.Dispatch<React.SetStateAction<any>>;
-  isCreatingUser: boolean;
-  setIsCreatingUser: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export const UserManagementTab: React.FC<UserManagementTabProps> = ({
   pendingUsers, activeUsers, fetchPendingUsers, fetchActiveUsers, showToast,
-  editingUser, setEditingUser, isConfirmingDisable, setIsConfirmingDisable,
-  isAddUserOpen, setIsAddUserOpen, newUserForm, setNewUserForm,
-  isCreatingUser, setIsCreatingUser
+  editingUser, setEditingUser, isConfirmingDisable, setIsConfirmingDisable
 }) => {
   // We need to bring the handler functions that were inline in Dashboard.tsx
   const handleUpdateUser = async (status: 'Active' | 'Inactive') => {
@@ -146,9 +138,6 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
         <Card>
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-bold text-lg text-gray-800">Existing Users</h3>
-            <Button variant="outline" size="sm" onClick={() => setIsAddUserOpen(true)}>
-              <Plus className="w-4 h-4 mr-1" /> Add New User
-            </Button>
           </div>
           {activeUsers.length === 0 ? (
             <p className="text-gray-500 text-sm p-4 text-center">No active users found.</p>
@@ -285,112 +274,7 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
           )}
         </Modal>
 
-        {/* Add New User Modal */}
-        <Modal
-          isOpen={isAddUserOpen}
-          onClose={() => { setIsAddUserOpen(false); setNewUserForm({ full_name: '', email: '', phone: '', role: 'mod', emp_id: '', hrms_username: '' }); }}
-          title="Add New User"
-          footer={null}
-        >
-          <form onSubmit={async (e) => {
-            e.preventDefault();
-            setIsCreatingUser(true);
-            try {
-              const result = await api.auth.registerHrmsUser(newUserForm);
-              if (result.success) {
-                showToast('สร้างผู้ใช้สำเร็จ!', 'success');
-                setIsAddUserOpen(false);
-                setNewUserForm({ full_name: '', email: '', phone: '', role: 'mod', emp_id: '', hrms_username: '' });
-                fetchPendingUsers();
-                fetchActiveUsers();
-              } else {
-                throw result.error;
-              }
-            } catch (err: any) {
-              showToast('สร้างผู้ใช้ล้มเหลว: ' + (err.message || 'Unknown error'), 'error');
-            } finally {
-              setIsCreatingUser(false);
-            }
-          }} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล <span className="text-red-500">*</span></label>
-              <input
-                type="text"
-                required
-                value={newUserForm.full_name}
-                onChange={(e) => setNewUserForm(prev => ({ ...prev, full_name: e.target.value }))}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                placeholder="ชื่อ นามสกุล"
-              />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">อีเมล <span className="text-red-500">*</span></label>
-                <input
-                  type="email"
-                  required
-                  value={newUserForm.email}
-                  onChange={(e) => setNewUserForm(prev => ({ ...prev, email: e.target.value }))}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                  placeholder="email@example.com"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">เบอร์โทร</label>
-                <input
-                  type="tel"
-                  value={newUserForm.phone}
-                  onChange={(e) => setNewUserForm(prev => ({ ...prev, phone: e.target.value }))}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                  placeholder="081-XXX-XXXX"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Role <span className="text-red-500">*</span></label>
-                <select
-                  value={newUserForm.role}
-                  onChange={(e) => setNewUserForm(prev => ({ ...prev, role: e.target.value }))}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
-                >
-                  <option value="mod">Moderator</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Emp ID <span className="text-red-500">*</span></label>
-                <input
-                  type="text"
-                  required
-                  value={newUserForm.emp_id}
-                  onChange={(e) => setNewUserForm(prev => ({ ...prev, emp_id: e.target.value }))}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                  placeholder="e.g. 12345"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">HRMS Username <span className="text-red-500">*</span></label>
-                <input
-                  type="text"
-                  required
-                  value={newUserForm.hrms_username}
-                  onChange={(e) => setNewUserForm(prev => ({ ...prev, hrms_username: e.target.value }))}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                  placeholder="e.g. somchai_ka"
-                />
-              </div>
-            </div>
-            <div className="flex gap-3 justify-end pt-4 border-t">
-              <Button variant="outline" type="button" onClick={() => setIsAddUserOpen(false)}>ยกเลิก</Button>
-              <Button type="submit" isLoading={isCreatingUser}>
-                <Plus className="w-4 h-4 mr-1" /> สร้างผู้ใช้
-              </Button>
-            </div>
-          </form>
-        </Modal>
+
       </div>
 
     </>

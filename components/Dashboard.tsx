@@ -44,10 +44,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
   const [isConfirmingDisable, setIsConfirmingDisable] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Add New User State
-  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
-  const [newUserForm, setNewUserForm] = useState({ full_name: '', email: '', phone: '', role: 'mod', emp_id: '', hrms_username: '' });
-  const [isCreatingUser, setIsCreatingUser] = useState(false);
+
 
   // QR Generator State
   const [qrParams, setQrParams] = useState({ bu: '', ch: '', tag: '' });
@@ -679,12 +676,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               setEditingUser={setEditingUser}
               isConfirmingDisable={isConfirmingDisable}
               setIsConfirmingDisable={setIsConfirmingDisable}
-              isAddUserOpen={isAddUserOpen}
-              setIsAddUserOpen={setIsAddUserOpen}
-              newUserForm={newUserForm}
-              setNewUserForm={setNewUserForm}
-              isCreatingUser={isCreatingUser}
-              setIsCreatingUser={setIsCreatingUser}
             />
           )}
 
