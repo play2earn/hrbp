@@ -29,3 +29,12 @@ dist-ssr
 # Migration Scripts
 migration/
 
+# Supabase Local Temp
+supabase/.temp/
+
+# Scratch & Temporary Scripts in Root
+plan_storage.md
+plan_storage_ticket.md
+security_hardening.sql
+apply_rpc_fix.mjs
+check_storage_usage.mjs
