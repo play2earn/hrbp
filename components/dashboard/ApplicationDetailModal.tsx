@@ -14,6 +14,7 @@ import {
 } from './dashboardConstants';
 import { TRANSLATIONS } from '../../constants';
 import { ImageCropperModal } from './ImageCropperModal';
+import { deleteFromR2 } from '../../utils/r2-upload';
 
 const fmtYearMonth = (dateStr: string | undefined | null): string => {
   if (!dateStr) return '';
@@ -211,16 +212,26 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
     : [fd.titleEn, fd.firstNameEn, fd.lastNameEn].filter(Boolean).join(' ') || viewingApp?.full_name || '-';
   const fullNameEn = hasThaiName ? [fd.titleEn, fd.firstNameEn, fd.lastNameEn].filter(Boolean).join(' ') : null;
 
+  const deleteFileByUrl = async (url: string | undefined | null) => {
+    if (!url) return;
+    try {
+      if (url.includes('supabase.co') || url.includes('/storage/v1/object/public/')) {
+        const matches = url.match(/\/public\/applicants\/(.+)$/);
+        const path = matches ? matches[1] : null;
+        if (path) {
+          await supabase.storage.from('applicants').remove([path]);
+        }
+      } else {
+        await deleteFromR2(url);
+      }
+    } catch (err) {
+      console.error('Failed to delete file from storage:', url, err);
+    }
+  };
+
   const handleCropComplete = async (croppedBlob: Blob) => {
     setIsUploadingPhoto(true);
     try {
-      // Helper to extract path from URL (for cleanup)
-      const extractPathFromUrl = (url: string | undefined | null) => {
-        if (!url) return null;
-        const matches = url.match(/\/public\/applicants\/(.+)$/);
-        return matches ? matches[1] : null;
-      };
-
       // Create a File from the Blob
       const file = new File([croppedBlob], `photo_cropped_${Date.now()}.jpg`, { type: 'image/jpeg' });
       
@@ -236,9 +247,8 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
           updatedFormData.originalPhotoUrl = oldPhotoUrl;
         } else {
           // Cleanup previous intermediate cropped photo
-          const oldPath = extractPathFromUrl(oldPhotoUrl);
-          if (oldPath && oldPhotoUrl !== fd.originalPhotoUrl) {
-            await supabase.storage.from('applicants').remove([oldPath]);
+          if (oldPhotoUrl && oldPhotoUrl !== fd.originalPhotoUrl) {
+            await deleteFileByUrl(oldPhotoUrl);
           }
         }
 
@@ -280,12 +290,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
     
     setIsUploadingPhoto(true);
     try {
-      const extractPathFromUrl = (url: string | undefined | null) => {
-        if (!url) return null;
-        const matches = url.match(/\/public\/applicants\/(.+)$/);
-        return matches ? matches[1] : null;
-      };
-
       const currentCroppedUrl = fd.photoUrl;
       const originalUrl = fd.originalPhotoUrl;
       
@@ -299,9 +303,8 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
       
       if (!error) {
         // Cleanup the cropped photo from storage
-        const croppedPath = extractPathFromUrl(currentCroppedUrl);
-        if (croppedPath) {
-          await supabase.storage.from('applicants').remove([croppedPath]);
+        if (currentCroppedUrl) {
+          await deleteFileByUrl(currentCroppedUrl);
         }
 
         const updatedApp = { ...viewingApp, form_data: updatedFormData, photo_url: originalUrl };
@@ -1208,7 +1211,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
         <ImageCropperModal
           isOpen={isCropperOpen}
           onClose={() => setIsCropperOpen(false)}
-          imageUrl={fd.photoUrl}
+          imageUrl={fd.photoUrl.startsWith('http') ? `/api/proxy-image?url=${encodeURIComponent(fd.photoUrl)}` : fd.photoUrl}
           onCropComplete={handleCropComplete}
           isUploading={isUploadingPhoto}
         />

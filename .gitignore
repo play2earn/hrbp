@@ -38,3 +38,9 @@ plan_storage_ticket.md
 security_hardening.sql
 apply_rpc_fix.mjs
 check_storage_usage.mjs
+scratch/
+
+# Ignore security plans and SQL files
+*.sql
+*.md
+!README.md
