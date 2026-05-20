@@ -361,6 +361,12 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
                         business_unit: editForm.businessUnit,
                         source_channel: editForm.sourceChannel,
                         campaign_tag: editForm.campaignTag,
+                        expected_salary: editForm.expectedSalary,
+                        height: editForm.height,
+                        weight: editForm.weight,
+                        date_of_birth: editForm.dateOfBirth,
+                        age: editForm.age,
+                        photo_url: editForm.photoUrl,
                         form_data: updatedFormData,
                       })
                       .eq('id', editingApp.id);
