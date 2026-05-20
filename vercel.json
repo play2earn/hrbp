@@ -8,5 +8,11 @@
             "source": "/(.*)",
             "destination": "/index.html"
         }
+    ],
+    "crons": [
+        {
+            "path": "/api/clean-orphans",
+            "schedule": "0 4 * * 0"
+        }
     ]
 }
