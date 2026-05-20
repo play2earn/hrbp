@@ -6,6 +6,8 @@ import { Button, Input, Select, TextArea, Card, DatePicker, FileUpload, Modal } 
 import { Check, ChevronRight, ChevronLeft } from 'lucide-react';
 import { PDFPreview } from './PDFPreview';
 import { api } from '../services/api';
+import { finalizeR2Attachments } from '../utils/r2-upload';
+
 
 interface ApplicantFormProps {
   lang: Language;
@@ -123,6 +125,20 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
   });
   const [showPreview, setShowPreview] = useState(false);
   const [isAgeModalOpen, setIsAgeModalOpen] = useState(false);
+  const [draftId, setDraftId] = useState<string>('');
+
+  useEffect(() => {
+    const generateDraftId = () => {
+      const now = new Date();
+      const yy = String(now.getFullYear()).slice(-2);
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const rand = Math.random().toString(36).substring(2, 6);
+      return `draft-${yy}${mm}${dd}-${rand}`;
+    };
+    setDraftId(generateDraftId());
+  }, []);
+
 
   // File upload states
   const [uploadingState, setUploadingState] = useState({
@@ -356,8 +372,8 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
     setUploadingState(prev => ({ ...prev, [stateKey]: true }));
 
     try {
-      // Use API service
-      const url = await api.uploadFile(file, stateKey);
+      // Use API service with draftId
+      const url = await api.uploadFile(file, stateKey, draftId);
 
       if (url) {
         updateField(fieldName, url); // Store URL, not just filename
@@ -380,11 +396,19 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
     setIsConfirmModalOpen(false);
     setIsSubmitting(true);
     const result = await api.submitApplication(formData);
-    setIsSubmitting(false);
 
     if (result.success) {
       if (result.data && result.data.id) {
-        setTrackingId(result.data.id);
+        const appId = result.data.id;
+        setTrackingId(appId);
+
+        // Finalize draft attachments to permanent application folder in R2
+        try {
+          console.log(`[Submit] Finalizing R2 attachments for draft ${draftId} and app ${appId}`);
+          await finalizeR2Attachments(draftId, appId);
+        } catch (err) {
+          console.error('[Submit] Failed to finalize R2 attachments:', err);
+        }
       }
       setSubmitSuccess(true);
     } else {
@@ -392,6 +416,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
       const errorMsg = result.error?.message || 'Submission failed. Please try again later.';
       alert(`Error: ${errorMsg}`);
     }
+    setIsSubmitting(false);
   };
 
   // Auto Calculate Age

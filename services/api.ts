@@ -2,6 +2,7 @@
 import { supabase } from '../supabaseClient';
 import { ApplicationForm } from '../types';
 import md5 from 'js-md5';
+import { uploadToR2, deleteFromR2, getStorageProvider } from '../utils/r2-upload';
 
 // ============================================================
 // API Response Types
@@ -81,7 +82,7 @@ export const api = {
   /**
    * Upload a file to Supabase Storage with progress tracking
    */
-  uploadFile: async (file: File, folder: string): Promise<string | null> => {
+  uploadFile: async (file: File, folder: string, draftId?: string): Promise<string | null> => {
     try {
       // Validate file type
       const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
@@ -118,6 +119,29 @@ export const api = {
         }
       }
 
+      // ------------------------------------------------------------
+      // HYBRID STORAGE: TRY CLOUDFLARE R2 FIRST (unless disabled)
+      // ------------------------------------------------------------
+      const provider = getStorageProvider();
+      if (provider !== 'supabase') {
+        try {
+          console.log(`[Upload] Attempting R2 upload (folder: ${folder}, draftId: ${draftId || 'none'})`);
+          const r2Url = await uploadToR2(fileToUpload, folder, draftId);
+          console.log('[Upload] Successfully uploaded to R2:', r2Url);
+          return r2Url;
+        } catch (r2Error) {
+          console.warn('[Upload] R2 upload failed:', r2Error);
+          if (provider === 'r2') {
+            // Strict R2 mode: do not fall back, throw the error
+            throw new Error(`R2 upload failed and fallback is disabled: ${r2Error instanceof Error ? r2Error.message : 'Unknown error'}`);
+          }
+          console.warn('[Upload] Falling back to Supabase Storage...');
+        }
+      }
+
+      // ------------------------------------------------------------
+      // FALLBACK / LEGACY: SUPABASE STORAGE
+      // ------------------------------------------------------------
       // Generate safe filename
       const safeFileName = fileToUpload.name.replace(/[^a-zA-Z0-9.-]/g, '_');
       const fileName = `${folder}/${Date.now()}_${safeFileName}`;
@@ -350,38 +374,64 @@ export const api = {
 
       if (fetchError) throw fetchError;
 
-      const filesToDelete: string[] = [];
+      const supabaseFilesToDelete: string[] = [];
+      const r2UrlsToDelete: string[] = [];
       const formData = appData?.form_data;
 
       if (formData) {
-        const extractPathFromUrl = (url: string | undefined | null) => {
+        const detectProvider = (url: string | undefined | null) => {
           if (!url) return null;
+          if (url.includes('supabase.co') || url.includes('/storage/v1/object/public/')) {
+            return 'supabase';
+          }
+          return 'r2';
+        };
+
+        const extractSupabasePath = (url: string) => {
           const matches = url.match(/\/public\/applicants\/(.+)$/);
           return matches ? matches[1] : null;
         };
 
-        const photoPath      = extractPathFromUrl(formData.photoUrl);
-        const originalPath   = extractPathFromUrl(formData.originalPhotoUrl);
-        const resumePath     = extractPathFromUrl(formData.resumeUrl);
-        const certPath       = extractPathFromUrl(formData.certificateUrl);
-        const transcriptPath = extractPathFromUrl(formData.transcriptUrl);
-        const otherDocsPath  = extractPathFromUrl(formData.otherDocsUrl);
+        const urls = [
+          formData.photoUrl,
+          formData.originalPhotoUrl,
+          formData.resumeUrl,
+          formData.certificateUrl,
+          formData.transcriptUrl,
+          formData.otherDocsUrl
+        ];
 
-        if (photoPath)      filesToDelete.push(photoPath);
-        if (originalPath)   filesToDelete.push(originalPath);
-        if (resumePath)     filesToDelete.push(resumePath);
-        if (certPath)       filesToDelete.push(certPath);
-        if (transcriptPath) filesToDelete.push(transcriptPath);
-        if (otherDocsPath)  filesToDelete.push(otherDocsPath);
+        for (const url of urls) {
+          if (!url) continue;
+          const provider = detectProvider(url);
+          if (provider === 'supabase') {
+            const path = extractSupabasePath(url);
+            if (path) supabaseFilesToDelete.push(path);
+          } else if (provider === 'r2') {
+            r2UrlsToDelete.push(url);
+          }
+        }
       }
 
-      if (filesToDelete.length > 0) {
+      // 1. Delete Supabase files if any
+      if (supabaseFilesToDelete.length > 0) {
         const { error: storageError } = await supabase.storage
           .from('applicants')
-          .remove(filesToDelete);
+          .remove(supabaseFilesToDelete);
 
         if (storageError) {
-          console.error("Warning: Failed to delete some storage files:", storageError);
+          console.error("Warning: Failed to delete some Supabase storage files:", storageError);
+        }
+      }
+
+      // 2. Delete R2 files if any
+      if (r2UrlsToDelete.length > 0) {
+        for (const url of r2UrlsToDelete) {
+          console.log('[Delete] Triggering R2 deletion for:', url);
+          const success = await deleteFromR2(url);
+          if (!success) {
+            console.warn('[Delete] Failed to delete file from R2:', url);
+          }
         }
       }
 
@@ -910,14 +960,42 @@ export const api = {
 
     /**
      * Update user status (Admin only)
+     * Uses the admin_update_user_status RPC (SECURITY DEFINER) to bypass
+     * the protect_user_roles trigger. Passes caller_user_id explicitly
+     * because this system uses custom HRMS auth — auth.uid() is always null.
      */
     updateUserStatus: async (id: string, status: 'Active' | 'Rejected' | 'Inactive'): Promise<ApiResponse<AuthUser>> => {
       try {
+        // Get the logged-in admin's ID from localStorage
+        const currentUserRaw = localStorage.getItem('currentUser');
+        if (!currentUserRaw) {
+          return { success: false, error: { message: 'Not authenticated. Please log in again.' } };
+        }
+        const currentUser = JSON.parse(currentUserRaw);
+        const callerUserId = currentUser?.id;
+        if (!callerUserId) {
+          return { success: false, error: { message: 'Invalid session. Please log in again.' } };
+        }
+
+        const { data: rpcData, error: rpcError } = await supabase
+          .rpc('admin_update_user_status', {
+            target_user_id: id,
+            new_status: status,
+            caller_user_id: callerUserId
+          });
+
+        if (rpcError) return handleError(rpcError, 'updateUserStatus');
+
+        const result = rpcData as { success: boolean; error?: string };
+        if (!result.success) {
+          return { success: false, error: { message: result.error || 'Failed to update user status' } };
+        }
+
+        // Fetch the updated user to return to the caller
         const { data, error } = await supabase
           .from('users')
-          .update({ status, updated_at: new Date().toISOString() })
+          .select('*')
           .eq('id', id)
-          .select()
           .single();
 
         if (error) return handleError(error, 'updateUserStatus');
