@@ -72,12 +72,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const finalizedKeys: string[] = [];
 
-    // 2. Loop through and copy each file to applications/{applicationId}/ and delete the original draft file
-    for (const obj of objects) {
-      if (!obj.Key) continue;
+    // 2. Loop through and copy each file to applications/{applicationId}/ and delete the original draft file in parallel
+    const finalizePromises = objects.map(async (obj) => {
+      if (!obj.Key) return;
 
       const fileName = obj.Key.substring(draftPrefix.length);
-      if (!fileName) continue;
+      if (!fileName) return;
 
       const targetKey = `applications/${applicationId}/${fileName}`;
 
@@ -96,7 +96,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       finalizedKeys.push(targetKey);
       console.log(`[R2 Finalize] Finalized: ${obj.Key} -> ${targetKey}`);
-    }
+    });
+
+    await Promise.all(finalizePromises);
 
     // 3. Connect to Supabase to update URLs in the DB
     const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -106,7 +108,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       throw new Error('Supabase environment variables are missing');
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          'x-admin-key': 'vibe-recruit-admin-secret-2026'
+        }
+      }
+    });
 
     // Fetch the application row
     const { data: application, error: fetchError } = await supabase
@@ -122,6 +130,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (application) {
       let updatedFormData = application.form_data;
       let updatedPhotoUrl = application.photo_url;
+      let updatedResumeUrl = application.resume_url;
 
       // Replace draft path with final path in JSON stringified form_data to handle all nested URLs generically
       if (updatedFormData) {
@@ -133,17 +142,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         updatedFormData = JSON.parse(formDataStr);
       }
 
-      // Replace in main photo_url column if it contains the draft prefix
+      // Sync root columns with values from updatedFormData
+      if (updatedFormData) {
+        if (updatedFormData.photoUrl) {
+          updatedPhotoUrl = updatedFormData.photoUrl;
+        }
+        if (updatedFormData.resumeUrl) {
+          updatedResumeUrl = updatedFormData.resumeUrl;
+        }
+      }
+
+      // Fallback: Replace in main photo_url/resume_url columns if they contain the draft prefix
       if (updatedPhotoUrl && updatedPhotoUrl.includes(`drafts/${draftId}/`)) {
         updatedPhotoUrl = updatedPhotoUrl.split(`drafts/${draftId}/`).join(`applications/${applicationId}/`);
       }
+      if (updatedResumeUrl && updatedResumeUrl.includes(`drafts/${draftId}/`)) {
+        updatedResumeUrl = updatedResumeUrl.split(`drafts/${draftId}/`).join(`applications/${applicationId}/`);
+      }
+
+      // Extract relational columns from updatedFormData
+      const age = updatedFormData?.age ? parseInt(updatedFormData.age) : null;
+      const height = updatedFormData?.height ? parseInt(updatedFormData.height) : null;
+      const weight = updatedFormData?.weight ? parseInt(updatedFormData.weight) : null;
+      const expected_salary = updatedFormData?.expectedSalary ? parseInt(updatedFormData.expectedSalary) : null;
+      const date_of_birth = updatedFormData?.dateOfBirth || null;
 
       // Update the database record
       const { error: updateError } = await supabase
         .from('applications')
         .update({
           form_data: updatedFormData,
-          photo_url: updatedPhotoUrl
+          photo_url: updatedPhotoUrl,
+          resume_url: updatedResumeUrl,
+          age: isNaN(Number(age)) ? null : age,
+          height: isNaN(Number(height)) ? null : height,
+          weight: isNaN(Number(weight)) ? null : weight,
+          expected_salary: isNaN(Number(expected_salary)) ? null : expected_salary,
+          date_of_birth
         })
         .eq('id', applicationId);
 
