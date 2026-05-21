@@ -189,24 +189,57 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
 
         {/* Recent Applications Table */}
         <Card>
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
-            <h3 className="text-lg font-bold text-gray-800">Applications</h3>
-            <div className="flex flex-col sm:flex-row flex-wrap gap-3 w-full lg:w-auto">
-              {/* Search */}
-              <div className="relative w-full sm:w-auto sm:flex-1 lg:flex-initial">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="ค้นหาชื่อ, เบอร์โทร..."
-                  className="pl-9 pr-4 py-2 border rounded-lg text-sm w-full lg:w-56 focus:ring-2 focus:ring-indigo-500 outline-none"
-                  value={appFilters.search}
-                  onChange={(e) => { setAppFilters(f => ({ ...f, search: e.target.value })); setAppPage(1); }}
-                />
+          <div className="border-b border-gray-100 pb-4 mb-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-bold text-gray-800">Applications</h3>
+                <p className="text-xs text-gray-500 mt-1">จัดการและติดตามสถานะผู้สมัครทั้งหมด</p>
               </div>
-              <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+              
+              {/* Search & Quick Tabs */}
+              <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                {/* Search */}
+                <div className="relative w-full sm:w-64 flex-1 sm:flex-initial">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="ค้นหาชื่อ, เบอร์โทร..."
+                    className="pl-9 pr-4 py-2 border rounded-lg text-sm w-full focus:ring-2 focus:ring-indigo-500 outline-none"
+                    value={appFilters.search}
+                    onChange={(e) => { setAppFilters(f => ({ ...f, search: e.target.value })); setAppPage(1); }}
+                  />
+                </div>
+                
+                {/* Assignment Tabs */}
+                <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 w-full sm:w-auto justify-between sm:justify-start">
+                  {[
+                    { value: 'all', label: 'ทั้งหมด', icon: Users },
+                    { value: 'me', label: 'เคสของฉัน', icon: UserCheck },
+                    { value: 'unassigned', label: 'ยังไม่มีเคส', icon: UserPlus },
+                  ].map(tab => (
+                    <button
+                      key={tab.value}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all flex-1 sm:flex-none justify-center ${appFilters.assignment === tab.value
+                        ? 'bg-white text-indigo-700 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                      onClick={() => { setAppFilters(f => ({ ...f, assignment: tab.value })); setAppPage(1); }}
+                    >
+                      <tab.icon className="w-3.5 h-3.5" />
+                      <span>{tab.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            {/* Filter Dropdowns Row */}
+            <div className="flex flex-wrap items-center gap-2.5 mt-4 pt-4 border-t border-gray-50">
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider hidden md:inline">ตัวกรอง:</span>
+              <div className="grid grid-cols-2 md:flex md:flex-wrap gap-2.5 w-full md:w-auto flex-1">
                 {/* Position Filter */}
                 <select
-                  className="border rounded-lg px-2 sm:px-3 py-2 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-auto"
+                  className="border rounded-lg px-2 py-1.5 text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none w-full md:w-auto min-w-[140px] text-gray-700"
                   value={appFilters.position}
                   onChange={(e) => { setAppFilters(f => ({ ...f, position: e.target.value })); setAppPage(1); }}
                 >
@@ -215,9 +248,10 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                     <option key={p.id} value={p.name_th || p.name}>{p.name_th || p.name}</option>
                   ))}
                 </select>
+                
                 {/* BU Filter */}
                 <select
-                  className="border rounded-lg px-2 sm:px-3 py-2 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-auto"
+                  className="border rounded-lg px-2 py-1.5 text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none w-full md:w-auto min-w-[120px] text-gray-700"
                   value={appFilters.bu}
                   onChange={(e) => { setAppFilters(f => ({ ...f, bu: e.target.value })); setAppPage(1); }}
                 >
@@ -226,9 +260,10 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                     <option key={b.id || b.name} value={b.name}>{b.name}</option>
                   ))}
                 </select>
+                
                 {/* Channel Filter */}
                 <select
-                  className="border rounded-lg px-2 sm:px-3 py-2 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-auto"
+                  className="border rounded-lg px-2 py-1.5 text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none w-full md:w-auto min-w-[130px] text-gray-700"
                   value={appFilters.channel}
                   onChange={(e) => { setAppFilters(f => ({ ...f, channel: e.target.value })); setAppPage(1); }}
                 >
@@ -237,9 +272,10 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                     <option key={c.id} value={c.name_th || c.name}>{c.name_th || c.name}</option>
                   ))}
                 </select>
+                
                 {/* Status Filter */}
                 <select
-                  className="border rounded-lg px-2 sm:px-3 py-2 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-auto"
+                  className="border rounded-lg px-2 py-1.5 text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none w-full md:w-auto min-w-[120px] text-gray-700"
                   value={appFilters.status}
                   onChange={(e) => { setAppFilters(f => ({ ...f, status: e.target.value })); setAppPage(1); }}
                 >
@@ -254,27 +290,26 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                   <option value="Withdrawn">ผู้สมัครยกเลิก</option>
                   <option value="NoShow">ไม่มาตามนัด</option>
                 </select>
-              </div>
-
-              {/* Assignment Quick Filter Tabs */}
-              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-                {[
-                  { value: 'all', label: 'ทั้งหมด', icon: Users },
-                  { value: 'me', label: 'เคสของฉัน', icon: UserCheck },
-                  { value: 'unassigned', label: 'ยังไม่มีเคส', icon: UserPlus },
-                ].map(tab => (
+                
+                {/* Clear Filters Button */}
+                {(appFilters.position || appFilters.bu || appFilters.channel || appFilters.status !== 'all' || appFilters.search) && (
                   <button
-                    key={tab.value}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${appFilters.assignment === tab.value
-                      ? 'bg-white text-indigo-700 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                    onClick={() => { setAppFilters(f => ({ ...f, assignment: tab.value })); setAppPage(1); }}
+                    onClick={() => {
+                      setAppFilters({
+                        search: '',
+                        status: 'all',
+                        position: '',
+                        bu: '',
+                        channel: '',
+                        assignment: appFilters.assignment,
+                      });
+                      setAppPage(1);
+                    }}
+                    className="text-xs text-red-500 hover:text-red-700 font-medium px-2.5 py-1.5 rounded hover:bg-red-50 transition-colors flex items-center justify-center gap-1 col-span-2 md:col-span-1 md:w-auto"
                   >
-                    <tab.icon className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">{tab.label}</span>
+                    ล้างตัวกรอง
                   </button>
-                ))}
+                )}
               </div>
             </div>
           </div>
@@ -372,8 +407,8 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                                 {/* Tags */}
                                 {(bu || ch) && (
                                   <div className="flex flex-wrap gap-1 mt-1.5">
-                                    {bu && <span className={`px-1.5 py-0.5 text-[10px] rounded font-medium border ${getBuColor(bu)}`}>BU: {bu}</span>}
-                                    {ch && <span className="px-1.5 py-0.5 text-[10px] rounded bg-blue-50 text-blue-600 font-medium border border-blue-100">CH: {ch}</span>}
+                                    {bu && <span className={`px-1.5 py-0.5 text-[10px] rounded font-medium border max-w-[140px] truncate inline-block align-middle ${getBuColor(bu)}`} title={`BU: ${bu}`}>BU: {bu}</span>}
+                                    {ch && <span className="px-1.5 py-0.5 text-[10px] rounded bg-blue-50 text-blue-600 font-medium border border-blue-100 max-w-[140px] truncate inline-block align-middle" title={`Channel: ${ch}`}>CH: {ch}</span>}
                                   </div>
                                 )}
                               </div>
@@ -391,10 +426,9 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-16">ลำดับ</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่สมัคร</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ผู้สมัคร</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-32">วันที่สมัคร</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ผู้สมัคร / แหล่งที่มา</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ตำแหน่ง / แผนก</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">แหล่งที่มา</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-28 whitespace-nowrap">สถานะ</th>
                         <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-28 whitespace-nowrap">Actions</th>
                       </tr>
@@ -442,7 +476,7 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                               </div>
                             </td>
 
-                            {/* ผู้สมัคร */}
+                            {/* ผู้สมัคร / แหล่งที่มา */}
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-3">
                                 {/* Profile Thumbnail */}
@@ -466,23 +500,21 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                                   <div className="text-xs text-gray-500 flex items-center mt-0.5 whitespace-nowrap">
                                     <Phone className="w-3 h-3 mr-1" /> {phone}
                                   </div>
+                                  {/* แหล่งที่มา (BU + Channel) */}
+                                  {(bu || ch) && (
+                                    <div className="flex flex-wrap gap-1 mt-1.5 max-w-[180px]">
+                                      {bu && <span className={`px-1.5 py-0.5 text-[9px] rounded font-medium border max-w-[120px] truncate inline-block align-middle ${getBuColor(bu)}`} title={`BU: ${bu}`}>BU: {bu}</span>}
+                                      {ch && <span className="px-1.5 py-0.5 text-[9px] rounded bg-blue-50 text-blue-700 font-medium border border-blue-100 max-w-[120px] truncate inline-block align-middle" title={`Channel: ${ch}`}>CH: {ch}</span>}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </td>
 
                             {/* ตำแหน่ง / แผนก */}
-                            <td className="px-4 py-3">
-                              <div className="text-sm font-medium text-gray-800 whitespace-nowrap">{pos}</div>
-                              <div className="text-xs text-gray-500 mt-0.5 whitespace-nowrap">{dept}</div>
-                            </td>
-
-                            {/* แหล่งที่มา (BU + Channel) */}
-                            <td className="px-4 py-3">
-                              <div className="flex flex-col items-start gap-1">
-                                {bu ? <span className={`px-1.5 py-0.5 text-[10px] rounded font-medium whitespace-nowrap border ${getBuColor(bu)}`} title="Business Unit">BU: {bu}</span> : null}
-                                {ch ? <span className="px-1.5 py-0.5 text-[10px] rounded bg-blue-50 text-blue-700 font-medium whitespace-nowrap border border-blue-100 placeholder-transparent" title="Channel">CH: {ch}</span> : null}
-                                {!bu && !ch && <span className="text-gray-400 text-xs">-</span>}
-                              </div>
+                            <td className="px-4 py-3 max-w-[240px]">
+                              <div className="text-sm font-medium text-gray-800 break-words">{pos}</div>
+                              <div className="text-xs text-gray-500 mt-1 break-words">{dept}</div>
                             </td>
 
                             {/* สถานะ */}
@@ -538,7 +570,7 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                         );
                       })}
                       {paginated.length === 0 && (
-                        <tr><td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500">ไม่พบข้อมูลผู้สมัคร</td></tr>
+                        <tr><td colSpan={6} className="px-6 py-8 text-center text-sm text-gray-500">ไม่พบข้อมูลผู้สมัคร</td></tr>
                       )}
                     </tbody>
                   </table>
