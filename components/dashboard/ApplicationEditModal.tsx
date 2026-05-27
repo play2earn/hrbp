@@ -21,6 +21,10 @@ interface EditFormState {
   dateOfBirth?: string;
   age?: string;
   photoUrl?: string;
+  firstName?: string;
+  lastName?: string;
+  firstNameEn?: string;
+  lastNameEn?: string;
 }
 
 interface ApplicationEditModalProps {
@@ -64,6 +68,10 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
     dateOfBirth: 'วันเดือนปีเกิด',
     age: 'อายุ',
     photoUrl: 'รูปถ่าย',
+    firstName: 'ชื่อจริง (TH)',
+    lastName: 'นามสกุล (TH)',
+    firstNameEn: 'ชื่อจริง (EN)',
+    lastNameEn: 'นามสกุล (EN)',
   };
 
   const getChangedFields = () => {
@@ -77,6 +85,10 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
       else if (key === 'campaignTag') oldValue = editingApp.form_data?.campaignTag || editingApp.campaign_tag;
       else if (key === 'photoUrl') oldValue = editingApp.form_data?.photoUrl || editingApp.photo_url;
       else if (['height', 'weight', 'expectedSalary', 'dateOfBirth', 'age'].includes(key)) oldValue = editingApp.form_data?.[key];
+      else if (key === 'firstName') oldValue = editingApp.form_data?.firstName || editingApp.first_name;
+      else if (key === 'lastName') oldValue = editingApp.form_data?.lastName || editingApp.last_name;
+      else if (key === 'firstNameEn') oldValue = editingApp.form_data?.firstNameEn;
+      else if (key === 'lastNameEn') oldValue = editingApp.form_data?.lastNameEn;
       else oldValue = editingApp.form_data?.[key] || editingApp[key];
 
       // Standardize comparison
@@ -102,6 +114,55 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
       >
         {editingApp && (
           <div className="space-y-4">
+            {/* ข้อมูลส่วนตัว (ชื่อ-นามสกุล) */}
+            <div className="border-b pb-4">
+              <h4 className="text-sm font-semibold text-gray-700 mb-3">ข้อมูลส่วนตัว (ชื่อ-สกุล)</h4>
+              <div className="grid grid-cols-2 gap-4 mb-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อจริง (ภาษาไทย) <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                    value={editForm.firstName || ''}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, firstName: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">นามสกุล (ภาษาไทย) <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                    value={editForm.lastName || ''}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, lastName: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">First Name (English) <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                    value={editForm.firstNameEn || ''}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, firstNameEn: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Name (English) <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                    value={editForm.lastNameEn || ''}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, lastNameEn: e.target.value }))}
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">แผนก <span className="text-red-500">*</span></label>
@@ -334,6 +395,13 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
                       showToast('ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่', 'error');
                       return;
                     }
+
+                    const hasThaiName = editForm.firstName && editForm.lastName;
+                    const isThaiNational = editingApp.form_data?.isThaiNational ?? true;
+                    const fullName = isThaiNational && hasThaiName
+                      ? `${editForm.firstName} ${editForm.lastName}`.trim()
+                      : `${editForm.firstNameEn} ${editForm.lastNameEn}`.trim();
+
                     const updatedFormData = {
                       ...editingApp.form_data,
                       position: editForm.position,
@@ -349,7 +417,12 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
                       dateOfBirth: editForm.dateOfBirth,
                       age: editForm.age,
                       photoUrl: editForm.photoUrl,
+                      firstName: editForm.firstName,
+                      lastName: editForm.lastName,
+                      firstNameEn: editForm.firstNameEn,
+                      lastNameEn: editForm.lastNameEn,
                     };
+
                     // Only update columns that definitely exist in the database
                     const { error } = await supabase
                       .from('applications')
@@ -367,6 +440,9 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
                         date_of_birth: editForm.dateOfBirth,
                         age: editForm.age,
                         photo_url: editForm.photoUrl,
+                        full_name: fullName,
+                        first_name: editForm.firstName,
+                        last_name: editForm.lastName,
                         form_data: updatedFormData,
                       })
                       .eq('id', editingApp.id);

@@ -109,7 +109,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     weight: '',
     dateOfBirth: '',
     age: '',
-    photoUrl: ''
+    photoUrl: '',
+    firstName: '',
+    lastName: '',
+    firstNameEn: '',
+    lastNameEn: '',
   });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editFilteredPositions, setEditFilteredPositions] = useState<any[]>([]);
@@ -173,6 +177,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
         dateOfBirth: fd.dateOfBirth || '',
         age: fd.age || '',
         photoUrl: fd.photoUrl || editingApp.photo_url || '',
+        firstName: fd.firstName || editingApp.first_name || '',
+        lastName: fd.lastName || editingApp.last_name || '',
+        firstNameEn: fd.firstNameEn || '',
+        lastNameEn: fd.lastNameEn || '',
       });
     }
   }, [editingApp, departments]);
