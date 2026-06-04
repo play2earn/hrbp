@@ -25,6 +25,8 @@ interface EditFormState {
   lastName?: string;
   firstNameEn?: string;
   lastNameEn?: string;
+  title?: string;
+  titleEn?: string;
 }
 
 interface ApplicationEditModalProps {
@@ -72,6 +74,8 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
     lastName: 'นามสกุล (TH)',
     firstNameEn: 'ชื่อจริง (EN)',
     lastNameEn: 'นามสกุล (EN)',
+    title: 'คำนำหน้า (TH)',
+    titleEn: 'คำนำหน้า (EN)',
   };
 
   const getChangedFields = () => {
@@ -89,6 +93,8 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
       else if (key === 'lastName') oldValue = editingApp.form_data?.lastName || editingApp.last_name;
       else if (key === 'firstNameEn') oldValue = editingApp.form_data?.firstNameEn;
       else if (key === 'lastNameEn') oldValue = editingApp.form_data?.lastNameEn;
+      else if (key === 'title') oldValue = editingApp.form_data?.title || editingApp.title;
+      else if (key === 'titleEn') oldValue = editingApp.form_data?.titleEn;
       else oldValue = editingApp.form_data?.[key] || editingApp[key];
 
       // Standardize comparison
@@ -116,9 +122,22 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
           <div className="space-y-4">
             {/* ข้อมูลส่วนตัว (ชื่อ-นามสกุล) */}
             <div className="border-b pb-4">
-              <h4 className="text-sm font-semibold text-gray-700 mb-3">ข้อมูลส่วนตัว (ชื่อ-สกุล)</h4>
-              <div className="grid grid-cols-2 gap-4 mb-3">
-                <div>
+              <h4 className="text-sm font-semibold text-gray-700 mb-3">ข้อมูลส่วนตัว (คำนำหน้า - ชื่อ - สกุล)</h4>
+              <div className="grid grid-cols-5 gap-4 mb-3">
+                <div className="col-span-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">คำนำหน้า <span className="text-red-500">*</span></label>
+                  <select
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+                    value={editForm.title || ''}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
+                  >
+                    <option value="">-- เลือก --</option>
+                    <option value="นาย">นาย</option>
+                    <option value="นาง">นาง</option>
+                    <option value="นางสาว">นางสาว</option>
+                  </select>
+                </div>
+                <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อจริง (ภาษาไทย) <span className="text-red-500">*</span></label>
                   <input
                     type="text"
@@ -128,7 +147,7 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
                     onChange={(e) => setEditForm(prev => ({ ...prev, firstName: e.target.value }))}
                   />
                 </div>
-                <div>
+                <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">นามสกุล (ภาษาไทย) <span className="text-red-500">*</span></label>
                   <input
                     type="text"
@@ -139,8 +158,21 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
+              <div className="grid grid-cols-5 gap-4">
+                <div className="col-span-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Title (EN) <span className="text-red-500">*</span></label>
+                  <select
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+                    value={editForm.titleEn || ''}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, titleEn: e.target.value }))}
+                  >
+                    <option value="">-- Select --</option>
+                    <option value="Mr.">Mr.</option>
+                    <option value="Ms.">Ms.</option>
+                    <option value="Mrs.">Mrs.</option>
+                  </select>
+                </div>
+                <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">First Name (English) <span className="text-red-500">*</span></label>
                   <input
                     type="text"
@@ -150,7 +182,7 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
                     onChange={(e) => setEditForm(prev => ({ ...prev, firstNameEn: e.target.value }))}
                   />
                 </div>
-                <div>
+                <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Last Name (English) <span className="text-red-500">*</span></label>
                   <input
                     type="text"
@@ -421,6 +453,8 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
                       lastName: editForm.lastName,
                       firstNameEn: editForm.firstNameEn,
                       lastNameEn: editForm.lastNameEn,
+                      title: editForm.title,
+                      titleEn: editForm.titleEn,
                     };
 
                     // Only update columns that definitely exist in the database
@@ -443,6 +477,7 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
                         full_name: fullName,
                         first_name: editForm.firstName,
                         last_name: editForm.lastName,
+                        title: editForm.title,
                         form_data: updatedFormData,
                       })
                       .eq('id', editingApp.id);
