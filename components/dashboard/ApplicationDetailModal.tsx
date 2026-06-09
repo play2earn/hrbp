@@ -171,7 +171,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
     { key: 'transcriptUrl',  label: 'Transcript / ใบ Grade' },
     { key: 'certificateUrl', label: 'Certificate / เอกสารเพิ่มเติม' },
     { key: 'photoUrl',       label: 'รูปถ่าย' },
-    { key: 'otherDocsUrl',   label: 'เอกสารอื่นๆ' },
   ];
 
   const handleGenerateResubmitToken = async () => {
@@ -1120,7 +1119,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                         <p className="text-[11px] text-slate-500">
                           เอกสารที่อนุญาต: {resubmitAllowedExisting.map(f => ({
                             resumeUrl: 'Resume', transcriptUrl: 'Transcript', certificateUrl: 'Certificate',
-                            photoUrl: 'รูปถ่าย', otherDocsUrl: 'เอกสารอื่นๆ'
+                            photoUrl: 'รูปถ่าย'
                           })[f] || f).join(', ')}
                         </p>
                         <div className="flex items-center gap-2">

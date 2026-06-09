@@ -26,7 +26,6 @@ const FIELD_CONFIG: Record<string, { label: string; labelEn: string; icon: React
     transcriptUrl:   { label: 'Transcript / ใบแสดงผลการเรียน', labelEn: 'Transcript / Grade Report',icon: <FileText className="w-5 h-5" />,  accept: '.pdf,.jpg,.png',  hint: 'PDF, JPG, PNG (ไม่เกิน 10MB)' },
     certificateUrl:  { label: 'Certificate / เอกสารเพิ่มเติม', labelEn: 'Certificate / Other Docs', icon: <FileText className="w-5 h-5" />,  accept: '.pdf,.jpg,.png',  hint: 'PDF, JPG, PNG (ไม่เกิน 10MB)' },
     photoUrl:        { label: 'รูปถ่าย',                        labelEn: 'Profile Photo',            icon: <ImageIcon className="w-5 h-5" />, accept: '.jpg,.jpeg,.png', hint: 'JPG, PNG (ไม่เกิน 5MB)' },
-    otherDocsUrl:    { label: 'เอกสารอื่นๆ',                   labelEn: 'Other Documents',          icon: <FileText className="w-5 h-5" />,  accept: '.pdf,.jpg,.png',  hint: 'PDF, JPG, PNG (ไม่เกิน 10MB)' },
 };
 
 // ─── PIN Input Component ───────────────────────────────────────────────────────

@@ -1,14 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 
-const ALLOWED_FIELDS = ['resumeUrl', 'transcriptUrl', 'certificateUrl', 'photoUrl', 'otherDocsUrl'];
+const ALLOWED_FIELDS = ['resumeUrl', 'transcriptUrl', 'certificateUrl', 'photoUrl'];
 
 const FIELD_LABEL_MAP: Record<string, string> = {
   resumeUrl: 'Resume / CV',
   transcriptUrl: 'Transcript / ใบ Grade',
   certificateUrl: 'Certificate / เอกสารเพิ่มเติม',
   photoUrl: 'รูปถ่าย',
-  otherDocsUrl: 'เอกสารอื่นๆ',
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
