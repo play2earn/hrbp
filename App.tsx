@@ -7,6 +7,7 @@ import { Dashboard } from './components/Dashboard';
 import { LoginPage } from './components/LoginPage';
 import { PDFPreview } from './components/PDFPreview';
 import { SharedProfileView } from './components/SharedProfileView';
+import ResubmitView from './components/ResubmitView';
 import { Button, Card, Modal } from './components/UIComponents';
 import { 
   Users, 
@@ -42,6 +43,12 @@ export default function App() {
   const shareMatch = window.location.pathname.match(/^\/share\/([a-f0-9]{64})$/i);
   if (shareMatch) {
     return <SharedProfileView token={shareMatch[1]} />;
+  }
+
+  // Check for /resubmit/:token path (applicant self-service document resubmission)
+  const resubmitMatch = window.location.pathname.match(/^\/resubmit\/([a-f0-9]{64})$/i);
+  if (resubmitMatch) {
+    return <ResubmitView token={resubmitMatch[1]} />;
   }
 
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);

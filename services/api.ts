@@ -245,6 +245,7 @@ export const api = {
 
   /**
    * Track application status by ID
+   * Also returns active resubmit token info so TrackingSystem can show the resubmit banner.
    */
   trackApplication: async (trackingId: string): Promise<ApiResponse<any>> => {
     try {
@@ -259,6 +260,26 @@ export const api = {
       if (error) return handleError(error, 'trackApplication');
       if (!data) return { success: false, error: { message: 'Application not found.' } };
 
+      // Attach active resubmit token info (token string + expiry only — no pin_hash)
+      const appId = (data as any).id;
+      if (appId) {
+        const { data: rtRow } = await supabase
+          .from('application_share_tokens')
+          .select('token, expires_at')
+          .eq('application_id', appId)
+          .eq('token_type', 'resubmit')
+          .eq('is_revoked', false)
+          .gt('expires_at', new Date().toISOString())
+          .is('resubmitted_at', null)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (rtRow) {
+          (data as any).resubmit_token = rtRow.token;
+          (data as any).resubmit_expires_at = rtRow.expires_at;
+        }
+      }
+
       return { success: true, data };
     } catch (error) {
       return handleError(error, 'trackApplication');
@@ -267,6 +288,7 @@ export const api = {
 
   /**
    * Track application(s) by National ID or Passport Number (searches in form_data JSONB)
+   * Also returns active resubmit token info for each result.
    */
   trackByIdOrPassport: async (searchValue: string): Promise<ApiResponse<any[]>> => {
     try {
@@ -278,13 +300,13 @@ export const api = {
       // Search by nationalId OR passportNo in form_data
       const { data: byNationalId } = await supabase
         .from('applications')
-        .select('id, full_name, position, department, status, created_at')
+        .select('id, full_name, position, department, status, created_at, updated_at')
         .eq('form_data->>nationalId', trimmed)
         .order('created_at', { ascending: false });
 
       const { data: byPassport } = await supabase
         .from('applications')
-        .select('id, full_name, position, department, status, created_at')
+        .select('id, full_name, position, department, status, created_at, updated_at')
         .eq('form_data->>passportNo', trimmed)
         .order('created_at', { ascending: false });
 
@@ -296,7 +318,27 @@ export const api = {
         return { success: false, error: { message: 'No applications found.' } };
       }
 
-      return { success: true, data: unique };
+      // Attach active resubmit token info for each application
+      const withTokens = await Promise.all(unique.map(async (app) => {
+        const { data: rtRow } = await supabase
+          .from('application_share_tokens')
+          .select('token, expires_at')
+          .eq('application_id', app.id)
+          .eq('token_type', 'resubmit')
+          .eq('is_revoked', false)
+          .gt('expires_at', new Date().toISOString())
+          .is('resubmitted_at', null)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        return {
+          ...app,
+          resubmit_token: rtRow?.token || null,
+          resubmit_expires_at: rtRow?.expires_at || null,
+        };
+      }));
+
+      return { success: true, data: withTokens };
     } catch (error) {
       return handleError(error, 'trackByIdOrPassport');
     }
@@ -779,6 +821,141 @@ export const api = {
       return { success: true };
     } catch (error) {
       return handleError(error, 'revokeShareToken');
+    }
+  },
+
+  // ============================================================
+  // Resubmit Token Services (Applicant Self-Service)
+  // ============================================================
+
+  /**
+   * HR: Generate a 48-hour resubmit token for an application.
+   * PIN hash is computed here on the client using SubtleCrypto before inserting to DB
+   * so that raw PIN values (last4 ID + last4 phone) never leave the browser unencrypted.
+   */
+  generateResubmitToken: async (
+    applicationId: string,
+    allowedFields: ('resumeUrl' | 'transcriptUrl' | 'certificateUrl' | 'photoUrl' | 'otherDocsUrl')[],
+    createdBy: string
+  ): Promise<ApiResponse<{ token: string; url: string; expires_at: string }>> => {
+    try {
+      // 1. Fetch the applicant's identifying data to build the PIN hash
+      const { data: app, error: appError } = await supabase
+        .from('applications')
+        .select('form_data')
+        .eq('id', applicationId)
+        .single();
+
+      if (appError || !app) {
+        return { success: false, error: { message: 'ไม่พบข้อมูลใบสมัคร' } };
+      }
+
+      const fd = app.form_data || {};
+      const isForeigner = fd.isThaiNational === false;
+      const idValue: string = isForeigner ? (fd.passportNo || '') : (fd.nationalId || '');
+      const phoneValue: string = fd.phone || '';
+
+      if (!idValue || !phoneValue) {
+        return {
+          success: false,
+          error: { message: 'ผู้สมัครไม่มีข้อมูลบัตรประชาชน/Passport หรือเบอร์โทร — ไม่สามารถสร้าง PIN ได้' }
+        };
+      }
+
+      const last4Id = idValue.slice(-4).toLowerCase();
+      const last4Phone = phoneValue.replace(/[^0-9]/g, '').slice(-4);
+
+      if (last4Id.length < 4 || last4Phone.length < 4) {
+        return {
+          success: false,
+          error: { message: 'ข้อมูลบัตรประชาชน/Passport หรือเบอร์โทรไม่ครบ 4 หลัก' }
+        };
+      }
+
+      // 2. Compute PIN hash using SubtleCrypto (browser native, no libraries needed)
+      const pinStr = `${last4Id}:${last4Phone}`;
+      const encoder = new TextEncoder();
+      const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(pinStr));
+      const pinHash = Array.from(new Uint8Array(hashBuffer))
+        .map(b => b.toString(16).padStart(2, '0')).join('');
+
+      // 3. Revoke any existing active resubmit token for this application
+      await supabase
+        .from('application_share_tokens')
+        .update({ is_revoked: true })
+        .eq('application_id', applicationId)
+        .eq('token_type', 'resubmit')
+        .eq('is_revoked', false);
+
+      // 4. Generate new crypto-safe token
+      const token = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+        .map(b => b.toString(16).padStart(2, '0')).join('');
+      const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+
+      const { data: tokenData, error: insertError } = await supabase
+        .from('application_share_tokens')
+        .insert([{
+          application_id: applicationId,
+          token,
+          token_type: 'resubmit',
+          created_by: createdBy,
+          expires_at: expiresAt,
+          allowed_fields: allowedFields,
+          pin_hash: pinHash,
+          pin_attempts: 0,
+        }])
+        .select('token, expires_at')
+        .single();
+
+      if (insertError) return handleError(insertError, 'generateResubmitToken');
+
+      // 5. Log the action for HR audit trail
+      const fieldLabelMap: Record<string, string> = {
+        resumeUrl: 'Resume', transcriptUrl: 'Transcript', certificateUrl: 'Certificate',
+        photoUrl: 'รูปถ่าย', otherDocsUrl: 'เอกสารอื่นๆ'
+      };
+      const fieldLabels = allowedFields.map(f => fieldLabelMap[f] || f).join(', ');
+
+      await api.addApplicationLog({
+        application_id: applicationId,
+        action: 'resubmit_token_created',
+        note: `HR ขอเอกสารใหม่: ${fieldLabels} (token หมดอายุใน 48 ชม.)`,
+        performed_by: createdBy,
+      });
+
+      const url = `${window.location.origin}/resubmit/${tokenData.token}`;
+      return { success: true, data: { token: tokenData.token, url, expires_at: tokenData.expires_at } };
+    } catch (error) {
+      return handleError(error, 'generateResubmitToken');
+    }
+  },
+
+  /**
+   * HR: Get existing active (unused, non-expired) resubmit token for an application.
+   */
+  getExistingResubmitToken: async (
+    applicationId: string
+  ): Promise<ApiResponse<{ token: string; url: string; expires_at: string; allowed_fields: string[] } | null>> => {
+    try {
+      const { data, error } = await supabase
+        .from('application_share_tokens')
+        .select('token, expires_at, allowed_fields')
+        .eq('application_id', applicationId)
+        .eq('token_type', 'resubmit')
+        .eq('is_revoked', false)
+        .gt('expires_at', new Date().toISOString())
+        .is('resubmitted_at', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) return handleError(error, 'getExistingResubmitToken');
+      if (!data) return { success: true, data: null };
+
+      const url = `${window.location.origin}/resubmit/${data.token}`;
+      return { success: true, data: { token: data.token, url, expires_at: data.expires_at, allowed_fields: data.allowed_fields || [] } };
+    } catch (error) {
+      return handleError(error, 'getExistingResubmitToken');
     }
   },
 

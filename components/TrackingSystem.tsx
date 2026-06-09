@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Loader2, CheckCircle2, Clock, XCircle, FileText, X, CreditCard, Hash } from 'lucide-react';
+import { Search, Loader2, CheckCircle2, Clock, XCircle, FileText, X, CreditCard, Hash, Upload } from 'lucide-react';
 import { Button } from './UIComponents';
 import { api } from '../services/api';
 
@@ -57,7 +57,6 @@ export default function TrackingSystem({ isOpen, onClose, lang = 'en' }: Trackin
 
         try {
             if (searchMode === 'id_passport') {
-                // Search by national ID or passport
                 const trimmed = searchInput.trim();
                 if (!trimmed) { setLoading(false); return; }
                 const { data, error: apiError } = await api.trackByIdOrPassport(trimmed);
@@ -65,7 +64,6 @@ export default function TrackingSystem({ isOpen, onClose, lang = 'en' }: Trackin
                     setError(t.notFound);
                 } else if (data && data.length > 0) {
                     setResults(data);
-                    // Load timelines for each result
                     data.forEach((app: any) => {
                         api.getApplicationTimeline(app.id).then((logs) => {
                             setTimelines(prev => ({ ...prev, [app.id]: logs }));
@@ -75,7 +73,6 @@ export default function TrackingSystem({ isOpen, onClose, lang = 'en' }: Trackin
                     setError(t.notFound);
                 }
             } else {
-                // Search by tracking ID (UUID)
                 const { data, error: apiError } = await api.trackApplication(searchInput.trim());
                 if (apiError) {
                     setError(t.notFound);
@@ -83,7 +80,6 @@ export default function TrackingSystem({ isOpen, onClose, lang = 'en' }: Trackin
                     setError((data as any).error);
                 } else if (data) {
                     setResults([data]);
-                    // Load timeline
                     api.getApplicationTimeline((data as any).id).then((logs) => {
                         setTimelines(prev => ({ ...prev, [(data as any).id]: logs }));
                     });
@@ -123,6 +119,15 @@ export default function TrackingSystem({ isOpen, onClose, lang = 'en' }: Trackin
             case 'Offer': return <CheckCircle2 className="w-5 h-5" />;
             default: return <FileText className="w-5 h-5" />;
         }
+    };
+
+    const formatExpiry = (isoStr: string) => {
+        try {
+            return new Date(isoStr).toLocaleDateString('th-TH', {
+                day: 'numeric', month: 'short', year: '2-digit',
+                hour: '2-digit', minute: '2-digit'
+            });
+        } catch { return isoStr; }
     };
 
     return (
@@ -185,7 +190,7 @@ export default function TrackingSystem({ isOpen, onClose, lang = 'en' }: Trackin
                     )}
 
                     {results.length > 0 && (
-                        <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                        <div className="space-y-3 max-h-[450px] overflow-y-auto">
                             {results.length > 1 && (
                                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                     {t.resultsCount} {results.length} {t.entries}
@@ -215,6 +220,34 @@ export default function TrackingSystem({ isOpen, onClose, lang = 'en' }: Trackin
                                         <div className="pt-2 border-t border-slate-100">
                                             <p className="text-xs text-gray-400">{t.lastUpdated}: {new Date(status.updated_at || status.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                                         </div>
+
+                                        {/* ─── Resubmit Banner ─── */}
+                                        {status.resubmit_token && (
+                                            <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-xl animate-in fade-in">
+                                                <div className="flex items-center gap-2 mb-1.5">
+                                                    <Upload className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                                                    <span className="text-amber-800 text-sm font-semibold">
+                                                        {lang === 'th' ? 'มีคำขอให้อัปโหลดเอกสารใหม่' : 'Document Resubmission Requested'}
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-amber-600 mb-2.5">
+                                                    {lang === 'th'
+                                                        ? `ลิงก์หมดอายุ: ${formatExpiry(status.resubmit_expires_at)}`
+                                                        : `Expires: ${formatExpiry(status.resubmit_expires_at)}`}
+                                                </p>
+                                                <button
+                                                    onClick={() => {
+                                                        onClose();
+                                                        window.open(`/resubmit/${status.resubmit_token}`, '_self');
+                                                    }}
+                                                    className="w-full py-2 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                                                >
+                                                    <Upload className="w-4 h-4" />
+                                                    {lang === 'th' ? 'แก้ไขเอกสาร →' : 'Update Documents →'}
+                                                </button>
+                                            </div>
+                                        )}
+
                                         {/* Public Timeline */}
                                         {timelines[status.id] && timelines[status.id].length > 0 && (
                                             <div className="pt-3 mt-2 border-t border-slate-100">
@@ -222,16 +255,21 @@ export default function TrackingSystem({ isOpen, onClose, lang = 'en' }: Trackin
                                                 <div className="space-y-0">
                                                     {timelines[status.id].map((log: any, i: number) => {
                                                         const isSubmit = log.action === 'submitted';
+                                                        const isResubmit = log.action === 'resubmitted_docs';
                                                         const statusLabel = t.statusLabels[log.new_value] || log.new_value || '';
                                                         return (
                                                             <div key={log.id} className="flex gap-2.5">
                                                                 <div className="flex flex-col items-center">
-                                                                    <div className={`w-2.5 h-2.5 rounded-full mt-1 ${isSubmit ? 'bg-green-400' : 'bg-indigo-400'}`} />
+                                                                    <div className={`w-2.5 h-2.5 rounded-full mt-1 ${isSubmit ? 'bg-green-400' : isResubmit ? 'bg-amber-400' : 'bg-indigo-400'}`} />
                                                                     {i < timelines[status.id].length - 1 && <div className="w-px flex-1 bg-gray-200 my-0.5" />}
                                                                 </div>
                                                                 <div className="pb-3 min-w-0">
                                                                     <p className="text-xs font-medium text-slate-700">
-                                                                        {isSubmit ? (lang === 'th' ? 'ได้รับใบสมัครเรียบร้อย' : 'Application received') : statusLabel}
+                                                                        {isSubmit
+                                                                            ? (lang === 'th' ? 'ได้รับใบสมัครเรียบร้อย' : 'Application received')
+                                                                            : isResubmit
+                                                                                ? (lang === 'th' ? 'อัปโหลดเอกสารใหม่แล้ว' : 'Documents resubmitted')
+                                                                                : statusLabel}
                                                                         {log.metadata?.interview_date && (log.new_value === 'Interview' || log.new_value === 'InterviewScheduled') && (
                                                                             <span className="text-indigo-600 block mt-0.5 font-semibold text-[11px]">
                                                                                 {lang === 'th' ? 'วันที่นัดหมาย: ' : 'Date: '}

@@ -6,7 +6,7 @@ import {
   User, MapPin, Users, Building2, GraduationCap, Tag,
   FileText, ExternalLink, Edit, Calendar, History, Clock,
   CheckCircle, XCircle, UserPlus, UserCheck, Link, Copy, Check,
-  Crop, RotateCcw
+  Crop, RotateCcw, Upload, ChevronDown, ChevronUp, AlertTriangle
 } from 'lucide-react';
 import {
   LOG_LABELS, getStatusBadgeClass, getStatusLabel,
@@ -87,6 +87,16 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
 
+  // ── Resubmit Token State ──────────────────────────────────────
+  const [showResubmitPanel, setShowResubmitPanel] = useState(false);
+  const [resubmitAllowedFields, setResubmitAllowedFields] = useState<string[]>([]);
+  const [isGeneratingResubmit, setIsGeneratingResubmit] = useState(false);
+  const [resubmitToken, setResubmitToken] = useState<string | null>(null);
+  const [resubmitUrl, setResubmitUrl] = useState<string | null>(null);
+  const [resubmitExpiry, setResubmitExpiry] = useState<string | null>(null);
+  const [resubmitAllowedExisting, setResubmitAllowedExisting] = useState<string[]>([]);
+  const [resubmitUrlCopied, setResubmitUrlCopied] = useState(false);
+
   useEffect(() => {
     if (viewingApp?.id) {
       const fetchExistingToken = async () => {
@@ -102,6 +112,23 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
         }
       };
       fetchExistingToken();
+
+      // Fetch existing resubmit token (if any active/unused one)
+      const fetchResubmitToken = async () => {
+        const result = await api.getExistingResubmitToken(viewingApp.id);
+        if (result.success && result.data) {
+          setResubmitToken(result.data.token);
+          setResubmitUrl(result.data.url);
+          setResubmitExpiry(result.data.expires_at);
+          setResubmitAllowedExisting(result.data.allowed_fields);
+        } else {
+          setResubmitToken(null);
+          setResubmitUrl(null);
+          setResubmitExpiry(null);
+          setResubmitAllowedExisting([]);
+        }
+      };
+      fetchResubmitToken();
 
       const fd = viewingApp.form_data;
       if (fd && fd.isThaiNational === false && !fd.positionEn && (fd.position || viewingApp.position)) {
@@ -131,8 +158,79 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
       setShareLink(null);
       setShareToken(null);
       setShareLinkExpiry(null);
+      setResubmitToken(null);
+      setResubmitUrl(null);
+      setResubmitExpiry(null);
+      setResubmitAllowedExisting([]);
     }
   }, [viewingApp?.id]);
+
+  // ── Resubmit Handlers ────────────────────────────────────────
+  const RESUBMIT_FIELD_OPTIONS = [
+    { key: 'resumeUrl',      label: 'Resume / CV' },
+    { key: 'transcriptUrl',  label: 'Transcript / ใบ Grade' },
+    { key: 'certificateUrl', label: 'Certificate / เอกสารเพิ่มเติม' },
+    { key: 'photoUrl',       label: 'รูปถ่าย' },
+    { key: 'otherDocsUrl',   label: 'เอกสารอื่นๆ' },
+  ];
+
+  const handleGenerateResubmitToken = async () => {
+    if (!viewingApp || resubmitAllowedFields.length === 0) return;
+    setIsGeneratingResubmit(true);
+    try {
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const createdBy = currentUser?.full_name || currentUser?.email || 'HR';
+      const result = await api.generateResubmitToken(
+        viewingApp.id,
+        resubmitAllowedFields as any,
+        createdBy
+      );
+      if (result.success && result.data) {
+        setResubmitToken(result.data.token);
+        setResubmitUrl(result.data.url);
+        setResubmitExpiry(result.data.expires_at);
+        setResubmitAllowedExisting(resubmitAllowedFields);
+        setResubmitAllowedFields([]);
+      } else {
+        alert('เกิดข้อผิดพลาด: ' + (result.error?.message || 'ไม่สามารถสร้าง token ได้'));
+      }
+    } finally {
+      setIsGeneratingResubmit(false);
+    }
+  };
+
+  const handleCopyResubmitUrl = async () => {
+    if (!resubmitUrl) return;
+    try {
+      await navigator.clipboard.writeText(resubmitUrl);
+      setResubmitUrlCopied(true);
+      setTimeout(() => setResubmitUrlCopied(false), 2500);
+    } catch {
+      const el = document.createElement('textarea');
+      el.value = resubmitUrl;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      setResubmitUrlCopied(true);
+      setTimeout(() => setResubmitUrlCopied(false), 2500);
+    }
+  };
+
+  const handleRevokeResubmitToken = async () => {
+    if (!resubmitToken) return;
+    try {
+      const result = await api.revokeShareToken(resubmitToken);
+      if (result.success) {
+        setResubmitToken(null);
+        setResubmitUrl(null);
+        setResubmitExpiry(null);
+        setResubmitAllowedExisting([]);
+      }
+    } catch (err) {
+      console.error('Failed to revoke resubmit token:', err);
+    }
+  };
 
   const handleGenerateShareLink = async () => {
     if (!viewingApp) return;
@@ -982,6 +1080,113 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                         </div>
                       );
                     })}
+                  </div>
+                )}
+              </div>
+
+              {/* ─── Resubmit Token Panel ─── */}
+              <div className="mt-4">
+                <button
+                  onClick={() => setShowResubmitPanel(prev => !prev)}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-all border
+                    ${resubmitToken
+                      ? 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100'
+                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'}`}
+                >
+                  <span className="flex items-center gap-2">
+                    <Upload className="w-4 h-4" />
+                    {lang === 'en' ? 'Request Document Resubmission' : 'ขอเอกสารใหม่'}
+                    {resubmitToken && (
+                      <span className="text-[10px] bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded-full font-bold">Active</span>
+                    )}
+                  </span>
+                  {showResubmitPanel ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+
+                {showResubmitPanel && (
+                  <div className="mt-2 p-3 border border-slate-200 rounded-lg bg-white space-y-3">
+
+                    {/* Existing active token */}
+                    {resubmitToken ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-bold text-amber-700 flex items-center gap-1">
+                            <Upload className="w-3.5 h-3.5" /> มี token ที่ใช้งานได้อยู่
+                          </p>
+                          <span className="text-[10px] text-slate-400">
+                            หมดอายุ: {resubmitExpiry ? new Date(resubmitExpiry).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500">
+                          เอกสารที่อนุญาต: {resubmitAllowedExisting.map(f => ({
+                            resumeUrl: 'Resume', transcriptUrl: 'Transcript', certificateUrl: 'Certificate',
+                            photoUrl: 'รูปถ่าย', otherDocsUrl: 'เอกสารอื่นๆ'
+                          })[f] || f).join(', ')}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <input readOnly value={resubmitUrl || ''} className="flex-1 text-xs bg-amber-50 border border-amber-200 rounded px-2 py-1.5 text-amber-900 truncate" />
+                          <button
+                            onClick={handleCopyResubmitUrl}
+                            className="flex-shrink-0 px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-semibold flex items-center gap-1 transition"
+                          >
+                            {resubmitUrlCopied ? <><Check className="w-3.5 h-3.5" /> คัดลอกแล้ว</> : <><Copy className="w-3.5 h-3.5" /> คัดลอก</>}
+                          </button>
+                          <button
+                            onClick={handleRevokeResubmitToken}
+                            className="flex-shrink-0 px-2.5 py-1.5 bg-red-100 hover:bg-red-200 text-red-600 rounded text-xs font-semibold flex items-center gap-1 transition"
+                            title="ยกเลิก token นี้"
+                          >
+                            <XCircle className="w-3.5 h-3.5" /> ยกเลิก
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-slate-400">
+                          ผู้สมัครสามารถกดปุ่ม "แก้ไขเอกสาร" จากหน้าตรวจสอบสถานะได้เลย ไม่จำเป็นต้องส่ง link
+                        </p>
+                        <div className="border-t pt-2">
+                          <p className="text-xs text-slate-500 font-medium mb-1">สร้าง token ใหม่แทนของเดิม:</p>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {/* Field selector */}
+                    <div>
+                      <p className="text-xs font-semibold text-slate-600 mb-2">
+                        {resubmitToken ? 'เลือกเอกสารใหม่ (จะยกเลิก token เดิม):' : 'เลือกเอกสารที่ต้องการขอใหม่:'}
+                      </p>
+                      <div className="space-y-1.5">
+                        {RESUBMIT_FIELD_OPTIONS.map(opt => (
+                          <label key={opt.key} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 px-2 py-1 rounded">
+                            <input
+                              type="checkbox"
+                              checked={resubmitAllowedFields.includes(opt.key)}
+                              onChange={(e) => {
+                                setResubmitAllowedFields(prev =>
+                                  e.target.checked ? [...prev, opt.key] : prev.filter(f => f !== opt.key)
+                                );
+                              }}
+                              className="rounded text-amber-600 focus:ring-amber-500"
+                            />
+                            <span className="text-sm text-slate-700">{opt.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {resubmitAllowedFields.length === 0 && (
+                      <p className="text-xs text-slate-400 flex items-center gap-1">
+                        <AlertTriangle className="w-3.5 h-3.5" /> กรุณาเลือกเอกสารอย่างน้อย 1 รายการ
+                      </p>
+                    )}
+
+                    <button
+                      onClick={handleGenerateResubmitToken}
+                      disabled={isGeneratingResubmit || resubmitAllowedFields.length === 0}
+                      className="w-full py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2"
+                    >
+                      {isGeneratingResubmit
+                        ? <><span className="animate-spin">⏳</span> กำลังสร้าง...</>
+                        : <><Upload className="w-4 h-4" /> {resubmitToken ? 'สร้าง token ใหม่แทน' : 'สร้าง Token'}</>}
+                    </button>
                   </div>
                 )}
               </div>
