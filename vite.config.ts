@@ -19,6 +19,11 @@ export default defineConfig(({ mode }) => {
             return `/ws/api/idms/authentication/?account=${encodeURIComponent(account)}&password=${encodeURIComponent(password)}&Service=0000&AgentId=SystemMango&AgentCode=Np4kfRh5`;
           },
         },
+        '/api': {
+          target: 'http://localhost:5000',
+          changeOrigin: true,
+          secure: false,
+        },
       },
     },
     plugins: [react()],

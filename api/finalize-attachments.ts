@@ -101,8 +101,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await Promise.all(finalizePromises);
 
     // 3. Connect to Supabase to update URLs in the DB
-    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-    const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+    const cleanEnvVar = (val?: string) => val ? val.replace(/^["']|["']$/g, '').trim() : '';
+    const supabaseUrl = cleanEnvVar(process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL);
+    const supabaseAnonKey = cleanEnvVar(process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY);
 
     if (!supabaseUrl || !supabaseAnonKey) {
       throw new Error('Supabase environment variables are missing');

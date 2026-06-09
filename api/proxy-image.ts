@@ -16,8 +16,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const publicDomain = process.env.R2_PUBLIC_DOMAIN;
-    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    const cleanEnvVar = (val?: string) => val ? val.replace(/^["']|["']$/g, '').trim() : '';
+    const publicDomain = cleanEnvVar(process.env.R2_PUBLIC_DOMAIN);
+    const supabaseUrl = cleanEnvVar(process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL);
 
     // Validate that the URL belongs to either our R2 public domain or Supabase URL for security
     const isAllowed = 
