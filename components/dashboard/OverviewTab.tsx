@@ -168,14 +168,23 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
     return Object.entries(acc).map(([name, value]) => ({ name, value }));
   }, [applications]);
 
+  const selectedDeptObj = useMemo(() => {
+    if (!appFilters.department) return null;
+    return departments.find(d => d.name_th === appFilters.department || d.name === appFilters.department);
+  }, [departments, appFilters.department]);
+
   const positionOptions = useMemo(() => {
-    return positions
+    let filteredPositions = positions;
+    if (selectedDeptObj) {
+      filteredPositions = positions.filter(p => p.department_id === selectedDeptObj.id);
+    }
+    return filteredPositions
       .filter(p => p.is_active !== false)
       .map(p => ({
         value: p.name_th || p.name,
         label: p.name_th || p.name
       }));
-  }, [positions]);
+  }, [positions, selectedDeptObj]);
 
   const departmentOptions = useMemo(() => {
     return departments
@@ -185,6 +194,23 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
         label: d.name_th || d.name
       }));
   }, [departments]);
+
+  const handleDepartmentChange = React.useCallback((deptName: string) => {
+    setAppFilters(f => {
+      let nextPosition = f.position;
+      if (deptName) {
+        const selectedDept = departments.find(d => d.name_th === deptName || d.name === deptName);
+        if (selectedDept) {
+          const exists = positions.some(p => p.department_id === selectedDept.id && (p.name_th === f.position || p.name === f.position));
+          if (!exists) {
+            nextPosition = '';
+          }
+        }
+      }
+      return { ...f, department: deptName, position: nextPosition };
+    });
+    setAppPage(1);
+  }, [departments, positions, setAppFilters, setAppPage]);
 
   const appsByStatus = useMemo(() => {
     const acc: Record<string, number> = {};
@@ -362,6 +388,15 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
             <div className="flex flex-wrap items-center gap-2.5 mt-4 pt-4 border-t border-gray-50">
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider hidden md:inline">ตัวกรอง:</span>
               <div className="grid grid-cols-2 md:flex md:flex-wrap gap-2.5 w-full md:w-auto flex-1">
+                {/* Department Filter */}
+                <SearchableSelect
+                  options={departmentOptions}
+                  value={appFilters.department}
+                  onChange={handleDepartmentChange}
+                  placeholder="แผนกทั้งหมด"
+                  minWidth="140px"
+                />
+
                 {/* Position Filter */}
                 <SearchableSelect
                   options={positionOptions}
@@ -369,15 +404,6 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                   onChange={(val) => { setAppFilters(f => ({ ...f, position: val })); setAppPage(1); }}
                   placeholder="ตำแหน่งทั้งหมด"
                   minWidth="160px"
-                />
-
-                {/* Department Filter */}
-                <SearchableSelect
-                  options={departmentOptions}
-                  value={appFilters.department}
-                  onChange={(val) => { setAppFilters(f => ({ ...f, department: val })); setAppPage(1); }}
-                  placeholder="แผนกทั้งหมด"
-                  minWidth="140px"
                 />
                 
                 {/* BU Filter */}
