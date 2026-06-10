@@ -58,10 +58,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
   const [qrLogCreatorFilter, setQrLogCreatorFilter] = useState<string>('all');
   const [confirmQrAction, setConfirmQrAction] = useState<'empty' | 'filled' | null>(null);
 
-  // Applications Table State
   const [appFilters, setAppFilters] = useState({
     search: '',
     position: '',
+    department: '',
     bu: '',
     channel: '',
     status: 'all',

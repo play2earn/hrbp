@@ -481,8 +481,6 @@ interface ModalProps {
 import { createPortal } from 'react-dom';
 
 export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, footer, size = 'md' }) => {
-  if (!isOpen) return null;
-
   const isFull = size === 'full';
 
   const sizeClasses = {
@@ -496,10 +494,12 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
   React.useEffect(() => {
     if (isOpen) {
       const originalOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = originalOverflow;
-      };
+      if (originalOverflow !== 'hidden') {
+        document.body.style.overflow = 'hidden';
+        return () => {
+          document.body.style.overflow = originalOverflow || '';
+        };
+      }
     }
   }, [isOpen]);
 

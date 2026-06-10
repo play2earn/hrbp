@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Card, Button } from '../UIComponents';
 import {
   FileText, Users, Edit, Calendar, CheckCircle, XCircle,
@@ -14,6 +14,113 @@ import {
   COLORS, getBuChartColor, getBuColor, getStatusBadgeClass, getStatusLabel,
   isInterviewScheduledStatus, isClosedStatus
 } from './dashboardConstants';
+
+interface SearchableSelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  placeholder: string;
+  className?: string;
+  minWidth?: string;
+}
+
+const SearchableSelect: React.FC<SearchableSelectProps> = ({
+  value,
+  onChange,
+  options,
+  placeholder,
+  className = '',
+  minWidth = '160px'
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedOption = options.find(opt => opt.value === value);
+
+  const filteredOptions = options.filter(opt =>
+    opt.label.toLowerCase().includes(search.toLowerCase()) ||
+    opt.value.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div 
+      className={`relative w-full md:w-auto ${className}`} 
+      ref={containerRef} 
+      style={{ minWidth }}
+    >
+      <div
+        className="border rounded-lg px-2.5 py-1.5 text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none w-full flex items-center justify-between cursor-pointer text-gray-700 hover:border-gray-400 select-none shadow-sm"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span className={`truncate ${!selectedOption ? 'text-gray-400' : 'text-gray-800 font-medium'}`}>
+          {selectedOption ? selectedOption.label : placeholder}
+        </span>
+        <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0 ml-1.5" />
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-[100] mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 flex flex-col overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+          <div className="p-2 border-b border-gray-100 flex items-center gap-1.5 bg-gray-50 flex-shrink-0">
+            <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+            <input
+              type="text"
+              className="w-full bg-transparent text-xs outline-none text-gray-700 placeholder-gray-400 py-0.5"
+              placeholder="ค้นหา..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              autoFocus
+            />
+          </div>
+          <div className="overflow-y-auto flex-1 py-1 text-xs">
+            <button
+              type="button"
+              className={`w-full text-left px-3 py-1.5 hover:bg-indigo-50/50 font-medium transition-colors ${value === '' ? 'bg-indigo-50/80 text-indigo-700' : 'text-gray-600'}`}
+              onClick={() => {
+                onChange('');
+                setIsOpen(false);
+                setSearch('');
+              }}
+            >
+              {placeholder}
+            </button>
+            {filteredOptions.length === 0 ? (
+              <div className="px-3 py-2 text-gray-400 italic">ไม่พบข้อมูล</div>
+            ) : (
+              filteredOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  className={`w-full text-left px-3 py-1.5 hover:bg-indigo-50/50 truncate transition-colors ${value === opt.value ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-gray-700'}`}
+                  onClick={() => {
+                    onChange(opt.value);
+                    setIsOpen(false);
+                    setSearch('');
+                  }}
+                  title={opt.label}
+                >
+                  {opt.label}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 
 interface OverviewTabProps {
   stats: any;
@@ -60,6 +167,24 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
     });
     return Object.entries(acc).map(([name, value]) => ({ name, value }));
   }, [applications]);
+
+  const positionOptions = useMemo(() => {
+    return positions
+      .filter(p => p.is_active !== false)
+      .map(p => ({
+        value: p.name_th || p.name,
+        label: p.name_th || p.name
+      }));
+  }, [positions]);
+
+  const departmentOptions = useMemo(() => {
+    return departments
+      .filter(d => d.is_active !== false)
+      .map(d => ({
+        value: d.name_th || d.name,
+        label: d.name_th || d.name
+      }));
+  }, [departments]);
 
   const appsByStatus = useMemo(() => {
     const acc: Record<string, number> = {};
@@ -238,16 +363,22 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider hidden md:inline">ตัวกรอง:</span>
               <div className="grid grid-cols-2 md:flex md:flex-wrap gap-2.5 w-full md:w-auto flex-1">
                 {/* Position Filter */}
-                <select
-                  className="border rounded-lg px-2 py-1.5 text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none w-full md:w-auto min-w-[140px] text-gray-700"
+                <SearchableSelect
+                  options={positionOptions}
                   value={appFilters.position}
-                  onChange={(e) => { setAppFilters(f => ({ ...f, position: e.target.value })); setAppPage(1); }}
-                >
-                  <option value="">ตำแหน่งทั้งหมด</option>
-                  {positions.filter(p => p.is_active !== false).map(p => (
-                    <option key={p.id} value={p.name_th || p.name}>{p.name_th || p.name}</option>
-                  ))}
-                </select>
+                  onChange={(val) => { setAppFilters(f => ({ ...f, position: val })); setAppPage(1); }}
+                  placeholder="ตำแหน่งทั้งหมด"
+                  minWidth="160px"
+                />
+
+                {/* Department Filter */}
+                <SearchableSelect
+                  options={departmentOptions}
+                  value={appFilters.department}
+                  onChange={(val) => { setAppFilters(f => ({ ...f, department: val })); setAppPage(1); }}
+                  placeholder="แผนกทั้งหมด"
+                  minWidth="140px"
+                />
                 
                 {/* BU Filter */}
                 <select
@@ -292,13 +423,14 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                 </select>
                 
                 {/* Clear Filters Button */}
-                {(appFilters.position || appFilters.bu || appFilters.channel || appFilters.status !== 'all' || appFilters.search) && (
+                {(appFilters.position || appFilters.department || appFilters.bu || appFilters.channel || appFilters.status !== 'all' || appFilters.search) && (
                   <button
                     onClick={() => {
                       setAppFilters({
                         search: '',
                         status: 'all',
                         position: '',
+                        department: '',
                         bu: '',
                         channel: '',
                         assignment: appFilters.assignment,
@@ -324,6 +456,11 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
               if (appFilters.assignment === 'me' && (!currentUserId || String(app.assigned_to).toLowerCase() !== String(currentUserId).toLowerCase())) return false;
               if (appFilters.assignment === 'unassigned' && app.assigned_to) return false;
               if (appFilters.position && (app.position || app.form_data?.position) !== appFilters.position) return false;
+              if (appFilters.department) {
+                const appDept = (app.department || app.form_data?.department || app.form_data?.departmentEn || '').trim().toLowerCase();
+                const filterDept = appFilters.department.trim().toLowerCase();
+                if (appDept !== filterDept) return false;
+              }
               if (appFilters.bu && (app.form_data?.businessUnit || app.business_unit) !== appFilters.bu) return false;
               if (appFilters.channel && (app.form_data?.sourceChannel || app.source_channel) !== appFilters.channel) return false;
               if (appFilters.search) {
@@ -362,7 +499,7 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                               {/* Photo */}
                               <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-br from-indigo-100 to-purple-100 border border-gray-200 flex items-center justify-center mt-0.5">
                                 {fd.photoUrl ? (
-                                  <img src={fd.photoUrl} alt="" className="w-full h-full object-cover" />
+                                  <img src={fd.photoUrl.startsWith('http') ? `/api/proxy-image?url=${encodeURIComponent(fd.photoUrl)}` : fd.photoUrl} alt="" className="w-full h-full object-cover" />
                                 ) : (
                                   <span className="text-sm font-bold text-indigo-400">
                                     {(fullName.charAt(0) || '?').toUpperCase()}
@@ -482,7 +619,7 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                                 {/* Profile Thumbnail */}
                                 <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-br from-indigo-100 to-purple-100 border border-gray-200 flex items-center justify-center">
                                   {fd.photoUrl ? (
-                                    <img src={fd.photoUrl} alt="" className="w-full h-full object-cover" />
+                                    <img src={fd.photoUrl.startsWith('http') ? `/api/proxy-image?url=${encodeURIComponent(fd.photoUrl)}` : fd.photoUrl} alt="" className="w-full h-full object-cover" />
                                   ) : (
                                     <span className="text-xs font-bold text-indigo-400">
                                       {(fullName.charAt(0) || '?').toUpperCase()}
