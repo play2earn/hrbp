@@ -38,7 +38,8 @@ plan_storage_ticket.md
 security_hardening.sql
 apply_rpc_fix.mjs
 check_storage_usage.mjs
-scratch/
+scratch/*
+!scratch/migrate_to_r2_draft.mjs
 
 # Ignore security plans and SQL files
 *.sql
