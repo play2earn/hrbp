@@ -210,8 +210,23 @@ export default function App() {
               </span>
             </div>
             <div>
-              <p>© 2026 Double A Alliance.</p>
-              <p className="text-xs mt-1 text-slate-400">Powered by AI Technology</p>
+              <p>© 2026 Double A Alliance. All rights reserved.</p>
+              <div className="flex justify-center gap-4 mt-2 text-xs">
+                <button 
+                  onClick={(e) => { 
+                    e.preventDefault(); 
+                    window.dispatchEvent(new CustomEvent('open-cookie-settings')); 
+                  }} 
+                  className="text-slate-400 hover:text-indigo-600 transition-colors"
+                >
+                  {lang === 'th' ? 'ตั้งค่าคุกกี้' : 'Cookie Settings'}
+                </button>
+                <span className="text-slate-300">|</span>
+                <a href="https://www.doubleapaper.com/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-indigo-600 transition-colors">
+                  {lang === 'th' ? 'นโยบายความเป็นส่วนตัว' : 'Privacy Policy'}
+                </a>
+              </div>
+              <p className="text-[10px] mt-1 text-slate-400">Powered by AI Technology</p>
             </div>
           </div>
         </footer>
@@ -623,7 +638,18 @@ export default function App() {
           <div className="border-t border-gray-800 pt-8 text-sm text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-gray-500 text-xs sm:text-sm">© 2026 Double A Alliance. All rights reserved.</p>
             <div className="flex gap-6">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">Privacy Policy</a>
+              <button 
+                onClick={(e) => { 
+                  e.preventDefault(); 
+                  window.dispatchEvent(new CustomEvent('open-cookie-settings')); 
+                }} 
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                {lang === 'th' ? 'ตั้งค่าคุกกี้' : 'Cookie Settings'}
+              </button>
+              <a href="https://www.doubleapaper.com/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
+                {lang === 'th' ? 'นโยบายความเป็นส่วนตัว' : 'Privacy Policy'}
+              </a>
               <a href="#" className="text-gray-400 hover:text-white transition-colors">Terms of Service</a>
             </div>
           </div>
