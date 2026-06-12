@@ -22,17 +22,21 @@ interface QRGeneratorTabProps {
   qrLogs: any[];
   filteredQrLogs: any[];
   qrLogCreatorFilter: string;
-  setQrLogCreatorFilter: React.Dispatch<React.SetStateAction<string>>;
+  setQrLogCreatorFilter: (filter: string) => void;
   qrLogCreators: string[];
-  fetchQrLogs: () => void;
+  fetchQrLogs: (page?: number, filter?: string) => void;
   showToast: (message: string, type: 'success' | 'error') => void;
+  qrPage: number;
+  setQrPage: React.Dispatch<React.SetStateAction<number>>;
+  qrTotalCount: number;
+  qrPerPage: number;
 }
 
 export const QRGeneratorTab: React.FC<QRGeneratorTabProps> = ({
   qrParams, setQrParams, businessUnits, channels, generateLink,
   generatedLink, isCopied, handleCopy, qrLogs, filteredQrLogs,
   qrLogCreatorFilter, setQrLogCreatorFilter, qrLogCreators, fetchQrLogs,
-  showToast
+  showToast, qrPage, setQrPage, qrTotalCount, qrPerPage
 }) => {
   return (
     <>
@@ -132,7 +136,7 @@ export const QRGeneratorTab: React.FC<QRGeneratorTabProps> = ({
                   <h3 className="font-bold text-base sm:text-lg text-gray-800 flex items-center gap-2">
                     <FileText className="w-5 h-5 text-indigo-500 flex-shrink-0" /> Recent Transactions
                     <span className="text-xs font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                      {filteredQrLogs.length}{qrLogCreatorFilter !== 'all' ? ` / ${qrLogs.length}` : ''} records
+                      {qrTotalCount} records
                     </span>
                   </h3>
                   <div className="flex items-center gap-2">
@@ -146,7 +150,7 @@ export const QRGeneratorTab: React.FC<QRGeneratorTabProps> = ({
                         <option key={c} value={c}>{c}</option>
                       ))}
                     </select>
-                    <Button size="sm" variant="outline" onClick={fetchQrLogs}>Refresh</Button>
+                    <Button size="sm" variant="outline" onClick={() => fetchQrLogs(qrPage)}>Refresh</Button>
                   </div>
                 </div>
                 {filteredQrLogs.length === 0 ? (
@@ -215,6 +219,22 @@ export const QRGeneratorTab: React.FC<QRGeneratorTabProps> = ({
                         </div>
                       );
                     })}
+                  </div>
+                )}
+
+                {/* Pagination */}
+                {qrTotalCount > 0 && (
+                  <div className="mt-4 pt-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-500">
+                    <div>
+                      <span>แสดง {filteredQrLogs.length === 0 ? 0 : (qrPage - 1) * qrPerPage + 1}-{Math.min(qrPage * qrPerPage, qrTotalCount)} จาก {qrTotalCount} รายการ</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button size="sm" variant="outline" disabled={qrPage === 1} onClick={() => fetchQrLogs(1)}>«</Button>
+                      <Button size="sm" variant="outline" disabled={qrPage === 1} onClick={() => fetchQrLogs(qrPage - 1)}>‹</Button>
+                      <span className="px-3 py-1 text-sm">หน้า {qrPage} / {Math.ceil(qrTotalCount / qrPerPage) || 1}</span>
+                      <Button size="sm" variant="outline" disabled={qrPage >= Math.ceil(qrTotalCount / qrPerPage)} onClick={() => fetchQrLogs(qrPage + 1)}>›</Button>
+                      <Button size="sm" variant="outline" disabled={qrPage >= Math.ceil(qrTotalCount / qrPerPage)} onClick={() => fetchQrLogs(Math.ceil(qrTotalCount / qrPerPage))}>»</Button>
+                    </div>
                   </div>
                 )}
               </Card>

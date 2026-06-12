@@ -56,6 +56,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
   const [departments, setDepartments] = useState<any[]>([]);
   const [qrLogs, setQrLogs] = useState<any[]>([]);
   const [qrLogCreatorFilter, setQrLogCreatorFilter] = useState<string>('all');
+  const [qrPage, setQrPage] = useState<number>(1);
+  const [qrTotalCount, setQrTotalCount] = useState<number>(0);
+  const [qrLogCreators, setQrLogCreators] = useState<string[]>([]);
   const [confirmQrAction, setConfirmQrAction] = useState<'empty' | 'filled' | null>(null);
 
   const [appFilters, setAppFilters] = useState({
@@ -310,24 +313,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     }
   }, [deletingApp, fetchData]);
 
-  const fetchQrLogs = React.useCallback(async () => {
-    const logs = await api.getQrLogs(50);
-    setQrLogs(logs);
+  const fetchQrLogs = React.useCallback(async (page: number = 1, filter?: string) => {
+    const filterToUse = filter !== undefined ? filter : qrLogCreatorFilter;
+    const result = await api.getQrLogs(page, 30, filterToUse);
+    setQrLogs(result.data);
+    setQrTotalCount(result.count);
+    setQrPage(page);
+  }, [qrLogCreatorFilter]);
+
+  const fetchQrLogCreatorsList = React.useCallback(async () => {
+    const creators = await api.getQrLogCreators();
+    setQrLogCreators(creators);
   }, []);
 
-
-  // Derived: unique creators from logs + filtered logs
-  const qrLogCreators = React.useMemo(() => 
-    Array.from(new Set(qrLogs.map(l => l.created_by).filter(Boolean))),
-    [qrLogs]
-  );
-  
-  const filteredQrLogs = React.useMemo(() => 
-    qrLogCreatorFilter === 'all'
-      ? qrLogs
-      : qrLogs.filter(l => l.created_by === qrLogCreatorFilter),
-    [qrLogs, qrLogCreatorFilter]
-  );
+  const filteredQrLogs = qrLogs;
 
 
   const generateLink = React.useCallback(() => {
@@ -360,8 +359,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     });
 
     // Refresh logs
-    fetchQrLogs();
-  }, [qrParams, currentUser, fetchQrLogs]);
+    fetchQrLogCreatorsList();
+    fetchQrLogs(1);
+  }, [qrParams, currentUser, fetchQrLogs, fetchQrLogCreatorsList]);
 
   const handleCopy = React.useCallback(async () => {
     if (!generatedLink) return;
@@ -378,9 +378,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
   useEffect(() => {
     // Load current user from localStorage
     const storedUser = localStorage.getItem('currentUser');
+    let defaultFilter = 'all';
     if (storedUser) {
       try {
-        setCurrentUser(JSON.parse(storedUser));
+        const user = JSON.parse(storedUser);
+        setCurrentUser(user);
+        if (user.full_name && user.email) {
+          defaultFilter = `${user.full_name} (${user.email})`;
+          setQrLogCreatorFilter(defaultFilter);
+        }
       } catch (e) {
         console.error('Failed to parse stored user', e);
       }
@@ -414,12 +420,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
           setProfilePhotoUrl(`https://wms.advanceagro.net/WSVIS/api/Face/GetImage?CardID=${empId}`);
         });
     }
-    fetchQrLogs();
+    fetchQrLogCreatorsList();
+    fetchQrLogs(1, defaultFilter);
     if (role === 'admin') {
       fetchPendingUsers();
       fetchActiveUsers();
     }
-  }, [role, fetchData, fetchQrMasterData, fetchQrLogs, fetchPendingUsers, fetchActiveUsers]);
+  }, [role, fetchData, fetchQrMasterData, fetchQrLogs, fetchQrLogCreatorsList, fetchPendingUsers, fetchActiveUsers]);
 
   const SidebarItem = ({ id, label, icon: Icon }: { id: typeof activeTab, label: string, icon: any }) => (
 
@@ -670,10 +677,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               qrLogs={qrLogs}
               filteredQrLogs={filteredQrLogs}
               qrLogCreatorFilter={qrLogCreatorFilter}
-              setQrLogCreatorFilter={setQrLogCreatorFilter}
+              setQrLogCreatorFilter={(val) => {
+                setQrLogCreatorFilter(val);
+                fetchQrLogs(1, val);
+              }}
               qrLogCreators={qrLogCreators}
               fetchQrLogs={fetchQrLogs}
               showToast={showToast}
+              qrPage={qrPage}
+              setQrPage={setQrPage}
+              qrTotalCount={qrTotalCount}
+              qrPerPage={30}
             />
           )}
 

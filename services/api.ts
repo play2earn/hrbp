@@ -671,23 +671,49 @@ export const api = {
   },
 
   /**
-   * Get recent QR generation logs
+   * Get recent QR generation logs with pagination and optional creator filter
    */
-  getQrLogs: async (limit: number = 25): Promise<any[]> => {
+  getQrLogs: async (page: number = 1, limit: number = 30, createdBy: string = 'all'): Promise<{ data: any[]; count: number }> => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('qr_logs')
-        .select('*')
+        .select('*', { count: 'exact' });
+
+      if (createdBy && createdBy !== 'all') {
+        query = query.eq('created_by', createdBy);
+      }
+
+      const { data, error, count } = await query
         .order('created_at', { ascending: false })
-        .limit(limit);
+        .range((page - 1) * limit, page * limit - 1);
 
       if (error) {
         console.error('Fetch QR Logs Error:', error);
-        return [];
+        return { data: [], count: 0 };
       }
-      return data || [];
+      return { data: data || [], count: count || 0 };
     } catch (error) {
       console.error('Fetch QR Logs Error:', error);
+      return { data: [], count: 0 };
+    }
+  },
+
+  /**
+   * Get unique creator strings from QR logs
+   */
+  getQrLogCreators: async (): Promise<string[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('qr_logs')
+        .select('created_by');
+
+      if (error) {
+        console.error('Fetch QR Log Creators Error:', error);
+        return [];
+      }
+      return Array.from(new Set(data?.map((d: any) => d.created_by).filter(Boolean) || []));
+    } catch (error) {
+      console.error('Fetch QR Log Creators Error:', error);
       return [];
     }
   },
