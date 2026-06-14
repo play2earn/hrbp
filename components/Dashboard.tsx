@@ -820,6 +820,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               <button className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-left text-gray-700 hover:bg-gray-50 transition-colors" onClick={() => { setEditingApp(app); setActionMenu(null); }}>
                 <Edit className="w-4 h-4 text-blue-500" /> แก้ไขข้อมูล
               </button>
+              <button
+                className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-left text-gray-700 hover:bg-gray-50 transition-colors"
+                onClick={() => {
+                  const fd = app.form_data ? { ...app.form_data } : {};
+                  fd.created_at = app.created_at;
+                  fd.id = app.id;
+                  fd.interview_date = app.interview_date;
+                  fd.position = app.position;
+                  fd.department = app.department;
+                  fd.business_unit = app.business_unit;
+                  localStorage.setItem('memoPreviewData', JSON.stringify(fd));
+                  window.open('/memo.html', '_blank');
+                  setActionMenu(null);
+                }}
+              >
+                <FileText className="w-4 h-4 text-emerald-500" /> สร้าง Memo
+              </button>
               {/* Pending: only Claim */}
               {app.status === 'Pending' && !app.assigned_to && (
                 <>

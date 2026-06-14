@@ -1231,6 +1231,19 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                 }}>
                   <ExternalLink className="w-4 h-4 mr-2" /> {t.labels.openFullPreview}
                 </Button>
+                <Button variant="outline" className="border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={() => {
+                  const fd = viewingApp.form_data ? { ...viewingApp.form_data } : {};
+                  fd.created_at = viewingApp.created_at;
+                  fd.id = viewingApp.id;
+                  fd.interview_date = viewingApp.interview_date;
+                  fd.position = viewingApp.position;
+                  fd.department = viewingApp.department;
+                  fd.business_unit = viewingApp.business_unit;
+                  localStorage.setItem('memoPreviewData', JSON.stringify(fd));
+                  window.open('/memo.html', '_blank');
+                }}>
+                  <FileText className="w-4 h-4 mr-2 text-emerald-600" /> สร้าง Memo
+                </Button>
                 <Button
                   variant="outline"
                   className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"

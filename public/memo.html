@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>สร้าง Memo ขออนุมัติจ้างงาน - Double A Alliance</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Load html2canvas for image export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap');
+
+    body {
+      font-family: 'Sarabun', sans-serif;
+      background-color: #f8fafc;
+    }
+
+    /* Target document size (Wider layout to prevent text wrap & overlap) */
+    #memo-document {
+      width: 1000px;
+      min-height: 600px; /* Reduced min-height so page shrinks to tightly fit content */
+      background: white;
+      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      box-sizing: border-box;
+    }
+
+    /* Print Specific styles */
+    @media print {
+      body {
+        background-color: transparent !important;
+        padding: 0 !important;
+      }
+
+      .no-print {
+        display: none !important;
+      }
+
+      #memo-document {
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important; /* Dynamically scale to fit printable paper size */
+        min-height: auto !important;
+      }
+      
+      .editable-field {
+        border-bottom: 1px solid #d1d5db !important;
+        background-color: transparent !important;
+      }
+      
+      /* Hide placeholders on print */
+      .editable-field:empty::before {
+        content: "" !important;
+      }
+    }
+
+    /* Styles for contenteditable fields to look like paper form fields */
+    .editable-field {
+      display: inline-block;
+      min-height: 24px;
+      min-width: 40px;
+      border-bottom: 1px solid #d1d5db; /* thin gray line representing the blank */
+      padding: 1px 4px;
+      vertical-align: bottom;
+      background-color: transparent;
+      color: #0f172a;
+      outline: none;
+      line-height: 1.6;
+      transition: all 0.2s;
+      word-break: break-word;
+    }
+
+    .editable-field:hover {
+      background-color: #f1f5f9;
+      border-bottom-color: #818cf8;
+    }
+
+    .editable-field:focus {
+      background-color: #eef2ff;
+      border-bottom-color: #4f46e5;
+      box-shadow: 0 1px 0 0 #4f46e5;
+    }
+
+    /* Placeholder logic for contenteditable */
+    .editable-field:empty::before {
+      content: attr(data-placeholder);
+      color: #94a3b8;
+      font-style: italic;
+      font-weight: normal;
+    }
+
+    /* Hide placeholders during image capture */
+    .exporting-image .editable-field:empty::before {
+      content: "" !important;
+    }
+    
+    .exporting-image .editable-field {
+      border-bottom: 1px solid #d1d5db !important;
+      background-color: transparent !important;
+      box-shadow: none !important;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex flex-col antialiased">
+  <!-- Top Control Header Bar -->
+  <header class="no-print sticky top-0 z-50 bg-slate-900/95 backdrop-blur text-white shadow-lg border-b border-slate-800 px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-white shadow-md shadow-indigo-600/30">M</div>
+      <div>
+        <h1 class="text-base font-bold tracking-tight">ระบบสร้าง Memo อนุมัติจ้างงาน</h1>
+        <p class="text-xs text-slate-400">กรอกข้อมูลเพิ่มเติมแล้วบันทึกเป็นรูปภาพหรือพิมพ์</p>
+      </div>
+    </div>
+    
+    <div class="flex flex-wrap gap-2.5">
+      <button onclick="downloadAsImage()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-sm flex items-center gap-2 shadow-sm transition-all hover:-translate-y-0.5 active:translate-y-0">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+        บันทึกเป็นรูปภาพ (PNG)
+      </button>
+
+      <button onclick="window.print()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-sm flex items-center gap-2 shadow-sm transition-all hover:-translate-y-0.5 active:translate-y-0">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+        </svg>
+        พิมพ์เอกสาร (PDF)
+      </button>
+      
+      <button onclick="window.close()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-bold text-sm transition-all">
+        ปิดหน้าต่าง
+      </button>
+    </div>
+  </header>
+
+  <!-- Document Preview Container -->
+  <div class="flex-grow overflow-auto flex justify-center py-6 px-4 bg-slate-100">
+    <div id="memo-document" class="p-10 border border-slate-300 relative flex flex-col bg-white">
+      <!-- Title Box -->
+      <div class="border border-slate-900 bg-[#B4D5F0] py-2 px-4 text-center font-bold text-lg text-slate-900 mb-5">
+        แบบขออนุมัติจ้างงานระดับ Work Skill
+      </div>
+
+      <!-- Candidate profile with Photo -->
+      <div class="flex items-start gap-4 mb-5">
+        <!-- Main details -->
+        <div class="flex-1 flex flex-col gap-3 text-sm">
+          <!-- Row 1: Company -->
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-slate-800 shrink-0">บริษัท</span>
+            <span id="company" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุบริษัท..."></span>
+          </div>
+
+          <!-- Row 2: Name & Age -->
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-slate-800 shrink-0">ชื่อ-สกุล</span>
+            <span id="fullName" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุชื่อ-นามสกุล..."></span>
+            <span class="font-bold text-slate-800 shrink-0">อายุ</span>
+            <span id="age" contenteditable="true" class="editable-field w-16 text-center" data-placeholder="-"></span>
+            <span class="font-bold text-slate-800 shrink-0">ปี</span>
+          </div>
+
+          <!-- Row 3: Height, Weight, BMI -->
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-slate-800 shrink-0">ส่วนสูง</span>
+            <span id="height" contenteditable="true" oninput="calculateBMI()" class="editable-field w-20 text-center" data-placeholder="-"></span>
+            <span class="font-bold text-slate-800 shrink-0">น้ำหนัก</span>
+            <span id="weight" contenteditable="true" oninput="calculateBMI()" class="editable-field w-20 text-center" data-placeholder="-"></span>
+            <span class="font-bold text-slate-800 shrink-0">ค่า BMI</span>
+            <span id="bmi" class="editable-field w-24 text-center font-bold text-indigo-950" data-placeholder="คำนวณอัตโนมัติ"></span>
+          </div>
+
+          <!-- Row 4: Education Level & Major -->
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-slate-800 shrink-0">วุฒิการศึกษาสูงสุด</span>
+            <span id="education" contenteditable="true" class="editable-field w-36" data-placeholder="ระบุวุฒิ..."></span>
+            <span class="font-bold text-slate-800 shrink-0">สาขา</span>
+            <span id="major" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุสาขาวิชา..."></span>
+          </div>
+
+          <!-- Row 5: Institute & GPA -->
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-slate-800 shrink-0">สถาบัน</span>
+            <span id="institute" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุสถาบัน..."></span>
+            <span class="font-bold text-slate-800 shrink-0">เกรดเฉลี่ย</span>
+            <span id="gpa" contenteditable="true" class="editable-field w-20 text-center" data-placeholder="-"></span>
+          </div>
+        </div>
+
+        <!-- Photo Box -->
+        <div class="w-32 flex flex-col items-center">
+          <div id="photo-box" class="w-28 h-36 border border-slate-300 relative bg-slate-50 flex items-center justify-center text-xs text-slate-400 cursor-pointer overflow-hidden group shadow-inner" onclick="document.getElementById('photo-uploader').click()">
+            <img id="photo-img" src="" alt="Candidate Photo" class="hidden w-full h-full object-cover">
+            <div id="photo-placeholder" class="text-center p-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto text-slate-300 mb-1 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>คลิกเพื่ออัปโหลด</span>
+            </div>
+            <div class="absolute inset-0 bg-black/40 text-white text-[10px] font-bold opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all no-print">เปลี่ยนรูปภาพ</div>
+          </div>
+          <input type="file" id="photo-uploader" accept="image/*" class="hidden" onchange="loadLocalPhoto(this)">
+        </div>
+      </div>
+
+      <!-- Selection Results -->
+      <div class="mb-5">
+        <div class="font-bold text-slate-900 border-b border-slate-800 pb-1 mb-2 text-sm">ผลการคัดเลือก</div>
+        <div class="space-y-3 text-sm pl-2">
+          <!-- Row 1: Interview date and score -->
+          <div class="flex items-center flex-wrap gap-2">
+            <span class="font-bold text-slate-800">1. ผลการสัมภาษณ์</span>
+            <span>วันที่</span>
+            <span id="interviewDate" contenteditable="true" class="editable-field w-40 text-center" data-placeholder="ระบุวันที่สัมภาษณ์..."></span>
+            <span>คะแนน</span>
+            <span id="interviewScore" contenteditable="true" class="editable-field w-20 text-center" data-placeholder="-"></span>
+            <span>คิดเป็น</span>
+            <span id="interviewPercent" contenteditable="true" class="editable-field w-20 text-center" data-placeholder="-"></span>
+            <span>%</span>
+          </div>
+          
+          <!-- Row 2: Interviewers -->
+          <div class="flex items-start gap-2">
+            <span class="font-bold text-slate-800 shrink-0 mt-1">2. กรรมการสัมภาษณ์</span>
+            <div id="interviewers" contenteditable="true" class="editable-field flex-1 min-h-[50px]" data-placeholder="ระบุรายชื่อกรรมการสัมภาษณ์..."></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Job details grid table -->
+      <div class="border border-slate-400 mb-5 text-sm">
+        <div class="grid grid-cols-2">
+          <!-- Col 1 -->
+          <div class="border-r border-slate-400 flex flex-col">
+            <div class="border-b border-slate-400 p-2 flex items-center gap-2 flex-grow">
+              <span class="font-bold text-slate-800 shrink-0 w-24">ตำแหน่ง</span>
+              <span id="position" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุตำแหน่ง..."></span>
+            </div>
+            <div class="border-b border-slate-400 p-2 flex items-center gap-2 flex-grow">
+              <span class="font-bold text-slate-800 shrink-0 w-24">ฝ่าย</span>
+              <span id="division" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุฝ่าย..."></span>
+            </div>
+            <div class="border-b border-slate-400 p-2 flex items-center gap-2 flex-grow">
+              <span class="font-bold text-slate-800 shrink-0 w-24">หัวหน้างาน</span>
+              <span id="supervisor" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุชื่อหัวหน้างาน..."></span>
+            </div>
+            <div class="p-2 flex items-center gap-2 flex-grow">
+              <span class="font-bold text-slate-800 shrink-0 w-24">ระยะเวลาจ้างงาน</span>
+              <span id="duration" contenteditable="true" class="editable-field flex-1" data-placeholder="ประจำ / สัญญาจ้าง..."></span>
+            </div>
+          </div>
+
+          <!-- Col 2 -->
+          <div class="flex flex-col">
+            <div class="border-b border-slate-400 p-2 flex items-center gap-2 flex-grow">
+              <span class="font-bold text-slate-800 shrink-0 w-28">แผนก</span>
+              <span id="department" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุแผนก..."></span>
+            </div>
+            <div class="border-b border-slate-400 p-2 flex items-center gap-2 flex-grow">
+              <span class="font-bold text-slate-800 shrink-0 w-28">บริษัท</span>
+              <span id="jobCompany" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุบริษัท..."></span>
+            </div>
+            <div class="border-b border-slate-400 p-2 flex items-center gap-2 flex-grow">
+              <span class="font-bold text-slate-800 shrink-0 w-28">ตำแหน่งหัวหน้างาน</span>
+              <span id="supervisorPosition" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุตำแหน่งหัวหน้า..."></span>
+            </div>
+            <div class="p-2 flex items-center gap-2 flex-grow">
+              <span class="font-bold text-slate-800 shrink-0 w-28">สถานที่ปฏิบัติงาน</span>
+              <span id="workLocation" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุสถานที่ทำงาน..."></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Wage and benefits -->
+      <div class="text-sm space-y-3 mb-6 pl-2">
+        <div class="flex items-center gap-x-2">
+          <span class="font-bold text-slate-900 shrink-0 w-20">อัตราค่าจ้าง</span>
+          <span class="text-slate-800 font-medium shrink-0">:</span>
+          <span class="text-slate-800 font-bold shrink-0">ค่าจ้าง</span>
+          <span id="salaryRate" contenteditable="true" class="editable-field w-32 text-center font-bold" data-placeholder="-"></span>
+          <span class="font-bold shrink-0">บาท/วัน</span>
+          
+          <span class="ml-4 font-bold text-slate-800 shrink-0">ปฏิทินการทำงาน</span>
+          <span id="calendar" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุปฏิทินการทำงาน..."></span>
+        </div>
+
+        <div class="flex items-center gap-x-2">
+          <span class="w-20 shrink-0"></span>
+          <span class="shrink-0"></span>
+          <span class="text-slate-800 font-bold shrink-0">สวัสดิการ</span>
+          <span id="welfare" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุสวัสดิการ..."></span>
+        </div>
+      </div>
+
+      <!-- Closing Text -->
+      <div class="mt-auto text-center font-bold text-slate-900 text-sm">
+        จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ
+      </div>
+    </div>
+  </div>
+
+  <!-- Script logic -->
+  <script>
+    // Automatically parse candidate data from localStorage on load
+    window.onload = function() {
+      const dataStr = localStorage.getItem('memoPreviewData');
+      if (dataStr) {
+        try {
+          const data = JSON.parse(dataStr);
+          populateData(data);
+        } catch (e) {
+          console.error("Failed to parse candidate data", e);
+        }
+      }
+    };
+
+    function populateData(data) {
+      console.log("Populating data:", data);
+
+      // 1. Company name mapping based on businessUnit
+      const bu = data.businessUnit || data.business_unit || '';
+      let companyName = '';
+      if (bu) {
+        const buLower = bu.toLowerCase();
+        if (buLower.includes('nps')) {
+          companyName = 'บริษัท เนชั่นแนล เพาเวอร์ แพลนท์ 5เอ จำกัด';
+        } else if (buLower.includes('double') || buLower.includes('ดั๊บเบิ้ล')) {
+          companyName = 'บริษัท ดั๊บเบิ้ล เอ (1991) จำกัด (มหาชน)';
+        } else {
+          companyName = bu; // Default to BU name
+        }
+      }
+      document.getElementById('company').textContent = companyName;
+      document.getElementById('jobCompany').textContent = companyName;
+
+      // 2. Candidate full name
+      const prefix = data.prefix || '';
+      const firstName = data.firstName || data.first_name || '';
+      const lastName = data.lastName || data.last_name || '';
+      const fullName = `${prefix} ${firstName} ${lastName}`.trim() || data.full_name || '';
+      document.getElementById('fullName').textContent = fullName;
+
+      // 3. Age, Height, Weight
+      if (data.age) {
+        // Safe check for string or unexpected data like "วอ" and clear/clean it
+        const cleanedAge = String(data.age).replace(/[^0-9]/g, '');
+        document.getElementById('age').textContent = cleanedAge || data.age || '';
+      }
+      if (data.height) document.getElementById('height').textContent = data.height;
+      if (data.weight) document.getElementById('weight').textContent = data.weight;
+      
+      calculateBMI();
+
+      // 4. Education Credentials
+      let highestEdu = { level: '', institute: '', major: '', gpa: '' };
+      const eduData = data.education;
+      
+      if (Array.isArray(eduData)) {
+        const levelOrder = ['phd', 'master', 'bachelor', 'vocational', 'highSchool', 'juniorHighSchool', 'primarySchool'];
+        const sorted = [...eduData].filter(e => e && e.institute).sort((a, b) => {
+          return levelOrder.indexOf(a.level) - levelOrder.indexOf(b.level);
+        });
+        if (sorted.length > 0) {
+          highestEdu = sorted[0];
+        }
+      } else if (eduData && typeof eduData === 'object') {
+        const levels = ['phd', 'master', 'bachelor', 'vocational', 'highSchool', 'juniorHighSchool', 'primarySchool'];
+        for (const lvl of levels) {
+          if (eduData[lvl] && eduData[lvl].institute) {
+            highestEdu = {
+              level: lvl,
+              institute: eduData[lvl].institute,
+              major: eduData[lvl].major,
+              gpa: eduData[lvl].gpa
+            };
+            break;
+          }
+        }
+      }
+
+      // Map level key to Thai name
+      const levelMap = {
+        'phd': 'ปริญญาเอก',
+        'master': 'ปริญญาโท',
+        'bachelor': 'ปริญญาตรี',
+        'vocational': 'ปวส.',
+        'highSchool': 'ม.ปลาย',
+        'juniorHighSchool': 'ม.ต้น',
+        'primarySchool': 'ประถมศึกษา'
+      };
+
+      if (highestEdu.institute) {
+        document.getElementById('education').textContent = levelMap[highestEdu.level] || highestEdu.level || '';
+        document.getElementById('major').textContent = highestEdu.major || '';
+        document.getElementById('institute').textContent = highestEdu.institute || '';
+        document.getElementById('gpa').textContent = highestEdu.gpa || '';
+      }
+
+      // 5. Photo
+      const photoUrl = data.photoUrl || data.photo_url || '';
+      if (photoUrl) {
+        const proxyUrl = photoUrl.startsWith('http') 
+          ? `/api/proxy-image?url=${encodeURIComponent(photoUrl)}` 
+          : photoUrl;
+        
+        const photoImg = document.getElementById('photo-img');
+        photoImg.src = proxyUrl;
+        photoImg.classList.remove('hidden');
+        document.getElementById('photo-placeholder').classList.add('hidden');
+      }
+
+      // 6. Interview Date
+      if (data.interview_date) {
+        const dateObj = new Date(data.interview_date);
+        if (!isNaN(dateObj)) {
+          const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+          const dateStr = `${dateObj.getDate()} ${thaiMonths[dateObj.getMonth()]} ${dateObj.getFullYear() + 543}`;
+          document.getElementById('interviewDate').textContent = dateStr;
+        }
+      }
+
+      // 7. Job Info
+      document.getElementById('position').textContent = data.position || '';
+      document.getElementById('division').textContent = data.department || ''; // 'ฝ่าย' often aligns with department
+      document.getElementById('department').textContent = data.department || '';
+      document.getElementById('duration').textContent = 'ประจำ'; // Default standard
+      document.getElementById('welfare').textContent = 'ตามโครงสร้างบริษัท'; // Default standard
+      document.getElementById('calendar').textContent = 'วันจันทร์-เสาร์ หยุดวันอาทิตย์ (08.00-17.00 น.) หรือตามตารางการทำงาน'; // Default standard
+    }
+
+    // Dynamic BMI Calculator
+    function calculateBMI() {
+      const height = parseFloat(document.getElementById('height').textContent);
+      const weight = parseFloat(document.getElementById('weight').textContent);
+      const bmiInput = document.getElementById('bmi');
+
+      if (height && weight && height > 0) {
+        const heightInMeters = height / 100;
+        const bmi = weight / (heightInMeters * heightInMeters);
+        bmiInput.textContent = bmi.toFixed(2);
+      } else {
+        bmiInput.textContent = '';
+      }
+    }
+
+    // Load local photo for crop/change on click
+    function loadLocalPhoto(input) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const photoImg = document.getElementById('photo-img');
+          photoImg.src = e.target.result;
+          photoImg.classList.remove('hidden');
+          document.getElementById('photo-placeholder').classList.add('hidden');
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    // Download memo as high-res PNG image
+    function downloadAsImage() {
+      const doc = document.getElementById('memo-document');
+      
+      // Add exporting class to hide placeholders and hover/focus styling
+      document.body.classList.add('exporting-image');
+
+      // Wait a fraction of a second to ensure styles apply
+      setTimeout(() => {
+        html2canvas(doc, {
+          useCORS: true,
+          allowTaint: true,
+          scale: 2, // 2x scale for Retina HD crispness
+          backgroundColor: '#ffffff'
+        }).then(canvas => {
+          // Remove exporting class to restore editing style
+          document.body.classList.remove('exporting-image');
+
+          const fullName = document.getElementById('fullName').textContent.trim().replace(/\s+/g, '_') || 'Candidate';
+          const link = document.createElement('a');
+          link.download = `Memo_WorkSkill_${fullName}.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        }).catch(err => {
+          console.error("Canvas export failed:", err);
+          document.body.classList.remove('exporting-image');
+          alert("เกิดข้อผิดพลาดในการบันทึกรูปภาพ กรุณาลองใหม่อีกครั้ง");
+        });
+      }, 100);
+    }
+  </script>
+</body>
+
+</html>
