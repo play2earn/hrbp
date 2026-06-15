@@ -106,16 +106,25 @@
 
 <body class="min-h-screen flex flex-col antialiased">
   <!-- Top Control Header Bar -->
-  <header class="no-print sticky top-0 z-50 bg-slate-900/95 backdrop-blur text-white shadow-lg border-b border-slate-800 px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+  <header class="no-print sticky top-0 z-50 bg-slate-900/95 backdrop-blur text-white shadow-lg border-b border-slate-800 px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
     <div class="flex items-center gap-3">
       <div class="w-9 h-9 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-white shadow-md shadow-indigo-600/30">M</div>
       <div>
-        <h1 class="text-base font-bold tracking-tight">ระบบสร้าง Memo อนุมัติจ้างงาน</h1>
-        <p class="text-xs text-slate-400">กรอกข้อมูลเพิ่มเติมแล้วบันทึกเป็นรูปภาพหรือพิมพ์</p>
+        <h1 class="text-base font-bold tracking-tight">ระบบสร้าง Memo ขออนุมัติจ้างงาน</h1>
+        <p class="text-xs text-slate-400">กรอกข้อมูลเพิ่มเติมแล้วเลือกสลับรูปแบบฟอร์มตามต้องการ</p>
       </div>
     </div>
     
-    <div class="flex flex-wrap gap-2.5">
+    <div class="flex flex-wrap items-center gap-3">
+      <!-- Template Selector Dropdown -->
+      <div class="flex items-center gap-2 mr-2 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 shadow-sm">
+        <label for="template-selector" class="text-xs text-slate-400 font-bold uppercase tracking-wider">รูปแบบฟอร์ม:</label>
+        <select id="template-selector" onchange="switchTemplate(this.value)" class="bg-transparent text-white text-sm font-semibold outline-none cursor-pointer focus:ring-0">
+          <option value="workskill" class="bg-slate-900">ระดับ Work Skill</option>
+          <option value="bachelor" class="bg-slate-900">ระดับ ปริญญาตรี</option>
+        </select>
+      </div>
+
       <button onclick="downloadAsImage()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-sm flex items-center gap-2 shadow-sm transition-all hover:-translate-y-0.5 active:translate-y-0">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -139,173 +148,429 @@
   <!-- Document Preview Container -->
   <div class="flex-grow overflow-auto flex justify-center py-6 px-4 bg-slate-100">
     <div id="memo-document" class="p-10 border border-slate-300 relative flex flex-col bg-white">
-      <!-- Title Box -->
-      <div class="border border-slate-900 bg-[#B4D5F0] py-2 px-4 text-center font-bold text-lg text-slate-900 mb-5">
-        แบบขออนุมัติจ้างงานระดับ Work Skill
-      </div>
+      
+      <!-- 1. Work Skill Layout -->
+      <div id="workskill-layout" class="flex flex-col flex-grow">
+        <!-- Title Box -->
+        <div class="border border-slate-900 bg-[#B4D5F0] py-2 px-4 text-center font-bold text-lg text-slate-900 mb-5">
+          แบบขออนุมัติจ้างงานระดับ Work Skill
+        </div>
 
-      <!-- Candidate profile with Photo -->
-      <div class="flex items-start gap-4 mb-5">
-        <!-- Main details -->
-        <div class="flex-1 flex flex-col gap-3 text-sm">
-          <!-- Row 1: Company -->
-          <div class="flex items-center gap-2">
-            <span class="font-bold text-slate-800 shrink-0">บริษัท</span>
-            <span id="company" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุบริษัท..."></span>
+        <!-- Candidate profile with Photo -->
+        <div class="flex items-start gap-4 mb-5">
+          <!-- Main details -->
+          <div class="flex-1 flex flex-col gap-3 text-sm">
+            <!-- Row 1: Company -->
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0">บริษัท</span>
+              <span id="company" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุบริษัท..."></span>
+            </div>
+
+            <!-- Row 2: Name & Age -->
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0">ชื่อ-สกุล</span>
+              <span id="fullName" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุชื่อ-นามสกุล..."></span>
+              <span class="font-bold text-slate-800 shrink-0">อายุ</span>
+              <span id="age" contenteditable="true" class="editable-field w-16 text-center" data-placeholder="-"></span>
+              <span class="font-bold text-slate-800 shrink-0">ปี</span>
+            </div>
+
+            <!-- Row 3: Height, Weight, BMI -->
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0">ส่วนสูง</span>
+              <span id="height" contenteditable="true" oninput="calculateBMI()" class="editable-field w-20 text-center" data-placeholder="-"></span>
+              <span class="font-bold text-slate-800 shrink-0">น้ำหนัก</span>
+              <span id="weight" contenteditable="true" oninput="calculateBMI()" class="editable-field w-20 text-center" data-placeholder="-"></span>
+              <span class="font-bold text-slate-800 shrink-0">ค่า BMI</span>
+              <span id="bmi" class="editable-field w-24 text-center font-bold text-indigo-950" data-placeholder="คำนวณอัตโนมัติ"></span>
+            </div>
+
+            <!-- Row 4: Education Level & Major -->
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0">วุฒิการศึกษาสูงสุด</span>
+              <span id="education" contenteditable="true" class="editable-field w-36" data-placeholder="ระบุวุฒิ..."></span>
+              <span class="font-bold text-slate-800 shrink-0">สาขา</span>
+              <span id="major" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุสาขาวิชา..."></span>
+            </div>
+
+            <!-- Row 5: Institute & GPA -->
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0">สถาบัน</span>
+              <span id="institute" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุสถาบัน..."></span>
+              <span class="font-bold text-slate-800 shrink-0">เกรดเฉลี่ย</span>
+              <span id="gpa" contenteditable="true" class="editable-field w-20 text-center" data-placeholder="-"></span>
+            </div>
           </div>
 
-          <!-- Row 2: Name & Age -->
-          <div class="flex items-center gap-2">
-            <span class="font-bold text-slate-800 shrink-0">ชื่อ-สกุล</span>
-            <span id="fullName" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุชื่อ-นามสกุล..."></span>
-            <span class="font-bold text-slate-800 shrink-0">อายุ</span>
-            <span id="age" contenteditable="true" class="editable-field w-16 text-center" data-placeholder="-"></span>
-            <span class="font-bold text-slate-800 shrink-0">ปี</span>
-          </div>
-
-          <!-- Row 3: Height, Weight, BMI -->
-          <div class="flex items-center gap-2">
-            <span class="font-bold text-slate-800 shrink-0">ส่วนสูง</span>
-            <span id="height" contenteditable="true" oninput="calculateBMI()" class="editable-field w-20 text-center" data-placeholder="-"></span>
-            <span class="font-bold text-slate-800 shrink-0">น้ำหนัก</span>
-            <span id="weight" contenteditable="true" oninput="calculateBMI()" class="editable-field w-20 text-center" data-placeholder="-"></span>
-            <span class="font-bold text-slate-800 shrink-0">ค่า BMI</span>
-            <span id="bmi" class="editable-field w-24 text-center font-bold text-indigo-950" data-placeholder="คำนวณอัตโนมัติ"></span>
-          </div>
-
-          <!-- Row 4: Education Level & Major -->
-          <div class="flex items-center gap-2">
-            <span class="font-bold text-slate-800 shrink-0">วุฒิการศึกษาสูงสุด</span>
-            <span id="education" contenteditable="true" class="editable-field w-36" data-placeholder="ระบุวุฒิ..."></span>
-            <span class="font-bold text-slate-800 shrink-0">สาขา</span>
-            <span id="major" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุสาขาวิชา..."></span>
-          </div>
-
-          <!-- Row 5: Institute & GPA -->
-          <div class="flex items-center gap-2">
-            <span class="font-bold text-slate-800 shrink-0">สถาบัน</span>
-            <span id="institute" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุสถาบัน..."></span>
-            <span class="font-bold text-slate-800 shrink-0">เกรดเฉลี่ย</span>
-            <span id="gpa" contenteditable="true" class="editable-field w-20 text-center" data-placeholder="-"></span>
+          <!-- Photo Box -->
+          <div class="w-32 flex flex-col items-center">
+            <div id="photo-box" class="w-28 h-36 border border-slate-300 relative bg-slate-50 flex items-center justify-center text-xs text-slate-400 cursor-pointer overflow-hidden group shadow-inner" onclick="document.getElementById('photo-uploader').click()">
+              <img id="photo-img" src="" alt="Candidate Photo" class="hidden w-full h-full object-cover">
+              <div id="photo-placeholder" class="text-center p-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto text-slate-300 mb-1 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span>คลิกเพื่ออัปโหลด</span>
+              </div>
+              <div class="absolute inset-0 bg-black/40 text-white text-[10px] font-bold opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all no-print">เปลี่ยนรูปภาพ</div>
+            </div>
+            <input type="file" id="photo-uploader" accept="image/*" class="hidden" onchange="loadLocalPhoto(this)">
           </div>
         </div>
 
-        <!-- Photo Box -->
-        <div class="w-32 flex flex-col items-center">
-          <div id="photo-box" class="w-28 h-36 border border-slate-300 relative bg-slate-50 flex items-center justify-center text-xs text-slate-400 cursor-pointer overflow-hidden group shadow-inner" onclick="document.getElementById('photo-uploader').click()">
-            <img id="photo-img" src="" alt="Candidate Photo" class="hidden w-full h-full object-cover">
-            <div id="photo-placeholder" class="text-center p-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto text-slate-300 mb-1 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span>คลิกเพื่ออัปโหลด</span>
+        <!-- Selection Results -->
+        <div class="mb-5">
+          <div class="font-bold text-slate-900 border-b border-slate-800 pb-1 mb-2 text-sm">ผลการคัดเลือก</div>
+          <div class="space-y-3 text-sm pl-2">
+            <!-- Row 1: Interview date and score -->
+            <div class="flex items-center flex-wrap gap-2">
+              <span class="font-bold text-slate-800">1. ผลการสัมภาษณ์</span>
+              <span>วันที่</span>
+              <span id="interviewDate" contenteditable="true" class="editable-field w-40 text-center" data-placeholder="ระบุวันที่สัมภาษณ์..."></span>
+              <span>คะแนน</span>
+              <span id="interviewScore" contenteditable="true" class="editable-field w-20 text-center" data-placeholder="-"></span>
+              <span>คิดเป็น</span>
+              <span id="interviewPercent" contenteditable="true" class="editable-field w-20 text-center" data-placeholder="-"></span>
+              <span>%</span>
             </div>
-            <div class="absolute inset-0 bg-black/40 text-white text-[10px] font-bold opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all no-print">เปลี่ยนรูปภาพ</div>
+            
+            <!-- Row 2: Interviewers -->
+            <div class="flex items-start gap-2">
+              <span class="font-bold text-slate-800 shrink-0 mt-1">2. กรรมการสัมภาษณ์</span>
+              <div id="interviewers" contenteditable="true" class="editable-field flex-1 min-h-[50px]" data-placeholder="ระบุรายชื่อกรรมการสัมภาษณ์..."></div>
+            </div>
           </div>
-          <input type="file" id="photo-uploader" accept="image/*" class="hidden" onchange="loadLocalPhoto(this)">
+        </div>
+
+        <!-- Job details grid table -->
+        <div class="border border-slate-400 mb-5 text-sm">
+          <div class="grid grid-cols-2">
+            <!-- Col 1 -->
+            <div class="border-r border-slate-400 flex flex-col">
+              <div class="border-b border-slate-400 p-2 flex items-center gap-2 flex-grow">
+                <span class="font-bold text-slate-800 shrink-0 w-24">ตำแหน่ง</span>
+                <span id="position" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุตำแหน่ง..."></span>
+              </div>
+              <div class="border-b border-slate-400 p-2 flex items-center gap-2 flex-grow">
+                <span class="font-bold text-slate-800 shrink-0 w-24">ฝ่าย</span>
+                <span id="division" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุฝ่าย..."></span>
+              </div>
+              <div class="border-b border-slate-400 p-2 flex items-center gap-2 flex-grow">
+                <span class="font-bold text-slate-800 shrink-0 w-24">หัวหน้างาน</span>
+                <span id="supervisor" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุชื่อหัวหน้างาน..."></span>
+              </div>
+              <div class="p-2 flex items-center gap-2 flex-grow">
+                <span class="font-bold text-slate-800 shrink-0 w-24">ระยะเวลาจ้างงาน</span>
+                <span id="duration" contenteditable="true" class="editable-field flex-1" data-placeholder="ประจำ / สัญญาจ้าง...">ประจำ</span>
+              </div>
+            </div>
+
+            <!-- Col 2 -->
+            <div class="flex flex-col">
+              <div class="border-b border-slate-400 p-2 flex items-center gap-2 flex-grow">
+                <span class="font-bold text-slate-800 shrink-0 w-28">แผนก</span>
+                <span id="department" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุแผนก..."></span>
+              </div>
+              <div class="border-b border-slate-400 p-2 flex items-center gap-2 flex-grow">
+                <span class="font-bold text-slate-800 shrink-0 w-28">บริษัท</span>
+                <span id="jobCompany" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุบริษัท..."></span>
+              </div>
+              <div class="border-b border-slate-400 p-2 flex items-center gap-2 flex-grow">
+                <span class="font-bold text-slate-800 shrink-0 w-28">ตำแหน่งหัวหน้างาน</span>
+                <span id="supervisorPosition" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุตำแหน่งหัวหน้า..."></span>
+              </div>
+              <div class="p-2 flex items-center gap-2 flex-grow">
+                <span class="font-bold text-slate-800 shrink-0 w-28">สถานที่ปฏิบัติงาน</span>
+                <span id="workLocation" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุสถานที่ทำงาน..."></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wage and benefits -->
+        <div class="text-sm space-y-3 mb-6 pl-2">
+          <div class="flex items-center gap-x-2">
+            <span class="font-bold text-slate-900 shrink-0 w-20">อัตราค่าจ้าง</span>
+            <span class="text-slate-800 font-medium shrink-0">:</span>
+            <span class="text-slate-800 font-bold shrink-0">ค่าจ้าง</span>
+            <span id="salaryRate" contenteditable="true" class="editable-field w-32 text-center font-bold" data-placeholder="-"></span>
+            <span class="font-bold shrink-0">บาท/วัน</span>
+            
+            <span class="ml-4 font-bold text-slate-800 shrink-0">ปฏิทินการทำงาน</span>
+            <span id="calendar" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุปฏิทินการทำงาน...">วันจันทร์-เสาร์ หยุดวันอาทิตย์ (08.00-17.00 น.) หรือตามตารางการทำงาน</span>
+          </div>
+
+          <div class="flex items-center gap-x-2">
+            <span class="w-20 shrink-0"></span>
+            <span class="shrink-0"></span>
+            <span class="text-slate-800 font-bold shrink-0">สวัสดิการ</span>
+            <span id="welfare" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุสวัสดิการ...">ตามโครงสร้างบริษัท</span>
+          </div>
+        </div>
+
+        <!-- Closing Text -->
+        <div class="mt-auto text-center font-bold text-slate-900 text-sm">
+          จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ
         </div>
       </div>
 
-      <!-- Selection Results -->
-      <div class="mb-5">
-        <div class="font-bold text-slate-900 border-b border-slate-800 pb-1 mb-2 text-sm">ผลการคัดเลือก</div>
-        <div class="space-y-3 text-sm pl-2">
-          <!-- Row 1: Interview date and score -->
-          <div class="flex items-center flex-wrap gap-2">
-            <span class="font-bold text-slate-800">1. ผลการสัมภาษณ์</span>
-            <span>วันที่</span>
-            <span id="interviewDate" contenteditable="true" class="editable-field w-40 text-center" data-placeholder="ระบุวันที่สัมภาษณ์..."></span>
-            <span>คะแนน</span>
-            <span id="interviewScore" contenteditable="true" class="editable-field w-20 text-center" data-placeholder="-"></span>
-            <span>คิดเป็น</span>
-            <span id="interviewPercent" contenteditable="true" class="editable-field w-20 text-center" data-placeholder="-"></span>
-            <span>%</span>
+      <!-- 2. Bachelor's Degree Layout -->
+      <div id="bachelor-layout" class="hidden flex-col flex-grow">
+        <!-- Title Box -->
+        <div class="border border-slate-900 bg-[#B8DDBB] py-2 px-4 text-center font-bold text-lg text-slate-900 mb-5">
+          แบบขออนุมัติจ้างพนักงาน วุฒิ ปริญญาตรี
+        </div>
+
+        <!-- Candidate profile with Photo -->
+        <div class="flex items-start gap-4 mb-5">
+          <!-- Main details -->
+          <div class="flex-1 flex flex-col gap-3 text-sm">
+            <!-- Row 1: Company -->
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0">บริษัท</span>
+              <span id="company_bachelor" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุบริษัท..."></span>
+            </div>
+
+            <!-- Row 2: Name & Age -->
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0">ชื่อ-สกุล</span>
+              <span id="fullName_bachelor" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุชื่อ-นามสกุล..."></span>
+              <span class="font-bold text-slate-800 shrink-0">อายุ</span>
+              <span id="age_bachelor" contenteditable="true" class="editable-field w-16 text-center" data-placeholder="-"></span>
+              <span class="font-bold text-slate-800 shrink-0">ปี</span>
+            </div>
+
+            <!-- Row 3: Height, Weight, BMI -->
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0">ส่วนสูง</span>
+              <span id="height_bachelor" contenteditable="true" oninput="calculateBMIBachelor()" class="editable-field w-20 text-center" data-placeholder="-"></span>
+              <span class="font-bold text-slate-800 shrink-0">เซนติเมตร</span>
+              <span class="font-bold text-slate-800 shrink-0">น้ำหนัก</span>
+              <span id="weight_bachelor" contenteditable="true" oninput="calculateBMIBachelor()" class="editable-field w-20 text-center" data-placeholder="-"></span>
+              <span class="font-bold text-slate-800 shrink-0">กิโลกรัม</span>
+              <span class="font-bold text-slate-800 shrink-0">ค่า BMI</span>
+              <span id="bmi_bachelor" class="editable-field w-24 text-center font-bold text-indigo-950" data-placeholder="คำนวณอัตโนมัติ"></span>
+            </div>
+
+            <!-- Row 4: Education Level & Major -->
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0">วุฒิการศึกษาสูงสุด</span>
+              <span id="education_bachelor" contenteditable="true" class="editable-field w-36" data-placeholder="ระบุวุฒิ..."></span>
+              <span class="font-bold text-slate-800 shrink-0">สาขา</span>
+              <span id="major_bachelor" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุสาขาวิชา..."></span>
+            </div>
+
+            <!-- Row 5: Institute & GPA -->
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0">สถาบัน</span>
+              <span id="institute_bachelor" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุสถาบัน..."></span>
+              <span class="font-bold text-slate-800 shrink-0">เกรดเฉลี่ย</span>
+              <span id="gpa_bachelor" contenteditable="true" class="editable-field w-20 text-center" data-placeholder="-"></span>
+            </div>
           </div>
-          
-          <!-- Row 2: Interviewers -->
-          <div class="flex items-start gap-2">
-            <span class="font-bold text-slate-800 shrink-0 mt-1">2. กรรมการสัมภาษณ์</span>
-            <div id="interviewers" contenteditable="true" class="editable-field flex-1 min-h-[50px]" data-placeholder="ระบุรายชื่อกรรมการสัมภาษณ์..."></div>
+
+          <!-- Photo Box -->
+          <div class="w-32 flex flex-col items-center">
+            <div id="photo-box_bachelor" class="w-28 h-36 border border-slate-300 relative bg-slate-50 flex items-center justify-center text-xs text-slate-400 cursor-pointer overflow-hidden group shadow-inner" onclick="document.getElementById('photo-uploader_bachelor').click()">
+              <img id="photo-img_bachelor" src="" alt="Candidate Photo" class="hidden w-full h-full object-cover">
+              <div id="photo-placeholder_bachelor" class="text-center p-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto text-slate-300 mb-1 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span>คลิกเพื่ออัปโหลด</span>
+              </div>
+              <div class="absolute inset-0 bg-black/40 text-white text-[10px] font-bold opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all no-print">เปลี่ยนรูปภาพ</div>
+            </div>
+            <input type="file" id="photo-uploader_bachelor" accept="image/*" class="hidden" onchange="loadLocalPhotoBachelor(this)">
           </div>
         </div>
-      </div>
 
-      <!-- Job details grid table -->
-      <div class="border border-slate-400 mb-5 text-sm">
-        <div class="grid grid-cols-2">
-          <!-- Col 1 -->
-          <div class="border-r border-slate-400 flex flex-col">
-            <div class="border-b border-slate-400 p-2 flex items-center gap-2 flex-grow">
-              <span class="font-bold text-slate-800 shrink-0 w-24">ตำแหน่ง</span>
-              <span id="position" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุตำแหน่ง..."></span>
+        <!-- Test Scores Section -->
+        <div class="mb-5">
+          <div class="font-bold text-slate-900 border-b border-slate-800 pb-1 mb-2 text-sm">คะแนนการทดสอบ</div>
+          <div class="space-y-3 text-sm pl-2">
+            <!-- Row 1: Growing Together -->
+            <div class="flex items-center flex-wrap gap-2">
+              <span class="font-bold text-slate-800 w-[250px] shrink-0">1. ผล Growing Together</span>
+              <span id="growingTogetherResultText" contenteditable="true" class="editable-field w-32 text-center font-bold" data-placeholder="ผ่านเกณฑ์...">ผ่านเกณฑ์ 3</span>
+              <span>รุ่นที่</span>
+              <span id="growingTogetherGen" contenteditable="true" class="editable-field w-16 text-center" data-placeholder="xx">xx</span>
+              
+              <!-- Blue Result Box -->
+              <span class="ml-4 font-bold text-slate-800">ผล</span>
+              <span id="growingTogetherResult" contenteditable="true" class="editable-field w-24 text-center bg-[#B4D5F0] border border-slate-400 font-bold" data-placeholder="ผ่าน / ไม่ผ่าน">ผ่าน</span>
             </div>
-            <div class="border-b border-slate-400 p-2 flex items-center gap-2 flex-grow">
-              <span class="font-bold text-slate-800 shrink-0 w-24">ฝ่าย</span>
-              <span id="division" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุฝ่าย..."></span>
-            </div>
-            <div class="border-b border-slate-400 p-2 flex items-center gap-2 flex-grow">
-              <span class="font-bold text-slate-800 shrink-0 w-24">หัวหน้างาน</span>
-              <span id="supervisor" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุชื่อหัวหน้างาน..."></span>
-            </div>
-            <div class="p-2 flex items-center gap-2 flex-grow">
-              <span class="font-bold text-slate-800 shrink-0 w-24">ระยะเวลาจ้างงาน</span>
-              <span id="duration" contenteditable="true" class="editable-field flex-1" data-placeholder="ประจำ / สัญญาจ้าง..."></span>
+            
+            <!-- Row 2: CAT & PJT -->
+            <div class="flex items-center flex-wrap gap-2">
+              <span class="font-bold text-slate-800 w-[250px] shrink-0">2. ผลแบบทดสอบวัดผล CAT และ PJT</span>
+              <span id="catPjtResult" contenteditable="true" class="editable-field w-32 text-center font-bold" data-placeholder="ผ่านเกณฑ์...">ผ่านเกณฑ์ 1</span>
             </div>
           </div>
+        </div>
 
-          <!-- Col 2 -->
-          <div class="flex flex-col">
-            <div class="border-b border-slate-400 p-2 flex items-center gap-2 flex-grow">
-              <span class="font-bold text-slate-800 shrink-0 w-28">แผนก</span>
-              <span id="department" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุแผนก..."></span>
+        <!-- Job Details Table -->
+        <div class="border border-slate-400 mb-5 text-sm">
+          <!-- Row 1 -->
+          <div class="grid grid-cols-2 border-b border-slate-400">
+            <div class="p-2 border-r border-slate-400 flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0 w-28">ตำแหน่ง</span>
+              <span id="position_bachelor" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุตำแหน่ง..."></span>
             </div>
-            <div class="border-b border-slate-400 p-2 flex items-center gap-2 flex-grow">
+            <div class="p-2 flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0 w-32">แผนก / ฝ่าย</span>
+              <span id="deptDivision_bachelor" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุแผนก/ฝ่าย..."></span>
+            </div>
+          </div>
+          <!-- Row 2 -->
+          <div class="grid grid-cols-2 border-b border-slate-400">
+            <div class="p-2 border-r border-slate-400 flex items-center gap-2">
               <span class="font-bold text-slate-800 shrink-0 w-28">บริษัท</span>
-              <span id="jobCompany" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุบริษัท..."></span>
+              <span id="company_job_bachelor" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุบริษัท..."></span>
             </div>
-            <div class="border-b border-slate-400 p-2 flex items-center gap-2 flex-grow">
-              <span class="font-bold text-slate-800 shrink-0 w-28">ตำแหน่งหัวหน้างาน</span>
-              <span id="supervisorPosition" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุตำแหน่งหัวหน้า..."></span>
+            <div class="p-2 flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0 w-32">สถานที่ปฏิบัติงาน</span>
+              <span id="workLocation_bachelor" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุสถานที่ทำงาน..."></span>
             </div>
-            <div class="p-2 flex items-center gap-2 flex-grow">
-              <span class="font-bold text-slate-800 shrink-0 w-28">สถานที่ปฏิบัติงาน</span>
-              <span id="workLocation" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุสถานที่ทำงาน..."></span>
+          </div>
+          <!-- Row 3 -->
+          <div class="grid grid-cols-2 border-b border-slate-400">
+            <div class="p-2 border-r border-slate-400 flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0 w-28">หัวหน้างาน</span>
+              <span id="supervisor_bachelor" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุชื่อหัวหน้างาน..."></span>
+            </div>
+            <div class="p-2 flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0 w-32">ตำแหน่งหัวหน้างาน</span>
+              <span id="supervisorPosition_bachelor" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุตำแหน่งหัวหน้า..."></span>
+            </div>
+          </div>
+          <!-- Row 4 -->
+          <div class="grid grid-cols-2 border-b border-slate-400">
+            <div class="p-2 border-r border-slate-400 flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0 w-28">วันที่เริ่มงานจริง</span>
+              <span id="startDate_bachelor" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุวันที่เริ่มงาน...">-</span>
+            </div>
+            <div class="p-2 flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0 w-32">วันที่โอนย้าย</span>
+              <span id="transferDate_bachelor" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุวันที่โอนย้าย...">-</span>
+            </div>
+          </div>
+          <!-- Row 5 -->
+          <div class="grid grid-cols-2">
+            <div class="p-2 border-r border-slate-400 flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0 w-28">ระยะเวลาจ้างงาน</span>
+              <span id="duration_bachelor" contenteditable="true" class="editable-field flex-1" data-placeholder="ประจำ / สัญญาจ้าง...">ประจำ</span>
+            </div>
+            <div class="p-2 bg-slate-50/50">
+              <!-- Balanced empty block -->
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Wage and benefits -->
-      <div class="text-sm space-y-3 mb-6 pl-2">
-        <div class="flex items-center gap-x-2">
-          <span class="font-bold text-slate-900 shrink-0 w-20">อัตราค่าจ้าง</span>
-          <span class="text-slate-800 font-medium shrink-0">:</span>
-          <span class="text-slate-800 font-bold shrink-0">ค่าจ้าง</span>
-          <span id="salaryRate" contenteditable="true" class="editable-field w-32 text-center font-bold" data-placeholder="-"></span>
-          <span class="font-bold shrink-0">บาท/วัน</span>
-          
-          <span class="ml-4 font-bold text-slate-800 shrink-0">ปฏิทินการทำงาน</span>
-          <span id="calendar" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุปฏิทินการทำงาน..."></span>
+        <!-- Salary and allowances -->
+        <div class="text-sm space-y-3 mb-6 pl-2">
+          <!-- Row 1: Salary & Work Calendar -->
+          <div class="flex items-center gap-x-2">
+            <span class="font-bold text-slate-900 shrink-0 w-40">อัตราค่าจ้าง : ค่าจ้าง</span>
+            <span id="salaryRate_bachelor" contenteditable="true" class="editable-field w-32 text-center font-bold" data-placeholder="-"></span>
+            <span class="font-bold shrink-0">บาท/เดือน</span>
+            
+            <span class="ml-4 font-bold text-slate-800 shrink-0">ปฏิทินปฏิบัติงาน</span>
+            <span id="calendar_bachelor" contenteditable="true" class="editable-field flex-1" data-placeholder="ตามตารางกะ เป็นไปตามนโยบายของบริษัท"></span>
+          </div>
+
+          <!-- Row 2: Good Study allowance -->
+          <div class="flex items-start gap-x-2">
+            <span class="font-bold text-slate-800 shrink-0 w-40 pl-4">ค่าเรียนดี</span>
+            <span id="goodStudyAllowance" contenteditable="true" class="editable-field w-32 text-center font-bold" data-placeholder="-"></span>
+            <span class="font-bold shrink-0">บาท/เดือน</span>
+            
+            <span class="ml-4 font-bold text-slate-800 shrink-0">เงื่อนไข :</span>
+            <span id="goodStudyCondition" contenteditable="true" class="editable-field flex-1" data-placeholder="ค่าผลการเรียนดี GPA &gt; 3.00 ขึ้นไป (แต่ไม่ได้เกียรตินิยม) ได้รับ 1,000 บาท โดยอ้างอิงเอกสารจากทางมหาวิทยาลัย"></span>
+          </div>
+
+          <!-- Row 3: Out-of-province allowance -->
+          <div class="flex items-start gap-x-2">
+            <span class="font-bold text-slate-800 shrink-0 w-40 pl-4">ค่าต่างจังหวัด</span>
+            <span id="provincialAllowance" contenteditable="true" class="editable-field w-32 text-center font-bold" data-placeholder="-"></span>
+            <span class="font-bold shrink-0">บาท/เดือน</span>
+            
+            <span class="ml-4 font-bold text-slate-800 shrink-0">เงื่อนไข :</span>
+            <span id="provincialCondition" contenteditable="true" class="editable-field flex-1" data-placeholder="IP1 ได้รับ 5,000 บาท/เดือน"></span>
+          </div>
+
+          <!-- Row 4: Language allowance -->
+          <div class="flex items-start gap-x-2">
+            <span class="font-bold text-slate-800 shrink-0 w-40 pl-4">เงินช่วยเหลือค่าภาษา</span>
+            <span id="languageAllowance" contenteditable="true" class="editable-field w-32 text-center font-bold" data-placeholder="-"></span>
+            <span class="font-bold shrink-0">บาท/เดือน</span>
+            
+            <span class="ml-4 font-bold text-slate-800 shrink-0">เงื่อนไข :</span>
+            <span id="languageCondition" contenteditable="true" class="editable-field flex-1" data-placeholder="ตามนโยบายของบริษัท (TOEIC 695 คะแนน)"></span>
+          </div>
+
+          <!-- Row 5: Institute allowance -->
+          <div class="flex items-start gap-x-2">
+            <span class="font-bold text-slate-800 shrink-0 w-40 pl-4">เงินค่าสถาบัน</span>
+            <span id="instituteAllowance" contenteditable="true" class="editable-field w-32 text-center font-bold" data-placeholder="-"></span>
+            <span class="font-bold shrink-0">บาท/เดือน</span>
+            
+            <span class="ml-4 font-bold text-slate-800 shrink-0">เงื่อนไข :</span>
+            <span id="instituteCondition" contenteditable="true" class="editable-field flex-1" data-placeholder="สำหรับผู้ที่จบสาขาบัญชีจากมหาวิทยาลัยเป้าหมายได้รับค่าตอบแทนเพิ่มเข้าฐานเงินเดือน"></span>
+          </div>
+
+          <!-- Row 6: Bonus -->
+          <div class="flex items-start gap-x-2">
+            <span class="font-bold text-slate-800 shrink-0 w-40">เงิน Bonus</span>
+            <span id="bonusRate" contenteditable="true" class="editable-field w-32 text-center font-bold" data-placeholder="Yearly">Yearly</span>
+            <span class="font-bold shrink-0"></span>
+            
+            <span class="ml-4 font-bold text-slate-800 shrink-0">เงื่อนไข :</span>
+            <span id="bonusCondition" contenteditable="true" class="editable-field flex-1" data-placeholder="โดยพิจารณาตามรอบการประเมิน Bonus ประจำปีของบริษัท พนักงานจะได้ประโยชน์เมื่อผ่านทดลองงาน และ pro rate ตามจำนวนเดือนที่เริ่มงาน"></span>
+          </div>
+
+          <!-- Row 7: Welfare -->
+          <div class="flex items-center gap-x-2">
+            <span class="font-bold text-slate-800 shrink-0 w-40">สวัสดิการ</span>
+            <span id="welfare_bachelor" contenteditable="true" class="editable-field flex-1" data-placeholder="ตามนโยบายของบริษัท"></span>
+          </div>
         </div>
 
-        <div class="flex items-center gap-x-2">
-          <span class="w-20 shrink-0"></span>
-          <span class="shrink-0"></span>
-          <span class="text-slate-800 font-bold shrink-0">สวัสดิการ</span>
-          <span id="welfare" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุสวัสดิการ..."></span>
+        <!-- Closing Text -->
+        <div class="mt-auto text-center font-bold text-slate-900 text-sm">
+          จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ
         </div>
       </div>
-
-      <!-- Closing Text -->
-      <div class="mt-auto text-center font-bold text-slate-900 text-sm">
-        จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ
-      </div>
+      
     </div>
   </div>
 
   <!-- Script logic -->
   <script>
+    // Global active template state
+    let activeTemplate = 'workskill';
+
+    // Shared fields list for synchronization
+    const sharedFields = [
+      { ws: 'company', bach: 'company_bachelor' },
+      { ws: 'fullName', bach: 'fullName_bachelor' },
+      { ws: 'age', bach: 'age_bachelor' },
+      { ws: 'height', bach: 'height_bachelor' },
+      { ws: 'weight', bach: 'weight_bachelor' },
+      { ws: 'bmi', bach: 'bmi_bachelor' },
+      { ws: 'education', bach: 'education_bachelor' },
+      { ws: 'major', bach: 'major_bachelor' },
+      { ws: 'institute', bach: 'institute_bachelor' },
+      { ws: 'gpa', bach: 'gpa_bachelor' },
+      { ws: 'position', bach: 'position_bachelor' },
+      { ws: 'supervisor', bach: 'supervisor_bachelor' },
+      { ws: 'supervisorPosition', bach: 'supervisorPosition_bachelor' },
+      { ws: 'workLocation', bach: 'workLocation_bachelor' },
+      { ws: 'welfare', bach: 'welfare_bachelor' }
+    ];
+
     // Automatically parse candidate data from localStorage on load
     window.onload = function() {
       const dataStr = localStorage.getItem('memoPreviewData');
@@ -313,50 +578,45 @@
         try {
           const data = JSON.parse(dataStr);
           populateData(data);
+          
+          // Auto-detect template based on education level
+          const highestEdu = getHighestEducation(data);
+          const eduLevel = highestEdu.level ? highestEdu.level.toLowerCase() : '';
+          const levelMap = {
+            'phd': 'ปริญญาเอก',
+            'master': 'ปริญญาโท',
+            'bachelor': 'ปริญญาตรี',
+            'vocational': 'ปวส.',
+            'highSchool': 'ม.ปลาย',
+            'juniorHighSchool': 'ม.ต้น',
+            'primarySchool': 'ประถมศึกษา'
+          };
+          const eduName = (levelMap[eduLevel] || highestEdu.level || '').toLowerCase();
+          
+          const isBachelorOrAbove = 
+            ['bachelor', 'master', 'phd'].includes(eduLevel) ||
+            eduName.includes('ปริญญาตรี') || 
+            eduName.includes('ปริญญาโท') || 
+            eduName.includes('ปริญญาเอก') ||
+            eduName.includes('ป.ตรี') || 
+            eduName.includes('ป.โท') || 
+            eduName.includes('ป.เอก');
+
+          const selector = document.getElementById('template-selector');
+          if (isBachelorOrAbove) {
+            selector.value = 'bachelor';
+            switchTemplate('bachelor');
+          } else {
+            selector.value = 'workskill';
+            switchTemplate('workskill');
+          }
         } catch (e) {
           console.error("Failed to parse candidate data", e);
         }
       }
     };
 
-    function populateData(data) {
-      console.log("Populating data:", data);
-
-      // 1. Company name mapping based on businessUnit
-      const bu = data.businessUnit || data.business_unit || '';
-      let companyName = '';
-      if (bu) {
-        const buLower = bu.toLowerCase();
-        if (buLower.includes('nps')) {
-          companyName = 'บริษัท เนชั่นแนล เพาเวอร์ แพลนท์ 5เอ จำกัด';
-        } else if (buLower.includes('double') || buLower.includes('ดั๊บเบิ้ล')) {
-          companyName = 'บริษัท ดั๊บเบิ้ล เอ (1991) จำกัด (มหาชน)';
-        } else {
-          companyName = bu; // Default to BU name
-        }
-      }
-      document.getElementById('company').textContent = companyName;
-      document.getElementById('jobCompany').textContent = companyName;
-
-      // 2. Candidate full name
-      const prefix = data.prefix || '';
-      const firstName = data.firstName || data.first_name || '';
-      const lastName = data.lastName || data.last_name || '';
-      const fullName = `${prefix} ${firstName} ${lastName}`.trim() || data.full_name || '';
-      document.getElementById('fullName').textContent = fullName;
-
-      // 3. Age, Height, Weight
-      if (data.age) {
-        // Safe check for string or unexpected data like "วอ" and clear/clean it
-        const cleanedAge = String(data.age).replace(/[^0-9]/g, '');
-        document.getElementById('age').textContent = cleanedAge || data.age || '';
-      }
-      if (data.height) document.getElementById('height').textContent = data.height;
-      if (data.weight) document.getElementById('weight').textContent = data.weight;
-      
-      calculateBMI();
-
-      // 4. Education Credentials
+    function getHighestEducation(data) {
       let highestEdu = { level: '', institute: '', major: '', gpa: '' };
       const eduData = data.education;
       
@@ -382,8 +642,60 @@
           }
         }
       }
+      return highestEdu;
+    }
 
-      // Map level key to Thai name
+    function populateData(data) {
+      console.log("Populating data:", data);
+
+      // 1. Company name mapping based on businessUnit
+      const bu = data.businessUnit || data.business_unit || '';
+      let companyName = '';
+      if (bu) {
+        const buLower = bu.toLowerCase();
+        if (buLower.includes('nps')) {
+          companyName = 'บริษัท เนชั่นแนล เพาเวอร์ แพลนท์ 5เอ จำกัด';
+        } else if (buLower.includes('double') || buLower.includes('ดั๊บเบิ้ล')) {
+          companyName = 'บริษัท ดั๊บเบิ้ล เอ (1991) จำกัด (มหาชน)';
+        } else {
+          companyName = bu; // Default to BU name
+        }
+      }
+      // Populate Company
+      document.getElementById('company').textContent = companyName;
+      document.getElementById('jobCompany').textContent = companyName;
+      document.getElementById('company_bachelor').textContent = companyName;
+      document.getElementById('company_job_bachelor').textContent = companyName;
+
+      // 2. Candidate full name
+      const prefix = data.prefix || '';
+      const firstName = data.firstName || data.first_name || '';
+      const lastName = data.lastName || data.last_name || '';
+      const fullName = `${prefix} ${firstName} ${lastName}`.trim() || data.full_name || '';
+      document.getElementById('fullName').textContent = fullName;
+      document.getElementById('fullName_bachelor').textContent = fullName;
+
+      // 3. Age, Height, Weight
+      let cleanedAge = '';
+      if (data.age) {
+        cleanedAge = String(data.age).replace(/[^0-9]/g, '');
+        document.getElementById('age').textContent = cleanedAge || data.age || '';
+        document.getElementById('age_bachelor').textContent = cleanedAge || data.age || '';
+      }
+      if (data.height) {
+        document.getElementById('height').textContent = data.height;
+        document.getElementById('height_bachelor').textContent = data.height;
+      }
+      if (data.weight) {
+        document.getElementById('weight').textContent = data.weight;
+        document.getElementById('weight_bachelor').textContent = data.weight;
+      }
+      
+      calculateBMI();
+      calculateBMIBachelor();
+
+      // 4. Education Credentials
+      const highestEdu = getHighestEducation(data);
       const levelMap = {
         'phd': 'ปริญญาเอก',
         'master': 'ปริญญาโท',
@@ -395,10 +707,19 @@
       };
 
       if (highestEdu.institute) {
-        document.getElementById('education').textContent = levelMap[highestEdu.level] || highestEdu.level || '';
+        const eduLevelText = levelMap[highestEdu.level] || highestEdu.level || '';
+        
+        // Work Skill
+        document.getElementById('education').textContent = eduLevelText;
         document.getElementById('major').textContent = highestEdu.major || '';
         document.getElementById('institute').textContent = highestEdu.institute || '';
         document.getElementById('gpa').textContent = highestEdu.gpa || '';
+
+        // Bachelor
+        document.getElementById('education_bachelor').textContent = eduLevelText;
+        document.getElementById('major_bachelor').textContent = highestEdu.major || '';
+        document.getElementById('institute_bachelor').textContent = highestEdu.institute || '';
+        document.getElementById('gpa_bachelor').textContent = highestEdu.gpa || '';
       }
 
       // 5. Photo
@@ -408,36 +729,139 @@
           ? `/api/proxy-image?url=${encodeURIComponent(photoUrl)}` 
           : photoUrl;
         
+        // Work Skill Photo
         const photoImg = document.getElementById('photo-img');
         photoImg.src = proxyUrl;
         photoImg.classList.remove('hidden');
         document.getElementById('photo-placeholder').classList.add('hidden');
+
+        // Bachelor Photo
+        const photoImgBach = document.getElementById('photo-img_bachelor');
+        photoImgBach.src = proxyUrl;
+        photoImgBach.classList.remove('hidden');
+        document.getElementById('photo-placeholder_bachelor').classList.add('hidden');
       }
 
       // 6. Interview Date
+      let formattedDate = '';
       if (data.interview_date) {
         const dateObj = new Date(data.interview_date);
         if (!isNaN(dateObj)) {
           const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-          const dateStr = `${dateObj.getDate()} ${thaiMonths[dateObj.getMonth()]} ${dateObj.getFullYear() + 543}`;
-          document.getElementById('interviewDate').textContent = dateStr;
+          formattedDate = `${dateObj.getDate()} ${thaiMonths[dateObj.getMonth()]} ${dateObj.getFullYear() + 543}`;
+          document.getElementById('interviewDate').textContent = formattedDate;
         }
       }
 
       // 7. Job Info
+      // Work Skill
       document.getElementById('position').textContent = data.position || '';
-      document.getElementById('division').textContent = data.department || ''; // 'ฝ่าย' often aligns with department
+      document.getElementById('division').textContent = data.department || '';
       document.getElementById('department').textContent = data.department || '';
-      document.getElementById('duration').textContent = 'ประจำ'; // Default standard
-      document.getElementById('welfare').textContent = 'ตามโครงสร้างบริษัท'; // Default standard
-      document.getElementById('calendar').textContent = 'วันจันทร์-เสาร์ หยุดวันอาทิตย์ (08.00-17.00 น.) หรือตามตารางการทำงาน'; // Default standard
+      document.getElementById('duration').textContent = 'ประจำ';
+      document.getElementById('welfare').textContent = 'ตามโครงสร้างบริษัท';
+      document.getElementById('calendar').textContent = 'วันจันทร์-เสาร์ หยุดวันอาทิตย์ (08.00-17.00 น.) หรือตามตารางการทำงาน';
+
+      // Bachelor
+      document.getElementById('position_bachelor').textContent = data.position || '';
+      document.getElementById('deptDivision_bachelor').textContent = data.department || '';
+      document.getElementById('workLocation_bachelor').textContent = 'IP1'; // Default matching the sample
+      document.getElementById('duration_bachelor').textContent = 'ประจำ';
     }
 
-    // Dynamic BMI Calculator
+    function switchTemplate(type) {
+      if (type === activeTemplate) return;
+      
+      // Sync fields from activeTemplate to new template type
+      syncTemplates(activeTemplate, type);
+      
+      activeTemplate = type;
+      
+      // Update DOM visibility
+      const wsLayout = document.getElementById('workskill-layout');
+      const bachLayout = document.getElementById('bachelor-layout');
+      
+      if (type === 'bachelor') {
+        wsLayout.classList.add('hidden');
+        wsLayout.classList.remove('flex');
+        bachLayout.classList.remove('hidden');
+        bachLayout.classList.add('flex');
+      } else {
+        bachLayout.classList.add('hidden');
+        bachLayout.classList.remove('flex');
+        wsLayout.classList.remove('hidden');
+        wsLayout.classList.add('flex');
+      }
+    }
+
+    function syncTemplates(fromType, toType) {
+      const isFromWs = fromType === 'workskill';
+      
+      sharedFields.forEach(field => {
+        const fromId = isFromWs ? field.ws : field.bach;
+        const toId = isFromWs ? field.bach : field.ws;
+        
+        const fromEl = document.getElementById(fromId);
+        const toEl = document.getElementById(toId);
+        if (fromEl && toEl) {
+          toEl.textContent = fromEl.textContent;
+        }
+      });
+      
+      // Synchronize Company name inside Job table
+      const fromJobCompany = document.getElementById(isFromWs ? 'jobCompany' : 'company_job_bachelor');
+      const toJobCompany = document.getElementById(isFromWs ? 'company_job_bachelor' : 'jobCompany');
+      if (fromJobCompany && toJobCompany) {
+        toJobCompany.textContent = fromJobCompany.textContent;
+      }
+
+      // Synchronize division/department
+      const fromDept = document.getElementById(isFromWs ? 'department' : 'deptDivision_bachelor');
+      const toDept = document.getElementById(isFromWs ? 'deptDivision_bachelor' : 'department');
+      if (fromDept && toDept) {
+        toDept.textContent = fromDept.textContent;
+      }
+      if (isFromWs) {
+        document.getElementById('division').textContent = fromDept.textContent;
+      }
+
+      // Synchronize Photo
+      const fromImg = document.getElementById(isFromWs ? 'photo-img' : 'photo-img_bachelor');
+      const toImg = document.getElementById(isFromWs ? 'photo-img_bachelor' : 'photo-img');
+      const fromPlaceholder = document.getElementById(isFromWs ? 'photo-placeholder' : 'photo-placeholder_bachelor');
+      const toPlaceholder = document.getElementById(isFromWs ? 'photo-placeholder_bachelor' : 'photo-placeholder');
+      
+      if (fromImg && toImg && fromPlaceholder && toPlaceholder) {
+        if (!fromImg.classList.contains('hidden')) {
+          toImg.src = fromImg.src;
+          toImg.classList.remove('hidden');
+          toPlaceholder.classList.add('hidden');
+        } else {
+          toImg.classList.add('hidden');
+          toPlaceholder.classList.remove('hidden');
+        }
+      }
+    }
+
+    // Dynamic BMI Calculators
     function calculateBMI() {
       const height = parseFloat(document.getElementById('height').textContent);
       const weight = parseFloat(document.getElementById('weight').textContent);
       const bmiInput = document.getElementById('bmi');
+
+      if (height && weight && height > 0) {
+        const heightInMeters = height / 100;
+        const bmi = weight / (heightInMeters * heightInMeters);
+        bmiInput.textContent = bmi.toFixed(2);
+      } else {
+        bmiInput.textContent = '';
+      }
+    }
+
+    function calculateBMIBachelor() {
+      const height = parseFloat(document.getElementById('height_bachelor').textContent);
+      const weight = parseFloat(document.getElementById('weight_bachelor').textContent);
+      const bmiInput = document.getElementById('bmi_bachelor');
 
       if (height && weight && height > 0) {
         const heightInMeters = height / 100;
@@ -453,6 +877,31 @@
       if (input.files && input.files[0]) {
         const reader = new FileReader();
         reader.onload = function(e) {
+          const photoImg = document.getElementById('photo-img');
+          photoImg.src = e.target.result;
+          photoImg.classList.remove('hidden');
+          document.getElementById('photo-placeholder').classList.add('hidden');
+          
+          // Sync to bachelor photo too
+          const photoImgBach = document.getElementById('photo-img_bachelor');
+          photoImgBach.src = e.target.result;
+          photoImgBach.classList.remove('hidden');
+          document.getElementById('photo-placeholder_bachelor').classList.add('hidden');
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    function loadLocalPhotoBachelor(input) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const photoImgBach = document.getElementById('photo-img_bachelor');
+          photoImgBach.src = e.target.result;
+          photoImgBach.classList.remove('hidden');
+          document.getElementById('photo-placeholder_bachelor').classList.add('hidden');
+          
+          // Sync to workskill photo too
           const photoImg = document.getElementById('photo-img');
           photoImg.src = e.target.result;
           photoImg.classList.remove('hidden');
@@ -480,9 +929,12 @@
           // Remove exporting class to restore editing style
           document.body.classList.remove('exporting-image');
 
-          const fullName = document.getElementById('fullName').textContent.trim().replace(/\s+/g, '_') || 'Candidate';
+          const nameId = activeTemplate === 'workskill' ? 'fullName' : 'fullName_bachelor';
+          const fullName = document.getElementById(nameId).textContent.trim().replace(/\s+/g, '_') || 'Candidate';
+          const prefixName = activeTemplate === 'workskill' ? 'Memo_WorkSkill' : 'Memo_Bachelor';
+          
           const link = document.createElement('a');
-          link.download = `Memo_WorkSkill_${fullName}.png`;
+          link.download = `${prefixName}_${fullName}.png`;
           link.href = canvas.toDataURL('image/png');
           link.click();
         }).catch(err => {
