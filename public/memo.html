@@ -100,6 +100,8 @@
       border-bottom: 1px solid #d1d5db !important;
       background-color: transparent !important;
       box-shadow: none !important;
+      padding-top: 0px !important;
+      padding-bottom: 4px !important;
     }
   </style>
 </head>
@@ -298,6 +300,7 @@
             <span class="font-bold shrink-0">บาท/วัน</span>
             
             <span class="ml-4 font-bold text-slate-800 shrink-0">ปฏิทินการทำงาน</span>
+            <span id="calendar-selector-container-ws" class="no-print"></span>
             <span id="calendar" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุปฏิทินการทำงาน...">วันจันทร์-เสาร์ หยุดวันอาทิตย์ (08.00-17.00 น.) หรือตามตารางการทำงาน</span>
           </div>
 
@@ -402,6 +405,12 @@
               <span class="ml-4 font-bold text-slate-800">ผล</span>
               <span id="growingTogetherResult" contenteditable="true" class="editable-field w-24 text-center bg-[#B4D5F0] border border-slate-400 font-bold" data-placeholder="ผ่าน / ไม่ผ่าน">ผ่าน</span>
             </div>
+
+            <!-- Growing Together Note -->
+            <div class="flex items-start gap-2 pl-4 mb-1">
+              <span class="font-bold text-slate-800 shrink-0 text-[11px] mt-1">หมายเหตุ:</span>
+              <span id="growingTogetherNote" contenteditable="true" class="editable-field flex-1 text-xs text-slate-600 font-medium" data-placeholder="ระบุหมายเหตุการเข้าร่วมกิจกรรม (เว้นว่างได้)...">ผู้สมัครจะต้องเข้าร่วมกิจกรรม Growing Together กับทางบริษัทภายในระยะเวลาทดลองงาน 119 วัน ซึ่งเป็นเงื่อนไขในการรับเข้าทำงาน หรือ ผ่านทดลองงาน</span>
+            </div>
             
             <!-- Row 2: CAT & PJT -->
             <div class="flex items-center flex-wrap gap-2">
@@ -478,6 +487,7 @@
             <span class="font-bold shrink-0">บาท/เดือน</span>
             
             <span class="ml-4 font-bold text-slate-800 shrink-0">ปฏิทินปฏิบัติงาน</span>
+            <span id="calendar-selector-container-bach" class="no-print"></span>
             <span id="calendar_bachelor" contenteditable="true" class="editable-field flex-1" data-placeholder="ตามตารางกะ เป็นไปตามนโยบายของบริษัท"></span>
           </div>
 
@@ -488,6 +498,7 @@
             <span class="font-bold shrink-0">บาท/เดือน</span>
             
             <span class="ml-4 font-bold text-slate-800 shrink-0">เงื่อนไข :</span>
+            <span id="academic-selector-container" class="no-print"></span>
             <span id="goodStudyCondition" contenteditable="true" class="editable-field flex-1" data-placeholder="ค่าผลการเรียนดี GPA &gt; 3.00 ขึ้นไป (แต่ไม่ได้เกียรตินิยม) ได้รับ 1,000 บาท โดยอ้างอิงเอกสารจากทางมหาวิทยาลัย"></span>
           </div>
 
@@ -498,6 +509,7 @@
             <span class="font-bold shrink-0">บาท/เดือน</span>
             
             <span class="ml-4 font-bold text-slate-800 shrink-0">เงื่อนไข :</span>
+            <span id="location-selector-container" class="no-print"></span>
             <span id="provincialCondition" contenteditable="true" class="editable-field flex-1" data-placeholder="IP1 ได้รับ 5,000 บาท/เดือน"></span>
           </div>
 
@@ -508,6 +520,7 @@
             <span class="font-bold shrink-0">บาท/เดือน</span>
             
             <span class="ml-4 font-bold text-slate-800 shrink-0">เงื่อนไข :</span>
+            <span id="language-selector-container" class="no-print"></span>
             <span id="languageCondition" contenteditable="true" class="editable-field flex-1" data-placeholder="ตามนโยบายของบริษัท (TOEIC 695 คะแนน)"></span>
           </div>
 
@@ -518,6 +531,7 @@
             <span class="font-bold shrink-0">บาท/เดือน</span>
             
             <span class="ml-4 font-bold text-slate-800 shrink-0">เงื่อนไข :</span>
+            <span id="institute-selector-container" class="no-print"></span>
             <span id="instituteCondition" contenteditable="true" class="editable-field flex-1" data-placeholder="สำหรับผู้ที่จบสาขาบัญชีจากมหาวิทยาลัยเป้าหมายได้รับค่าตอบแทนเพิ่มเข้าฐานเงินเดือน"></span>
           </div>
 
@@ -528,6 +542,7 @@
             <span class="font-bold shrink-0"></span>
             
             <span class="ml-4 font-bold text-slate-800 shrink-0">เงื่อนไข :</span>
+            <span id="bonus-selector-container" class="no-print"></span>
             <span id="bonusCondition" contenteditable="true" class="editable-field flex-1" data-placeholder="โดยพิจารณาตามรอบการประเมิน Bonus ประจำปีของบริษัท พนักงานจะได้ประโยชน์เมื่อผ่านทดลองงาน และ pro rate ตามจำนวนเดือนที่เริ่มงาน"></span>
           </div>
 
@@ -578,6 +593,7 @@
         try {
           const data = JSON.parse(dataStr);
           populateData(data);
+          setupMasterDataDropdowns(data);
           
           // Auto-detect template based on education level
           const highestEdu = getHighestEducation(data);
@@ -943,6 +959,174 @@
           alert("เกิดข้อผิดพลาดในการบันทึกรูปภาพ กรุณาลองใหม่อีกครั้ง");
         });
       }, 100);
+    }
+
+    // Global active dropdown reference
+    let activeDropdown = null;
+
+    // Close dropdown on keypress (so manual typing closes suggestions immediately)
+    const handleGlobalKeyDown = (e) => {
+      if (activeDropdown && e.key !== 'Tab') {
+        closeActiveDropdown();
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+
+    // Dynamic Master Data Dropdowns Setup
+    function setupMasterDataDropdowns(data) {
+      const masterConditions = data.masterConditions || [];
+      const masterCalendars = data.masterCalendars || [];
+
+      // 1. Setup Calendars Selectors
+      const setupCalendarSelect = (containerId, targetId) => {
+        const container = document.getElementById(containerId);
+        if (container) container.innerHTML = ''; // Clear the DDL button completely
+
+        const targetEl = document.getElementById(targetId);
+        if (!targetEl) return;
+        
+        const activeCalendars = masterCalendars.filter(c => c.is_active !== false);
+        if (activeCalendars.length === 0) return;
+
+        // Bind click directly on the text box
+        targetEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const options = activeCalendars.map(c => ({
+            title: c.title,
+            description: c.description,
+            value: c.description
+          }));
+          
+          showFloatingMenu(targetEl, options, (selected) => {
+            targetEl.textContent = selected.value;
+          });
+        });
+      };
+
+      setupCalendarSelect('calendar-selector-container-ws', 'calendar');
+      setupCalendarSelect('calendar-selector-container-bach', 'calendar_bachelor');
+
+      // 2. Setup Allowance Conditions Selectors
+      const setupAllowanceSelect = (containerId, category, descId, amountId) => {
+        const container = document.getElementById(containerId);
+        if (container) container.innerHTML = ''; // Clear the DDL button completely
+
+        const targetDescEl = document.getElementById(descId);
+        if (!targetDescEl) return;
+        
+        const activeConds = masterConditions.filter(c => c.category === category && c.is_active !== false);
+
+        // Bind click directly on the text box
+        targetDescEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+
+          const options = activeConds.map(c => ({
+            title: c.title,
+            description: c.condition_text,
+            value: c.condition_text,
+            amount: c.amount
+          }));
+
+          const finalOptions = [
+            { title: '❌ ไม่มี (เว้นว่าง)', description: 'ล้างค่าเงื่อนไขและจำนวนเงินในช่องนี้', value: '-', amount: '-' },
+            ...options
+          ];
+
+          showFloatingMenu(targetDescEl, finalOptions, (selected) => {
+            updateAllowanceCondition(selected, descId, amountId);
+          });
+        });
+      };
+
+      setupAllowanceSelect('academic-selector-container', 'academic', 'goodStudyCondition', 'goodStudyAllowance');
+      setupAllowanceSelect('location-selector-container', 'location', 'provincialCondition', 'provincialAllowance');
+      setupAllowanceSelect('language-selector-container', 'language', 'languageCondition', 'languageAllowance');
+      setupAllowanceSelect('institute-selector-container', 'institute', 'instituteCondition', 'instituteAllowance');
+      setupAllowanceSelect('bonus-selector-container', 'bonus', 'bonusCondition', 'bonusRate');
+    }
+
+    // Floating Menu Renderer
+    function showFloatingMenu(anchorEl, options, onSelect) {
+      closeActiveDropdown();
+
+      const menu = document.createElement('div');
+      menu.className = 'no-print absolute bg-white border border-slate-200 rounded-xl shadow-2xl z-[100] max-h-60 overflow-y-auto py-1.5 flex flex-col gap-0.5 transition-all w-80 text-left';
+      
+      // Calculate coordinates relative to viewport
+      const rect = anchorEl.getBoundingClientRect();
+      menu.style.top = `${rect.bottom + window.scrollY + 4}px`;
+      menu.style.left = `${rect.left + window.scrollX}px`;
+
+      options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'w-full text-left px-3 py-1.5 hover:bg-slate-100 text-slate-800 transition-colors flex flex-col gap-0.5 border-b border-slate-50 last:border-0';
+        
+        const title = document.createElement('span');
+        title.className = 'font-bold text-xs text-indigo-950';
+        title.textContent = opt.title;
+        btn.appendChild(title);
+        
+        if (opt.description) {
+          const desc = document.createElement('span');
+          desc.className = 'text-[10px] text-slate-500 font-medium line-clamp-2 leading-tight';
+          desc.textContent = opt.description;
+          btn.appendChild(desc);
+        }
+        
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          onSelect(opt);
+          closeActiveDropdown();
+        };
+        
+        menu.appendChild(btn);
+      });
+
+      document.body.appendChild(menu);
+      activeDropdown = menu;
+
+      // Click outside listener
+      setTimeout(() => {
+        document.addEventListener('click', handleOutsideClick);
+      }, 50);
+    }
+
+    function closeActiveDropdown() {
+      if (activeDropdown) {
+        activeDropdown.remove();
+        activeDropdown = null;
+      }
+      document.removeEventListener('click', handleOutsideClick);
+    }
+
+    function handleOutsideClick(e) {
+      if (activeDropdown && !activeDropdown.contains(e.target)) {
+        closeActiveDropdown();
+      }
+    }
+
+    function updateAllowanceCondition(selected, descId, amountId) {
+      const text = selected.value;
+      const amount = selected.amount;
+      
+      const descEl = document.getElementById(descId);
+      if (descEl) {
+        descEl.textContent = (text === '-' || !text) ? '' : text;
+      }
+      
+      const amountEl = document.getElementById(amountId);
+      if (amountEl) {
+        if (text === '-' || !text) {
+          amountEl.textContent = amountId === 'bonusRate' ? 'Yearly' : '';
+        } else {
+          const numVal = parseFloat(amount || 0);
+          if (amountId === 'bonusRate') {
+            amountEl.textContent = numVal > 0 ? numVal.toLocaleString('th-TH') : 'Yearly';
+          } else {
+            amountEl.textContent = numVal > 0 ? numVal.toLocaleString('th-TH') : '-';
+          }
+        }
+      }
     }
   </script>
 </body>

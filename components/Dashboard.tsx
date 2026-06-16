@@ -992,7 +992,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               </button>
               <button
                 className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-left text-gray-700 hover:bg-gray-50 transition-colors"
-                onClick={() => {
+                onClick={async () => {
                   const fd = app.form_data ? { ...app.form_data } : {};
                   fd.created_at = app.created_at;
                   fd.id = app.id;
@@ -1000,6 +1000,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                   fd.position = app.position;
                   fd.department = app.department;
                   fd.business_unit = app.business_unit;
+                  
+                  // Fetch master conditions & calendars for memo.html DDL
+                  try {
+                    const [condsRes, calsRes] = await Promise.all([
+                      api.master.getAll('memo_conditions'),
+                      api.master.getAll('memo_calendars')
+                    ]);
+                    fd.masterConditions = condsRes.data || [];
+                    fd.masterCalendars = calsRes.data || [];
+                  } catch (e) {
+                    console.error("Failed to prefetch memo master data", e);
+                  }
+
                   localStorage.setItem('memoPreviewData', JSON.stringify(fd));
                   window.open('/memo.html', '_blank');
                   setActionMenu(null);
@@ -1432,6 +1445,16 @@ const MasterDataConfig = () => {
         { id: 'subdistricts', label: 'Subdistricts', labelTh: 'ตำบล/แขวง' },
       ]
     },
+    {
+      id: 'memo',
+      label: 'Memo Configs',
+      icon: 'FileText',
+      description: 'ตั้งค่าระบบเอกสาร Memo',
+      tables: [
+        { id: 'memo_conditions', label: 'Memo Conditions', labelTh: 'เงื่อนไขค่าตอบแทนพิเศษ' },
+        { id: 'memo_calendars', label: 'Memo Calendars', labelTh: 'ปฏิทินปฏิบัติงาน' },
+      ]
+    },
   ];
 
   // Flat tables list for lookups
@@ -1480,8 +1503,10 @@ const MasterDataConfig = () => {
       const matchName = (item.name || '').toLowerCase().includes(q);
       const matchNameTh = (item.name_th || '').toLowerCase().includes(q);
       const matchNameEn = (item.name_en || '').toLowerCase().includes(q);
+      const matchTitle = (item.title || '').toLowerCase().includes(q);
+      const matchDesc = (item.description || item.condition_text || '').toLowerCase().includes(q);
       const matchId = String(item.id).includes(q);
-      return matchName || matchNameTh || matchNameEn || matchId;
+      return matchName || matchNameTh || matchNameEn || matchTitle || matchDesc || matchId;
     }
     return true;
   });
@@ -1594,6 +1619,7 @@ const MasterDataConfig = () => {
                   {group.icon === 'Tag' && <Tag className="w-3.5 h-3.5" />}
                   {group.icon === 'GraduationCap' && <GraduationCap className="w-3.5 h-3.5" />}
                   {group.icon === 'MapPin' && <MapPin className="w-3.5 h-3.5" />}
+                  {group.icon === 'FileText' && <FileText className="w-3.5 h-3.5" />}
                   {group.label}
                 </div>
                 {group.tables.map(t => (
@@ -1658,8 +1684,12 @@ const MasterDataConfig = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name (TH/Main)</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name (EN)</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      {activeTable === 'memo_conditions' || activeTable === 'memo_calendars' ? 'Title' : 'Name (TH/Main)'}
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      {activeTable === 'memo_conditions' ? 'Category / Details' : (activeTable === 'memo_calendars' ? 'Description' : 'Name (EN)')}
+                    </th>
                     {activeTable === 'positions' && (
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Department</th>
                     )}
@@ -1680,10 +1710,22 @@ const MasterDataConfig = () => {
                             {item.name_th || item.name}
                           </button>
                         ) : (
-                          item.name_th || item.name
+                          item.name_th || item.name || item.title || '-'
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">{item.name_en || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-500">
+                        {activeTable === 'memo_conditions' ? (
+                          <div>
+                            <span className="font-semibold text-[10px] text-indigo-700 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded mr-2 uppercase">{item.category}</span>
+                            <span className="text-gray-600 font-bold text-xs bg-slate-100 px-2 py-0.5 rounded">Amount: {parseFloat(item.amount || 0).toLocaleString('th-TH')} บาท</span>
+                            <div className="text-[11px] text-gray-400 mt-1 max-w-sm truncate" title={item.condition_text}>{item.condition_text}</div>
+                          </div>
+                        ) : activeTable === 'memo_calendars' ? (
+                          <div className="text-xs text-gray-500 max-w-sm truncate" title={item.description}>{item.description}</div>
+                        ) : (
+                          item.name_en || '-'
+                        )}
+                      </td>
                       {activeTable === 'positions' && (
                         <td className="px-4 py-3 text-sm text-gray-500">
                           {deptList.find(d => d.id === item.department_id)?.name_th || '-'}
@@ -1722,9 +1764,23 @@ const MasterDataConfig = () => {
                             {item.name_th || item.name}
                           </button>
                         ) : (
-                          <div className="font-bold text-base text-gray-900 mt-1">{item.name_th || item.name}</div>
+                          <div className="font-bold text-base text-gray-900 mt-1">{item.name_th || item.name || item.title || '-'}</div>
                         )}
-                        {item.name_en && <div className="text-sm text-gray-500">{item.name_en}</div>}
+                        {activeTable === 'memo_conditions' && (
+                          <div className="text-xs text-gray-500 mt-1 space-y-1">
+                            <div>
+                              <span className="font-semibold text-[10px] text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded mr-1.5 uppercase">{item.category}</span>
+                              <span className="font-bold text-gray-700">{parseFloat(item.amount || 0).toLocaleString('th-TH')} บาท</span>
+                            </div>
+                            <div className="text-[11px] text-gray-400 line-clamp-2">{item.condition_text}</div>
+                          </div>
+                        )}
+                        {activeTable === 'memo_calendars' && (
+                          <div className="text-xs text-gray-400 mt-1 line-clamp-2">{item.description}</div>
+                        )}
+                        {!['memo_conditions', 'memo_calendars'].includes(activeTable) && item.name_en && (
+                          <div className="text-sm text-gray-500">{item.name_en}</div>
+                        )}
                         {activeTable === 'positions' && (
                           <div className="text-sm text-gray-600 mt-1">
                             <span className="font-medium text-gray-500">Dept:</span> {deptList.find(d => d.id === item.department_id)?.name_th || '-'}
@@ -1886,6 +1942,54 @@ const MasterDataConfig = () => {
 
           {activeTable === 'subdistricts' && (
             <Input label="Postcode" value={formData.postcode || ''} onChange={(e) => setFormData({ ...formData, postcode: e.target.value })} />
+          )}
+
+          {activeTable === 'memo_conditions' && (
+            <>
+              <div className="flex flex-col">
+                <label className="text-sm font-semibold text-gray-700 mb-1">หมวดหมู่ (Category)</label>
+                <select
+                  className="border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+                  value={formData.category || ''}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                >
+                  <option value="">เลือกหมวดหมู่</option>
+                  <option value="academic">Academic (เกียรตินิยม/เรียนดี)</option>
+                  <option value="location">Location (ค่าต่างจังหวัด)</option>
+                  <option value="language">Language (ค่าภาษา)</option>
+                  <option value="institute">Institute (ค่าสถาบัน/วิชาชีพ)</option>
+                  <option value="other">Other (อื่นๆ)</option>
+                </select>
+              </div>
+              <Input label="ชื่อเงื่อนไขย่อ (Title)" value={formData.title || ''} onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
+              <Input label="จำนวนเงิน (Amount)" type="number" value={formData.amount ?? ''} onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })} />
+              <div className="flex flex-col">
+                <label className="text-sm font-semibold text-gray-700 mb-1">ข้อความเงื่อนไขเต็ม (Condition Text)</label>
+                <textarea
+                  className="border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  rows={3}
+                  placeholder="ระบุข้อความเงื่อนไขที่จะแสดงเต็มใน Memo..."
+                  value={formData.condition_text || ''}
+                  onChange={(e) => setFormData({ ...formData, condition_text: e.target.value })}
+                />
+              </div>
+            </>
+          )}
+
+          {activeTable === 'memo_calendars' && (
+            <>
+              <Input label="ชื่อปฏิทินย่อ (Title)" value={formData.title || ''} onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
+              <div className="flex flex-col">
+                <label className="text-sm font-semibold text-gray-700 mb-1">รายละเอียดช่วงเวลาทำงาน (Description)</label>
+                <textarea
+                  className="border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  rows={3}
+                  placeholder="ระบุตารางและเวลาการทำงาน..."
+                  value={formData.description || ''}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
+              </div>
+            </>
           )}
 
 

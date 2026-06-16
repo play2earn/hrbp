@@ -1352,17 +1352,34 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                 }}>
                   <ExternalLink className="w-4 h-4 mr-2" /> {t.labels.openFullPreview}
                 </Button>
-                <Button variant="outline" className="border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={() => {
-                  const fd = viewingApp.form_data ? { ...viewingApp.form_data } : {};
-                  fd.created_at = viewingApp.created_at;
-                  fd.id = viewingApp.id;
-                  fd.interview_date = viewingApp.interview_date;
-                  fd.position = viewingApp.position;
-                  fd.department = viewingApp.department;
-                  fd.business_unit = viewingApp.business_unit;
-                  localStorage.setItem('memoPreviewData', JSON.stringify(fd));
-                  window.open('/memo.html', '_blank');
-                }}>
+                <Button
+                  variant="outline"
+                  className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                  onClick={async () => {
+                    const fd = viewingApp.form_data ? { ...viewingApp.form_data } : {};
+                    fd.created_at = viewingApp.created_at;
+                    fd.id = viewingApp.id;
+                    fd.interview_date = viewingApp.interview_date;
+                    fd.position = viewingApp.position;
+                    fd.department = viewingApp.department;
+                    fd.business_unit = viewingApp.business_unit;
+
+                    // Fetch master conditions & calendars for memo.html DDL
+                    try {
+                      const [condsRes, calsRes] = await Promise.all([
+                        api.master.getAll('memo_conditions'),
+                        api.master.getAll('memo_calendars')
+                      ]);
+                      fd.masterConditions = condsRes.data || [];
+                      fd.masterCalendars = calsRes.data || [];
+                    } catch (e) {
+                      console.error("Failed to prefetch memo master data", e);
+                    }
+
+                    localStorage.setItem('memoPreviewData', JSON.stringify(fd));
+                    window.open('/memo.html', '_blank');
+                  }}
+                >
                   <FileText className="w-4 h-4 mr-2 text-emerald-600" /> สร้าง Memo
                 </Button>
                 <Button
