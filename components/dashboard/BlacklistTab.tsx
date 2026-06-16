@@ -359,7 +359,9 @@ export const BlacklistTab: React.FC<BlacklistTabProps> = ({ showToast, currentUs
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      const text = event.target?.result as string;
+      let text = event.target?.result as string;
+      // Remove UTF-8 BOM if present to ensure header matching works correctly
+      text = text.replace(/^\uFEFF/, '');
       const lines = text.split('\n').map(line => line.trim()).filter(line => line);
       if (lines.length > 0) {
         const headers = lines[0].split(',').map(h => h.replace(/^["']|["']$/g, '').trim().toLowerCase());
@@ -456,10 +458,19 @@ export const BlacklistTab: React.FC<BlacklistTabProps> = ({ showToast, currentUs
     setLoading(true);
     let successCount = 0;
     let failCount = 0;
+    const remainingRows: any[] = [];
 
     for (const row of importRows) {
-      if (!row.first_name || !row.last_name || (!row.national_id && !row.passport_no)) {
+      let errorMsg = '';
+      if (!row.first_name || !row.last_name) {
+        errorMsg = 'ข้อมูลชื่อหรือนามสกุลไม่ครบถ้วน';
+      } else if (!row.national_id && !row.passport_no) {
+        errorMsg = 'ต้องระบุเลขบัตรประชาชนหรือพาสปอร์ตอย่างใดอย่างหนึ่ง';
+      }
+
+      if (errorMsg) {
         failCount++;
+        remainingRows.push({ ...row, error: errorMsg });
         continue;
       }
 
@@ -485,22 +496,39 @@ export const BlacklistTab: React.FC<BlacklistTabProps> = ({ showToast, currentUs
         successCount++;
       } else {
         failCount++;
+        let dbError = res.error?.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
+        if (res.error?.code === '23505') {
+          dbError = 'พบข้อมูลซ้ำในระบบ (เลขบัตรประชาชน หรือเลขพาสปอร์ตนี้มีอยู่แล้ว)';
+        }
+        remainingRows.push({ ...row, error: dbError });
       }
     }
 
     // Audit Log for Import
-    await api.blacklist.addAuditLog({
-      performed_by: currentUser?.id || null,
-      performed_by_name: currentUser?.full_name || 'HR Recruiter',
-      action: 'create',
-      details: `นำเข้าข้อมูลประวัติเสียแบบกลุ่ม (Smart Bulk Import CSV) สำเร็จ ${successCount} รายการ, ข้าม ${failCount} รายการ`
-    });
+    if (successCount > 0) {
+      await api.blacklist.addAuditLog({
+        performed_by: currentUser?.id || null,
+        performed_by_name: currentUser?.full_name || 'HR Recruiter',
+        action: 'create',
+        details: `นำเข้าข้อมูลประวัติเสียแบบกลุ่ม (Smart Bulk Import CSV) สำเร็จ ${successCount} รายการ`
+      });
+    }
 
-    showToast(`นำเข้าสำเร็จ ${successCount} รายการ, ล้มเหลว ${failCount} รายการ`, successCount > 0 ? 'success' : 'error');
-    setIsImportOpen(false);
-    setCsvFile(null);
-    setImportRows([]);
-    fetchEntries();
+    setLoading(false);
+
+    if (failCount > 0) {
+      showToast(`นำเข้าสำเร็จ ${successCount} รายการ, ล้มเหลว ${failCount} รายการ`, 'error');
+      // Update importRows to keep only failed rows, so user can edit and re-submit
+      setImportRows(remainingRows);
+      // Fetch successful entries to update main list
+      fetchEntries();
+    } else {
+      showToast(`นำเข้าสำเร็จ ${successCount} รายการ`, 'success');
+      setIsImportOpen(false);
+      setCsvFile(null);
+      setImportRows([]);
+      fetchEntries();
+    }
   };
 
   // CSV Export
@@ -1715,17 +1743,55 @@ export const BlacklistTab: React.FC<BlacklistTabProps> = ({ showToast, currentUs
                       const isSevUnmapped = row.severity_level === 'unmapped';
 
                       return (
-                        <tr key={row.id} className={`hover:bg-slate-50/50 transition-colors ${hasIdentityError ? 'bg-red-50/30' : ''}`}>
+                        <tr key={row.id} className={`hover:bg-slate-50/50 transition-colors ${hasIdentityError || row.error ? 'bg-red-50/20' : ''}`}>
                           <td className="px-3 py-2 text-center text-gray-500 font-medium">{idx + 1}</td>
                           <td className="px-3 py-2">
-                            <div className="font-semibold text-gray-900">{row.first_name || '-'} {row.last_name || '-'}</div>
-                            {hasIdentityError && (
-                              <div className="text-[10px] text-red-600 font-semibold mt-0.5">⚠️ ข้อมูลประจำตัวไม่ครบถ้วน (ต้องการชื่อ-สกุล และ ID หรือ Passport)</div>
+                            <div className="flex gap-1.5 mb-1">
+                              <input
+                                type="text"
+                                value={row.first_name || ''}
+                                onChange={(e) => handleImportRowChange(row.id, 'first_name', e.target.value)}
+                                placeholder="ชื่อ"
+                                className="w-1/2 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-red-500 font-medium text-gray-900 bg-white"
+                              />
+                              <input
+                                type="text"
+                                value={row.last_name || ''}
+                                onChange={(e) => handleImportRowChange(row.id, 'last_name', e.target.value)}
+                                placeholder="นามสกุล"
+                                className="w-1/2 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-red-500 font-medium text-gray-900 bg-white"
+                              />
+                            </div>
+                            {row.error && (
+                              <div className="text-[10px] text-red-600 font-semibold leading-tight mt-0.5">❌ {row.error}</div>
+                            )}
+                            {hasIdentityError && !row.error && (
+                              <div className="text-[10px] text-red-600 font-semibold leading-tight mt-0.5">⚠️ ข้อมูลชื่อ-สกุล หรือ ID/Passport ไม่ครบถ้วน</div>
                             )}
                           </td>
-                          <td className="px-3 py-2 text-gray-600">
-                            {row.national_id && <div>บัตรประชาชน: <span className="font-mono">{row.national_id}</span></div>}
-                            {row.passport_no && <div>พาสปอร์ต: <span className="font-mono">{row.passport_no}</span></div>}
+                          <td className="px-3 py-2">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] text-gray-400 font-semibold w-12 flex-shrink-0">ID Card:</span>
+                                <input
+                                  type="text"
+                                  value={row.national_id || ''}
+                                  onChange={(e) => handleImportRowChange(row.id, 'national_id', e.target.value)}
+                                  placeholder="เลขบัตรประชาชน (13 หลัก)"
+                                  className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-red-500 text-gray-700 bg-white"
+                                />
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] text-gray-400 font-semibold w-12 flex-shrink-0">Passport:</span>
+                                <input
+                                  type="text"
+                                  value={row.passport_no || ''}
+                                  onChange={(e) => handleImportRowChange(row.id, 'passport_no', e.target.value)}
+                                  placeholder="เลขพาสปอร์ต"
+                                  className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-red-500 text-gray-700 bg-white"
+                                />
+                              </div>
+                            </div>
                           </td>
                           <td className="px-3 py-2">
                             <select
