@@ -778,7 +778,91 @@ export const BlacklistTab: React.FC<BlacklistTabProps> = ({ showToast, currentUs
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto">
+                {/* ===== MOBILE VIEW: Card List ===== */}
+                <div className="lg:hidden divide-y divide-gray-150 bg-white">
+                  {filteredEntries.slice((rosterPage - 1) * 25, rosterPage * 25).map(entry => (
+                    <div key={entry.id} className="p-4 hover:bg-slate-50/20 transition-colors space-y-3">
+                      
+                      {/* Name & Actions */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <button
+                            onClick={() => handleEditClick(entry)}
+                            className="text-sm font-semibold text-gray-900 hover:text-red-600 hover:underline text-left focus:outline-none"
+                          >
+                            {entry.first_name} {entry.last_name}
+                          </button>
+                          {entry.incident_date && (
+                            <div className="text-xs text-gray-500 mt-0.5">วันที่เกิดเหตุ: {entry.incident_date}</div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <button 
+                            className="p-1.5 hover:bg-gray-100 text-gray-600 rounded border border-gray-200 bg-white" 
+                            onClick={() => handleEditClick(entry)}
+                            title="แก้ไขประวัติ"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button 
+                            className="p-1.5 hover:bg-red-50 text-red-600 rounded border border-red-100 bg-white" 
+                            onClick={() => setIsDeleteConfirmOpen(entry)}
+                            title="ลบออกจากระบบ"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Details & Badges */}
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        <span className="font-semibold text-gray-700 bg-gray-100 px-2 py-0.5 rounded">
+                          {getReasonLabel(entry.reason_category)}
+                        </span>
+                        {getSeverityBadge(entry.severity_level)}
+                        <span className={`px-2 py-0.5 rounded-full font-semibold text-[11px] ${entry.status === 'active' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
+                          {entry.status === 'active' ? 'เฝ้าระวัง' : 'ปิดใช้งาน'}
+                        </span>
+                      </div>
+
+                      {/* description */}
+                      {entry.description && (
+                        <p className="text-xs text-gray-600 bg-gray-50 p-2.5 rounded border border-gray-100 leading-relaxed">
+                          {entry.description}
+                        </p>
+                      )}
+
+                      {/* Identifiers */}
+                      <div className="text-xs text-gray-500 grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1.5 border-t border-dashed border-gray-100">
+                        {entry.national_id && <div>บัตรประชาชน: <span className="font-mono font-semibold text-gray-700">{entry.national_id}</span></div>}
+                        {entry.passport_no && <div>พาสปอร์ต: <span className="font-mono font-semibold text-gray-700">{entry.passport_no}</span></div>}
+                        {entry.phone && <div>เบอร์โทร: <span className="font-mono font-semibold text-gray-700">{entry.phone}</span></div>}
+                        {entry.email && <div>อีเมล: <span className="font-semibold text-gray-700">{entry.email}</span></div>}
+                        {entry.original_bu && <div>BU เดิม: <span className="font-semibold text-gray-700">{entry.original_bu}</span></div>}
+                        {entry.original_department && <div>แผนกเดิม: <span className="font-semibold text-gray-700">{entry.original_department}</span></div>}
+                      </div>
+
+                      {/* Attachments */}
+                      <div>
+                        {(entry.attachment_url_1 || entry.attachment_url_2) ? (
+                          <button
+                            onClick={() => setViewingFilesEntry(entry)}
+                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline"
+                          >
+                            <Paperclip className="w-3.5 h-3.5" />
+                            <span>ดูหลักฐานประกอบ ({(!!entry.attachment_url_1 ? 1 : 0) + (!!entry.attachment_url_2 ? 1 : 0)} ไฟล์)</span>
+                          </button>
+                        ) : (
+                          <span className="text-xs text-gray-405 font-medium">- ไม่มีหลักฐานแนบ -</span>
+                        )}
+                      </div>
+
+                    </div>
+                  ))}
+                </div>
+
+                {/* ===== DESKTOP VIEW: Table ===== */}
+                <div className="hidden lg:block overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 border-b text-gray-700 font-semibold">
                       <tr>
@@ -795,7 +879,12 @@ export const BlacklistTab: React.FC<BlacklistTabProps> = ({ showToast, currentUs
                       {filteredEntries.slice((rosterPage - 1) * 25, rosterPage * 25).map(entry => (
                         <tr key={entry.id} className="hover:bg-red-50/20 transition-colors">
                           <td className="px-4 py-3">
-                            <div className="font-semibold text-gray-900">{entry.first_name} {entry.last_name}</div>
+                            <button
+                              onClick={() => handleEditClick(entry)}
+                              className="font-semibold text-gray-900 hover:text-red-600 hover:underline text-left focus:outline-none"
+                            >
+                              {entry.first_name} {entry.last_name}
+                            </button>
                             {entry.incident_date && (
                               <div className="text-xs text-gray-500 mt-0.5">วันที่เกิดเหตุ: {entry.incident_date}</div>
                             )}
