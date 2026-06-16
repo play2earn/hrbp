@@ -149,6 +149,7 @@ interface OverviewTabProps {
   currentUserId: string | null;
   openActionMenu: (app: any, e: React.MouseEvent) => void;
   blacklistEntries: any[];
+  onViewBlacklistDetail: (entry: any) => void;
 }
 
 export const OverviewTab = React.memo<OverviewTabProps>(({
@@ -157,7 +158,8 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
   actionMenu, setActionMenu, setViewingApp, setEditingApp,
   setClaimingApp, setTransferringApp, setUnassigningApp, setInterviewingApp,
   setRejectingApp, setApprovingApp, currentUserId,
-  appPerPage, setAppPerPage, openActionMenu, blacklistEntries
+  appPerPage, setAppPerPage, openActionMenu, blacklistEntries,
+  onViewBlacklistDetail
 }) => {
 
   const checkIsBlacklisted = React.useCallback((app: any) => {
@@ -467,9 +469,20 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                   <option value="Withdrawn">ผู้สมัครยกเลิก</option>
                   <option value="NoShow">ไม่มาตามนัด</option>
                 </select>
+
+                {/* Blacklist Filter */}
+                <select
+                  className="border rounded-lg px-2 py-1.5 text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none w-full md:w-auto min-w-[130px] text-gray-750 font-semibold"
+                  value={appFilters.blacklist || 'all'}
+                  onChange={(e) => { setAppFilters(f => ({ ...f, blacklist: e.target.value })); setAppPage(1); }}
+                >
+                  <option value="all">ประวัติทั้งหมด (All)</option>
+                  <option value="yes">⚠️ ติด Blacklist</option>
+                  <option value="no">✅ ประวัติปกติ</option>
+                </select>
                 
                 {/* Clear Filters Button */}
-                {(appFilters.position || appFilters.department || appFilters.bu || appFilters.channel || appFilters.status !== 'all' || appFilters.search) && (
+                {(appFilters.position || appFilters.department || appFilters.bu || appFilters.channel || appFilters.status !== 'all' || (appFilters.blacklist && appFilters.blacklist !== 'all') || appFilters.search) && (
                   <button
                     onClick={() => {
                       setAppFilters({
@@ -480,6 +493,7 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                         bu: '',
                         channel: '',
                         assignment: appFilters.assignment,
+                        blacklist: 'all'
                       });
                       setAppPage(1);
                     }}
@@ -509,6 +523,14 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
               }
               if (appFilters.bu && (app.form_data?.businessUnit || app.business_unit) !== appFilters.bu) return false;
               if (appFilters.channel && (app.form_data?.sourceChannel || app.source_channel) !== appFilters.channel) return false;
+              
+              // Blacklist filter
+              if (appFilters.blacklist && appFilters.blacklist !== 'all') {
+                const isBlacklisted = checkIsBlacklisted(app);
+                if (appFilters.blacklist === 'yes' && !isBlacklisted) return false;
+                if (appFilters.blacklist === 'no' && isBlacklisted) return false;
+              }
+
               if (appFilters.search) {
                 const q = appFilters.search.toLowerCase();
                 const name = (app.full_name || `${app.form_data?.firstName || ''} ${app.form_data?.lastName || ''}`).toLowerCase();
@@ -560,9 +582,18 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                                   <h4 className="text-sm font-semibold text-gray-900 truncate flex items-center gap-1">
                                     {fullName}{fd.nickname ? ` (${fd.nickname})` : ''}
                                     {isBlacklisted && (
-                                      <span className="inline-flex items-center text-red-600 animate-pulse" title="พบประวัติ Blacklist!">
-                                        <ShieldAlert className="w-4 h-4" />
-                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onViewBlacklistDetail(isBlacklisted);
+                                        }}
+                                        className="inline-flex items-center text-red-600 bg-red-55/20 border border-red-200 px-1 py-0.5 rounded text-[10px] font-bold gap-0.5 hover:bg-red-100 hover:text-red-700 transition-colors animate-pulse flex-shrink-0 align-middle"
+                                        title="คลิกเพื่อดูรายละเอียดประวัติเสีย"
+                                      >
+                                        <ShieldAlert className="w-3.5 h-3.5 text-red-600" />
+                                        <span>Blacklist</span>
+                                      </button>
                                     )}
                                   </h4>
                                   <div className="flex flex-col items-end">
@@ -691,10 +722,18 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                                       {fullName}
                                     </div>
                                     {isBlacklisted && (
-                                      <span className="inline-flex items-center text-red-600 bg-red-50 border border-red-200 px-1 py-0.5 rounded text-[10px] font-bold gap-0.5" title={`พบประวัติ Blacklist: ${isBlacklisted.reason_category}`}>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onViewBlacklistDetail(isBlacklisted);
+                                        }}
+                                        className="inline-flex items-center text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded text-[10px] font-bold gap-0.5 hover:bg-red-100 hover:text-red-700 transition-colors cursor-pointer"
+                                        title="คลิกเพื่อดูรายละเอียดประวัติเสีย"
+                                      >
                                         <ShieldAlert className="w-3.5 h-3.5 animate-pulse text-red-600" />
                                         <span>Blacklist</span>
-                                      </span>
+                                      </button>
                                     )}
                                   </div>
                                   <div className="text-xs text-gray-500 flex items-center mt-0.5 whitespace-nowrap">

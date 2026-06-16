@@ -70,11 +70,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     bu: '',
     channel: '',
     status: 'all',
-    assignment: 'all'
+    assignment: 'all',
+    blacklist: 'all'
   });
   const [appPage, setAppPage] = useState(1);
   const [appPerPage, setAppPerPage] = useState(25);
   const [viewingApp, setViewingApp] = useState<any | null>(null);
+  const [viewingBlacklistDetail, setViewingBlacklistDetail] = useState<any | null>(null);
   const [claimingApp, setClaimingApp] = useState<any | null>(null);
   const [unassigningApp, setUnassigningApp] = useState<any | null>(null);
   const [transferringApp, setTransferringApp] = useState<any | null>(null);
@@ -677,6 +679,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               setApprovingApp={setApprovingApp}
               currentUserId={currentUserId}
               blacklistEntries={blacklistEntries}
+              onViewBlacklistDetail={setViewingBlacklistDetail}
             />
           )}
 
@@ -816,7 +819,153 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
           setApplications(prev => prev.map(app => app.id === updatedApp.id ? updatedApp : app));
         }}
         blacklistEntries={blacklistEntries}
+        onViewBlacklistDetail={setViewingBlacklistDetail}
       />
+
+      {/* Blacklist Details Modal */}
+      <Modal
+        isOpen={!!viewingBlacklistDetail}
+        onClose={() => setViewingBlacklistDetail(null)}
+        title="รายละเอียดประวัติเสีย (Blacklist Case Details)"
+        size="lg"
+        footer={null}
+      >
+        {viewingBlacklistDetail && (
+          <div className="space-y-4 text-sm">
+            <div className="bg-red-50 border border-red-150 rounded-xl p-4 flex items-start gap-3">
+              <ShieldAlert className="w-6 h-6 text-red-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <h4 className="font-bold text-red-800 text-base">⚠️ สถานะเฝ้าระวัง (Blacklist Detected)</h4>
+                <p className="text-xs text-red-700 leading-relaxed mt-1">
+                  ผู้สมัครรายนี้ตรงกับข้อมูลประวัติเสียในฐานข้อมูลของฝ่ายบุคคล กรุณาดำเนินการด้วยความระมัดระวัง
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 border-b pb-3.5">
+              <div>
+                <span className="block text-xs font-semibold text-gray-400 uppercase">ชื่อ-นามสกุล</span>
+                <span className="font-semibold text-gray-900 text-sm">
+                  {viewingBlacklistDetail.first_name} {viewingBlacklistDetail.last_name}
+                </span>
+              </div>
+              <div>
+                <span className="block text-xs font-semibold text-gray-400 uppercase">สถานะบัญชีดำ</span>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold mt-0.5 ${viewingBlacklistDetail.status === 'active' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
+                  {viewingBlacklistDetail.status === 'active' ? 'เฝ้าระวัง' : 'ปิดใช้งาน'}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 border-b pb-3.5">
+              <div>
+                <span className="block text-xs font-semibold text-gray-400 uppercase">เลขบัตรประชาชน (ID)</span>
+                <span className="font-mono text-gray-900 font-semibold">{viewingBlacklistDetail.national_id || '-'}</span>
+              </div>
+              <div>
+                <span className="block text-xs font-semibold text-gray-400 uppercase">เลขพาสปอร์ต (Passport)</span>
+                <span className="font-mono text-gray-900 font-semibold">{viewingBlacklistDetail.passport_no || '-'}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 border-b pb-3.5">
+              <div>
+                <span className="block text-xs font-semibold text-gray-400 uppercase">เบอร์โทรศัพท์</span>
+                <span className="font-mono text-gray-900">{viewingBlacklistDetail.phone || '-'}</span>
+              </div>
+              <div>
+                <span className="block text-xs font-semibold text-gray-400 uppercase">อีเมล</span>
+                <span className="text-gray-900 truncate block">{viewingBlacklistDetail.email || '-'}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 border-b pb-3.5">
+              <div>
+                <span className="block text-xs font-semibold text-gray-400 uppercase">หมวดหมู่ความผิด</span>
+                <span className="font-semibold text-gray-900">
+                  {viewingBlacklistDetail.reason_category === 'theft' ? 'ขโมยทรัพย์สิน (Theft)' :
+                   viewingBlacklistDetail.reason_category === 'policy_violation' ? 'ผิดกฏระเบียบบริษัท (Policy)' :
+                   viewingBlacklistDetail.reason_category === 'attendance' ? 'ขาดงาน/ละทิ้งหน้าที่ (Attendance)' :
+                   viewingBlacklistDetail.reason_category === 'harassment' ? 'ล่วงละเมิด/ทะเลาะวิวาท (Harassment)' :
+                   viewingBlacklistDetail.reason_category === 'fraud' ? 'ทุจริต/ปลอมเอกสาร (Fraud)' : 'อื่นๆ (Other)'}
+                </span>
+              </div>
+              <div>
+                <span className="block text-xs font-semibold text-gray-400 uppercase">ระดับความรุนแรง</span>
+                <span className="inline-block mt-0.5">
+                  {viewingBlacklistDetail.severity_level === 'high' ? (
+                    <span className="px-2.5 py-0.5 bg-red-100 text-red-800 rounded font-bold text-xs">สูง (High)</span>
+                  ) : viewingBlacklistDetail.severity_level === 'medium' ? (
+                    <span className="px-2.5 py-0.5 bg-orange-100 text-orange-800 rounded font-bold text-xs">กลาง (Medium)</span>
+                  ) : (
+                    <span className="px-2.5 py-0.5 bg-yellow-100 text-yellow-800 rounded font-bold text-xs">ต่ำ (Low)</span>
+                  )}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4 border-b pb-3.5">
+              <div>
+                <span className="block text-xs font-semibold text-gray-400 uppercase">BU เดิม</span>
+                <span className="text-gray-900 font-medium">{viewingBlacklistDetail.original_bu || '-'}</span>
+              </div>
+              <div>
+                <span className="block text-xs font-semibold text-gray-400 uppercase">แผนกที่พบเหตุ</span>
+                <span className="text-gray-900 font-medium">{viewingBlacklistDetail.original_department || '-'}</span>
+              </div>
+              <div>
+                <span className="block text-xs font-semibold text-gray-400 uppercase">วันที่เกิดเหตุ</span>
+                <span className="text-gray-900 font-medium">{viewingBlacklistDetail.incident_date || '-'}</span>
+              </div>
+            </div>
+
+            {viewingBlacklistDetail.description && (
+              <div className="border-b pb-3.5">
+                <span className="block text-xs font-semibold text-gray-400 uppercase">รายละเอียดพฤติกรรม</span>
+                <p className="mt-1 bg-gray-50 border rounded-lg p-3 text-xs text-gray-750 leading-relaxed font-mono">
+                  {viewingBlacklistDetail.description}
+                </p>
+              </div>
+            )}
+
+            <div>
+              <span className="block text-xs font-semibold text-gray-400 uppercase mb-2">เอกสารหลักฐานประกอบ</span>
+              {(viewingBlacklistDetail.attachment_url_1 || viewingBlacklistDetail.attachment_url_2) ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {viewingBlacklistDetail.attachment_url_1 && (
+                    <a
+                      href={viewingBlacklistDetail.attachment_url_1}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between p-2 border border-gray-200 rounded-lg hover:bg-slate-50 hover:border-gray-300 transition-colors text-xs text-indigo-600 font-semibold bg-white"
+                    >
+                      <span className="truncate max-w-[180px] text-gray-700">{viewingBlacklistDetail.attachment_name_1 || 'หลักฐานแนบ 1'}</span>
+                      <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
+                    </a>
+                  )}
+                  {viewingBlacklistDetail.attachment_url_2 && (
+                    <a
+                      href={viewingBlacklistDetail.attachment_url_2}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between p-2 border border-gray-200 rounded-lg hover:bg-slate-50 hover:border-gray-300 transition-colors text-xs text-indigo-600 font-semibold bg-white"
+                    >
+                      <span className="truncate max-w-[180px] text-gray-700">{viewingBlacklistDetail.attachment_name_2 || 'หลักฐานแนบ 2'}</span>
+                      <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
+                    </a>
+                  )}
+                </div>
+              ) : (
+                <span className="text-xs text-gray-400 font-medium">- ไม่มีหลักฐานแนบประกอบกรณี -</span>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-4 border-t">
+              <Button variant="outline" onClick={() => setViewingBlacklistDetail(null)}>ปิดหน้าต่าง</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Action Menu Portal (fixed position, never clipped) */}
       {actionMenu && (() => {

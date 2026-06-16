@@ -6,7 +6,7 @@ import {
   User, MapPin, Users, Building2, GraduationCap, Tag,
   FileText, ExternalLink, Edit, Calendar, History, Clock,
   CheckCircle, XCircle, UserPlus, UserCheck, Link, Copy, Check,
-  Crop, RotateCcw, Upload, ChevronDown, ChevronUp, AlertTriangle, Paperclip
+  Crop, RotateCcw, Upload, ChevronDown, ChevronUp, AlertTriangle, Paperclip, ShieldAlert
 } from 'lucide-react';
 import {
   LOG_LABELS, getStatusBadgeClass, getStatusLabel,
@@ -68,6 +68,7 @@ interface ApplicationDetailModalProps {
   setApprovingApp: (app: any) => void;
   onApplicationUpdated?: (app: any) => void;
   blacklistEntries: any[];
+  onViewBlacklistDetail: (entry: any) => void;
 }
 
 export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
@@ -75,7 +76,8 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
   setEditingApp, setClaimingApp, setTransferringApp, setUnassigningApp,
   setInterviewingApp, setInterviewDate,
   setRejectingApp, setRejectComment, setRejectionReason,
-  setApprovingApp, onApplicationUpdated, blacklistEntries
+  setApprovingApp, onApplicationUpdated, blacklistEntries,
+  onViewBlacklistDetail
 }) => {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
@@ -494,9 +496,19 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                     <AlertTriangle className="w-6 h-6 text-red-600" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-bold text-red-800">
-                      ⚠️ ตรวจพบประวัติเสีย (Blacklist Match Detected!)
-                    </h4>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-red-200/50 mb-2">
+                      <h4 className="text-sm font-bold text-red-800">
+                        ⚠️ ตรวจพบประวัติเสีย (Blacklist Match Detected!)
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => onViewBlacklistDetail(isBlacklisted)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-red-50 text-red-700 font-bold rounded-lg shadow-sm border border-red-200 transition-colors text-xs flex-shrink-0"
+                      >
+                        <ShieldAlert className="w-3.5 h-3.5 text-red-600" />
+                        ดูรายละเอียดประวัติเสียทั้งหมด
+                      </button>
+                    </div>
                     <p className="text-xs text-red-700 mt-1 leading-relaxed">
                       พบประวัติเสียในฐานข้อมูล: <span className="font-semibold">{isBlacklisted.first_name} {isBlacklisted.last_name}</span> (ตรงกับข้อมูลระบุตัวตนของผู้สมัครรายนี้)
                       <span className="block mt-1">
