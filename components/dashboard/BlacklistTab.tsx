@@ -81,9 +81,23 @@ export const BlacklistTab: React.FC<BlacklistTabProps> = ({ showToast, currentUs
   const [importHeaders, setImportHeaders] = useState<string[]>([]);
   const [importRows, setImportRows] = useState<any[]>([]);
 
+  // Business Units from master data
+  const [businessUnits, setBusinessUnits] = useState<any[]>([]);
+
   // Pagination State
   const [rosterPage, setRosterPage] = useState(1);
   const [auditPage, setAuditPage] = useState(1);
+
+  // Fetch Business Units on mount
+  useEffect(() => {
+    const fetchBUs = async () => {
+      const data = await api.master.getBusinessUnits();
+      if (data) {
+        setBusinessUnits(data);
+      }
+    };
+    fetchBUs();
+  }, []);
 
   // Reset page when search or filters change
   useEffect(() => {
@@ -1158,14 +1172,19 @@ export const BlacklistTab: React.FC<BlacklistTabProps> = ({ showToast, currentUs
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1">Business Unit (BU) เดิม</label>
-              <input
-                type="text"
+              <select
                 name="original_bu"
-                placeholder="BU1, Food, Retail"
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 bg-white"
                 value={formData.original_bu}
                 onChange={handleInputChange}
-              />
+              >
+                <option value="">-- เลือก Business Unit --</option>
+                {businessUnits.map((bu) => (
+                  <option key={bu.id || bu.name} value={bu.name}>
+                    {bu.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1">แผนกที่พบเหตุ</label>
@@ -1428,13 +1447,19 @@ export const BlacklistTab: React.FC<BlacklistTabProps> = ({ showToast, currentUs
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1">Business Unit (BU) เดิม</label>
-              <input
-                type="text"
+              <select
                 name="original_bu"
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 bg-white"
                 value={formData.original_bu}
                 onChange={handleInputChange}
-              />
+              >
+                <option value="">-- เลือก Business Unit --</option>
+                {businessUnits.map((bu) => (
+                  <option key={bu.id || bu.name} value={bu.name}>
+                    {bu.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1">แผนกที่พบเหตุ</label>
