@@ -3,10 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { MOCK_BU } from '../constants';
 import { Card, Button, Input, Select, Modal } from './UIComponents';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { LucideIcon, Home, FileText, QrCode, Settings, LogOut, CheckCircle, XCircle, Search, Filter, Download, ExternalLink, Calendar, Menu, X, ChevronRight, ChevronLeft, ChevronDown, User, Shield, Users, Copy, Check, Database, Plus, Edit, Trash2, Building2, Tag, GraduationCap, MapPin, Phone, UserPlus, UserCheck, History, Clock, ArrowRightLeft, BarChart2 } from 'lucide-react';
+import { LucideIcon, Home, FileText, QrCode, Settings, LogOut, CheckCircle, XCircle, Search, Filter, Download, ExternalLink, Calendar, Menu, X, ChevronRight, ChevronLeft, ChevronDown, User, Shield, Users, Copy, Check, Database, Plus, Edit, Trash2, Building2, Tag, GraduationCap, MapPin, Phone, UserPlus, UserCheck, History, Clock, ArrowRightLeft, BarChart2, ShieldAlert } from 'lucide-react';
 import { api } from '../services/api';
 import { supabase } from '../supabaseClient';
-import { Role } from '../types';
+import { Role, BlacklistEntry } from '../types';
 import type { ApplicationStatus } from '../services/api';
 import { ReportsTab } from './ReportsTab';
 
@@ -23,10 +23,11 @@ import { ApplicationActionModals } from './dashboard/ApplicationActionModals';
 import { OverviewTab } from './dashboard/OverviewTab';
 import { QRGeneratorTab } from './dashboard/QRGeneratorTab';
 import { UserManagementTab } from './dashboard/UserManagementTab';
+import { BlacklistTab } from './dashboard/BlacklistTab';
 
 
 export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'reports' | 'qr' | 'settings' | 'config' | 'profile'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'reports' | 'qr' | 'settings' | 'config' | 'profile' | 'blacklist'>('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -37,6 +38,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
 
   // Data State
   const [applications, setApplications] = useState<any[]>([]);
+  const [blacklistEntries, setBlacklistEntries] = useState<BlacklistEntry[]>([]);
   const [pendingUsers, setPendingUsers] = useState<any[]>([]);
   const [activeUsers, setActiveUsers] = useState<any[]>([]);
   const [editingUser, setEditingUser] = useState<any | null>(null); // For Edit Modal
@@ -245,6 +247,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     setLoading(true);
     const data = await api.getApplications();
     setApplications(data);
+
+    const blacklistRes = await api.blacklist.getEntries();
+    if (blacklistRes.success && blacklistRes.data) {
+      setBlacklistEntries(blacklistRes.data.filter(e => e.status === 'active'));
+    }
 
     // Calculate simple stats
     const total = data.length;
@@ -569,6 +576,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
             <Database className="w-5 h-5 shrink-0" />
             {!sidebarCollapsed && <span className="font-medium">Master Data</span>}
           </button>
+          <button
+            onClick={() => { setActiveTab('blacklist'); setIsMobileMenuOpen(false); }}
+            className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-2' : 'gap-3 px-3'} py-3 rounded-xl transition-all ${activeTab === 'blacklist' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+            title="Blacklist"
+          >
+            <ShieldAlert className="w-5 h-5 shrink-0" />
+            {!sidebarCollapsed && <span className="font-medium">Blacklist</span>}
+          </button>
           {role === 'admin' && (
             <button
               onClick={() => { setActiveTab('settings'); setIsMobileMenuOpen(false); }}
@@ -661,6 +676,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               setRejectingApp={setRejectingApp}
               setApprovingApp={setApprovingApp}
               currentUserId={currentUserId}
+              blacklistEntries={blacklistEntries}
             />
           )}
 
@@ -707,6 +723,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
 
           {activeTab === 'config' && (
             <MasterDataConfig />
+          )}
+
+          {activeTab === 'blacklist' && (
+            <BlacklistTab showToast={showToast} currentUser={currentUser} />
           )}
 
           {activeTab === 'profile' && (
@@ -795,6 +815,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
         onApplicationUpdated={(updatedApp) => {
           setApplications(prev => prev.map(app => app.id === updatedApp.id ? updatedApp : app));
         }}
+        blacklistEntries={blacklistEntries}
       />
 
       {/* Action Menu Portal (fixed position, never clipped) */}

@@ -3,7 +3,7 @@ import { Card, Button } from '../UIComponents';
 import {
   FileText, Users, Edit, Calendar, CheckCircle, XCircle,
   Search, MoreVertical, LayoutGrid, List, ChevronDown, ChevronRight, Check,
-  UserPlus, UserCheck, Phone, Copy
+  UserPlus, UserCheck, Phone, Copy, ShieldAlert
 } from 'lucide-react';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
@@ -148,6 +148,7 @@ interface OverviewTabProps {
   setApprovingApp: (app: any) => void;
   currentUserId: string | null;
   openActionMenu: (app: any, e: React.MouseEvent) => void;
+  blacklistEntries: any[];
 }
 
 export const OverviewTab = React.memo<OverviewTabProps>(({
@@ -156,8 +157,27 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
   actionMenu, setActionMenu, setViewingApp, setEditingApp,
   setClaimingApp, setTransferringApp, setUnassigningApp, setInterviewingApp,
   setRejectingApp, setApprovingApp, currentUserId,
-  appPerPage, setAppPerPage, openActionMenu
+  appPerPage, setAppPerPage, openActionMenu, blacklistEntries
 }) => {
+
+  const checkIsBlacklisted = React.useCallback((app: any) => {
+    if (!blacklistEntries || blacklistEntries.length === 0) return null;
+    const fd = app.form_data || {};
+    const nationalId = (fd.nationalId || '').trim();
+    const passportNo = (fd.passportNo || '').trim().toUpperCase();
+
+    for (const entry of blacklistEntries) {
+      if (entry.status !== 'active') continue;
+      
+      if (entry.national_id && nationalId && entry.national_id.trim() === nationalId) {
+        return entry;
+      }
+      if (entry.passport_no && passportNo && entry.passport_no.trim().toUpperCase() === passportNo) {
+        return entry;
+      }
+    }
+    return null;
+  }, [blacklistEntries]);
 
   const appsByBU = useMemo(() => {
     const acc: Record<string, number> = {};
@@ -518,6 +538,7 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                         const pos = isForeigner ? (fd.positionEn || app.position || fd.position || '-') : (app.position || fd.position || '-');
                         const bu = fd.businessUnit || app.business_unit || '';
                         const ch = fd.sourceChannel || app.source_channel || '';
+                        const isBlacklisted = checkIsBlacklisted(app);
 
                         return (
                           <div key={app.id} className="py-3 px-1 hover:bg-gray-50/50 transition-colors" onClick={() => setViewingApp(app)}>
@@ -536,7 +557,14 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                               {/* Content */}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between gap-2">
-                                  <h4 className="text-sm font-semibold text-gray-900 truncate">{fullName}{fd.nickname ? ` (${fd.nickname})` : ''}</h4>
+                                  <h4 className="text-sm font-semibold text-gray-900 truncate flex items-center gap-1">
+                                    {fullName}{fd.nickname ? ` (${fd.nickname})` : ''}
+                                    {isBlacklisted && (
+                                      <span className="inline-flex items-center text-red-600 animate-pulse" title="พบประวัติ Blacklist!">
+                                        <ShieldAlert className="w-4 h-4" />
+                                      </span>
+                                    )}
+                                  </h4>
                                   <div className="flex flex-col items-end">
                                     <span className={`px-2 py-0.5 text-[11px] font-semibold rounded-full flex-shrink-0 ${getStatusBadgeClass(app.status)}`}>
                                       {getStatusLabel(app.status)}
@@ -608,6 +636,7 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                         const bu = fd.businessUnit || app.business_unit || '';
                         const ch = fd.sourceChannel || app.source_channel || '';
                         const tag = fd.campaignTag || app.campaign_tag || '';
+                        const isBlacklisted = checkIsBlacklisted(app);
 
                         return (
                           <tr key={app.id} className="hover:bg-gray-50 transition-colors">
@@ -653,12 +682,20 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                                   )}
                                 </div>
                                 <div className="min-w-0">
-                                  <div
-                                    className="text-sm font-semibold text-indigo-700 whitespace-nowrap cursor-pointer hover:text-indigo-900 hover:underline transition-colors truncate max-w-[180px]"
-                                    onClick={() => setViewingApp(app)}
-                                    title={`${fullName} — คลิกเพื่อดูรายละเอียด`}
-                                  >
-                                    {fullName}
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <div
+                                      className="text-sm font-semibold text-indigo-700 whitespace-nowrap cursor-pointer hover:text-indigo-900 hover:underline transition-colors truncate max-w-[150px]"
+                                      onClick={() => setViewingApp(app)}
+                                      title={`${fullName} — คลิกเพื่อดูรายละเอียด`}
+                                    >
+                                      {fullName}
+                                    </div>
+                                    {isBlacklisted && (
+                                      <span className="inline-flex items-center text-red-600 bg-red-50 border border-red-200 px-1 py-0.5 rounded text-[10px] font-bold gap-0.5" title={`พบประวัติ Blacklist: ${isBlacklisted.reason_category}`}>
+                                        <ShieldAlert className="w-3.5 h-3.5 animate-pulse text-red-600" />
+                                        <span>Blacklist</span>
+                                      </span>
+                                    )}
                                   </div>
                                   <div className="text-xs text-gray-500 flex items-center mt-0.5 whitespace-nowrap">
                                     <Phone className="w-3 h-3 mr-1" /> {phone}

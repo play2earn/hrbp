@@ -6,7 +6,7 @@ import {
   User, MapPin, Users, Building2, GraduationCap, Tag,
   FileText, ExternalLink, Edit, Calendar, History, Clock,
   CheckCircle, XCircle, UserPlus, UserCheck, Link, Copy, Check,
-  Crop, RotateCcw, Upload, ChevronDown, ChevronUp, AlertTriangle
+  Crop, RotateCcw, Upload, ChevronDown, ChevronUp, AlertTriangle, Paperclip
 } from 'lucide-react';
 import {
   LOG_LABELS, getStatusBadgeClass, getStatusLabel,
@@ -67,6 +67,7 @@ interface ApplicationDetailModalProps {
   setRejectionReason: (reason: string) => void;
   setApprovingApp: (app: any) => void;
   onApplicationUpdated?: (app: any) => void;
+  blacklistEntries: any[];
 }
 
 export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
@@ -74,7 +75,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
   setEditingApp, setClaimingApp, setTransferringApp, setUnassigningApp,
   setInterviewingApp, setInterviewDate,
   setRejectingApp, setRejectComment, setRejectionReason,
-  setApprovingApp, onApplicationUpdated
+  setApprovingApp, onApplicationUpdated, blacklistEntries
 }) => {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
@@ -428,6 +429,49 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
     }
   };
 
+  const checkIsBlacklisted = () => {
+    if (!blacklistEntries || blacklistEntries.length === 0 || !viewingApp) return null;
+    const fd = viewingApp.form_data || {};
+    const nationalId = (fd.nationalId || '').trim();
+    const passportNo = (fd.passportNo || '').trim().toUpperCase();
+
+    for (const entry of blacklistEntries) {
+      if (entry.status !== 'active') continue;
+      
+      if (entry.national_id && nationalId && entry.national_id.trim() === nationalId) {
+        return entry;
+      }
+      if (entry.passport_no && passportNo && entry.passport_no.trim().toUpperCase() === passportNo) {
+        return entry;
+      }
+    }
+    return null;
+  };
+
+  const isBlacklisted = checkIsBlacklisted();
+
+  // Log a 'view_detail' action when a blacklisted candidate's profile is opened
+  useEffect(() => {
+    if (!viewingApp || !isBlacklisted) return;
+    
+    const logBlacklistView = async () => {
+      try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        await api.blacklist.addAuditLog({
+          performed_by: currentUser?.id || null,
+          performed_by_name: currentUser?.full_name || currentUser?.email || 'HR Recruiter',
+          action: 'view_detail',
+          blacklist_id: isBlacklisted.id,
+          candidate_name: `${isBlacklisted.first_name} ${isBlacklisted.last_name}`,
+          details: `เข้าดูข้อมูลใบสมัครและตรวจสอบระบบประวัติเสียของผู้สมัคร (ผลลัพธ์: ตรวจพบประวัติ Blacklist ระดับ ${isBlacklisted.severity_level})`
+        });
+      } catch (err) {
+        console.error('Failed to log blacklist view audit log:', err);
+      }
+    };
+    
+    logBlacklistView();
+  }, [viewingApp?.id, isBlacklisted?.id]);
 
   return (
     <>
@@ -442,6 +486,71 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
       >
         {viewingApp && (
           <div className="px-1">
+            {/* Blacklist Warning Banner */}
+            {isBlacklisted && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-5 flex flex-col items-start gap-3.5 shadow-sm">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3.5 w-full">
+                  <div className="p-3 bg-red-100 text-red-600 rounded-xl flex-shrink-0">
+                    <AlertTriangle className="w-6 h-6 text-red-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-bold text-red-800">
+                      ⚠️ ตรวจพบประวัติเสีย (Blacklist Match Detected!)
+                    </h4>
+                    <p className="text-xs text-red-700 mt-1 leading-relaxed">
+                      พบประวัติเสียในฐานข้อมูล: <span className="font-semibold">{isBlacklisted.first_name} {isBlacklisted.last_name}</span> (ตรงกับข้อมูลระบุตัวตนของผู้สมัครรายนี้)
+                      <span className="block mt-1">
+                        หมวดหมู่ความผิด: <span className="font-semibold underline">{isBlacklisted.reason_category === 'theft' ? 'ขโมยทรัพย์สิน' : isBlacklisted.reason_category === 'policy_violation' ? 'ผิดกฏระเบียบบริษัท' : isBlacklisted.reason_category === 'attendance' ? 'ขาดงาน/ละทิ้งหน้าที่' : isBlacklisted.reason_category === 'harassment' ? 'ล่วงละเมิด/ทะเลาะวิวาท' : isBlacklisted.reason_category === 'fraud' ? 'ทุจริต/ปลอมเอกสาร' : 'อื่นๆ'} ({isBlacklisted.severity_level?.toUpperCase()})</span>
+                      </span>
+                      {isBlacklisted.description && <span className="block mt-1 bg-red-100/50 p-2 rounded text-red-900 font-mono text-[11px]">รายละเอียด: "{isBlacklisted.description}"</span>}
+                      {isBlacklisted.original_bu && <span className="block mt-1 font-medium">หน่วยงานเดิม: {isBlacklisted.original_bu} | แผนกเดิม: {isBlacklisted.original_department || '-'} | วันที่เกิดเหตุ: {isBlacklisted.incident_date || '-'}</span>}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Evidence attachments list */}
+                {(isBlacklisted.attachment_url_1 || isBlacklisted.attachment_url_2) && (
+                  <div className="w-full border-t border-red-200 pt-3 mt-1.5">
+                    <p className="text-xs font-bold text-red-800 mb-2 flex items-center gap-1.5">
+                      <Paperclip className="w-3.5 h-3.5" /> เอกสารหลักฐานอ้างอิง:
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
+                      {isBlacklisted.attachment_url_1 && (
+                        <div className="flex items-center justify-between p-2 bg-white rounded-lg border border-red-100 text-xs">
+                          <span className="truncate max-w-[180px] font-medium text-gray-700 font-sans" title={isBlacklisted.attachment_name_1}>
+                            {isBlacklisted.attachment_name_1 || 'หลักฐานแนบ 1'}
+                          </span>
+                          <a
+                            href={isBlacklisted.attachment_url_1}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-red-600 hover:text-red-800 hover:underline px-2 py-1 bg-red-50 rounded"
+                          >
+                            <ExternalLink className="w-3 h-3" /> เปิดดู
+                          </a>
+                        </div>
+                      )}
+                      {isBlacklisted.attachment_url_2 && (
+                        <div className="flex items-center justify-between p-2 bg-white rounded-lg border border-red-100 text-xs">
+                          <span className="truncate max-w-[180px] font-medium text-gray-700 font-sans" title={isBlacklisted.attachment_name_2}>
+                            {isBlacklisted.attachment_name_2 || 'หลักฐานแนบ 2'}
+                          </span>
+                          <a
+                            href={isBlacklisted.attachment_url_2}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-red-600 hover:text-red-800 hover:underline px-2 py-1 bg-red-50 rounded"
+                          >
+                            <ExternalLink className="w-3 h-3" /> เปิดดู
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Header with Photo */}
               <div className="flex items-start gap-4 pb-4 border-b border-gray-200 mb-4">
                 <div className="relative w-24 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border group">

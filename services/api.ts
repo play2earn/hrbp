@@ -1,6 +1,6 @@
 
 import { supabase } from '../supabaseClient';
-import { ApplicationForm } from '../types';
+import { ApplicationForm, BlacklistEntry, BlacklistAuditLog } from '../types';
 import md5 from 'js-md5';
 import { uploadToR2, deleteFromR2, getStorageProvider } from '../utils/r2-upload';
 
@@ -1418,6 +1418,128 @@ export const api = {
         return { success: true, data };
       } catch (error) {
         return handleError(error, `toggleActive:${table}`);
+      }
+    }
+  },
+
+  // ------------------------------------------------------------------
+  // Blacklist API
+  // ------------------------------------------------------------------
+  blacklist: {
+    getEntries: async (): Promise<ApiResponse<BlacklistEntry[]>> => {
+      try {
+        const { data, error } = await supabase
+          .from('blacklist')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (error) return handleError(error, 'blacklist.getEntries');
+        return { success: true, data: data || [] };
+      } catch (error) {
+        return handleError(error, 'blacklist.getEntries');
+      }
+    },
+
+    addEntry: async (entry: Omit<BlacklistEntry, 'id' | 'created_at' | 'updated_at'>): Promise<ApiResponse<BlacklistEntry>> => {
+      try {
+        const { data, error } = await supabase
+          .from('blacklist')
+          .insert([entry])
+          .select()
+          .single();
+        if (error) return handleError(error, 'blacklist.addEntry');
+        return { success: true, data };
+      } catch (error) {
+        return handleError(error, 'blacklist.addEntry');
+      }
+    },
+
+    updateEntry: async (id: string, entry: Partial<BlacklistEntry>): Promise<ApiResponse<BlacklistEntry>> => {
+      try {
+        const { data, error } = await supabase
+          .from('blacklist')
+          .update(entry)
+          .eq('id', id)
+          .select()
+          .single();
+        if (error) return handleError(error, 'blacklist.updateEntry');
+        return { success: true, data };
+      } catch (error) {
+        return handleError(error, 'blacklist.updateEntry');
+      }
+    },
+
+    deleteEntry: async (id: string): Promise<ApiResponse<any>> => {
+      try {
+        const { error } = await supabase
+          .from('blacklist')
+          .delete()
+          .eq('id', id);
+        if (error) return handleError(error, 'blacklist.deleteEntry');
+        return { success: true };
+      } catch (error) {
+        return handleError(error, 'blacklist.deleteEntry');
+      }
+    },
+
+    getAuditLogs: async (): Promise<ApiResponse<BlacklistAuditLog[]>> => {
+      try {
+        const { data, error } = await supabase
+          .from('blacklist_audit_logs')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (error) return handleError(error, 'blacklist.getAuditLogs');
+        return { success: true, data: data || [] };
+      } catch (error) {
+        return handleError(error, 'blacklist.getAuditLogs');
+      }
+    },
+
+    addAuditLog: async (log: Omit<BlacklistAuditLog, 'id' | 'created_at'>): Promise<ApiResponse<BlacklistAuditLog>> => {
+      try {
+        const { data, error } = await supabase
+          .from('blacklist_audit_logs')
+          .insert([log])
+          .select()
+          .single();
+        if (error) return handleError(error, 'blacklist.addAuditLog');
+        return { success: true, data };
+      } catch (error) {
+        return handleError(error, 'blacklist.addAuditLog');
+      }
+    },
+
+    checkMatches: async (candidate: {
+      nationalId?: string;
+      passportNo?: string;
+    }): Promise<BlacklistEntry[]> => {
+      try {
+        const { data, error } = await supabase
+          .from('blacklist')
+          .select('*')
+          .eq('status', 'active');
+        
+        if (error || !data) return [];
+
+        const matches: BlacklistEntry[] = [];
+
+        for (const entry of data) {
+          let matched = false;
+
+          if (entry.national_id && candidate.nationalId && entry.national_id.trim() === candidate.nationalId.trim()) {
+            matched = true;
+          } else if (entry.passport_no && candidate.passportNo && entry.passport_no.trim().toUpperCase() === candidate.passportNo.trim().toUpperCase()) {
+            matched = true;
+          }
+
+          if (matched) {
+            matches.push(entry);
+          }
+        }
+
+        return matches;
+      } catch (error) {
+        console.error('Error checking blacklist matches:', error);
+        return [];
       }
     }
   },

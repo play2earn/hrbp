@@ -295,3 +295,39 @@ export const INITIAL_FORM_STATE: ApplicationForm = {
   otherDocsUrl: '',
   profileLinks: ''
 };
+
+export interface BlacklistEntry {
+  id?: string;
+  created_at?: string;
+  updated_at?: string;
+  created_by?: string;
+  national_id?: string;
+  passport_no?: string;
+  first_name: string;
+  last_name: string;
+  email?: string;
+  phone?: string;
+  reason_category: string;
+  severity_level: 'low' | 'medium' | 'high';
+  description?: string;
+  original_bu?: string;
+  original_department?: string;
+  incident_date?: string;
+  status: 'active' | 'inactive';
+  attachment_url_1?: string;
+  attachment_url_2?: string;
+  attachment_name_1?: string;
+  attachment_name_2?: string;
+}
+
+export interface BlacklistAuditLog {
+  id?: string;
+  created_at?: string;
+  performed_by?: string;
+  performed_by_name: string;
+  action: 'view_detail' | 'create' | 'update' | 'delete' | 'export';
+  blacklist_id?: string;
+  candidate_name?: string;
+  details?: string;
+}
+
