@@ -329,8 +329,8 @@ export const BlacklistTab: React.FC<BlacklistTabProps> = ({ showToast, currentUs
       'incident_date', 'description'
     ];
     const sampleRows = [
-      ['สมชาย', 'ใจดี', '1100100000000', '', 'somchai@email.com', '0812345678', 'policy_violation', 'high', 'BU1', 'Warehouse', '2026-05-15', 'ทำผิดกฎระเบียบร้ายแรง'],
-      ['John', 'Doe', '', 'A12345678', 'john.doe@email.com', '0899999999', 'theft', 'high', 'Retail', 'Sales', '2026-06-01', 'ขโมยทรัพย์สินบริษัท']
+      ['สมชาย', 'ใจดี', '1100100000000', '', 'somchai@email.com', '0812345678', 'policy_violation', 'high', 'DoubleA', 'Warehouse', '2026-05-15', 'ทำผิดกฎระเบียบร้ายแรง'],
+      ['John', 'Doe', '', 'A12345678', 'john.doe@email.com', '0899999999', 'theft', 'high', 'NPS', 'Sales', '2026-06-01', 'ขโมยทรัพย์สินบริษัท']
     ];
 
     const csvContent = [
