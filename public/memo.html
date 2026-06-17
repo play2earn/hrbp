@@ -130,6 +130,7 @@
         <select id="template-selector" onchange="switchTemplate(this.value)" class="bg-transparent text-white text-sm font-semibold outline-none cursor-pointer focus:ring-0">
           <option value="workskill" class="bg-slate-900" data-translate-key="ui_opt_workskill">ระดับ Work Skill</option>
           <option value="bachelor" class="bg-slate-900" data-translate-key="ui_opt_bachelor">ระดับ ปริญญาตรี</option>
+          <option value="vocational" class="bg-slate-900" data-translate-key="ui_opt_vocational">ระดับ ปวส.</option>
         </select>
       </div>
 
@@ -566,6 +567,238 @@
           จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ
         </div>
       </div>
+
+      <!-- 3. Vocational Certificate Layout (ปวส.) -->
+      <div id="vocational-layout" class="hidden flex-col flex-grow">
+        <!-- Title Box -->
+        <div id="doc-title-vocational" data-translate-key="doc_title_vocational" class="border border-slate-900 bg-[#B4D5F0] py-2 px-4 text-center font-bold text-lg text-slate-900 mb-5">
+          แบบขออนุมัติจ้างงานระดับ ปวส.
+        </div>
+
+        <!-- Candidate profile with Photo -->
+        <div class="flex items-start gap-4 mb-5">
+          <!-- Main details -->
+          <div class="flex-1 flex flex-col gap-3 text-sm">
+            <!-- Row 1: Company -->
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_company">บริษัท</span>
+              <span id="company_vocational" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุบริษัท..."></span>
+            </div>
+
+            <!-- Row 2: Name & Age -->
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_fullname">ชื่อ-สกุล</span>
+              <span id="fullName_vocational" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุชื่อ-นามสกุล..."></span>
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_age">อายุ</span>
+              <span id="age_vocational" contenteditable="true" class="editable-field w-16 text-center" data-placeholder="-"></span>
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_years">ปี</span>
+            </div>
+
+            <!-- Row 3: Height, Weight, BMI -->
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_height">ส่วนสูง</span>
+              <span id="height_vocational" contenteditable="true" oninput="calculateBMIVocational()" class="editable-field w-20 text-center" data-placeholder="-"></span>
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_cm">เซนติเมตร</span>
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_weight">น้ำหนัก</span>
+              <span id="weight_vocational" contenteditable="true" oninput="calculateBMIVocational()" class="editable-field w-20 text-center" data-placeholder="-"></span>
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_kg">กิโลกรัม</span>
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_bmi">ค่า BMI</span>
+              <span id="bmi_vocational" class="editable-field w-24 text-center font-bold text-indigo-950" data-placeholder="คำนวณอัตโนมัติ"></span>
+            </div>
+
+            <!-- Row 4: Education Level & Major -->
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_education">วุฒิการศึกษาสูงสุด</span>
+              <span id="education_vocational" contenteditable="true" class="editable-field w-36" data-placeholder="ระบุวุฒิ...">ปวส.</span>
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_major">สาขา</span>
+              <span id="major_vocational" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุสาขาวิชา..."></span>
+            </div>
+
+            <!-- Row 5: Institute & GPA -->
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_institute">สถาบัน</span>
+              <span id="institute_vocational" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุสถาบัน..."></span>
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_gpa">เกรดเฉลี่ย</span>
+              <span id="gpa_vocational" contenteditable="true" oninput="autoCalculateGradeAllowance()" class="editable-field w-20 text-center" data-placeholder="-"></span>
+            </div>
+
+            <!-- Row 6: Previous Education Level & Major -->
+            <div class="flex items-center gap-2 bg-slate-50/50 p-1 rounded border border-slate-100">
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_previous_education">วุฒิการศึกษาก่อนหน้า</span>
+              <span id="prev_education_vocational" contenteditable="true" class="editable-field w-36" data-placeholder="ระบุวุฒิเดิม...">ปวช.</span>
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_major">สาขา</span>
+              <span id="prev_major_vocational" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุสาขาวิชา..."></span>
+            </div>
+
+            <!-- Row 7: Previous Institute & GPA -->
+            <div class="flex items-center gap-2 bg-slate-50/50 p-1 rounded border border-slate-100">
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_institute">สถาบัน</span>
+              <span id="prev_institute_vocational" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุสถาบัน..."></span>
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_gpa">เกรดเฉลี่ย</span>
+              <span id="prev_gpa_vocational" contenteditable="true" class="editable-field w-20 text-center" data-placeholder="-"></span>
+            </div>
+          </div>
+
+          <!-- Photo Box -->
+          <div class="w-32 flex flex-col items-center">
+            <div id="photo-box_vocational" class="w-28 h-36 border border-slate-300 relative bg-slate-50 flex items-center justify-center text-xs text-slate-400 cursor-pointer overflow-hidden group shadow-inner" onclick="document.getElementById('photo-uploader_vocational').click()">
+              <img id="photo-img_vocational" src="" alt="Candidate Photo" class="hidden w-full h-full object-cover">
+              <div id="photo-placeholder_vocational" class="text-center p-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto text-slate-300 mb-1 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span data-translate-key="label_click_to_upload">คลิกเพื่ออัปโหลด</span>
+              </div>
+              <div data-translate-key="label_change_photo" class="absolute inset-0 bg-black/40 text-white text-[10px] font-bold opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all no-print">เปลี่ยนรูปภาพ</div>
+            </div>
+            <input type="file" id="photo-uploader_vocational" accept="image/*" class="hidden" onchange="loadLocalPhotoVocational(this)">
+          </div>
+        </div>
+
+        <!-- Selection Results Section -->
+        <div class="mb-5">
+          <div data-translate-key="label_selection_result" class="font-bold text-slate-900 border-b border-slate-800 pb-1 mb-2 text-sm">ผลการคัดเลือก</div>
+          <div class="space-y-3 text-sm pl-2">
+            <!-- Row 1: Growint Together -->
+            <div class="flex items-center flex-wrap gap-2">
+              <span data-translate-key="label_growint_together" class="font-bold text-slate-800 shrink-0">1. ผล Growint Together วันที่</span>
+              <span id="growingTogetherDate_vocational" contenteditable="true" class="editable-field w-40 text-center font-bold" data-placeholder="ระบุวันที่...">17-18 พฤษภาคม 69</span>
+              <span data-translate-key="label_growing_together_gen">รุ่นที่</span>
+              <span id="growingTogetherGen_vocational" contenteditable="true" class="editable-field w-16 text-center font-bold" data-placeholder="ระบุรุ่น...">8</span>
+              <span data-translate-key="label_growing_together_criteria_pass">ผ่านเกณฑ์</span>
+              <span id="growingTogetherCriteria_vocational" contenteditable="true" class="editable-field w-16 text-center font-bold" data-placeholder="ระบุเกณฑ์...">1</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Job Details Table -->
+        <div class="border border-slate-400 mb-5 text-sm">
+          <!-- Row 1 -->
+          <div class="grid grid-cols-2 border-b border-slate-400">
+            <div class="p-2 border-r border-slate-400 flex items-center gap-2">
+              <span data-translate-key="label_position" class="font-bold text-slate-800 shrink-0 w-28">ตำแหน่ง</span>
+              <span id="position_vocational" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุตำแหน่ง..."></span>
+            </div>
+            <div class="p-2 flex items-center gap-2">
+              <span data-translate-key="label_level" class="font-bold text-slate-800 shrink-0 w-32">Level</span>
+              <span id="level_vocational" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุระดับเลเวล...">11</span>
+            </div>
+          </div>
+          <!-- Row 2 -->
+          <div class="grid grid-cols-2 border-b border-slate-400">
+            <div class="p-2 border-r border-slate-400 flex items-center gap-2">
+              <span data-translate-key="label_department" class="font-bold text-slate-800 shrink-0 w-28">แผนก</span>
+              <span id="department_vocational" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุแผนก..."></span>
+            </div>
+            <div class="p-2 flex items-center gap-2">
+              <span data-translate-key="label_division" class="font-bold text-slate-800 shrink-0 w-32">ฝ่าย</span>
+              <span id="division_vocational" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุฝ่าย..."></span>
+            </div>
+          </div>
+          <!-- Row 3 -->
+          <div class="grid grid-cols-2 border-b border-slate-400">
+            <div class="p-2 border-r border-slate-400 flex items-center gap-2">
+              <span data-translate-key="label_company" class="font-bold text-slate-800 shrink-0 w-28">บริษัท</span>
+              <span id="company_job_vocational" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุบริษัท..."></span>
+            </div>
+            <div class="p-2 flex items-center gap-2">
+              <span data-translate-key="label_work_location" class="font-bold text-slate-800 shrink-0 w-32">สถานที่ปฏิบัติงาน</span>
+              <span id="workLocation_vocational" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุสถานที่ทำงาน...">IP2</span>
+            </div>
+          </div>
+          <!-- Row 4 -->
+          <div class="grid grid-cols-2 border-b border-slate-400">
+            <div class="p-2 border-r border-slate-400 flex items-center gap-2">
+              <span data-translate-key="label_supervisor" class="font-bold text-slate-800 shrink-0 w-28">หัวหน้างาน</span>
+              <span id="supervisor_vocational" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุชื่อหัวหน้างาน..."></span>
+            </div>
+            <div class="p-2 flex items-center gap-2">
+              <span data-translate-key="label_supervisor_position" class="font-bold text-slate-800 shrink-0 w-32">ตำแหน่งหัวหน้างาน</span>
+              <span id="supervisorPosition_vocational" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุตำแหน่งหัวหน้า..."></span>
+            </div>
+          </div>
+          <!-- Row 5 -->
+          <div class="grid grid-cols-2">
+            <div class="p-2 border-r border-slate-400 flex items-center gap-2">
+              <span data-translate-key="label_duration" class="font-bold text-slate-800 shrink-0 w-28">ระยะเวลาจ้างงาน</span>
+              <span id="duration_vocational" contenteditable="true" class="editable-field flex-1" data-placeholder="ประจำ / สัญญาจ้าง...">ประจำ</span>
+            </div>
+            <div class="p-2 bg-slate-50/50">
+              <!-- Balanced empty block -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Salary and allowances -->
+        <div class="text-sm space-y-3 mb-6 pl-2">
+          <!-- Row 1: Salary & Work Calendar -->
+          <div class="flex items-center gap-x-2">
+            <span class="font-bold text-slate-900 shrink-0 w-40" data-translate-key="label_salary_rate_monthly">อัตราค่าจ้าง : ค่าจ้าง</span>
+            <span id="salaryRate_vocational" contenteditable="true" class="editable-field w-32 text-center font-bold" data-placeholder="-"></span>
+            <span class="font-bold shrink-0" data-translate-key="label_baht_month">บาท/เดือน</span>
+            
+            <span class="ml-4 font-bold text-slate-800 shrink-0" data-translate-key="label_calendar">ปฏิทินปฏิบัติงาน</span>
+            <span id="calendar-selector-container-voc" class="no-print"></span>
+            <span id="calendar_vocational" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุปฏิทินการทำงาน...">จันทร์-เสาร์ หยุดเสาร์เว้นเสาร์ 08.00-17.00 น.</span>
+          </div>
+
+          <!-- Row 2: Grade allowance -->
+          <div class="flex items-start gap-x-2">
+            <span id="gradeLabel_vocational" contenteditable="true" class="editable-field font-bold text-slate-800 shrink-0 w-40 pl-4 cursor-pointer" data-placeholder="เงินค่าเกรด" data-default-label="เงินค่าเกรด" data-translate-key="val_grade_label_default">เงินค่าเกรด</span>
+            <span id="gradeAllowance_vocational" contenteditable="true" class="editable-field w-32 text-center font-bold" data-placeholder="-"></span>
+            <span class="font-bold shrink-0" data-translate-key="label_baht_month">บาท/เดือน</span>
+            
+            <span class="ml-4 font-bold text-slate-800 shrink-0" data-translate-key="label_condition">เงื่อนไข :</span>
+            <span id="academic-selector-container-voc" class="no-print"></span>
+            <span id="gradeCondition_vocational" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุเงื่อนไข...">ทุกๆ 0.1 ที่เพิ่มขึ้นจาก 3.00 ได้รับ 300 บาท</span>
+          </div>
+
+          <!-- Row 3: Provincial allowance -->
+          <div class="flex items-start gap-x-2">
+            <span class="font-bold text-slate-800 shrink-0 w-40 pl-4" data-translate-key="val_provincial_label_default">ค่าต่างจังหวัด</span>
+            <span id="provincialAllowance_vocational" contenteditable="true" class="editable-field w-32 text-center font-bold" data-placeholder="-"></span>
+            <span class="font-bold shrink-0" data-translate-key="label_baht_month">บาท/เดือน</span>
+            
+            <span class="ml-4 font-bold text-slate-800 shrink-0" data-translate-key="label_condition">เงื่อนไข :</span>
+            <span id="location-selector-container-voc" class="no-print"></span>
+            <span id="provincialCondition_vocational" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุเงื่อนไข...">IP2/IP3 จังหวัดอื่นๆ ได้รับ 3,000 บาท/เดือน</span>
+          </div>
+
+          <!-- Row 4: Job Value -->
+          <div class="flex items-start gap-x-2">
+            <span class="font-bold text-slate-800 shrink-0 w-40" data-translate-key="val_jobvalue_label_default">Job Value</span>
+            <span id="jobValueAllowance_vocational" contenteditable="true" class="editable-field w-32 text-center font-bold" data-placeholder="-">2,500</span>
+            <span class="font-bold shrink-0" data-translate-key="label_baht_month">บาท/เดือน</span>
+            
+            <span class="ml-4 font-bold text-slate-800 shrink-0 w-[60px]" data-translate-key="label_condition">เงื่อนไข :</span>
+            <span id="jobvalue-selector-container-voc" class="no-print"></span>
+            <span id="jobValueCondition_vocational" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุเงื่อนไข...">12.5 ส่วนแรก ประเมินเดือนที่ 1 จ่ายเดือนที่ 2</span>
+          </div>
+
+          <!-- Row 5: Job Value Subcondition -->
+          <div class="flex items-start gap-x-2 relative group/row">
+            <span class="w-40 shrink-0"></span>
+            <span class="w-32 shrink-0"></span>
+            <span class="font-bold shrink-0 invisible" data-translate-key="label_baht_month">บาท/เดือน</span>
+            
+            <span class="ml-4 w-[60px] shrink-0"></span>
+            <span id="jobvalue2-selector-container-voc" class="no-print"></span>
+            <span id="jobValueCondition2_vocational" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุเงื่อนไขเพิ่มเติม...">12.5 ส่วนหลัง ประเมินเดือนที่ 4 จ่ายเดือนที่ 5 หรือเมื่อผ่านทดลองงาน</span>
+          </div>
+
+          <!-- Row 6: Welfare -->
+          <div class="flex items-center gap-x-2">
+            <span class="font-bold text-slate-800 shrink-0 w-40" data-translate-key="label_welfare">สวัสดิการ</span>
+            <span id="welfare_vocational" contenteditable="true" class="editable-field flex-1" data-placeholder="ตามโครงสร้างบริษัท">ตามโครงสร้างบริษัท</span>
+          </div>
+        </div>
+
+        <!-- Closing Text -->
+        <div data-translate-key="label_closing_text" class="mt-auto text-center font-bold text-slate-900 text-sm">
+          จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ
+        </div>
+      </div>
       
     </div>
   </div>
@@ -586,11 +819,13 @@
         ui_template_label: "รูปแบบฟอร์ม:",
         ui_opt_workskill: "ระดับ Work Skill",
         ui_opt_bachelor: "ระดับ ปริญญาตรี",
+        ui_opt_vocational: "ระดับ ปวส.",
         ui_btn_save_png: "บันทึกเป็นรูปภาพ (PNG)",
         ui_btn_print_pdf: "พิมพ์เอกสาร (PDF)",
         ui_btn_close: "ปิดหน้าต่าง",
         doc_title_workskill: "แบบขออนุมัติจ้างงานระดับ Work Skill",
         doc_title_bachelor: "แบบขออนุมัติจ้างพนักงาน วุฒิ ปริญญาตรี",
+        doc_title_vocational: "แบบขออนุมัติจ้างงานระดับ ปวส.",
         label_company: "บริษัท",
         label_fullname: "ชื่อ-สกุล",
         label_age: "อายุ",
@@ -641,7 +876,12 @@
         val_provincial_label_default: "ค่าต่างจังหวัด",
         val_language_label_default: "เงินช่วยเหลือค่าภาษา",
         val_institute_label_default: "เงินค่าสถาบัน",
-        val_bonus_label_default: "เงิน Bonus"
+        val_bonus_label_default: "เงิน Bonus",
+        val_grade_label_default: "เงินค่าเกรด",
+        val_jobvalue_label_default: "Job Value",
+        label_prev_education_title: "วุฒิการศึกษาก่อนหน้า",
+        label_growint_together: "1. ผล Growint Together วันที่",
+        label_growing_together_criteria_pass: "ผ่านเกณฑ์"
       },
       en: {
         ui_header_title: "Hiring Memo Generation System",
@@ -649,11 +889,13 @@
         ui_template_label: "Form Template:",
         ui_opt_workskill: "Work Skill Level",
         ui_opt_bachelor: "Bachelor's Degree Level",
+        ui_opt_vocational: "High Vocational Certificate Level",
         ui_btn_save_png: "Save as Image (PNG)",
         ui_btn_print_pdf: "Print Document (PDF)",
         ui_btn_close: "Close Window",
         doc_title_workskill: "Approval for hiring Work Skill Level",
         doc_title_bachelor: "Approval for hiring Bachelor's Degree",
+        doc_title_vocational: "Approval for hiring Vocational Level (High Vocational Certificate)",
         label_company: "Company",
         label_fullname: "First name - Last name",
         label_age: "Age",
@@ -704,7 +946,12 @@
         val_provincial_label_default: "Upcountry Allowance",
         val_language_label_default: "Language Allowance",
         val_institute_label_default: "Institutional reputation allowance",
-        val_bonus_label_default: "Bonus"
+        val_bonus_label_default: "Bonus",
+        val_grade_label_default: "Grade Allowance",
+        val_jobvalue_label_default: "Job Value",
+        label_prev_education_title: "Previous Education",
+        label_growint_together: "1. Result of Growing Together on",
+        label_growing_together_criteria_pass: "Passed criteria"
       }
     };
 
@@ -748,7 +995,27 @@
         provincialCondition: "IP1 ได้รับ 5,000 บาท/เดือน",
         languageCondition: "ตามนโยบายของบริษัท (TOEIC 695 คะแนน)",
         instituteCondition: "สำหรับผู้ที่จบสาขาบัญชีจากมหาวิทยาลัยเป้าหมายได้รับค่าตอบแทนเพิ่มเข้าฐานเงินเดือน",
-        bonusCondition: "โดยพิจารณาตามรอบการประเมิน Bonus ประจำปีของบริษัท พนักงานจะได้ประโยชน์เมื่อผ่านทดลองงาน และ pro rate ตามจำนวนเดือนที่เริ่มงาน"
+        bonusCondition: "โดยพิจารณาตามรอบการประเมิน Bonus ประจำปีของบริษัท พนักงานจะได้ประโยชน์เมื่อผ่านทดลองงาน และ pro rate ตามจำนวนเดือนที่เริ่มงาน",
+        company_vocational: "ระบุบริษัท...",
+        fullName_vocational: "ระบุชื่อ-นามสกุล...",
+        education_vocational: "ระบุวุฒิ...",
+        major_vocational: "ระบุสาขาวิชา...",
+        institute_vocational: "ระบุสถาบัน...",
+        prev_education_vocational: "ระบุวุฒิเดิม...",
+        prev_major_vocational: "ระบุสาขาวิชา...",
+        prev_institute_vocational: "ระบุสถาบัน...",
+        position_vocational: "ระบุตำแหน่ง...",
+        department_vocational: "ระบุแผนก...",
+        division_vocational: "ระบุฝ่าย...",
+        supervisor_vocational: "ระบุชื่อหัวหน้างาน...",
+        supervisorPosition_vocational: "ระบุตำแหน่งหัวหน้า...",
+        workLocation_vocational: "ระบุสถานที่ทำงาน...",
+        calendar_vocational: "ระบุปฏิทินการทำงาน...",
+        welfare_vocational: "ตามโครงสร้างบริษัท",
+        gradeCondition_vocational: "ระบุเงื่อนไข...",
+        provincialCondition_vocational: "ระบุเงื่อนไข...",
+        jobValueCondition_vocational: "ระบุเงื่อนไข...",
+        jobValueCondition2_vocational: "ระบุเงื่อนไขเพิ่มเติม..."
       },
       en: {
         company: "Specify company...",
@@ -789,7 +1056,27 @@
         provincialCondition: "IP1 received 5,000 Bath/Month",
         languageCondition: "Following company policies (TOEIC - Scores)",
         instituteCondition: "For engineering graduates from target universities, an additional compensation is incorporated into the base salary as follows: Chulalongkorn University: 2,000 THB per month",
-        bonusCondition: "Based on the annual company bonus evaluation cycle, employees will receive the bonus after successfully completing the probationary period, and the amount will be pro-rated according to the number of months since their start date."
+        bonusCondition: "Based on the annual company bonus evaluation cycle, employees will receive the bonus after successfully completing the probationary period, and the amount will be pro-rated according to the number of months since their start date.",
+        company_vocational: "Specify company...",
+        fullName_vocational: "Specify first name - last name...",
+        education_vocational: "Specify degree...",
+        major_vocational: "Specify program/major...",
+        institute_vocational: "Specify university...",
+        prev_education_vocational: "Specify previous degree...",
+        prev_major_vocational: "Specify previous major...",
+        prev_institute_vocational: "Specify previous college...",
+        position_vocational: "Specify position...",
+        department_vocational: "Specify department...",
+        division_vocational: "Specify division...",
+        supervisor_vocational: "Specify supervisor name...",
+        supervisorPosition_vocational: "Specify supervisor's position...",
+        workLocation_vocational: "Specify working site...",
+        calendar_vocational: "Specify operational calendar...",
+        welfare_vocational: "Following company policies",
+        gradeCondition_vocational: "Specify condition...",
+        provincialCondition_vocational: "Specify condition...",
+        jobValueCondition_vocational: "Specify condition...",
+        jobValueCondition2_vocational: "Specify additional condition..."
       }
     };
 
@@ -884,7 +1171,15 @@
       "ปวส.": { en: "High Vocational Certificate", th: "ปวส." },
       "ม.ปลาย": { en: "High School", th: "ม.ปลาย" },
       "ม.ต้น": { en: "Junior High School", th: "ม.ต้น" },
-      "ประถมศึกษา": { en: "Primary School", th: "ประถมศึกษา" }
+      "ประถมศึกษา": { en: "Primary School", th: "ประถมศึกษา" },
+      "ทุกๆ 0.1 ที่เพิ่มขึ้นจาก 3.00 ได้รับ 300 บาท": { en: "Every 0.1 increase from 3.00 receives 300 Baht", th: "ทุกๆ 0.1 ที่เพิ่มขึ้นจาก 3.00 ได้รับ 300 บาท" },
+      "สถาบันรองกลุ่มปวส. จะไม่ได้รับค่าเกรด": { en: "Secondary Vocational Institutes will not receive grade allowance", th: "สถาบันรองกลุ่มปวส. จะไม่ได้รับค่าเกรด" },
+      "IP1 ได้รับ 2,000 บาท/เดือน": { en: "IP1 receives 2,000 Baht/Month", th: "IP1 ได้รับ 2,000 บาท/เดือน" },
+      "DAP ได้รับ 2,500 บาท/เดือน": { en: "DAP receives 2,500 Baht/Month", th: "DAP ได้รับ 2,500 บาท/เดือน" },
+      "IP2/IP3 จังหวัดอื่น ๆ ได้รับ 3,000 บาท/เดือน": { en: "IP2/IP3 other provinces receive 3,000 Baht/Month", th: "IP2/IP3 จังหวัดอื่น ๆ ได้รับ 3,000 บาท/เดือน" },
+      "IP2/IP3 จังหวัดอื่นๆ ได้รับ 3,000 บาท/เดือน": { en: "IP2/IP3 other provinces receive 3,000 Baht/Month", th: "IP2/IP3 จังหวัดอื่นๆ ได้รับ 3,000 บาท/เดือน" },
+      "12.5 ส่วนแรก ประเมินเดือนที่ 1 จ่ายเดือนที่ 2": { en: "12.5% First portion: Evaluated Month 1, paid Month 2", th: "12.5 ส่วนแรก ประเมินเดือนที่ 1 จ่ายเดือนที่ 2" },
+      "12.5 ส่วนหลัง ประเมินเดือนที่ 4 จ่ายเดือนที่ 5 หรือเมื่อผ่านทดลองงาน": { en: "12.5% Second portion: Evaluated Month 4, paid Month 5 or upon passing probation", th: "12.5 ส่วนหลัง ประเมินเดือนที่ 4 จ่ายเดือนที่ 5 หรือเมื่อผ่านทดลองงาน" }
     };
 
     function translateText(text, lang) {
@@ -955,9 +1250,12 @@
       const translatableFieldIds = [
         'company', 'fullName', 'education', 'duration', 'welfare', 'calendar',
         'company_bachelor', 'fullName_bachelor', 'education_bachelor', 'duration_bachelor', 'welfare_bachelor', 'calendar_bachelor',
+        'company_vocational', 'fullName_vocational', 'education_vocational', 'duration_vocational', 'welfare_vocational', 'calendar_vocational',
         'growingTogetherNote', 'growingTogetherResult', 'growingTogetherCriteria', 'catPjtResult',
+        'growingTogetherDate_vocational', 'growingTogetherGen_vocational', 'growingTogetherCriteria_vocational',
         'goodStudyLabel', 'goodStudyCondition', 'provincialCondition', 'languageCondition', 'instituteCondition', 'bonusCondition',
-        'jobCompany', 'company_job_bachelor', 'department', 'division', 'deptDivision_bachelor'
+        'gradeLabel_vocational', 'gradeCondition_vocational', 'provincialCondition_vocational', 'jobValueCondition_vocational', 'jobValueCondition2_vocational',
+        'jobCompany', 'company_job_bachelor', 'company_job_vocational', 'department', 'division', 'deptDivision_bachelor', 'department_vocational', 'division_vocational'
       ];
       translatableFieldIds.forEach(id => {
         const el = document.getElementById(id);
@@ -992,21 +1290,21 @@
 
     // Shared fields list for synchronization
     const sharedFields = [
-      { ws: 'company', bach: 'company_bachelor' },
-      { ws: 'fullName', bach: 'fullName_bachelor' },
-      { ws: 'age', bach: 'age_bachelor' },
-      { ws: 'height', bach: 'height_bachelor' },
-      { ws: 'weight', bach: 'weight_bachelor' },
-      { ws: 'bmi', bach: 'bmi_bachelor' },
-      { ws: 'education', bach: 'education_bachelor' },
-      { ws: 'major', bach: 'major_bachelor' },
-      { ws: 'institute', bach: 'institute_bachelor' },
-      { ws: 'gpa', bach: 'gpa_bachelor' },
-      { ws: 'position', bach: 'position_bachelor' },
-      { ws: 'supervisor', bach: 'supervisor_bachelor' },
-      { ws: 'supervisorPosition', bach: 'supervisorPosition_bachelor' },
-      { ws: 'workLocation', bach: 'workLocation_bachelor' },
-      { ws: 'welfare', bach: 'welfare_bachelor' }
+      { ws: 'company', bach: 'company_bachelor', voc: 'company_vocational' },
+      { ws: 'fullName', bach: 'fullName_bachelor', voc: 'fullName_vocational' },
+      { ws: 'age', bach: 'age_bachelor', voc: 'age_vocational' },
+      { ws: 'height', bach: 'height_bachelor', voc: 'height_vocational' },
+      { ws: 'weight', bach: 'weight_bachelor', voc: 'weight_vocational' },
+      { ws: 'bmi', bach: 'bmi_bachelor', voc: 'bmi_vocational' },
+      { ws: 'education', bach: 'education_bachelor', voc: 'education_vocational' },
+      { ws: 'major', bach: 'major_bachelor', voc: 'major_vocational' },
+      { ws: 'institute', bach: 'institute_bachelor', voc: 'institute_vocational' },
+      { ws: 'gpa', bach: 'gpa_bachelor', voc: 'gpa_vocational' },
+      { ws: 'position', bach: 'position_bachelor', voc: 'position_vocational' },
+      { ws: 'supervisor', bach: 'supervisor_bachelor', voc: 'supervisor_vocational' },
+      { ws: 'supervisorPosition', bach: 'supervisorPosition_bachelor', voc: 'supervisorPosition_vocational' },
+      { ws: 'workLocation', bach: 'workLocation_bachelor', voc: 'workLocation_vocational' },
+      { ws: 'welfare', bach: 'welfare_bachelor', voc: 'welfare_vocational' }
     ];
 
     // Automatically parse candidate data from localStorage on load
@@ -1041,10 +1339,18 @@
             eduName.includes('ป.โท') || 
             eduName.includes('ป.เอก');
 
+          const isVocational =
+            eduLevel === 'vocational' ||
+            eduName.includes('ปวส') ||
+            eduName.includes('ปวส.');
+
           const selector = document.getElementById('template-selector');
           if (isBachelorOrAbove) {
             selector.value = 'bachelor';
             switchTemplate('bachelor');
+          } else if (isVocational) {
+            selector.value = 'vocational';
+            switchTemplate('vocational');
           } else {
             selector.value = 'workskill';
             switchTemplate('workskill');
@@ -1084,6 +1390,39 @@
       return highestEdu;
     }
 
+    function getPreviousEducation(data, highestEdu) {
+      let prevEdu = { level: '', institute: '', major: '', gpa: '' };
+      const eduData = data.education;
+      const levels = ['phd', 'master', 'bachelor', 'vocational', 'highSchool', 'juniorHighSchool', 'primarySchool'];
+      
+      if (Array.isArray(eduData)) {
+        const sorted = [...eduData].filter(e => e && e.institute && e.level !== highestEdu.level).sort((a, b) => {
+          return levels.indexOf(a.level) - levels.indexOf(b.level);
+        });
+        if (sorted.length > 0) {
+          prevEdu = sorted[0];
+        }
+      } else if (eduData && typeof eduData === 'object') {
+        let foundHighest = false;
+        for (const lvl of levels) {
+          if (lvl === highestEdu.level) {
+            foundHighest = true;
+            continue;
+          }
+          if (foundHighest && eduData[lvl] && eduData[lvl].institute) {
+            prevEdu = {
+              level: lvl,
+              institute: eduData[lvl].institute,
+              major: eduData[lvl].major,
+              gpa: eduData[lvl].gpa
+            };
+            break;
+          }
+        }
+      }
+      return prevEdu;
+    }
+
     function populateData(data) {
       console.log("Populating data:", data);
 
@@ -1105,6 +1444,8 @@
       document.getElementById('jobCompany').textContent = companyName;
       document.getElementById('company_bachelor').textContent = companyName;
       document.getElementById('company_job_bachelor').textContent = companyName;
+      document.getElementById('company_vocational').textContent = companyName;
+      document.getElementById('company_job_vocational').textContent = companyName;
 
       // 2. Candidate full name
       const prefix = data.prefix || '';
@@ -1113,6 +1454,7 @@
       const fullName = `${prefix} ${firstName} ${lastName}`.trim() || data.full_name || '';
       document.getElementById('fullName').textContent = fullName;
       document.getElementById('fullName_bachelor').textContent = fullName;
+      document.getElementById('fullName_vocational').textContent = fullName;
 
       // 3. Age, Height, Weight
       let cleanedAge = '';
@@ -1120,18 +1462,23 @@
         cleanedAge = String(data.age).replace(/[^0-9]/g, '');
         document.getElementById('age').textContent = cleanedAge || data.age || '';
         document.getElementById('age_bachelor').textContent = cleanedAge || data.age || '';
+        document.getElementById('age_vocational').textContent = cleanedAge || data.age || '';
       }
       if (data.height) {
         document.getElementById('height').textContent = data.height;
         document.getElementById('height_bachelor').textContent = data.height;
+        document.getElementById('height_vocational').textContent = data.height;
       }
       if (data.weight) {
         document.getElementById('weight').textContent = data.weight;
         document.getElementById('weight_bachelor').textContent = data.weight;
+        document.getElementById('weight_vocational').textContent = data.weight;
       }
       
       calculateBMI();
       calculateBMIBachelor();
+      calculateBMIVocational();
+      autoCalculateGradeAllowance();
 
       // 4. Education Credentials
       const highestEdu = getHighestEducation(data);
@@ -1145,9 +1492,19 @@
         'primarySchool': 'ประถมศึกษา'
       };
 
+      const prevLevelMap = {
+        'phd': 'ปริญญาเอก',
+        'master': 'ปริญญาโท',
+        'bachelor': 'ปริญญาตรี',
+        'vocational': 'ปวส.',
+        'highSchool': 'ปวช.', // Treat high school as ปวช. contextually if they are vocational stream
+        'juniorHighSchool': 'ม.ต้น',
+        'primarySchool': 'ประถมศึกษา'
+      };
+
+      const eduLevelText = levelMap[highestEdu.level] || highestEdu.level || '';
+
       if (highestEdu.institute) {
-        const eduLevelText = levelMap[highestEdu.level] || highestEdu.level || '';
-        
         // Work Skill
         document.getElementById('education').textContent = eduLevelText;
         document.getElementById('major').textContent = highestEdu.major || '';
@@ -1159,6 +1516,21 @@
         document.getElementById('major_bachelor').textContent = highestEdu.major || '';
         document.getElementById('institute_bachelor').textContent = highestEdu.institute || '';
         document.getElementById('gpa_bachelor').textContent = highestEdu.gpa || '';
+
+        // Vocational (ปวส.)
+        document.getElementById('education_vocational').textContent = eduLevelText;
+        document.getElementById('major_vocational').textContent = highestEdu.major || '';
+        document.getElementById('institute_vocational').textContent = highestEdu.institute || '';
+        document.getElementById('gpa_vocational').textContent = highestEdu.gpa || '';
+        
+        // Previous Education for Vocational (ปวส.)
+        const prevEdu = getPreviousEducation(data, highestEdu);
+        const prevEduLevelText = prevLevelMap[prevEdu.level] || prevEdu.level || 'ปวช.';
+        
+        document.getElementById('prev_education_vocational').textContent = prevEduLevelText;
+        document.getElementById('prev_major_vocational').textContent = prevEdu.major || '';
+        document.getElementById('prev_institute_vocational').textContent = prevEdu.institute || '';
+        document.getElementById('prev_gpa_vocational').textContent = prevEdu.gpa || '';
       }
 
       // 5. Photo
@@ -1179,6 +1551,12 @@
         photoImgBach.src = proxyUrl;
         photoImgBach.classList.remove('hidden');
         document.getElementById('photo-placeholder_bachelor').classList.add('hidden');
+
+        // Vocational Photo
+        const photoImgVoc = document.getElementById('photo-img_vocational');
+        photoImgVoc.src = proxyUrl;
+        photoImgVoc.classList.remove('hidden');
+        document.getElementById('photo-placeholder_vocational').classList.add('hidden');
       }
 
       // 6. Interview Date
@@ -1201,6 +1579,13 @@
       document.getElementById('deptDivision_bachelor').textContent = data.department || '';
       document.getElementById('workLocation_bachelor').textContent = 'IP1'; // Default matching the sample
       document.getElementById('duration_bachelor').textContent = 'ประจำ';
+
+      // Vocational (ปวส.)
+      document.getElementById('position_vocational').textContent = data.position || '';
+      document.getElementById('department_vocational').textContent = data.department || '';
+      document.getElementById('division_vocational').textContent = data.department || '';
+      document.getElementById('workLocation_vocational').textContent = 'IP2'; // Default matching the sample
+      document.getElementById('duration_vocational').textContent = 'ประจำ';
     }
 
     function switchTemplate(type) {
@@ -1214,26 +1599,31 @@
       // Update DOM visibility
       const wsLayout = document.getElementById('workskill-layout');
       const bachLayout = document.getElementById('bachelor-layout');
+      const vocLayout = document.getElementById('vocational-layout');
+      
+      wsLayout.classList.add('hidden');
+      wsLayout.classList.remove('flex');
+      bachLayout.classList.add('hidden');
+      bachLayout.classList.remove('flex');
+      vocLayout.classList.add('hidden');
+      vocLayout.classList.remove('flex');
       
       if (type === 'bachelor') {
-        wsLayout.classList.add('hidden');
-        wsLayout.classList.remove('flex');
         bachLayout.classList.remove('hidden');
         bachLayout.classList.add('flex');
+      } else if (type === 'vocational') {
+        vocLayout.classList.remove('hidden');
+        vocLayout.classList.add('flex');
       } else {
-        bachLayout.classList.add('hidden');
-        bachLayout.classList.remove('flex');
         wsLayout.classList.remove('hidden');
         wsLayout.classList.add('flex');
       }
     }
 
     function syncTemplates(fromType, toType) {
-      const isFromWs = fromType === 'workskill';
-      
       sharedFields.forEach(field => {
-        const fromId = isFromWs ? field.ws : field.bach;
-        const toId = isFromWs ? field.bach : field.ws;
+        const fromId = field[fromType === 'workskill' ? 'ws' : (fromType === 'bachelor' ? 'bach' : 'voc')];
+        const toId = field[toType === 'workskill' ? 'ws' : (toType === 'bachelor' ? 'bach' : 'voc')];
         
         const fromEl = document.getElementById(fromId);
         const toEl = document.getElementById(toId);
@@ -1243,27 +1633,53 @@
       });
       
       // Synchronize Company name inside Job table
-      const fromJobCompany = document.getElementById(isFromWs ? 'jobCompany' : 'company_job_bachelor');
-      const toJobCompany = document.getElementById(isFromWs ? 'company_job_bachelor' : 'jobCompany');
+      const fromJobCompany = document.getElementById(
+        fromType === 'workskill' ? 'jobCompany' : 
+        (fromType === 'bachelor' ? 'company_job_bachelor' : 'company_job_vocational')
+      );
+      const toJobCompany = document.getElementById(
+        toType === 'workskill' ? 'jobCompany' : 
+        (toType === 'bachelor' ? 'company_job_bachelor' : 'company_job_vocational')
+      );
       if (fromJobCompany && toJobCompany) {
         toJobCompany.textContent = fromJobCompany.textContent;
       }
 
       // Synchronize division/department
-      const fromDept = document.getElementById(isFromWs ? 'department' : 'deptDivision_bachelor');
-      const toDept = document.getElementById(isFromWs ? 'deptDivision_bachelor' : 'department');
+      const fromDept = document.getElementById(
+        fromType === 'workskill' ? 'department' : 
+        (fromType === 'bachelor' ? 'deptDivision_bachelor' : 'department_vocational')
+      );
+      const toDept = document.getElementById(
+        toType === 'workskill' ? 'department' : 
+        (toType === 'bachelor' ? 'deptDivision_bachelor' : 'department_vocational')
+      );
       if (fromDept && toDept) {
         toDept.textContent = fromDept.textContent;
       }
-      if (isFromWs) {
-        document.getElementById('division').textContent = fromDept.textContent;
+      if (toType === 'workskill') {
+        document.getElementById('division').textContent = toDept.textContent;
+      } else if (toType === 'vocational') {
+        document.getElementById('division_vocational').textContent = toDept.textContent;
       }
 
       // Synchronize Photo
-      const fromImg = document.getElementById(isFromWs ? 'photo-img' : 'photo-img_bachelor');
-      const toImg = document.getElementById(isFromWs ? 'photo-img_bachelor' : 'photo-img');
-      const fromPlaceholder = document.getElementById(isFromWs ? 'photo-placeholder' : 'photo-placeholder_bachelor');
-      const toPlaceholder = document.getElementById(isFromWs ? 'photo-placeholder_bachelor' : 'photo-placeholder');
+      const fromImg = document.getElementById(
+        fromType === 'workskill' ? 'photo-img' : 
+        (fromType === 'bachelor' ? 'photo-img_bachelor' : 'photo-img_vocational')
+      );
+      const toImg = document.getElementById(
+        toType === 'workskill' ? 'photo-img' : 
+        (toType === 'bachelor' ? 'photo-img_bachelor' : 'photo-img_vocational')
+      );
+      const fromPlaceholder = document.getElementById(
+        fromType === 'workskill' ? 'photo-placeholder' : 
+        (fromType === 'bachelor' ? 'photo-placeholder_bachelor' : 'photo-placeholder_vocational')
+      );
+      const toPlaceholder = document.getElementById(
+        toType === 'workskill' ? 'photo-placeholder' : 
+        (toType === 'bachelor' ? 'photo-placeholder_bachelor' : 'photo-placeholder_vocational')
+      );
       
       if (fromImg && toImg && fromPlaceholder && toPlaceholder) {
         if (!fromImg.classList.contains('hidden')) {
@@ -1274,6 +1690,10 @@
           toImg.classList.add('hidden');
           toPlaceholder.classList.remove('hidden');
         }
+      }
+      
+      if (toType === 'vocational') {
+        autoCalculateGradeAllowance();
       }
     }
 
@@ -1306,6 +1726,50 @@
       }
     }
 
+    function calculateBMIVocational() {
+      const height = parseFloat(document.getElementById('height_vocational').textContent);
+      const weight = parseFloat(document.getElementById('weight_vocational').textContent);
+      const bmiInput = document.getElementById('bmi_vocational');
+
+      if (height && weight && height > 0) {
+        const heightInMeters = height / 100;
+        const bmi = weight / (heightInMeters * heightInMeters);
+        bmiInput.textContent = bmi.toFixed(2);
+      } else {
+        bmiInput.textContent = '';
+      }
+    }
+
+    function autoCalculateGradeAllowance() {
+      const gpaEl = document.getElementById('gpa_vocational');
+      const conditionEl = document.getElementById('gradeCondition_vocational');
+      const allowanceEl = document.getElementById('gradeAllowance_vocational');
+      if (!gpaEl || !allowanceEl) return;
+
+      const conditionText = conditionEl ? conditionEl.textContent.trim() : '';
+      
+      // If the condition is for secondary institute (which receives no allowance)
+      if (conditionText.includes('สถาบันรอง')) {
+        allowanceEl.textContent = '0';
+        return;
+      }
+
+      const gpa = parseFloat(gpaEl.textContent);
+      if (isNaN(gpa) || gpa < 3.00) {
+        allowanceEl.textContent = '0';
+        return;
+      }
+
+      // Formula: every 0.1 GPA above 3.00 is worth 300 Baht, capped at 3,000 Baht.
+      const diff = gpa - 3.00;
+      const steps = Math.floor(Math.round(diff * 100) / 10);
+      let allowance = steps * 300;
+      if (allowance < 0) allowance = 0;
+      if (allowance > 3000) allowance = 3000;
+
+      allowanceEl.textContent = allowance.toLocaleString('th-TH');
+    }
+
     // Load local photo for crop/change on click
     function loadLocalPhoto(input) {
       if (input.files && input.files[0]) {
@@ -1316,11 +1780,18 @@
           photoImg.classList.remove('hidden');
           document.getElementById('photo-placeholder').classList.add('hidden');
           
-          // Sync to bachelor photo too
+          // Sync to other templates
           const photoImgBach = document.getElementById('photo-img_bachelor');
           photoImgBach.src = e.target.result;
           photoImgBach.classList.remove('hidden');
           document.getElementById('photo-placeholder_bachelor').classList.add('hidden');
+
+          const photoImgVoc = document.getElementById('photo-img_vocational');
+          if (photoImgVoc) {
+            photoImgVoc.src = e.target.result;
+            photoImgVoc.classList.remove('hidden');
+            document.getElementById('photo-placeholder_vocational').classList.add('hidden');
+          }
         };
         reader.readAsDataURL(input.files[0]);
       }
@@ -1335,11 +1806,42 @@
           photoImgBach.classList.remove('hidden');
           document.getElementById('photo-placeholder_bachelor').classList.add('hidden');
           
-          // Sync to workskill photo too
+          // Sync to other templates
           const photoImg = document.getElementById('photo-img');
           photoImg.src = e.target.result;
           photoImg.classList.remove('hidden');
           document.getElementById('photo-placeholder').classList.add('hidden');
+
+          const photoImgVoc = document.getElementById('photo-img_vocational');
+          if (photoImgVoc) {
+            photoImgVoc.src = e.target.result;
+            photoImgVoc.classList.remove('hidden');
+            document.getElementById('photo-placeholder_vocational').classList.add('hidden');
+          }
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    function loadLocalPhotoVocational(input) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const photoImgVoc = document.getElementById('photo-img_vocational');
+          photoImgVoc.src = e.target.result;
+          photoImgVoc.classList.remove('hidden');
+          document.getElementById('photo-placeholder_vocational').classList.add('hidden');
+          
+          // Sync to other templates
+          const photoImg = document.getElementById('photo-img');
+          photoImg.src = e.target.result;
+          photoImg.classList.remove('hidden');
+          document.getElementById('photo-placeholder').classList.add('hidden');
+
+          const photoImgBach = document.getElementById('photo-img_bachelor');
+          photoImgBach.src = e.target.result;
+          photoImgBach.classList.remove('hidden');
+          document.getElementById('photo-placeholder_bachelor').classList.add('hidden');
         };
         reader.readAsDataURL(input.files[0]);
       }
@@ -1363,9 +1865,16 @@
           // Remove exporting class to restore editing style
           document.body.classList.remove('exporting-image');
 
-          const nameId = activeTemplate === 'workskill' ? 'fullName' : 'fullName_bachelor';
+          let nameId = 'fullName';
+          let prefixName = 'Memo_WorkSkill';
+          if (activeTemplate === 'bachelor') {
+            nameId = 'fullName_bachelor';
+            prefixName = 'Memo_Bachelor';
+          } else if (activeTemplate === 'vocational') {
+            nameId = 'fullName_vocational';
+            prefixName = 'Memo_Vocational';
+          }
           const fullName = document.getElementById(nameId).textContent.trim().replace(/\s+/g, '_') || 'Candidate';
-          const prefixName = activeTemplate === 'workskill' ? 'Memo_WorkSkill' : 'Memo_Bachelor';
           
           const link = document.createElement('a');
           link.download = `${prefixName}_${fullName}.png`;
@@ -1402,13 +1911,26 @@
 
         const targetEl = document.getElementById(targetId);
         if (!targetEl) return;
-        
-        const activeCalendars = masterCalendars.filter(c => c.is_active !== false);
-        if (activeCalendars.length === 0) return;
 
         // Bind click directly on the text box
         targetEl.addEventListener('click', (e) => {
           e.stopPropagation();
+
+          // Dynamically filter calendars by education level
+          const activeCalendars = masterCalendars.filter(c => {
+            if (c.is_active === false) return false;
+            if (activeTemplate === 'vocational') {
+              return c.education_level === 'vocational';
+            } else if (activeTemplate === 'bachelor') {
+              return c.education_level === 'bachelor' || !c.education_level;
+            } else {
+              // workskill
+              return c.education_level === 'workskill' || !c.education_level;
+            }
+          });
+
+          if (activeCalendars.length === 0) return;
+
           const options = activeCalendars.map(c => {
             const translatedTitle = translateText(c.title, currentLang);
             const translatedDesc = translateText(c.description, currentLang);
@@ -1427,13 +1949,12 @@
 
       setupCalendarSelect('calendar-selector-container-ws', 'calendar');
       setupCalendarSelect('calendar-selector-container-bach', 'calendar_bachelor');
+      setupCalendarSelect('calendar-selector-container-voc', 'calendar_vocational');
 
       // 2. Setup Allowance Conditions Selectors
       const setupAllowanceSelect = (containerId, category, labelId, descId, amountId) => {
         const container = document.getElementById(containerId);
         if (container) container.innerHTML = ''; // Clear the DDL button completely
-
-        const activeConds = masterConditions.filter(c => c.category === category && c.is_active !== false);
 
         // Click trigger element: if labelId is provided, click on label. Otherwise, click on description text field.
         const triggerEl = labelId ? document.getElementById(labelId) : document.getElementById(descId);
@@ -1442,6 +1963,19 @@
         // Bind click directly on the trigger element
         triggerEl.addEventListener('click', (e) => {
           e.stopPropagation();
+
+          // Dynamically filter conditions by category and education level
+          const activeConds = masterConditions.filter(c => {
+            if (c.category !== category || c.is_active === false) return false;
+            if (activeTemplate === 'vocational') {
+              return c.education_level === 'vocational';
+            } else if (activeTemplate === 'bachelor') {
+              return c.education_level === 'bachelor' || !c.education_level;
+            } else {
+              // workskill
+              return c.education_level === 'workskill' || !c.education_level;
+            }
+          });
 
           const options = activeConds.map(c => {
             const translatedTitle = translateText(c.title, currentLang);
@@ -1468,11 +2002,18 @@
         });
       };
 
+      // Bachelor Allowances
       setupAllowanceSelect('academic-selector-container', 'academic', 'goodStudyLabel', 'goodStudyCondition', 'goodStudyAllowance');
       setupAllowanceSelect('location-selector-container', 'location', null, 'provincialCondition', 'provincialAllowance');
       setupAllowanceSelect('language-selector-container', 'language', null, 'languageCondition', 'languageAllowance');
       setupAllowanceSelect('institute-selector-container', 'institute', null, 'instituteCondition', 'instituteAllowance');
       setupAllowanceSelect('bonus-selector-container', 'bonus', null, 'bonusCondition', 'bonusRate');
+
+      // Vocational Allowances
+      setupAllowanceSelect('academic-selector-container-voc', 'academic', null, 'gradeCondition_vocational', 'gradeAllowance_vocational');
+      setupAllowanceSelect('location-selector-container-voc', 'location', null, 'provincialCondition_vocational', 'provincialAllowance_vocational');
+      setupAllowanceSelect('jobvalue-selector-container-voc', 'bonus', null, 'jobValueCondition_vocational', 'jobValueAllowance_vocational');
+      setupAllowanceSelect('jobvalue2-selector-container-voc', 'bonus', null, 'jobValueCondition2_vocational', null);
     }
 
     // Floating Menu Renderer
@@ -1567,6 +2108,10 @@
             amountEl.textContent = numVal > 0 ? numVal.toLocaleString('th-TH') : '-';
           }
         }
+      }
+
+      if (descId === 'gradeCondition_vocational' || amountId === 'gradeAllowance_vocational') {
+        autoCalculateGradeAllowance();
       }
     }
   </script>

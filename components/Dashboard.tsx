@@ -1717,11 +1717,19 @@ const MasterDataConfig = () => {
                         {activeTable === 'memo_conditions' ? (
                           <div>
                             <span className="font-semibold text-[10px] text-indigo-700 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded mr-2 uppercase">{item.category}</span>
+                            {item.education_level && (
+                              <span className="font-semibold text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded mr-2 uppercase">{item.education_level}</span>
+                            )}
                             <span className="text-gray-600 font-bold text-xs bg-slate-100 px-2 py-0.5 rounded">Amount: {parseFloat(item.amount || 0).toLocaleString('th-TH')} บาท</span>
                             <div className="text-[11px] text-gray-400 mt-1 max-w-sm truncate" title={item.condition_text}>{item.condition_text}</div>
                           </div>
                         ) : activeTable === 'memo_calendars' ? (
-                          <div className="text-xs text-gray-500 max-w-sm truncate" title={item.description}>{item.description}</div>
+                          <div>
+                            {item.education_level && (
+                              <span className="font-semibold text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded mr-2 uppercase">{item.education_level}</span>
+                            )}
+                            <div className="text-xs text-gray-500 max-w-sm truncate inline-block" title={item.description}>{item.description}</div>
+                          </div>
                         ) : (
                           item.name_en || '-'
                         )}
@@ -1770,13 +1778,21 @@ const MasterDataConfig = () => {
                           <div className="text-xs text-gray-500 mt-1 space-y-1">
                             <div>
                               <span className="font-semibold text-[10px] text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded mr-1.5 uppercase">{item.category}</span>
+                              {item.education_level && (
+                                <span className="font-semibold text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded mr-1.5 uppercase">{item.education_level}</span>
+                              )}
                               <span className="font-bold text-gray-700">{parseFloat(item.amount || 0).toLocaleString('th-TH')} บาท</span>
                             </div>
                             <div className="text-[11px] text-gray-400 line-clamp-2">{item.condition_text}</div>
                           </div>
                         )}
                         {activeTable === 'memo_calendars' && (
-                          <div className="text-xs text-gray-400 mt-1 line-clamp-2">{item.description}</div>
+                          <div className="text-xs text-gray-400 mt-1">
+                            {item.education_level && (
+                              <span className="font-semibold text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded mr-1.5 uppercase">{item.education_level}</span>
+                            )}
+                            <span className="line-clamp-2">{item.description}</span>
+                          </div>
                         )}
                         {!['memo_conditions', 'memo_calendars'].includes(activeTable) && item.name_en && (
                           <div className="text-sm text-gray-500">{item.name_en}</div>
@@ -1961,6 +1977,18 @@ const MasterDataConfig = () => {
                   <option value="other">Other (อื่นๆ)</option>
                 </select>
               </div>
+              <div className="flex flex-col">
+                <label className="text-sm font-semibold text-gray-700 mb-1">ระดับการศึกษา (Education Level)</label>
+                <select
+                  className="border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+                  value={formData.education_level || ''}
+                  onChange={(e) => setFormData({ ...formData, education_level: e.target.value || null })}
+                >
+                  <option value="">ทั้งหมด (All)</option>
+                  <option value="bachelor">ปริญญาตรี (Bachelor)</option>
+                  <option value="vocational">ปวส. (Vocational)</option>
+                </select>
+              </div>
               <Input label="ชื่อเงื่อนไขย่อ (Title)" value={formData.title || ''} onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
               <Input label="จำนวนเงิน (Amount)" type="number" value={formData.amount ?? ''} onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })} />
               <div className="flex flex-col">
@@ -1979,6 +2007,18 @@ const MasterDataConfig = () => {
           {activeTable === 'memo_calendars' && (
             <>
               <Input label="ชื่อปฏิทินย่อ (Title)" value={formData.title || ''} onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
+              <div className="flex flex-col">
+                <label className="text-sm font-semibold text-gray-700 mb-1">ระดับการศึกษา (Education Level)</label>
+                <select
+                  className="border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+                  value={formData.education_level || ''}
+                  onChange={(e) => setFormData({ ...formData, education_level: e.target.value || null })}
+                >
+                  <option value="">ทั้งหมด (All)</option>
+                  <option value="bachelor">ปริญญาตรี (Bachelor)</option>
+                  <option value="vocational">ปวส. (Vocational)</option>
+                </select>
+              </div>
               <div className="flex flex-col">
                 <label className="text-sm font-semibold text-gray-700 mb-1">รายละเอียดช่วงเวลาทำงาน (Description)</label>
                 <textarea
