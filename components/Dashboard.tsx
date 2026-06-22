@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { MOCK_BU } from '../constants';
 import { Card, Button, Input, Select, Modal } from './UIComponents';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { LucideIcon, Home, FileText, QrCode, Settings, LogOut, CheckCircle, XCircle, Search, Filter, Download, ExternalLink, Calendar, Menu, X, ChevronRight, ChevronLeft, ChevronDown, User, Shield, Users, Copy, Check, Database, Plus, Edit, Trash2, Building2, Tag, GraduationCap, MapPin, Phone, UserPlus, UserCheck, History, Clock, ArrowRightLeft, BarChart2, ShieldAlert } from 'lucide-react';
+import { LucideIcon, Home, FileText, QrCode, Settings, LogOut, CheckCircle, XCircle, Search, Filter, Download, ExternalLink, Calendar, Menu, X, ChevronRight, ChevronLeft, ChevronDown, User, Shield, Users, Copy, Check, Database, Plus, Edit, Trash2, Building2, Tag, GraduationCap, MapPin, Phone, UserPlus, UserCheck, History, Clock, ArrowRightLeft, BarChart2, ShieldAlert, Save } from 'lucide-react';
 import { api } from '../services/api';
 import { supabase } from '../supabaseClient';
 import { Role, BlacklistEntry } from '../types';
@@ -1376,6 +1376,7 @@ const MasterDataConfig = ({ showToast }: { showToast: (message: string, type?: '
 
   // Confirmation State
   const [confirmAction, setConfirmAction] = useState<{ type: 'toggle', id: number, current: boolean } | null>(null);
+  const [isConfirmSaveOpen, setIsConfirmSaveOpen] = useState(false);
 
   // Redesign State: Search, Filter, Pagination
   const [searchQuery, setSearchQuery] = useState('');
@@ -1535,8 +1536,8 @@ const MasterDataConfig = ({ showToast }: { showToast: (message: string, type?: '
     setConfirmAction(null);
   };
 
-  const handleSave = async () => {
-    console.log("Saving...", formData);
+  const handleSave = () => {
+    console.log("Validating before save...", formData);
     // Enhanced Validation
     const isMemo = ['memo_conditions', 'memo_calendars'].includes(activeTable);
     const hasAnyName = isMemo 
@@ -1548,9 +1549,11 @@ const MasterDataConfig = ({ showToast }: { showToast: (message: string, type?: '
       return;
     }
 
-    const isConfirmed = window.confirm("คุณยืนยันที่จะบันทึกการเปลี่ยนแปลงนี้ใช่หรือไม่?");
-    if (!isConfirmed) return;
+    setIsConfirmSaveOpen(true);
+  };
 
+  const executeSave = async () => {
+    setIsConfirmSaveOpen(false);
     try {
       if (editingItem) {
         console.log("Updating item:", editingItem.id);
@@ -2061,6 +2064,26 @@ const MasterDataConfig = ({ showToast }: { showToast: (message: string, type?: '
           <div className="flex gap-3 justify-center">
             <Button variant="outline" onClick={() => setConfirmAction(null)}>Cancel</Button>
             <Button onClick={confirmToggle}>{confirmAction?.current ? 'Deactivate' : 'Activate'}</Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isConfirmSaveOpen}
+        onClose={() => setIsConfirmSaveOpen(false)}
+        title="ยืนยันการบันทึกข้อมูล"
+        footer={null}
+      >
+        <div className="text-center py-4">
+          <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600">
+            <Save className="w-6 h-6" />
+          </div>
+          <p className="mb-6 text-gray-600">
+            คุณยืนยันที่จะบันทึกการเปลี่ยนแปลงนี้ใช่หรือไม่?
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Button variant="outline" onClick={() => setIsConfirmSaveOpen(false)}>ยกเลิก</Button>
+            <Button onClick={executeSave}>ยืนยัน</Button>
           </div>
         </div>
       </Modal>
