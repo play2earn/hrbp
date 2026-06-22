@@ -725,7 +725,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
           )}
 
           {activeTab === 'config' && (
-            <MasterDataConfig />
+            <MasterDataConfig showToast={showToast} />
           )}
 
           {activeTab === 'blacklist' && (
@@ -1359,7 +1359,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
 };
 
 // --- Sub-component for Master Data Configuration ---
-const MasterDataConfig = () => {
+const MasterDataConfig = ({ showToast }: { showToast: (message: string, type?: 'success' | 'error') => void }) => {
   const [activeTable, setActiveTable] = useState('departments');
   const [data, setData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -1538,14 +1538,18 @@ const MasterDataConfig = () => {
   const handleSave = async () => {
     console.log("Saving...", formData);
     // Enhanced Validation
-    const hasName = formData.name || (formData.name_th && formData.name_en);
-    // Some tables might only have name_th, so let's be flexible
-    const hasAnyName = formData.name || formData.name_th || formData.name_en;
+    const isMemo = ['memo_conditions', 'memo_calendars'].includes(activeTable);
+    const hasAnyName = isMemo 
+      ? formData.title 
+      : (formData.name || formData.name_th || formData.name_en);
 
     if (!hasAnyName) {
-      alert("Please enter a name.");
+      alert(isMemo ? "Please enter a title." : "Please enter a name.");
       return;
     }
+
+    const isConfirmed = window.confirm("คุณยืนยันที่จะบันทึกการเปลี่ยนแปลงนี้ใช่หรือไม่?");
+    if (!isConfirmed) return;
 
     try {
       if (editingItem) {
@@ -1561,9 +1565,10 @@ const MasterDataConfig = () => {
       setEditingItem(null);
       setFormData({});
       fetchTableData();
-    } catch (err) {
+      showToast('บันทึกข้อมูลเรียบร้อยแล้ว', 'success');
+    } catch (err: any) {
       console.error("Save failed:", err);
-      alert("Failed to save. check console.");
+      showToast(`เกิดข้อผิดพลาดในการบันทึก: ${err.message || 'Unknown error'}`, 'error');
     }
   };
 

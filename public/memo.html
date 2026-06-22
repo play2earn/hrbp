@@ -313,6 +313,19 @@
             <span id="calendar" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุปฏิทินการทำงาน...">วันจันทร์-เสาร์ หยุดวันอาทิตย์ (08.00-17.00 น.) หรือตามตารางการทำงาน</span>
           </div>
 
+          <!-- Job Value Row -->
+          <div class="flex items-start gap-x-2">
+            <span class="w-20 shrink-0"></span>
+            <span class="shrink-0"></span>
+            <span data-translate-key="val_jobvalue_label_default" class="text-slate-800 font-bold shrink-0 w-[52px]">Job Value</span>
+            <span id="jobValueAllowance" contenteditable="true" class="editable-field w-32 text-center font-bold" data-placeholder="-"></span>
+            <span data-translate-key="label_baht_month" class="font-bold shrink-0">บาท/เดือน</span>
+            
+            <span data-translate-key="label_condition" class="ml-4 font-bold text-slate-800 shrink-0">เงื่อนไข :</span>
+            <span id="jobvalue-selector-container-ws" class="no-print"></span>
+            <span id="jobValueCondition" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุเงื่อนไข..."></span>
+          </div>
+
           <div class="flex items-center gap-x-2">
             <span class="w-20 shrink-0"></span>
             <span class="shrink-0"></span>
@@ -420,10 +433,28 @@
               <span data-translate-key="label_growing_together_note" class="font-bold text-slate-800 shrink-0 text-[11px] mt-1">หมายเหตุ:</span>
               <span id="growingTogetherNote" contenteditable="true" class="editable-field flex-1 text-xs text-slate-600 font-medium" data-placeholder="ระบุหมายเหตุการเข้าร่วมกิจกรรม (เว้นว่างได้)...">ผู้สมัครจะต้องเข้าร่วมกิจกรรม Growing Together กับทางบริษัทภายในระยะเวลาทดลองงาน 119 วัน ซึ่งเป็นเงื่อนไขในการรับเข้าทำงาน หรือ ผ่านทดลองงาน</span>
             </div>
-            
-            <!-- Row 2: CAT & PJT -->
+
+            <!-- Row 2: Interview Result -->
             <div class="flex items-center flex-wrap gap-2">
-              <span data-translate-key="label_cat_pjt" class="font-bold text-slate-800 w-[250px] shrink-0">2. ผลแบบทดสอบวัดผล CAT และ PJT</span>
+              <span data-translate-key="label_interview_result_2" class="font-bold text-slate-800 w-[250px] shrink-0">2. ผลการสัมภาษณ์</span>
+              <span data-translate-key="label_interview_date">วันที่</span>
+              <span id="interviewDate_bachelor" contenteditable="true" class="editable-field w-40 text-center" data-placeholder="ระบุวันที่สัมภาษณ์..."></span>
+              <span data-translate-key="label_interview_score">คะแนน</span>
+              <span id="interviewScore_bachelor" contenteditable="true" class="editable-field w-20 text-center" data-placeholder="-"></span>
+              <span data-translate-key="label_interview_percent">คิดเป็น</span>
+              <span id="interviewPercent_bachelor" contenteditable="true" class="editable-field w-20 text-center" data-placeholder="-"></span>
+              <span>%</span>
+            </div>
+
+            <!-- Row 3: Interviewers -->
+            <div class="flex items-start gap-2">
+              <span data-translate-key="label_interviewers_3" class="font-bold text-slate-800 shrink-0 w-[250px] mt-1">3. กรรมการสัมภาษณ์</span>
+              <div id="interviewers_bachelor" contenteditable="true" class="editable-field flex-1 min-h-[50px]" data-placeholder="ระบุรายชื่อกรรมการสัมภาษณ์..."></div>
+            </div>
+            
+            <!-- Row 4: CAT & PJT -->
+            <div class="flex items-center flex-wrap gap-2">
+              <span data-translate-key="label_cat_pjt" class="font-bold text-slate-800 w-[250px] shrink-0">4. ผลแบบทดสอบวัดผล CAT และ PJT</span>
               <span id="catPjtResult" contenteditable="true" class="editable-field w-32 text-center font-bold" data-placeholder="ผ่านเกณฑ์...">ผ่านเกณฑ์ 1</span>
             </div>
           </div>
@@ -660,14 +691,38 @@
         <div class="mb-5">
           <div data-translate-key="label_selection_result" class="font-bold text-slate-900 border-b border-slate-800 pb-1 mb-2 text-sm">ผลการคัดเลือก</div>
           <div class="space-y-3 text-sm pl-2">
-            <!-- Row 1: Growint Together -->
+            <!-- Row 1: Growing Together -->
             <div class="flex items-center flex-wrap gap-2">
-              <span data-translate-key="label_growint_together" class="font-bold text-slate-800 shrink-0">1. ผล Growint Together วันที่</span>
+              <span data-translate-key="label_growint_together" class="font-bold text-slate-800 shrink-0">1. ผล Growing Together วันที่</span>
               <span id="growingTogetherDate_vocational" contenteditable="true" class="editable-field w-40 text-center font-bold" data-placeholder="ระบุวันที่...">17-18 พฤษภาคม 69</span>
               <span data-translate-key="label_growing_together_gen">รุ่นที่</span>
               <span id="growingTogetherGen_vocational" contenteditable="true" class="editable-field w-16 text-center font-bold" data-placeholder="ระบุรุ่น...">8</span>
               <span data-translate-key="label_growing_together_criteria_pass">ผ่านเกณฑ์</span>
               <span id="growingTogetherCriteria_vocational" contenteditable="true" class="editable-field w-16 text-center font-bold" data-placeholder="ระบุเกณฑ์...">1</span>
+            </div>
+
+            <!-- Growing Together Note -->
+            <div class="flex items-start gap-2 pl-4 mb-1">
+              <span data-translate-key="label_growing_together_note" class="font-bold text-slate-800 shrink-0 text-[11px] mt-1">หมายเหตุ:</span>
+              <span id="growingTogetherNote_vocational" contenteditable="true" class="editable-field flex-1 text-xs text-slate-600 font-medium" data-placeholder="ระบุหมายเหตุการเข้าร่วมกิจกรรม (เว้นว่างได้)...">ผู้สมัครจะต้องเข้าร่วมกิจกรรม Growing Together กับทางบริษัทภายในระยะเวลาทดลองงาน 119 วัน ซึ่งเป็นเงื่อนไขในการรับเข้าทำงาน หรือ ผ่านทดลองงาน</span>
+            </div>
+
+            <!-- Row 2: Interview Result -->
+            <div class="flex items-center flex-wrap gap-2">
+              <span data-translate-key="label_interview_result_2" class="font-bold text-slate-800">2. ผลการสัมภาษณ์</span>
+              <span data-translate-key="label_interview_date">วันที่</span>
+              <span id="interviewDate_vocational" contenteditable="true" class="editable-field w-40 text-center" data-placeholder="ระบุวันที่สัมภาษณ์..."></span>
+              <span data-translate-key="label_interview_score">คะแนน</span>
+              <span id="interviewScore_vocational" contenteditable="true" class="editable-field w-20 text-center" data-placeholder="-"></span>
+              <span data-translate-key="label_interview_percent">คิดเป็น</span>
+              <span id="interviewPercent_vocational" contenteditable="true" class="editable-field w-20 text-center" data-placeholder="-"></span>
+              <span>%</span>
+            </div>
+
+            <!-- Row 3: Interviewers -->
+            <div class="flex items-start gap-2">
+              <span data-translate-key="label_interviewers_3" class="font-bold text-slate-800 shrink-0 mt-1">3. กรรมการสัมภาษณ์</span>
+              <div id="interviewers_vocational" contenteditable="true" class="editable-field flex-1 min-h-[50px]" data-placeholder="ระบุรายชื่อกรรมการสัมภาษณ์..."></div>
             </div>
           </div>
         </div>
@@ -767,7 +822,7 @@
 
           <!-- Row 4: Job Value -->
           <div class="flex items-start gap-x-2">
-            <span class="font-bold text-slate-800 shrink-0 w-40" data-translate-key="val_jobvalue_label_default">Job Value</span>
+            <span id="jobValueLabel_vocational" contenteditable="true" class="editable-field font-bold text-slate-800 shrink-0 w-40 pl-4 cursor-pointer" data-placeholder="Job Value" data-default-label="Job Value" data-translate-key="val_jobvalue_label_default">Job Value</span>
             <span id="jobValueAllowance_vocational" contenteditable="true" class="editable-field w-32 text-center font-bold" data-placeholder="-">2,500</span>
             <span class="font-bold shrink-0" data-translate-key="label_baht_month">บาท/เดือน</span>
             
@@ -865,7 +920,9 @@
         label_growing_together_gen: "รุ่นที่",
         label_growing_together_result: "ผล",
         label_growing_together_note: "หมายเหตุ:",
-        label_cat_pjt: "2. ผลแบบทดสอบวัดผล CAT และ PJT",
+        label_interview_result_2: "2. ผลการสัมภาษณ์",
+        label_interviewers_3: "3. กรรมการสัมภาษณ์",
+        label_cat_pjt: "4. ผลแบบทดสอบวัดผล CAT และ PJT",
         label_dept_division: "แผนก / ฝ่าย",
         label_start_date: "วันที่เริ่มงานจริง",
         label_transfer_date: "วันที่โอนย้าย",
@@ -880,7 +937,7 @@
         val_grade_label_default: "เงินค่าเกรด",
         val_jobvalue_label_default: "Job Value",
         label_prev_education_title: "วุฒิการศึกษาก่อนหน้า",
-        label_growint_together: "1. ผล Growint Together วันที่",
+        label_growint_together: "1. ผล Growing Together วันที่",
         label_growing_together_criteria_pass: "ผ่านเกณฑ์"
       },
       en: {
@@ -935,7 +992,9 @@
         label_growing_together_gen: "Gen",
         label_growing_together_result: "Result",
         label_growing_together_note: "Note:",
-        label_cat_pjt: "2. The result of PJT&CAT",
+        label_interview_result_2: "2. Interview Result",
+        label_interviewers_3: "3. Interviewers",
+        label_cat_pjt: "4. The result of PJT&CAT",
         label_dept_division: "Department",
         label_start_date: "Commencement date",
         label_transfer_date: "Replacement date",
@@ -1014,8 +1073,18 @@
         welfare_vocational: "ตามโครงสร้างบริษัท",
         gradeCondition_vocational: "ระบุเงื่อนไข...",
         provincialCondition_vocational: "ระบุเงื่อนไข...",
+        jobValueCondition: "ระบุเงื่อนไข...",
         jobValueCondition_vocational: "ระบุเงื่อนไข...",
-        jobValueCondition2_vocational: "ระบุเงื่อนไขเพิ่มเติม..."
+        jobValueCondition2_vocational: "ระบุเงื่อนไขเพิ่มเติม...",
+        interviewDate_bachelor: "ระบุวันที่สัมภาษณ์...",
+        interviewDate_vocational: "ระบุวันที่สัมภาษณ์...",
+        interviewers_bachelor: "ระบุรายชื่อกรรมการสัมภาษณ์...",
+        interviewers_vocational: "ระบุรายชื่อกรรมการสัมภาษณ์...",
+        interviewScore_bachelor: "-",
+        interviewScore_vocational: "-",
+        interviewPercent_bachelor: "-",
+        interviewPercent_vocational: "-",
+        growingTogetherNote_vocational: "ระบุหมายเหตุการเข้าร่วมกิจกรรม (เว้นว่างได้)..."
       },
       en: {
         company: "Specify company...",
@@ -1075,8 +1144,18 @@
         welfare_vocational: "Following company policies",
         gradeCondition_vocational: "Specify condition...",
         provincialCondition_vocational: "Specify condition...",
+        jobValueCondition: "Specify condition...",
         jobValueCondition_vocational: "Specify condition...",
-        jobValueCondition2_vocational: "Specify additional condition..."
+        jobValueCondition2_vocational: "Specify additional condition...",
+        interviewDate_bachelor: "Specify interview date...",
+        interviewDate_vocational: "Specify interview date...",
+        interviewers_bachelor: "Specify interviewers...",
+        interviewers_vocational: "Specify interviewers...",
+        interviewScore_bachelor: "-",
+        interviewScore_vocational: "-",
+        interviewPercent_bachelor: "-",
+        interviewPercent_vocational: "-",
+        growingTogetherNote_vocational: "Specify activity remarks (optional)..."
       }
     };
 
@@ -1179,7 +1258,12 @@
       "IP2/IP3 จังหวัดอื่น ๆ ได้รับ 3,000 บาท/เดือน": { en: "IP2/IP3 other provinces receive 3,000 Baht/Month", th: "IP2/IP3 จังหวัดอื่น ๆ ได้รับ 3,000 บาท/เดือน" },
       "IP2/IP3 จังหวัดอื่นๆ ได้รับ 3,000 บาท/เดือน": { en: "IP2/IP3 other provinces receive 3,000 Baht/Month", th: "IP2/IP3 จังหวัดอื่นๆ ได้รับ 3,000 บาท/เดือน" },
       "12.5 ส่วนแรก ประเมินเดือนที่ 1 จ่ายเดือนที่ 2": { en: "12.5% First portion: Evaluated Month 1, paid Month 2", th: "12.5 ส่วนแรก ประเมินเดือนที่ 1 จ่ายเดือนที่ 2" },
-      "12.5 ส่วนหลัง ประเมินเดือนที่ 4 จ่ายเดือนที่ 5 หรือเมื่อผ่านทดลองงาน": { en: "12.5% Second portion: Evaluated Month 4, paid Month 5 or upon passing probation", th: "12.5 ส่วนหลัง ประเมินเดือนที่ 4 จ่ายเดือนที่ 5 หรือเมื่อผ่านทดลองงาน" }
+      "12.5 ส่วนหลัง ประเมินเดือนที่ 4 จ่ายเดือนที่ 5 หรือเมื่อผ่านทดลองงาน": { en: "12.5% Second portion: Evaluated Month 4, paid Month 5 or upon passing probation", th: "12.5 ส่วนหลัง ประเมินเดือนที่ 4 จ่ายเดือนที่ 5 หรือเมื่อผ่านทดลองงาน" },
+      "เงิน Bonus": { en: "Yearly bonus", th: "เงิน Bonus" },
+      "โบนัสประจำปี": { en: "Yearly bonus", th: "โบนัสประจำปี" },
+      "Job Value": { en: "Job Value", th: "Job Value" },
+      "Job Value 12.5% ส่วนแรก": { en: "Job Value 12.5% First Part", th: "Job Value 12.5% ส่วนแรก" },
+      "Job Value 12.5% ส่วนหลัง": { en: "Job Value 12.5% Second Part", th: "Job Value 12.5% ส่วนหลัง" }
     };
 
     function translateText(text, lang) {
@@ -1255,7 +1339,11 @@
         'growingTogetherDate_vocational', 'growingTogetherGen_vocational', 'growingTogetherCriteria_vocational',
         'goodStudyLabel', 'goodStudyCondition', 'provincialCondition', 'languageCondition', 'instituteCondition', 'bonusCondition',
         'gradeLabel_vocational', 'gradeCondition_vocational', 'provincialCondition_vocational', 'jobValueCondition_vocational', 'jobValueCondition2_vocational',
-        'jobCompany', 'company_job_bachelor', 'company_job_vocational', 'department', 'division', 'deptDivision_bachelor', 'department_vocational', 'division_vocational'
+        'jobCompany', 'company_job_bachelor', 'company_job_vocational', 'department', 'division', 'deptDivision_bachelor', 'department_vocational', 'division_vocational',
+        'jobValueCondition', 'jobValueAllowance', 'interviewDate_bachelor', 'interviewDate_vocational',
+        'interviewers_bachelor', 'interviewers_vocational', 'interviewScore_bachelor', 'interviewScore_vocational',
+        'interviewPercent_bachelor', 'interviewPercent_vocational', 'growingTogetherNote_vocational',
+        'jobValueLabel_vocational', 'jobValueAllowance_vocational'
       ];
       translatableFieldIds.forEach(id => {
         const el = document.getElementById(id);
@@ -1273,19 +1361,24 @@
     }
 
     function updateInterviewDateDisplay() {
-      const el = document.getElementById('interviewDate');
-      if (!el || !rawInterviewDate) return;
+      if (!rawInterviewDate) return;
       
       const dateObj = new Date(rawInterviewDate);
       if (isNaN(dateObj.getTime())) return;
       
+      let formattedDate = '';
       if (currentLang === 'en') {
         const enMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        el.textContent = `${dateObj.getDate()} ${enMonths[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
+        formattedDate = `${dateObj.getDate()} ${enMonths[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
       } else {
         const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-        el.textContent = `${dateObj.getDate()} ${thaiMonths[dateObj.getMonth()]} ${dateObj.getFullYear() + 543}`;
+        formattedDate = `${dateObj.getDate()} ${thaiMonths[dateObj.getMonth()]} ${dateObj.getFullYear() + 543}`;
       }
+
+      ['interviewDate', 'interviewDate_bachelor', 'interviewDate_vocational'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = formattedDate;
+      });
     }
 
     // Shared fields list for synchronization
@@ -1304,7 +1397,14 @@
       { ws: 'supervisor', bach: 'supervisor_bachelor', voc: 'supervisor_vocational' },
       { ws: 'supervisorPosition', bach: 'supervisorPosition_bachelor', voc: 'supervisorPosition_vocational' },
       { ws: 'workLocation', bach: 'workLocation_bachelor', voc: 'workLocation_vocational' },
-      { ws: 'welfare', bach: 'welfare_bachelor', voc: 'welfare_vocational' }
+      { ws: 'welfare', bach: 'welfare_bachelor', voc: 'welfare_vocational' },
+      { ws: 'jobValueAllowance', bach: null, voc: 'jobValueAllowance_vocational' },
+      { ws: 'jobValueCondition', bach: null, voc: 'jobValueCondition_vocational' },
+      { ws: 'interviewDate', bach: 'interviewDate_bachelor', voc: 'interviewDate_vocational' },
+      { ws: 'interviewScore', bach: 'interviewScore_bachelor', voc: 'interviewScore_vocational' },
+      { ws: 'interviewPercent', bach: 'interviewPercent_bachelor', voc: 'interviewPercent_vocational' },
+      { ws: 'interviewers', bach: 'interviewers_bachelor', voc: 'interviewers_vocational' },
+      { ws: null, bach: 'growingTogetherNote', voc: 'growingTogetherNote_vocational' }
     ];
 
     // Automatically parse candidate data from localStorage on load
@@ -1968,7 +2068,7 @@
           const activeConds = masterConditions.filter(c => {
             if (c.category !== category || c.is_active === false) return false;
             if (activeTemplate === 'vocational') {
-              return c.education_level === 'vocational';
+              return c.education_level === 'vocational' || !c.education_level;
             } else if (activeTemplate === 'bachelor') {
               return c.education_level === 'bachelor' || !c.education_level;
             } else {
@@ -2012,8 +2112,11 @@
       // Vocational Allowances
       setupAllowanceSelect('academic-selector-container-voc', 'academic', null, 'gradeCondition_vocational', 'gradeAllowance_vocational');
       setupAllowanceSelect('location-selector-container-voc', 'location', null, 'provincialCondition_vocational', 'provincialAllowance_vocational');
-      setupAllowanceSelect('jobvalue-selector-container-voc', 'bonus', null, 'jobValueCondition_vocational', 'jobValueAllowance_vocational');
+      setupAllowanceSelect('jobvalue-selector-container-voc', 'bonus', 'jobValueLabel_vocational', 'jobValueCondition_vocational', 'jobValueAllowance_vocational');
       setupAllowanceSelect('jobvalue2-selector-container-voc', 'bonus', null, 'jobValueCondition2_vocational', null);
+
+      // Work Skill Allowances
+      setupAllowanceSelect('jobvalue-selector-container-ws', 'bonus', null, 'jobValueCondition', 'jobValueAllowance');
     }
 
     // Floating Menu Renderer
@@ -2087,7 +2190,16 @@
           const defaultLabel = labelEl.getAttribute('data-default-label') || labelEl.getAttribute('data-placeholder') || labelEl.textContent;
           labelEl.textContent = translateText(defaultLabel, currentLang);
         } else {
-          labelEl.textContent = title;
+          // Custom mapping for Job Value vs Yearly Bonus labels
+          if (labelId === 'jobValueLabel_vocational') {
+            if (title.includes('Job Value')) {
+              labelEl.textContent = 'Job Value';
+            } else {
+              labelEl.textContent = currentLang === 'en' ? 'Yearly bonus' : 'เงิน Bonus';
+            }
+          } else {
+            labelEl.textContent = title;
+          }
         }
       }
       
@@ -2099,10 +2211,10 @@
       const amountEl = document.getElementById(amountId);
       if (amountEl) {
         if (text === '-' || !text) {
-          amountEl.textContent = amountId === 'bonusRate' ? 'Yearly' : '';
+          amountEl.textContent = (amountId === 'bonusRate' || amountId === 'jobValueAllowance_vocational') ? 'Yearly' : '';
         } else {
           const numVal = parseFloat(amount || 0);
-          if (amountId === 'bonusRate') {
+          if (amountId === 'bonusRate' || (amountId === 'jobValueAllowance_vocational' && !title.includes('Job Value'))) {
             amountEl.textContent = numVal > 0 ? numVal.toLocaleString('th-TH') : 'Yearly';
           } else {
             amountEl.textContent = numVal > 0 ? numVal.toLocaleString('th-TH') : '-';
