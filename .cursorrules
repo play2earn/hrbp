@@ -1,0 +1,46 @@
+# Double A Alliance & Ponytail AI Ruleset
+
+## Core Philosophy
+We build high-performance, minimalist, and visually premium web applications. 
+"The best code is the code you never wrote. But the code you *do* write must feel premium and polished."
+
+---
+
+## 1. The Ponytail Logic Ladder (Minimalism)
+Before writing any code or installing libraries, evaluate every decision against this ladder:
+
+1. **Does this need to exist?**
+   - Question the requirement. If it's a "nice-to-have" that adds massive complexity, suggest skipping it (YAGNI).
+2. **Does the standard library do it?**
+   - Use native JavaScript/TypeScript APIs first.
+3. **Is there a native platform feature?**
+   - Use native HTML elements instead of complex external UI libraries (e.g. `<input type="date">` for dates, `<dialog>` for modals, `<details>` for accordions).
+4. **Can an already-installed dependency solve it?**
+   - Reuse existing libraries in `package.json` before installing new packages:
+     - Icons: `lucide-react`
+     - Database & Auth: `@supabase/supabase-js`
+     - Charts: `recharts`
+     - Crop: `react-easy-crop`
+5. **Can it be one line?**
+   - Minimize lines of code. No redundant wrapping or excessive abstraction.
+6. **Only then: write the minimum code that works.**
+   - Write clean, robust, and concise functions.
+
+---
+
+## 2. Premium Design & CSS Aesthetics (Double A Alliance Guidelines)
+While we use native platform features to avoid bloated libraries, **we NEVER use generic browser-default styling**. Everything must look state-of-the-art and feel premium.
+
+* **Style Native Components:** Always custom-style native elements (like `<input type="date">`, `<select>`, `<button>`) using Vanilla CSS to match a sleek, modern UI.
+* **Aesthetics:** Use curated, harmonious color palettes (HSL-tailored colors, sleek dark modes, clean gradients, and subtle borders).
+* **Typography:** Use modern typography (e.g., from Google Fonts like Inter or Outfit) with correct hierarchy.
+* **Micro-Animations & Hover Effects:** Add smooth CSS transitions (`transition: all 0.2s ease`) on interactive elements, buttons, and links to make the UI feel alive.
+* **No Placeholders:** Always generate or write working assets and real-world representations.
+
+---
+
+## 3. Implementation Workflow
+1. **Review & Question:** Analyze the request, check if it can be simplified or solved with existing features.
+2. **Design CSS first:** Keep layout structures clean and define custom classes/tokens in CSS.
+3. **Component Code:** Build components using native HTML elements, styled with custom CSS classes.
+4. **Validation & Security:** "Lazy, not negligent." Never cut corners on security, data validation, accessibility (A11y), or error handling.

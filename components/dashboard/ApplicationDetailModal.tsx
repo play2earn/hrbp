@@ -6,7 +6,8 @@ import {
   User, MapPin, Users, Building2, GraduationCap, Tag,
   FileText, ExternalLink, Edit, Calendar, History, Clock,
   CheckCircle, XCircle, UserPlus, UserCheck, Link, Copy, Check,
-  Crop, RotateCcw, Upload, ChevronDown, ChevronUp, AlertTriangle, Paperclip, ShieldAlert
+  Crop, RotateCcw, Upload, ChevronDown, ChevronUp, AlertTriangle, Paperclip, ShieldAlert,
+  Eye, Download
 } from 'lucide-react';
 import {
   LOG_LABELS, getStatusBadgeClass, getStatusLabel,
@@ -100,6 +101,10 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
   const [resubmitAllowedExisting, setResubmitAllowedExisting] = useState<string[]>([]);
   const [resubmitUrlCopied, setResubmitUrlCopied] = useState(false);
 
+  // ── Document Previewer State ─────────────────────────────────
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState<string>('');
+
   useEffect(() => {
     if (viewingApp?.id) {
       const fetchExistingToken = async () => {
@@ -157,7 +162,44 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
         };
         fetchPosEn();
       }
+
+      // Auto-select first available document for live preview
+      const autoFd = viewingApp.form_data || {};
+      if (autoFd.resumeUrl) {
+        setPreviewUrl(autoFd.resumeUrl);
+        setPreviewTitle('Resume / CV');
+      } else if (autoFd.transcriptUrl) {
+        setPreviewUrl(autoFd.transcriptUrl);
+        setPreviewTitle('Transcript');
+      } else if (autoFd.idCardUrl) {
+        setPreviewUrl(autoFd.idCardUrl);
+        setPreviewTitle('สำเนาบัตรประชาชน');
+      } else if (autoFd.houseRegUrl) {
+        setPreviewUrl(autoFd.houseRegUrl);
+        setPreviewTitle('สำเนาทะเบียนบ้าน');
+      } else if (autoFd.eduCertificateUrl) {
+        setPreviewUrl(autoFd.eduCertificateUrl);
+        setPreviewTitle('ใบรับรองวุฒิการศึกษา');
+      } else if (autoFd.bankBookUrl) {
+        const bankNameText = autoFd.bankName ? ` (${autoFd.bankName})` : '';
+        setPreviewUrl(autoFd.bankBookUrl);
+        setPreviewTitle(`สำเนาบัญชีธนาคาร${bankNameText}`);
+      } else if (autoFd.militaryCertUrl) {
+        setPreviewUrl(autoFd.militaryCertUrl);
+        setPreviewTitle('ใบผ่านการเกณฑ์ทหาร');
+      } else if (autoFd.toeicCertUrl) {
+        setPreviewUrl(autoFd.toeicCertUrl);
+        setPreviewTitle('ผลสอบ TOEIC');
+      } else if (autoFd.certificateUrl) {
+        setPreviewUrl(autoFd.certificateUrl);
+        setPreviewTitle('Certificate / เอกสารเพิ่มเติม');
+      } else {
+        setPreviewUrl(null);
+        setPreviewTitle('');
+      }
     } else {
+      setPreviewUrl(null);
+      setPreviewTitle('');
       setShareLink(null);
       setShareToken(null);
       setShareLinkExpiry(null);
@@ -170,10 +212,17 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
 
   // ── Resubmit Handlers ────────────────────────────────────────
   const RESUBMIT_FIELD_OPTIONS = [
-    { key: 'resumeUrl',      label: 'Resume / CV' },
-    { key: 'transcriptUrl',  label: 'Transcript / ใบ Grade' },
-    { key: 'certificateUrl', label: 'Certificate / เอกสารเพิ่มเติม' },
-    { key: 'photoUrl',       label: 'รูปถ่าย' },
+    { key: 'resumeUrl',         label: 'Resume / CV' },
+    { key: 'transcriptUrl',     label: 'Transcript / ใบ Grade' },
+    { key: 'certificateUrl',    label: 'Certificate / เอกสารเพิ่มเติม' },
+    { key: 'photoUrl',          label: 'รูปถ่าย' },
+    { key: 'idCardUrl',         label: 'สำเนาบัตรประชาชน' },
+    { key: 'houseRegUrl',       label: 'สำเนาทะเบียนบ้าน' },
+    { key: 'eduCertificateUrl', label: 'ใบรับรองวุฒิการศึกษา' },
+    { key: 'militaryCertUrl',   label: 'ใบผ่านการเกณฑ์ทหาร (ถ้ามี)' },
+    { key: 'toeicCertUrl',      label: 'ผลสอบ TOEIC (ถ้ามี)' },
+    { key: 'bankBookUrl_scb',   label: 'สำเนาบัญชีธนาคารไทยพาณิชย์ (ออมทรัพย์)' },
+    { key: 'bankBookUrl_ktb',   label: 'สำเนาบัญชีธนาคารกรุงไทย (ออมทรัพย์)' },
   ];
 
   const handleGenerateResubmitToken = async () => {
@@ -487,7 +536,9 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
         footer={null}
       >
         {viewingApp && (
-          <div className="px-1">
+          <div className="flex flex-col lg:flex-row gap-6 items-stretch min-h-[600px] lg:h-[calc(100vh-140px)] overflow-hidden w-full">
+            {/* Left Column: Candidate Info */}
+            <div className="w-full lg:w-[45%] overflow-y-auto pr-2 pb-8 h-full">
             {/* Blacklist Warning Banner */}
             {isBlacklisted && (
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-5 flex flex-col items-start gap-3.5 shadow-sm">
@@ -528,7 +579,10 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
                       {isBlacklisted.attachment_url_1 && (
-                        <div className="flex items-center justify-between p-2 bg-white rounded-lg border border-red-100 text-xs">
+                        <div 
+                          className={`flex items-center justify-between p-2 rounded-lg border text-xs transition shadow-sm cursor-pointer ${previewUrl === isBlacklisted.attachment_url_1 ? 'bg-red-100/70 border-red-300' : 'bg-white hover:bg-red-50/50 border-red-100'}`}
+                          onClick={() => { setPreviewUrl(isBlacklisted.attachment_url_1); setPreviewTitle(isBlacklisted.attachment_name_1 || 'หลักฐานแบล็คลิสต์ 1'); }}
+                        >
                           <span className="truncate max-w-[180px] font-medium text-gray-700 font-sans" title={isBlacklisted.attachment_name_1}>
                             {isBlacklisted.attachment_name_1 || 'หลักฐานแนบ 1'}
                           </span>
@@ -536,6 +590,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                             href={isBlacklisted.attachment_url_1}
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
                             className="inline-flex items-center gap-1 text-[11px] font-bold text-red-600 hover:text-red-800 hover:underline px-2 py-1 bg-red-50 rounded"
                           >
                             <ExternalLink className="w-3 h-3" /> เปิดดู
@@ -543,7 +598,10 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                         </div>
                       )}
                       {isBlacklisted.attachment_url_2 && (
-                        <div className="flex items-center justify-between p-2 bg-white rounded-lg border border-red-100 text-xs">
+                        <div 
+                          className={`flex items-center justify-between p-2 rounded-lg border text-xs transition shadow-sm cursor-pointer ${previewUrl === isBlacklisted.attachment_url_2 ? 'bg-red-100/70 border-red-300' : 'bg-white hover:bg-red-50/50 border-red-100'}`}
+                          onClick={() => { setPreviewUrl(isBlacklisted.attachment_url_2); setPreviewTitle(isBlacklisted.attachment_name_2 || 'หลักฐานแบล็คลิสต์ 2'); }}
+                        >
                           <span className="truncate max-w-[180px] font-medium text-gray-700 font-sans" title={isBlacklisted.attachment_name_2}>
                             {isBlacklisted.attachment_name_2 || 'หลักฐานแนบ 2'}
                           </span>
@@ -551,6 +609,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                             href={isBlacklisted.attachment_url_2}
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
                             className="inline-flex items-center gap-1 text-[11px] font-bold text-red-600 hover:text-red-800 hover:underline px-2 py-1 bg-red-50 rounded"
                           >
                             <ExternalLink className="w-3 h-3" /> เปิดดู
@@ -1126,24 +1185,148 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                   <h4 className="text-sm font-semibold text-gray-700 mb-2">{t.labels.attachments}</h4>
                   <div className="flex flex-wrap gap-2">
                     {fd.resumeUrl && (
-                      <a href={fd.resumeUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 rounded text-sm text-indigo-700 transition border border-indigo-100">
+                      <button
+                        type="button"
+                        onClick={() => { setPreviewUrl(fd.resumeUrl); setPreviewTitle('Resume / CV'); }}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition border shadow-sm ${previewUrl === fd.resumeUrl ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-100'}`}
+                      >
                         <FileText className="w-4 h-4" /> Resume
-                      </a>
+                        <a href={fd.resumeUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="ml-1.5 text-current hover:opacity-80">
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </button>
                     )}
                     {fd.transcriptUrl && (
-                      <a href={fd.transcriptUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 rounded text-sm text-amber-700 transition border border-amber-100">
+                      <button
+                        type="button"
+                        onClick={() => { setPreviewUrl(fd.transcriptUrl); setPreviewTitle('Transcript'); }}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition border shadow-sm ${previewUrl === fd.transcriptUrl ? 'bg-amber-600 text-white border-amber-600' : 'bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-100'}`}
+                      >
                         <FileText className="w-4 h-4" /> Transcript
-                      </a>
+                        <a href={fd.transcriptUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="ml-1.5 text-current hover:opacity-80">
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </button>
                     )}
                     {fd.certificateUrl && (
-                      <a href={fd.certificateUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded text-sm text-gray-700 transition border border-gray-200">
+                      <button
+                        type="button"
+                        onClick={() => { setPreviewUrl(fd.certificateUrl); setPreviewTitle('Certificate / เอกสารเพิ่มเติม'); }}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition border shadow-sm ${previewUrl === fd.certificateUrl ? 'bg-slate-700 text-white border-slate-700' : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-200'}`}
+                      >
                         <FileText className="w-4 h-4" /> {t.sections.documents}
-                      </a>
+                        <a href={fd.certificateUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="ml-1.5 text-current hover:opacity-80">
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </button>
                     )}
                     {fd.profileLinks && (
-                      <a href={fd.profileLinks} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 rounded text-sm text-blue-700 transition border border-blue-100">
+                      <a href={fd.profileLinks} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 rounded text-sm text-blue-700 transition border border-blue-100 shadow-sm">
                         <ExternalLink className="w-4 h-4" /> Profile Link
                       </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Hiring Documents Section */}
+              {(fd.idCardUrl || fd.houseRegUrl || fd.eduCertificateUrl || fd.militaryCertUrl || fd.toeicCertUrl || fd.bankBookUrl) && (
+                <div className="mt-4 pt-3 border-t bg-emerald-50/20 p-3 rounded-lg border border-emerald-100">
+                  <h4 className="text-xs font-bold text-emerald-800 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                    💼 เอกสารประกอบการจ้างงาน (Hiring Documents)
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {fd.idCardUrl && (
+                      <button
+                        type="button"
+                        onClick={() => { setPreviewUrl(fd.idCardUrl); setPreviewTitle('สำเนาบัตรประชาชน'); }}
+                        className={`inline-flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition border shadow-sm ${previewUrl === fd.idCardUrl ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white hover:bg-emerald-50 text-emerald-700 border-emerald-100'}`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <FileText className={`w-4 h-4 ${previewUrl === fd.idCardUrl ? 'text-white' : 'text-emerald-500'}`} /> 
+                          สำเนาบัตรประชาชน
+                        </span>
+                        <a href={fd.idCardUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="ml-2 text-current hover:opacity-80">
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </button>
+                    )}
+                    {fd.houseRegUrl && (
+                      <button
+                        type="button"
+                        onClick={() => { setPreviewUrl(fd.houseRegUrl); setPreviewTitle('สำเนาทะเบียนบ้าน'); }}
+                        className={`inline-flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition border shadow-sm ${previewUrl === fd.houseRegUrl ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white hover:bg-emerald-50 text-emerald-700 border-emerald-100'}`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <FileText className={`w-4 h-4 ${previewUrl === fd.houseRegUrl ? 'text-white' : 'text-emerald-500'}`} /> 
+                          สำเนาทะเบียนบ้าน
+                        </span>
+                        <a href={fd.houseRegUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="ml-2 text-current hover:opacity-80">
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </button>
+                    )}
+                    {fd.eduCertificateUrl && (
+                      <button
+                        type="button"
+                        onClick={() => { setPreviewUrl(fd.eduCertificateUrl); setPreviewTitle('ใบรับรองวุฒิการศึกษา'); }}
+                        className={`inline-flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition border shadow-sm ${previewUrl === fd.eduCertificateUrl ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white hover:bg-emerald-50 text-emerald-700 border-emerald-100'}`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <FileText className={`w-4 h-4 ${previewUrl === fd.eduCertificateUrl ? 'text-white' : 'text-emerald-500'}`} /> 
+                          ใบรับรองวุฒิการศึกษา
+                        </span>
+                        <a href={fd.eduCertificateUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="ml-2 text-current hover:opacity-80">
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </button>
+                    )}
+                    {fd.militaryCertUrl && (
+                      <button
+                        type="button"
+                        onClick={() => { setPreviewUrl(fd.militaryCertUrl); setPreviewTitle('ใบผ่านการเกณฑ์ทหาร'); }}
+                        className={`inline-flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition border shadow-sm ${previewUrl === fd.militaryCertUrl ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white hover:bg-emerald-50 text-emerald-700 border-emerald-100'}`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <FileText className={`w-4 h-4 ${previewUrl === fd.militaryCertUrl ? 'text-white' : 'text-emerald-500'}`} /> 
+                          ใบผ่านการเกณฑ์ทหาร
+                        </span>
+                        <a href={fd.militaryCertUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="ml-2 text-current hover:opacity-80">
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </button>
+                    )}
+                    {fd.toeicCertUrl && (
+                      <button
+                        type="button"
+                        onClick={() => { setPreviewUrl(fd.toeicCertUrl); setPreviewTitle('ผลสอบ TOEIC'); }}
+                        className={`inline-flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition border shadow-sm ${previewUrl === fd.toeicCertUrl ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white hover:bg-emerald-50 text-emerald-700 border-emerald-100'}`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <FileText className={`w-4 h-4 ${previewUrl === fd.toeicCertUrl ? 'text-white' : 'text-emerald-500'}`} /> 
+                          ผลสอบ TOEIC
+                        </span>
+                        <a href={fd.toeicCertUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="ml-2 text-current hover:opacity-80">
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </button>
+                    )}
+                    {fd.bankBookUrl && (
+                      <button
+                        type="button"
+                        onClick={() => { setPreviewUrl(fd.bankBookUrl); setPreviewTitle(`สำเนาบัญชีธนาคาร${fd.bankName ? ` (${fd.bankName})` : ''}`); }}
+                        className={`inline-flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition border shadow-sm ${previewUrl === fd.bankBookUrl ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white hover:bg-emerald-50 text-emerald-700 border-emerald-100'}`}
+                      >
+                        <span className="flex items-center gap-2 text-left">
+                          <FileText className={`w-4 h-4 shrink-0 ${previewUrl === fd.bankBookUrl ? 'text-white' : 'text-emerald-500'}`} /> 
+                          <span className="truncate max-w-[140px] sm:max-w-[180px]">
+                            สำเนาบัญชีธนาคาร{fd.bankName ? ` (${fd.bankName === 'SCB' ? 'ไทยพาณิชย์' : 'กรุงไทย'})` : ''}
+                          </span>
+                        </span>
+                        <a href={fd.bankBookUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="ml-2 text-current hover:opacity-80">
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -1239,8 +1422,17 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                         </div>
                         <p className="text-[11px] text-slate-500">
                           เอกสารที่อนุญาต: {resubmitAllowedExisting.map(f => ({
-                            resumeUrl: 'Resume', transcriptUrl: 'Transcript', certificateUrl: 'Certificate',
-                            photoUrl: 'รูปถ่าย'
+                            resumeUrl: 'Resume',
+                            transcriptUrl: 'Transcript',
+                            certificateUrl: 'Certificate / เอกสารเพิ่มเติม',
+                            photoUrl: 'รูปถ่าย',
+                            idCardUrl: 'สำเนาบัตรประชาชน',
+                            houseRegUrl: 'สำเนาทะเบียนบ้าน',
+                            eduCertificateUrl: 'ใบรับรองวุฒิการศึกษา',
+                            militaryCertUrl: 'ใบผ่านการเกณฑ์ทหาร',
+                            toeicCertUrl: 'ผลสอบ TOEIC',
+                            bankBookUrl_scb: 'สำเนาบัญชีธนาคารไทยพาณิชย์',
+                            bankBookUrl_ktb: 'สำเนาบัญชีธนาคารกรุงไทย',
                           })[f] || f).join(', ')}
                         </p>
                         <div className="flex items-center gap-2">
@@ -1270,9 +1462,33 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
 
                     {/* Field selector */}
                     <div>
-                      <p className="text-xs font-semibold text-slate-600 mb-2">
-                        {resubmitToken ? 'เลือกเอกสารใหม่ (จะยกเลิก token เดิม):' : 'เลือกเอกสารที่ต้องการขอใหม่:'}
-                      </p>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-2 pb-1 border-b border-slate-100">
+                        <p className="text-xs font-semibold text-slate-600">
+                          {resubmitToken ? 'เลือกเอกสารใหม่ (จะยกเลิก token เดิม):' : 'เลือกเอกสารที่ต้องการขอใหม่:'}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const isNps = (viewingApp?.business_unit || fd.businessUnit || '').toLowerCase().includes('nps');
+                            const targetBankKey = isNps ? 'bankBookUrl_ktb' : 'bankBookUrl_scb';
+                            const hiringKeys = ['idCardUrl', 'houseRegUrl', 'eduCertificateUrl', 'militaryCertUrl', 'toeicCertUrl', targetBankKey];
+                            setResubmitAllowedFields(prev => {
+                              const hasAll = hiringKeys.every(k => prev.includes(k));
+                              if (hasAll) {
+                                return prev.filter(k => !hiringKeys.includes(k));
+                              } else {
+                                const union = new Set([...prev, ...hiringKeys]);
+                                return Array.from(union);
+                              }
+                            });
+                          }}
+                          className="text-[10px] bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold px-2 py-0.5 rounded transition border border-emerald-200 self-start sm:self-auto"
+                        >
+                          {['idCardUrl', 'houseRegUrl', 'eduCertificateUrl', 'militaryCertUrl', 'toeicCertUrl', (viewingApp?.business_unit || fd.businessUnit || '').toLowerCase().includes('nps') ? 'bankBookUrl_ktb' : 'bankBookUrl_scb'].every(k => resubmitAllowedFields.includes(k))
+                            ? '🚫 ยกเลิกเลือกเอกสารจ้างงาน'
+                            : '📋 เลือกเอกสารการจ้างงานทั้งหมด'}
+                        </button>
+                      </div>
                       <div className="space-y-1.5">
                         {RESUBMIT_FIELD_OPTIONS.map(opt => (
                           <label key={opt.key} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 px-2 py-1 rounded">
@@ -1436,6 +1652,218 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                 <Button variant="outline" onClick={() => setViewingApp(null)} className="ml-auto">{lang === 'en' ? 'Close' : 'ปิด'}</Button>
               </div>
             </div>
+
+            {/* Right Column: Document Previewer */}
+            <div className="w-full lg:w-[55%] flex flex-col h-[600px] lg:h-full bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200 flex-shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-indigo-100 text-indigo-700 rounded-lg">
+                    <Eye className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-800">
+                      📄 แสดงตัวอย่างเอกสาร (Document Viewer)
+                    </h4>
+                    <p className="text-xs text-slate-500 font-medium">
+                      {previewTitle || 'กรุณาเลือกไฟล์เพื่อพรีวิว'}
+                    </p>
+                  </div>
+                </div>
+                {previewUrl && (
+                  <div className="flex gap-1">
+                    <a
+                      href={previewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 font-semibold rounded-lg text-xs border border-slate-200 transition shadow-sm"
+                      title="เปิดในแท็บใหม่"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      เปิดแท็บใหม่
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {/* Chips for all available documents */}
+              <div className="py-2.5 flex flex-wrap gap-1.5 border-b border-slate-100 overflow-x-auto flex-shrink-0 scrollbar-thin">
+                {/* 1. Resume */}
+                <button
+                  type="button"
+                  disabled={!fd.resumeUrl}
+                  onClick={() => { setPreviewUrl(fd.resumeUrl); setPreviewTitle('Resume / CV'); }}
+                  className={`px-2.5 py-1 text-xs rounded-full font-medium transition border flex items-center gap-1 shrink-0 ${
+                    !fd.resumeUrl 
+                      ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-55' 
+                      : previewUrl === fd.resumeUrl 
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' 
+                        : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-100'
+                  }`}
+                >
+                  <FileText className="w-3 h-3" /> Resume
+                </button>
+
+                {/* 2. Transcript */}
+                <button
+                  type="button"
+                  disabled={!fd.transcriptUrl}
+                  onClick={() => { setPreviewUrl(fd.transcriptUrl); setPreviewTitle('Transcript'); }}
+                  className={`px-2.5 py-1 text-xs rounded-full font-medium transition border flex items-center gap-1 shrink-0 ${
+                    !fd.transcriptUrl 
+                      ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-55' 
+                      : previewUrl === fd.transcriptUrl 
+                        ? 'bg-amber-600 text-white border-amber-600 shadow-sm' 
+                        : 'bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-100'
+                  }`}
+                >
+                  <FileText className="w-3 h-3" /> Transcript
+                </button>
+
+                {/* 3. Certificate */}
+                <button
+                  type="button"
+                  disabled={!fd.certificateUrl}
+                  onClick={() => { setPreviewUrl(fd.certificateUrl); setPreviewTitle('Certificate / เอกสารเพิ่มเติม'); }}
+                  className={`px-2.5 py-1 text-xs rounded-full font-medium transition border flex items-center gap-1 shrink-0 ${
+                    !fd.certificateUrl 
+                      ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-55' 
+                      : previewUrl === fd.certificateUrl 
+                        ? 'bg-slate-700 text-white border-slate-700 shadow-sm' 
+                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-200'
+                  }`}
+                >
+                  <FileText className="w-3 h-3" /> Certificate
+                </button>
+
+                <div className="w-px h-5 bg-slate-200 mx-0.5 shrink-0 self-center"></div>
+
+                {/* 4. ID Card */}
+                <button
+                  type="button"
+                  disabled={!fd.idCardUrl}
+                  onClick={() => { setPreviewUrl(fd.idCardUrl); setPreviewTitle('สำเนาบัตรประชาชน'); }}
+                  className={`px-2.5 py-1 text-xs rounded-full font-medium transition border flex items-center gap-1 shrink-0 ${
+                    !fd.idCardUrl 
+                      ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-55' 
+                      : previewUrl === fd.idCardUrl 
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' 
+                        : 'bg-white hover:bg-emerald-50 text-emerald-700 border-emerald-100'
+                  }`}
+                >
+                  บัตรประชาชน
+                </button>
+
+                {/* 5. House Registration */}
+                <button
+                  type="button"
+                  disabled={!fd.houseRegUrl}
+                  onClick={() => { setPreviewUrl(fd.houseRegUrl); setPreviewTitle('สำเนาทะเบียนบ้าน'); }}
+                  className={`px-2.5 py-1 text-xs rounded-full font-medium transition border flex items-center gap-1 shrink-0 ${
+                    !fd.houseRegUrl 
+                      ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-55' 
+                      : previewUrl === fd.houseRegUrl 
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' 
+                        : 'bg-white hover:bg-emerald-50 text-emerald-700 border-emerald-100'
+                  }`}
+                >
+                  ทะเบียนบ้าน
+                </button>
+
+                {/* 6. Degree Cert */}
+                <button
+                  type="button"
+                  disabled={!fd.eduCertificateUrl}
+                  onClick={() => { setPreviewUrl(fd.eduCertificateUrl); setPreviewTitle('ใบรับรองวุฒิการศึกษา'); }}
+                  className={`px-2.5 py-1 text-xs rounded-full font-medium transition border flex items-center gap-1 shrink-0 ${
+                    !fd.eduCertificateUrl 
+                      ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-55' 
+                      : previewUrl === fd.eduCertificateUrl 
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' 
+                        : 'bg-white hover:bg-emerald-50 text-emerald-700 border-emerald-100'
+                  }`}
+                >
+                  ใบรับรองวุฒิ
+                </button>
+
+                {/* 7. Military */}
+                <button
+                  type="button"
+                  disabled={!fd.militaryCertUrl}
+                  onClick={() => { setPreviewUrl(fd.militaryCertUrl); setPreviewTitle('ใบผ่านการเกณฑ์ทหาร'); }}
+                  className={`px-2.5 py-1 text-xs rounded-full font-medium transition border flex items-center gap-1 shrink-0 ${
+                    !fd.militaryCertUrl 
+                      ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-55' 
+                      : previewUrl === fd.militaryCertUrl 
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' 
+                        : 'bg-white hover:bg-emerald-50 text-emerald-700 border-emerald-100'
+                  }`}
+                >
+                  เกณฑ์ทหาร
+                </button>
+
+                {/* 8. TOEIC */}
+                <button
+                  type="button"
+                  disabled={!fd.toeicCertUrl}
+                  onClick={() => { setPreviewUrl(fd.toeicCertUrl); setPreviewTitle('ผลสอบ TOEIC'); }}
+                  className={`px-2.5 py-1 text-xs rounded-full font-medium transition border flex items-center gap-1 shrink-0 ${
+                    !fd.toeicCertUrl 
+                      ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-55' 
+                      : previewUrl === fd.toeicCertUrl 
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' 
+                        : 'bg-white hover:bg-emerald-50 text-emerald-700 border-emerald-100'
+                  }`}
+                >
+                  TOEIC
+                </button>
+
+                {/* 9. Bank Book */}
+                <button
+                  type="button"
+                  disabled={!fd.bankBookUrl}
+                  onClick={() => { setPreviewUrl(fd.bankBookUrl); setPreviewTitle(`สำเนาบัญชีธนาคาร${fd.bankName ? ` (${fd.bankName})` : ''}`); }}
+                  className={`px-2.5 py-1 text-xs rounded-full font-medium transition border flex items-center gap-1 shrink-0 ${
+                    !fd.bankBookUrl 
+                      ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-55' 
+                      : previewUrl === fd.bankBookUrl 
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' 
+                        : 'bg-white hover:bg-emerald-50 text-emerald-700 border-emerald-100'
+                  }`}
+                >
+                  บัญชีธนาคาร{fd.bankName ? ` (${fd.bankName})` : ''}
+                </button>
+              </div>
+
+              {/* View Box Container */}
+              <div className="flex-1 min-h-0 w-full mt-3 bg-white border border-slate-200 rounded-xl overflow-hidden relative shadow-inner">
+                {previewUrl ? (
+                  previewUrl.toLowerCase().endsWith('.pdf') || previewUrl.includes('/pdf') ? (
+                    <iframe
+                      src={previewUrl}
+                      title={previewTitle}
+                      className="w-full h-full border-none"
+                    />
+                  ) : (
+                    <div className="w-full h-full overflow-auto flex items-center justify-center p-4 bg-slate-900/90 relative group">
+                      <img
+                        src={previewUrl}
+                        alt={previewTitle}
+                        className="max-w-full max-h-full object-contain select-none shadow-lg transition-transform duration-300"
+                      />
+                    </div>
+                  )
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center text-slate-400 bg-white">
+                    <FileText className="w-14 h-14 text-slate-300 mb-3" />
+                    <h5 className="text-sm font-bold text-slate-700">ไม่มีเอกสารสำหรับผู้สมัครรายนี้</h5>
+                    <p className="text-xs text-slate-400 mt-1 max-w-[280px]">
+                      ผู้สมัครรายนี้ยังไม่ได้อัปโหลดเอกสารใดๆ หรือยังไม่ได้ขอให้จัดส่งเอกสารใหม่
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         )}
       </Modal>
 

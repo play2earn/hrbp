@@ -160,6 +160,14 @@ export interface ApplicationForm {
   certificateUrl: string;
   otherDocsUrl: string;
   profileLinks: string; // LinkedIn, JobThai, etc.
+  
+  // Hiring Documents
+  idCardUrl?: string;
+  houseRegUrl?: string;
+  eduCertificateUrl?: string;
+  militaryCertUrl?: string;
+  toeicCertUrl?: string;
+  bankBookUrl?: string;
 }
 
 export interface User {
@@ -293,7 +301,14 @@ export const INITIAL_FORM_STATE: ApplicationForm = {
   transcriptUrl: '',
   certificateUrl: '',
   otherDocsUrl: '',
-  profileLinks: ''
+  profileLinks: '',
+  
+  idCardUrl: '',
+  houseRegUrl: '',
+  eduCertificateUrl: '',
+  militaryCertUrl: '',
+  toeicCertUrl: '',
+  bankBookUrl: ''
 };
 
 export interface BlacklistEntry {

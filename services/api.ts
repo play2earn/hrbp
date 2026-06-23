@@ -861,7 +861,7 @@ export const api = {
    */
   generateResubmitToken: async (
     applicationId: string,
-    allowedFields: ('resumeUrl' | 'transcriptUrl' | 'certificateUrl' | 'photoUrl')[],
+    allowedFields: string[],
     createdBy: string
   ): Promise<ApiResponse<{ token: string; url: string; expires_at: string }>> => {
     try {
@@ -937,8 +937,17 @@ export const api = {
 
       // 5. Log the action for HR audit trail
       const fieldLabelMap: Record<string, string> = {
-        resumeUrl: 'Resume', transcriptUrl: 'Transcript', certificateUrl: 'Certificate',
-        photoUrl: 'รูปถ่าย'
+        resumeUrl: 'Resume',
+        transcriptUrl: 'Transcript',
+        certificateUrl: 'Certificate / เอกสารเพิ่มเติม',
+        photoUrl: 'รูปถ่าย',
+        idCardUrl: 'สำเนาบัตรประชาชน',
+        houseRegUrl: 'สำเนาทะเบียนบ้าน',
+        eduCertificateUrl: 'ใบรับรองวุฒิการศึกษา',
+        militaryCertUrl: 'ใบผ่านการเกณฑ์ทหาร',
+        toeicCertUrl: 'ผลสอบ TOEIC',
+        bankBookUrl_scb: 'สำเนาบัญชีธนาคารไทยพาณิชย์',
+        bankBookUrl_ktb: 'สำเนาบัญชีธนาคารกรุงไทย',
       };
       const fieldLabels = allowedFields.map(f => fieldLabelMap[f] || f).join(', ');
 

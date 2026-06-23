@@ -107,11 +107,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .update({ pin_attempts: 0, pin_locked_until: null })
       .eq('id', tokenRow.id);
 
-    // 6. Return only what applicant needs (no sensitive data)
+    // 6. Fetch basic metadata for dynamic UI messages (SCB/KTB conditions, military status checks)
+    const { data: appRow } = await supabase
+      .from('applications')
+      .select('business_unit, form_data')
+      .eq('id', tokenRow.application_id)
+      .single();
+
+    const fd = appRow?.form_data || {};
+    const businessUnit = appRow?.business_unit || fd.businessUnit || '';
+    const militaryStatus = fd.militaryStatus || '';
+    const isThaiNational = fd.isThaiNational !== false;
+    const gender = (fd.titleEn === 'Mrs.' || fd.titleEn === 'Miss.' || fd.title === 'นาง' || fd.title === 'นางสาว') ? 'female' : 'male';
+
+    // Return only what applicant needs (no sensitive data)
     return res.status(200).json({
       success: true,
       applicationId: tokenRow.application_id,
-      allowedFields: tokenRow.allowed_fields || []
+      allowedFields: tokenRow.allowed_fields || [],
+      businessUnit,
+      militaryStatus,
+      isThaiNational,
+      gender
     });
 
   } catch (error: any) {

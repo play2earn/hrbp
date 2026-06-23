@@ -1,13 +1,24 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 
-const ALLOWED_FIELDS = ['resumeUrl', 'transcriptUrl', 'certificateUrl', 'photoUrl'];
+const ALLOWED_FIELDS = [
+  'resumeUrl', 'transcriptUrl', 'certificateUrl', 'photoUrl',
+  'idCardUrl', 'houseRegUrl', 'eduCertificateUrl', 'militaryCertUrl', 'toeicCertUrl',
+  'bankBookUrl_scb', 'bankBookUrl_ktb'
+];
 
 const FIELD_LABEL_MAP: Record<string, string> = {
   resumeUrl: 'Resume / CV',
   transcriptUrl: 'Transcript / ใบ Grade',
   certificateUrl: 'Certificate / เอกสารเพิ่มเติม',
   photoUrl: 'รูปถ่าย',
+  idCardUrl: 'สำเนาบัตรประชาชน',
+  houseRegUrl: 'สำเนาทะเบียนบ้าน',
+  eduCertificateUrl: 'ใบรับรองวุฒิการศึกษา',
+  militaryCertUrl: 'ใบผ่านการเกณฑ์ทหาร',
+  toeicCertUrl: 'ผลสอบ TOEIC',
+  bankBookUrl_scb: 'สำเนาบัญชีธนาคารไทยพาณิชย์ (ออมทรัพย์)',
+  bankBookUrl_ktb: 'สำเนาบัญชีธนาคารกรุงไทย (ออมทรัพย์)',
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -89,7 +100,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const updatedFormData = { ...(appRow.form_data || {}) };
     for (const key of safeKeys) {
       if (uploadedFields[key] && typeof uploadedFields[key] === 'string') {
-        updatedFormData[key] = uploadedFields[key];
+        if (key === 'bankBookUrl_scb') {
+          updatedFormData.bankBookUrl = uploadedFields[key];
+          updatedFormData.bankName = 'SCB';
+        } else if (key === 'bankBookUrl_ktb') {
+          updatedFormData.bankBookUrl = uploadedFields[key];
+          updatedFormData.bankName = 'KTB';
+        } else {
+          updatedFormData[key] = uploadedFields[key];
+        }
       }
     }
 

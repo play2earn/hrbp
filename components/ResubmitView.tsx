@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
     Shield, Upload, CheckCircle2, XCircle, Loader2,
-    FileText, Image as ImageIcon, Lock, AlertTriangle, ChevronRight
+    FileText, Image as ImageIcon, Lock, AlertTriangle, ChevronRight,
+    CreditCard
 } from 'lucide-react';
 import { uploadToR2 } from '../utils/r2-upload';
 
@@ -22,10 +23,17 @@ interface UploadedFile {
 }
 
 const FIELD_CONFIG: Record<string, { label: string; labelEn: string; icon: React.ReactNode; accept: string; hint: string }> = {
-    resumeUrl:       { label: 'Resume / CV',                   labelEn: 'Resume / CV',             icon: <FileText className="w-5 h-5" />,  accept: '.pdf,.doc,.docx', hint: 'PDF, DOC (ไม่เกิน 10MB)' },
-    transcriptUrl:   { label: 'Transcript / ใบแสดงผลการเรียน', labelEn: 'Transcript / Grade Report',icon: <FileText className="w-5 h-5" />,  accept: '.pdf,.jpg,.png',  hint: 'PDF, JPG, PNG (ไม่เกิน 10MB)' },
-    certificateUrl:  { label: 'Certificate / เอกสารเพิ่มเติม', labelEn: 'Certificate / Other Docs', icon: <FileText className="w-5 h-5" />,  accept: '.pdf,.jpg,.png',  hint: 'PDF, JPG, PNG (ไม่เกิน 10MB)' },
-    photoUrl:        { label: 'รูปถ่าย',                        labelEn: 'Profile Photo',            icon: <ImageIcon className="w-5 h-5" />, accept: '.jpg,.jpeg,.png', hint: 'JPG, PNG (ไม่เกิน 5MB)' },
+    resumeUrl:         { label: 'Resume / CV',                   labelEn: 'Resume / CV',             icon: <FileText className="w-5 h-5" />,  accept: '.pdf,.doc,.docx', hint: 'PDF, DOC (ไม่เกิน 10MB)' },
+    transcriptUrl:     { label: 'Transcript / ใบแสดงผลการเรียน', labelEn: 'Transcript / Grade Report',icon: <FileText className="w-5 h-5" />,  accept: '.pdf,.jpg,.png',  hint: 'PDF, JPG, PNG (ไม่เกิน 10MB)' },
+    certificateUrl:    { label: 'Certificate / เอกสารเพิ่มเติม', labelEn: 'Certificate / Other Docs', icon: <FileText className="w-5 h-5" />,  accept: '.pdf,.jpg,.png',  hint: 'PDF, JPG, PNG (ไม่เกิน 10MB)' },
+    photoUrl:          { label: 'รูปถ่าย',                        labelEn: 'Profile Photo',            icon: <ImageIcon className="w-5 h-5" />, accept: '.jpg,.jpeg,.png', hint: 'JPG, PNG (ไม่เกิน 5MB)' },
+    idCardUrl:         { label: 'สำเนาบัตรประชาชน',              labelEn: 'Copy of National ID Card', icon: <CreditCard className="w-5 h-5" />, accept: '.pdf,.jpg,.png',  hint: 'PDF, JPG, PNG (ไม่เกิน 10MB)' },
+    houseRegUrl:       { label: 'สำเนาทะเบียนบ้าน',              labelEn: 'Copy of House Registration',icon: <FileText className="w-5 h-5" />,   accept: '.pdf,.jpg,.png',  hint: 'PDF, JPG, PNG (ไม่เกิน 10MB)' },
+    eduCertificateUrl: { label: 'ใบรับรองวุฒิการศึกษา',          labelEn: 'Education Certificate',    icon: <FileText className="w-5 h-5" />,   accept: '.pdf,.jpg,.png',  hint: 'PDF, JPG, PNG (ไม่เกิน 10MB)' },
+    militaryCertUrl:   { label: 'ใบผ่านการเกณฑ์ทหาร (ถ้ามี)',      labelEn: 'Military Service Cert (if any)',icon: <FileText className="w-5 h-5" />,accept: '.pdf,.jpg,.png', hint: 'PDF, JPG, PNG (ไม่เกิน 10MB)' },
+    toeicCertUrl:      { label: 'ผลสอบ TOEIC (ถ้ามี)',            labelEn: 'TOEIC Score Report (if any)',icon: <FileText className="w-5 h-5" />,  accept: '.pdf,.jpg,.png',  hint: 'PDF, JPG, PNG (ไม่เกิน 10MB)' },
+    bankBookUrl_scb:   { label: 'สำเนาบัญชีธนาคารไทยพาณิชย์ (ประเภทบัญชีออมทรัพย์)', labelEn: 'SCB Savings Bank Book Copy', icon: <CreditCard className="w-5 h-5" />, accept: '.pdf,.jpg,.png',  hint: 'PDF, JPG, PNG (ไม่เกิน 10MB)' },
+    bankBookUrl_ktb:   { label: 'สำเนาบัญชีธนาคารกรุงไทย (ประเภทบัญชีออมทรัพย์)', labelEn: 'KTB Savings Bank Book Copy', icon: <CreditCard className="w-5 h-5" />, accept: '.pdf,.jpg,.png',  hint: 'PDF, JPG, PNG (ไม่เกิน 10MB)' },
 };
 
 // ─── PIN Input Component ───────────────────────────────────────────────────────
@@ -117,6 +125,12 @@ export default function ResubmitView({ token }: ResubmitViewProps) {
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState('');
 
+    // Candidate metadata for conditional messages
+    const [businessUnit, setBusinessUnit] = useState('');
+    const [militaryStatus, setMilitaryStatus] = useState('');
+    const [isThaiNational, setIsThaiNational] = useState(true);
+    const [gender, setGender] = useState<'male' | 'female'>('male');
+
     // ── Validate token on mount (just check it exists and is not expired)
     useEffect(() => {
         const checkToken = async () => {
@@ -159,6 +173,11 @@ export default function ResubmitView({ token }: ResubmitViewProps) {
             if (res.ok && data.success) {
                 setApplicationId(data.applicationId);
                 setAllowedFields(data.allowedFields || []);
+                setBusinessUnit(data.businessUnit || '');
+                setMilitaryStatus(data.militaryStatus || '');
+                setIsThaiNational(data.isThaiNational !== false);
+                setGender(data.gender || 'male');
+                
                 // Init upload slots
                 const slots: Record<string, UploadedFile | null> = {};
                 (data.allowedFields || []).forEach((f: string) => { slots[f] = null; });
@@ -397,6 +416,38 @@ export default function ResubmitView({ token }: ResubmitViewProps) {
                                                 {up?.uploadedUrl && <CheckCircle2 className="w-4 h-4 text-emerald-500 ml-auto" />}
                                                 {up?.uploading && <Loader2 className="w-4 h-4 text-indigo-500 animate-spin ml-auto" />}
                                             </div>
+
+                                            {/* Conditional Bank Book Instructions */}
+                                            {(field === 'bankBookUrl_scb' || field === 'bankBookUrl_ktb') && (
+                                                <div className="mb-3 p-2.5 bg-indigo-50 border border-indigo-100 rounded-lg text-xs text-indigo-800 space-y-1">
+                                                    <p className="font-semibold text-indigo-900">
+                                                        🏦 {field === 'bankBookUrl_ktb' 
+                                                            ? 'บังคับแนบ: บัญชีออมทรัพย์ ธนาคารกรุงไทย (KTB) เท่านั้น' 
+                                                            : 'บังคับแนบ: บัญชีออมทรัพย์ ธนาคารไทยพาณิชย์ (SCB) เท่านั้น'}
+                                                    </p>
+                                                    <p className="text-slate-500 text-[10px]">
+                                                        *ชื่อบัญชีธนาคารต้องตรงกับชื่อ-นามสกุลของผู้สมัคร และต้องเป็นประเภทบัญชีออมทรัพย์เท่านั้น
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            {/* Conditional Military Service Certificate Instructions */}
+                                            {field === 'militaryCertUrl' && (
+                                                <div className="mb-3 p-2.5 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-800 space-y-1">
+                                                    <p className="font-semibold">
+                                                        🪖 สถานะการเกณฑ์ทหาร: {militaryStatus === 'Completed' || militaryStatus === 'ผ่านการเกณฑ์ทหารแล้ว' || militaryStatus === 'ROTC' || militaryStatus === 'Conscripted' ? 'ผ่านการเกณฑ์ทหารแล้ว' : militaryStatus || 'ไม่ระบุ'}
+                                                    </p>
+                                                    {gender === 'female' ? (
+                                                        <p className="text-emerald-700 text-[10px] font-medium">
+                                                            *ผู้สมัครเพศหญิงได้รับการยกเว้นตามกฎหมาย ไม่จำเป็นต้องอัปโหลดเอกสารนี้
+                                                        </p>
+                                                    ) : (
+                                                        <p className="text-slate-500 text-[10px]">
+                                                            *กรุณาแนบใบ สด.8 / สด.43 หรือใบรับรองการยกเว้นการเกณฑ์ทหาร
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            )}
 
                                             {up?.error && (
                                                 <p className="text-xs text-red-500 mb-2 flex items-center gap-1">

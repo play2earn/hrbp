@@ -47,3 +47,5 @@ scratch/*
 !README.md
 
 .supabase/
+
+dist-api/
