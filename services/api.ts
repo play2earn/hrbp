@@ -359,17 +359,95 @@ export const api = {
 
       const { data, error } = await supabase
         .from('applications')
-        .select('*, assigned_user:users!applications_assigned_to_fkey(id, full_name, emp_id)')
+        .select(`
+          id,
+          created_at,
+          full_name,
+          phone,
+          position,
+          department,
+          status,
+          assigned_to,
+          assigned_user:users!applications_assigned_to_fkey(id, full_name, emp_id),
+          business_unit,
+          source_channel,
+          campaign_tag,
+          nickname:form_data->>nickname,
+          photoUrl:form_data->>photoUrl,
+          age:form_data->>age,
+          nationalId:form_data->>nationalId,
+          passportNo:form_data->>passportNo,
+          isThaiNational:form_data->>isThaiNational,
+          prefix:form_data->>prefix,
+          firstName:form_data->>firstName,
+          lastName:form_data->>lastName,
+          departmentEn:form_data->>departmentEn,
+          positionEn:form_data->>positionEn
+        `)
         .order('created_at', { ascending: false });
 
       if (error) {
         console.error("Fetch Apps Error:", error);
         return [];
       }
-      return data || [];
+
+      return (data || []).map((app: any) => {
+        const {
+          nickname, photoUrl, age, nationalId, passportNo, isThaiNational,
+          prefix, firstName, lastName, departmentEn, positionEn, ...rest
+        } = app;
+        return {
+          ...rest,
+          form_data: {
+            nickname,
+            photoUrl,
+            age,
+            nationalId,
+            passportNo,
+            isThaiNational: isThaiNational === 'true' ? true : isThaiNational === 'false' ? false : isThaiNational,
+            prefix,
+            firstName,
+            lastName,
+            departmentEn,
+            positionEn,
+            businessUnit: rest.business_unit,
+            sourceChannel: rest.source_channel,
+            campaignTag: rest.campaign_tag
+          }
+        };
+      });
     } catch (error) {
       console.error("Fetch Apps Error:", error);
       return [];
+    }
+  },
+
+  /**
+   * Fetch a single application by ID with full details (including complete form_data)
+   */
+  getApplicationById: async (id: string): Promise<any | null> => {
+    try {
+      // Check for session validity before fetching
+      const sessionResult = await api.auth.verifySession();
+      if (!sessionResult.success) {
+        console.warn("Session invalid");
+        return null;
+      }
+
+      const { data, error } = await supabase
+        .from('applications')
+        .select('*, assigned_user:users!applications_assigned_to_fkey(id, full_name, emp_id)')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        console.error("Fetch App By ID Error:", error);
+        return null;
+      }
+      return data;
+    } catch (error) {
+      console.error("Fetch App By ID Error:", error);
+      return null;
     }
   },
 

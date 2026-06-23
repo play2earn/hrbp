@@ -7,7 +7,7 @@ import {
   FileText, ExternalLink, Edit, Calendar, History, Clock,
   CheckCircle, XCircle, UserPlus, UserCheck, Link, Copy, Check,
   Crop, RotateCcw, Upload, ChevronDown, ChevronUp, AlertTriangle, Paperclip, ShieldAlert,
-  Eye, Download
+  Eye, Download, X, Settings
 } from 'lucide-react';
 import {
   LOG_LABELS, getStatusBadgeClass, getStatusLabel,
@@ -104,9 +104,18 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
   // ── Document Previewer State ─────────────────────────────────
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState<string>('');
+  const [showPreview, setShowPreview] = useState(true);
+  const [autoSelectOnLoad, setAutoSelectOnLoad] = useState(false);
+  const [showMoreActions, setShowMoreActions] = useState(false);
+  const moreActionsRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (viewingApp?.id) {
+      setShowPreview(true); // Reset toggle to show preview panel for new profile opening
+      setPreviewUrl(null); // Reset preview url
+      setPreviewTitle(''); // Reset preview title
+      setAutoSelectOnLoad(false); // Do not auto-select initially on modal open
+      setShowMoreActions(false); // Reset dropdown menu
       const fetchExistingToken = async () => {
         const result = await api.getExistingShareToken(viewingApp.id);
         if (result.success && result.data) {
@@ -162,44 +171,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
         };
         fetchPosEn();
       }
-
-      // Auto-select first available document for live preview
-      const autoFd = viewingApp.form_data || {};
-      if (autoFd.resumeUrl) {
-        setPreviewUrl(autoFd.resumeUrl);
-        setPreviewTitle('Resume / CV');
-      } else if (autoFd.transcriptUrl) {
-        setPreviewUrl(autoFd.transcriptUrl);
-        setPreviewTitle('Transcript');
-      } else if (autoFd.idCardUrl) {
-        setPreviewUrl(autoFd.idCardUrl);
-        setPreviewTitle('สำเนาบัตรประชาชน');
-      } else if (autoFd.houseRegUrl) {
-        setPreviewUrl(autoFd.houseRegUrl);
-        setPreviewTitle('สำเนาทะเบียนบ้าน');
-      } else if (autoFd.eduCertificateUrl) {
-        setPreviewUrl(autoFd.eduCertificateUrl);
-        setPreviewTitle('ใบรับรองวุฒิการศึกษา');
-      } else if (autoFd.bankBookUrl) {
-        const bankNameText = autoFd.bankName ? ` (${autoFd.bankName})` : '';
-        setPreviewUrl(autoFd.bankBookUrl);
-        setPreviewTitle(`สำเนาบัญชีธนาคาร${bankNameText}`);
-      } else if (autoFd.militaryCertUrl) {
-        setPreviewUrl(autoFd.militaryCertUrl);
-        setPreviewTitle('ใบผ่านการเกณฑ์ทหาร');
-      } else if (autoFd.toeicCertUrl) {
-        setPreviewUrl(autoFd.toeicCertUrl);
-        setPreviewTitle('ผลสอบ TOEIC');
-      } else if (autoFd.certificateUrl) {
-        setPreviewUrl(autoFd.certificateUrl);
-        setPreviewTitle('Certificate / เอกสารเพิ่มเติม');
-      } else {
-        setPreviewUrl(null);
-        setPreviewTitle('');
-      }
     } else {
-      setPreviewUrl(null);
-      setPreviewTitle('');
       setShareLink(null);
       setShareToken(null);
       setShareLinkExpiry(null);
@@ -209,6 +181,64 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
       setResubmitAllowedExisting([]);
     }
   }, [viewingApp?.id]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (moreActionsRef.current && !moreActionsRef.current.contains(event.target as Node)) {
+        setShowMoreActions(false);
+      }
+    };
+    if (showMoreActions) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMoreActions]);
+
+  // Auto-select first available document for live preview when full details are loaded
+  useEffect(() => {
+    if (!viewingApp?.id) {
+      setPreviewUrl(null);
+      setPreviewTitle('');
+      return;
+    }
+
+    const autoFd = viewingApp.form_data || {};
+    // Only auto-select if no document is currently selected AND showPreview is true AND autoSelectOnLoad is true
+    if (previewUrl || !showPreview || !autoSelectOnLoad) return;
+
+    if (autoFd.resumeUrl) {
+      setPreviewUrl(autoFd.resumeUrl);
+      setPreviewTitle('Resume / CV');
+    } else if (autoFd.transcriptUrl) {
+      setPreviewUrl(autoFd.transcriptUrl);
+      setPreviewTitle('Transcript');
+    } else if (autoFd.idCardUrl) {
+      setPreviewUrl(autoFd.idCardUrl);
+      setPreviewTitle('สำเนาบัตรประชาชน');
+    } else if (autoFd.houseRegUrl) {
+      setPreviewUrl(autoFd.houseRegUrl);
+      setPreviewTitle('สำเนาทะเบียนบ้าน');
+    } else if (autoFd.eduCertificateUrl) {
+      setPreviewUrl(autoFd.eduCertificateUrl);
+      setPreviewTitle('ใบรับรองวุฒิการศึกษา');
+    } else if (autoFd.bankBookUrl) {
+      const bankNameText = autoFd.bankName ? ` (${autoFd.bankName})` : '';
+      setPreviewUrl(autoFd.bankBookUrl);
+      setPreviewTitle(`สำเนาบัญชีธนาคาร${bankNameText}`);
+    } else if (autoFd.militaryCertUrl) {
+      setPreviewUrl(autoFd.militaryCertUrl);
+      setPreviewTitle('ใบผ่านการเกณฑ์ทหาร');
+    } else if (autoFd.toeicCertUrl) {
+      setPreviewUrl(autoFd.toeicCertUrl);
+      setPreviewTitle('ผลสอบ TOEIC');
+    } else if (autoFd.certificateUrl) {
+      setPreviewUrl(autoFd.certificateUrl);
+      setPreviewTitle('Certificate / เอกสารเพิ่มเติม');
+    }
+  }, [viewingApp?.id, viewingApp?.form_data, showPreview, previewUrl, autoSelectOnLoad]);
 
   // ── Resubmit Handlers ────────────────────────────────────────
   const RESUBMIT_FIELD_OPTIONS = [
@@ -351,6 +381,8 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
   };
 
   const fd = viewingApp?.form_data || {};
+  const hasAnyDocuments = !!(fd.resumeUrl || fd.transcriptUrl || fd.idCardUrl || fd.houseRegUrl || fd.eduCertificateUrl || fd.bankBookUrl || fd.militaryCertUrl || fd.toeicCertUrl || fd.certificateUrl);
+  const isDetailLoaded = !!(viewingApp?.form_data && 'resumeUrl' in viewingApp.form_data);
   const isForeigner = fd.isThaiNational === false;
   const lang = isForeigner ? 'en' : 'th';
   const t = TRANSLATIONS[lang];
@@ -538,7 +570,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
         {viewingApp && (
           <div className="flex flex-col lg:flex-row gap-6 items-stretch min-h-[600px] lg:h-[calc(100vh-140px)] overflow-hidden w-full">
             {/* Left Column: Candidate Info */}
-            <div className="w-full lg:w-[45%] overflow-y-auto pr-2 pb-8 h-full">
+            <div className={`w-full overflow-y-auto pr-2 pb-8 h-full transition-all duration-300 ${showPreview ? 'lg:w-[45%]' : 'lg:w-full'}`}>
             {/* Blacklist Warning Banner */}
             {isBlacklisted && (
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-5 flex flex-col items-start gap-3.5 shadow-sm">
@@ -1557,73 +1589,161 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
               )}
 
               {/* Action Buttons */}
-              <div className="flex flex-wrap gap-2 sm:gap-3 pt-4 mt-4 border-t sticky bottom-0 bg-white pb-2">
-                <Button variant="outline" onClick={() => {
-                  // Store form_data in localStorage and open print.html
-                  const fd = viewingApp.form_data ? { ...viewingApp.form_data } : {};
-                  fd.created_at = viewingApp.created_at;
-                  fd.id = viewingApp.id;
-                  localStorage.setItem('printPreviewData', JSON.stringify(fd));
-                  window.open('/print.html', '_blank');
-                }}>
-                  <ExternalLink className="w-4 h-4 mr-2" /> {t.labels.openFullPreview}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-                  onClick={async () => {
-                    const fd = viewingApp.form_data ? { ...viewingApp.form_data } : {};
-                    fd.created_at = viewingApp.created_at;
-                    fd.id = viewingApp.id;
-                    fd.interview_date = viewingApp.interview_date;
-                    fd.position = viewingApp.position;
-                    fd.department = viewingApp.department;
-                    fd.business_unit = viewingApp.business_unit;
-
-                    // Fetch master conditions & calendars for memo.html DDL
-                    try {
-                      const [condsRes, calsRes] = await Promise.all([
-                        api.master.getAll('memo_conditions'),
-                        api.master.getAll('memo_calendars')
-                      ]);
-                      fd.masterConditions = condsRes.data || [];
-                      fd.masterCalendars = calsRes.data || [];
-                    } catch (e) {
-                      console.error("Failed to prefetch memo master data", e);
-                    }
-
-                    localStorage.setItem('memoPreviewData', JSON.stringify(fd));
-                    window.open('/memo.html', '_blank');
-                  }}
-                >
-                  <FileText className="w-4 h-4 mr-2 text-emerald-600" /> สร้าง Memo
-                </Button>
-                <Button
-                  variant="outline"
-                  className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-                  onClick={handleGenerateShareLink}
-                  disabled={isGeneratingLink}
-                >
-                  <Link className="w-4 h-4 mr-2" />
-                  {isGeneratingLink ? (lang === 'en' ? 'Generating...' : 'กำลังสร้าง...') : shareLink ? (lang === 'en' ? 'View Link' : 'ดูลิงก์แชร์') : (lang === 'en' ? 'Create Link' : 'สร้างลิงก์แชร์')}
-                </Button>
-                <Button variant="outline" onClick={() => { setEditingApp(viewingApp); setViewingApp(null); }}>
-                  <Edit className="w-4 h-4 mr-2" /> {t.actions.edit}
-                </Button>
-                {!viewingApp.assigned_to && !isClosedStatus(viewingApp.status) ? (
-                  <Button variant="outline" className="border-indigo-200 text-indigo-700 hover:bg-indigo-50" onClick={() => { setClaimingApp(viewingApp); setViewingApp(null); }}>
-                    <User className="w-4 h-4 mr-2" /> {lang === 'en' ? 'Claim Case' : 'รับเคสนี้ (Claim)'}
+              <div className="flex items-center justify-end gap-2 pt-4 mt-4 border-t sticky bottom-0 bg-white pb-2 z-30 flex-wrap sm:flex-nowrap">
+                {!showPreview && hasAnyDocuments && (
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      setShowPreview(true);
+                      setAutoSelectOnLoad(true);
+                    }}
+                    className="mr-auto animate-in fade-in zoom-in-95 duration-200"
+                  >
+                    <Eye className="w-4 h-4 mr-2" /> {lang === 'en' ? 'Show Documents' : 'แสดงตัวอย่างเอกสาร'}
                   </Button>
-                ) : viewingApp.assigned_to && !isClosedStatus(viewingApp.status) ? (
-                  <>
-                    <Button variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50" onClick={() => { setTransferringApp(viewingApp); setViewingApp(null); }}>
-                      <Users className="w-4 h-4 mr-2" /> {lang === 'en' ? 'Transfer Case' : 'โอนเคส'}
-                    </Button>
-                    <Button variant="outline" className="border-slate-200 text-slate-700 hover:bg-slate-50" onClick={() => { setUnassigningApp(viewingApp); setViewingApp(null); }}>
-                      <User className="w-4 h-4 mr-2" /> {lang === 'en' ? 'Unassign Case' : 'ยกเลิกการรับเคส'}
-                    </Button>
-                  </>
-                ) : null}
+                )}
+
+                {/* Dropdown Menu for Secondary Actions */}
+                <div className="relative" ref={moreActionsRef}>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowMoreActions(!showMoreActions)}
+                    className="border-slate-200 text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Settings className="w-4 h-4 text-slate-500" />
+                    {lang === 'en' ? 'Manage' : 'จัดการเคส'}
+                    {showMoreActions ? <ChevronUp className="w-4 h-4 ml-0.5 text-slate-400" /> : <ChevronDown className="w-4 h-4 ml-0.5 text-slate-400" />}
+                  </Button>
+
+                  {showMoreActions && (
+                    <div className="absolute right-0 bottom-full mb-2 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                      {/* 1. Print Preview */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowMoreActions(false);
+                          const fd = viewingApp.form_data ? { ...viewingApp.form_data } : {};
+                          fd.created_at = viewingApp.created_at;
+                          fd.id = viewingApp.id;
+                          localStorage.setItem('printPreviewData', JSON.stringify(fd));
+                          window.open('/print.html', '_blank');
+                        }}
+                        className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
+                        {t.labels.openFullPreview}
+                      </button>
+
+                      {/* 2. Memo */}
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setShowMoreActions(false);
+                          const fd = viewingApp.form_data ? { ...viewingApp.form_data } : {};
+                          fd.created_at = viewingApp.created_at;
+                          fd.id = viewingApp.id;
+                          fd.interview_date = viewingApp.interview_date;
+                          fd.position = viewingApp.position;
+                          fd.department = viewingApp.department;
+                          fd.business_unit = viewingApp.business_unit;
+
+                          try {
+                            const [condsRes, calsRes] = await Promise.all([
+                              api.master.getAll('memo_conditions'),
+                              api.master.getAll('memo_calendars')
+                            ]);
+                            fd.masterConditions = condsRes.data || [];
+                            fd.masterCalendars = calsRes.data || [];
+                          } catch (e) {
+                            console.error("Failed to prefetch memo master data", e);
+                          }
+
+                          localStorage.setItem('memoPreviewData', JSON.stringify(fd));
+                          window.open('/memo.html', '_blank');
+                        }}
+                        className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors border-t border-slate-100"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-emerald-600" />
+                        สร้าง Memo
+                      </button>
+
+                      {/* 3. Share Link */}
+                      <button
+                        type="button"
+                        disabled={isGeneratingLink}
+                        onClick={() => {
+                          setShowMoreActions(false);
+                          handleGenerateShareLink();
+                        }}
+                        className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors disabled:opacity-50 border-t border-slate-100"
+                      >
+                        <Link className="w-3.5 h-3.5 text-slate-500" />
+                        {isGeneratingLink ? (lang === 'en' ? 'Generating...' : 'กำลังสร้าง...') : shareLink ? (lang === 'en' ? 'View Share Link' : 'ดูลิงก์แชร์') : (lang === 'en' ? 'Create Share Link' : 'สร้างลิงก์แชร์')}
+                      </button>
+
+                      {/* 4. Edit details */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowMoreActions(false);
+                          setEditingApp(viewingApp);
+                          setViewingApp(null);
+                        }}
+                        className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors border-t border-slate-100"
+                      >
+                        <Edit className="w-3.5 h-3.5 text-slate-500" />
+                        {t.actions.edit}
+                      </button>
+
+                      {/* 5. Claim / Transfer / Unassign Case */}
+                      {!viewingApp.assigned_to && !isClosedStatus(viewingApp.status) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowMoreActions(false);
+                            setClaimingApp(viewingApp);
+                            setViewingApp(null);
+                          }}
+                          className="w-full text-left px-4 py-2 text-xs text-indigo-700 hover:bg-indigo-50 flex items-center gap-2 transition-colors border-t border-slate-100"
+                        >
+                          <User className="w-3.5 h-3.5 text-indigo-500" />
+                          {lang === 'en' ? 'Claim Case' : 'รับเคสนี้ (Claim)'}
+                        </button>
+                      )}
+
+                      {viewingApp.assigned_to && !isClosedStatus(viewingApp.status) && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowMoreActions(false);
+                              setTransferringApp(viewingApp);
+                              setViewingApp(null);
+                            }}
+                            className="w-full text-left px-4 py-2 text-xs text-blue-700 hover:bg-blue-50 flex items-center gap-2 transition-colors border-t border-slate-100"
+                          >
+                            <Users className="w-3.5 h-3.5 text-blue-500" />
+                            {lang === 'en' ? 'Transfer Case' : 'โอนเคส'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowMoreActions(false);
+                              setUnassigningApp(viewingApp);
+                              setViewingApp(null);
+                            }}
+                            className="w-full text-left px-4 py-2 text-xs text-red-700 hover:bg-red-50 flex items-center gap-2 transition-colors border-t border-slate-100"
+                          >
+                            <User className="w-3.5 h-3.5 text-red-500" />
+                            {lang === 'en' ? 'Unassign Case' : 'ยกเลิกการรับเคส'}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Primary Workflow Status Actions */}
                 {viewingApp.status === 'Reviewing' && (
                   <>
                     <Button className="bg-yellow-500 hover:bg-yellow-600 text-white" onClick={() => { setInterviewingApp(viewingApp); setInterviewDate(''); setViewingApp(null); }}>
@@ -1649,12 +1769,13 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                     </Button>
                   </>
                 )}
-                <Button variant="outline" onClick={() => setViewingApp(null)} className="ml-auto">{lang === 'en' ? 'Close' : 'ปิด'}</Button>
+                <Button variant="outline" onClick={() => setViewingApp(null)}>{lang === 'en' ? 'Close' : 'ปิด'}</Button>
               </div>
             </div>
 
             {/* Right Column: Document Previewer */}
-            <div className="w-full lg:w-[55%] flex flex-col h-[600px] lg:h-full bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-sm overflow-hidden">
+            {showPreview && (
+              <div className="w-full lg:w-[55%] flex flex-col h-[600px] lg:h-full bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-sm overflow-hidden animate-in slide-in-from-right duration-350">
               <div className="flex items-center justify-between pb-3 border-b border-slate-200 flex-shrink-0">
                 <div className="flex items-center gap-2">
                   <div className="p-2 bg-indigo-100 text-indigo-700 rounded-lg">
@@ -1669,8 +1790,8 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                     </p>
                   </div>
                 </div>
-                {previewUrl && (
-                  <div className="flex gap-1">
+                <div className="flex items-center gap-1.5">
+                  {previewUrl && (
                     <a
                       href={previewUrl}
                       target="_blank"
@@ -1681,8 +1802,16 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                       <ExternalLink className="w-3.5 h-3.5" />
                       เปิดแท็บใหม่
                     </a>
-                  </div>
-                )}
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowPreview(false)}
+                    className="p-1.5 hover:bg-slate-200 text-slate-500 hover:text-slate-700 rounded-lg transition border border-slate-200 hover:border-slate-300 bg-white flex items-center justify-center shadow-sm"
+                    title="ซ่อนพรีวิวเอกสาร"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               {/* Chips for all available documents */}
@@ -1854,18 +1983,37 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                   )
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center text-slate-400 bg-white">
-                    <FileText className="w-14 h-14 text-slate-300 mb-3" />
-                    <h5 className="text-sm font-bold text-slate-700">ไม่มีเอกสารสำหรับผู้สมัครรายนี้</h5>
-                    <p className="text-xs text-slate-400 mt-1 max-w-[280px]">
-                      ผู้สมัครรายนี้ยังไม่ได้อัปโหลดเอกสารใดๆ หรือยังไม่ได้ขอให้จัดส่งเอกสารใหม่
-                    </p>
+                    <FileText className="w-14 h-14 text-slate-300 mb-3 animate-pulse" />
+                    {!isDetailLoaded ? (
+                      <>
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                          <p className="text-xs text-slate-400 mt-2 font-medium">กำลังโหลดข้อมูลเอกสาร...</p>
+                        </div>
+                      </>
+                    ) : hasAnyDocuments ? (
+                      <>
+                        <h5 className="text-sm font-bold text-slate-700">กรุณาเลือกไฟล์เพื่อพรีวิว</h5>
+                        <p className="text-xs text-slate-400 mt-1 max-w-[280px]">
+                          คลิกเลือกประเภทเอกสารที่ต้องการดูตัวอย่างจากปุ่มด้านบน
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <h5 className="text-sm font-bold text-slate-700">ไม่มีเอกสารสำหรับผู้สมัครรายนี้</h5>
+                        <p className="text-xs text-slate-400 mt-1 max-w-[280px]">
+                          ผู้สมัครรายนี้ยังไม่ได้อัปโหลดเอกสารใดๆ หรือยังไม่ได้ขอให้จัดส่งเอกสารใหม่
+                        </p>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
             </div>
-          </div>
-        )}
-      </Modal>
+          )}
+        </div>
+      )}
+    </Modal>
 
       {/* Share Link Confirm Modal */}
       <Modal

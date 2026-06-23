@@ -75,7 +75,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
   });
   const [appPage, setAppPage] = useState(1);
   const [appPerPage, setAppPerPage] = useState(25);
-  const [viewingApp, setViewingApp] = useState<any | null>(null);
+  const [viewingAppState, setViewingAppState] = useState<any | null>(null);
+  const viewingApp = viewingAppState;
+  const setViewingApp = React.useCallback(async (app: any | null) => {
+    if (!app) {
+      setViewingAppState(null);
+      return;
+    }
+    setViewingAppState(app);
+    if (app.form_data && (app.form_data.resumeUrl !== undefined || app.form_data.transcriptUrl !== undefined)) {
+      return;
+    }
+    try {
+      const fullApp = await api.getApplicationById(app.id);
+      if (fullApp) {
+        setViewingAppState(fullApp);
+      }
+    } catch (err) {
+      console.error("Failed to fetch full application:", err);
+    }
+  }, []);
   const [viewingBlacklistDetail, setViewingBlacklistDetail] = useState<any | null>(null);
   const [claimingApp, setClaimingApp] = useState<any | null>(null);
   const [unassigningApp, setUnassigningApp] = useState<any | null>(null);
@@ -100,7 +119,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
 
   const [appLogs, setAppLogs] = useState<any[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
-  const [editingApp, setEditingApp] = useState<any | null>(null);
+  const [editingAppState, setEditingAppState] = useState<any | null>(null);
+  const editingApp = editingAppState;
+  const setEditingApp = React.useCallback(async (app: any | null) => {
+    if (!app) {
+      setEditingAppState(null);
+      return;
+    }
+    setEditingAppState(app);
+    if (app.form_data && (app.form_data.resumeUrl !== undefined || app.form_data.transcriptUrl !== undefined)) {
+      return;
+    }
+    try {
+      const fullApp = await api.getApplicationById(app.id);
+      if (fullApp) {
+        setEditingAppState(fullApp);
+      }
+    } catch (err) {
+      console.error("Failed to fetch full application for editing:", err);
+    }
+  }, []);
   const [editForm, setEditForm] = useState({
     position: '',
     department: '',
@@ -680,6 +718,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               currentUserId={currentUserId}
               blacklistEntries={blacklistEntries}
               onViewBlacklistDetail={setViewingBlacklistDetail}
+              loading={loading}
             />
           )}
 

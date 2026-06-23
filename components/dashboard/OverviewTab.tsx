@@ -150,6 +150,7 @@ interface OverviewTabProps {
   openActionMenu: (app: any, e: React.MouseEvent) => void;
   blacklistEntries: any[];
   onViewBlacklistDetail: (entry: any) => void;
+  loading?: boolean;
 }
 
 export const OverviewTab = React.memo<OverviewTabProps>(({
@@ -159,7 +160,7 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
   setClaimingApp, setTransferringApp, setUnassigningApp, setInterviewingApp,
   setRejectingApp, setApprovingApp, currentUserId,
   appPerPage, setAppPerPage, openActionMenu, blacklistEntries,
-  onViewBlacklistDetail
+  onViewBlacklistDetail, loading = false
 }) => {
 
   const checkIsBlacklisted = React.useCallback((app: any) => {
@@ -297,68 +298,84 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-6">
-          <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl sm:rounded-2xl p-3 sm:p-5 text-white shadow-xl shadow-indigo-500/25 card-hover">
-            <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/10 rounded-full -mr-8 -mt-8 sm:-mr-10 sm:-mt-10"></div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-indigo-100 text-[11px] sm:text-sm font-medium">Total Apps</p>
-                <p className="text-xl sm:text-3xl font-bold mt-0.5 sm:mt-1.5">{stats.total}</p>
+        {loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-6">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="animate-pulse bg-white border border-gray-100 rounded-xl sm:rounded-2xl p-3 sm:p-5 flex flex-col justify-between h-24 sm:h-28 shadow-sm">
+                <div className="flex items-center justify-between w-full">
+                  <div className="space-y-2 flex-1 min-w-0 pr-2">
+                    <div className="h-2.5 sm:h-3 bg-gray-200 rounded w-2/3"></div>
+                    <div className="h-5 sm:h-7 bg-gray-300 rounded w-1/2"></div>
+                  </div>
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-200 rounded-lg sm:rounded-xl flex-shrink-0"></div>
+                </div>
               </div>
-              <div className="p-1.5 sm:p-2.5 bg-white/20 rounded-lg sm:rounded-xl"><FileText className="w-4 h-4 sm:w-6 sm:h-6" /></div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-6">
+            <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl sm:rounded-2xl p-3 sm:p-5 text-white shadow-xl shadow-indigo-500/25 card-hover">
+              <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/10 rounded-full -mr-8 -mt-8 sm:-mr-10 sm:-mt-10"></div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-indigo-100 text-[11px] sm:text-sm font-medium">Total Apps</p>
+                  <p className="text-xl sm:text-3xl font-bold mt-0.5 sm:mt-1.5">{stats.total}</p>
+                </div>
+                <div className="p-1.5 sm:p-2.5 bg-white/20 rounded-lg sm:rounded-xl"><FileText className="w-4 h-4 sm:w-6 sm:h-6" /></div>
+              </div>
+            </div>
+            <div className="relative overflow-hidden bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl sm:rounded-2xl p-3 sm:p-5 text-white shadow-xl shadow-orange-500/25 card-hover">
+              <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/10 rounded-full -mr-8 -mt-8 sm:-mr-10 sm:-mt-10"></div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-amber-50 text-[11px] sm:text-sm font-medium">Pending Review</p>
+                  <p className="text-xl sm:text-3xl font-bold mt-0.5 sm:mt-1.5">{stats.pending}</p>
+                </div>
+                <div className="p-1.5 sm:p-2.5 bg-white/20 rounded-lg sm:rounded-xl"><Users className="w-4 h-4 sm:w-6 sm:h-6" /></div>
+              </div>
+            </div>
+            <div className="relative overflow-hidden bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl sm:rounded-2xl p-3 sm:p-5 text-white shadow-xl shadow-blue-500/25 card-hover">
+              <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/10 rounded-full -mr-8 -mt-8 sm:-mr-10 sm:-mt-10"></div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-50 text-[11px] sm:text-sm font-medium">Reviewing</p>
+                  <p className="text-xl sm:text-3xl font-bold mt-0.5 sm:mt-1.5">{stats.reviewing}</p>
+                </div>
+                <div className="p-1.5 sm:p-2.5 bg-white/20 rounded-lg sm:rounded-xl"><Edit className="w-4 h-4 sm:w-6 sm:h-6" /></div>
+              </div>
+            </div>
+            <div className="relative overflow-hidden bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl sm:rounded-2xl p-3 sm:p-5 text-white shadow-xl shadow-purple-500/25 card-hover">
+              <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/10 rounded-full -mr-8 -mt-8 sm:-mr-10 sm:-mt-10"></div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-purple-50 text-[11px] sm:text-sm font-medium">Interviewing</p>
+                  <p className="text-xl sm:text-3xl font-bold mt-0.5 sm:mt-1.5">{stats.interviewing}</p>
+                </div>
+                <div className="p-1.5 sm:p-2.5 bg-white/20 rounded-lg sm:rounded-xl"><Calendar className="w-4 h-4 sm:w-6 sm:h-6" /></div>
+              </div>
+            </div>
+            <div className="relative overflow-hidden bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl sm:rounded-2xl p-3 sm:p-5 text-white shadow-xl shadow-emerald-500/25 card-hover">
+              <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/10 rounded-full -mr-8 -mt-8 sm:-mr-10 sm:-mt-10"></div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-emerald-50 text-[11px] sm:text-sm font-medium">Hired (YTD)</p>
+                  <p className="text-xl sm:text-3xl font-bold mt-0.5 sm:mt-1.5">{stats.hired}</p>
+                </div>
+                <div className="p-1.5 sm:p-2.5 bg-white/20 rounded-lg sm:rounded-xl"><CheckCircle className="w-4 h-4 sm:w-6 sm:h-6" /></div>
+              </div>
+            </div>
+            <div className="relative overflow-hidden bg-gradient-to-br from-rose-400 to-red-500 rounded-xl sm:rounded-2xl p-3 sm:p-5 text-white shadow-xl shadow-red-500/25 card-hover">
+              <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/10 rounded-full -mr-8 -mt-8 sm:-mr-10 sm:-mt-10"></div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-rose-50 text-[11px] sm:text-sm font-medium">Rejected/Cancel</p>
+                  <p className="text-xl sm:text-3xl font-bold mt-0.5 sm:mt-1.5">{stats.rejected}</p>
+                </div>
+                <div className="p-1.5 sm:p-2.5 bg-white/20 rounded-lg sm:rounded-xl"><XCircle className="w-4 h-4 sm:w-6 sm:h-6" /></div>
+              </div>
             </div>
           </div>
-          <div className="relative overflow-hidden bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl sm:rounded-2xl p-3 sm:p-5 text-white shadow-xl shadow-orange-500/25 card-hover">
-            <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/10 rounded-full -mr-8 -mt-8 sm:-mr-10 sm:-mt-10"></div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-amber-50 text-[11px] sm:text-sm font-medium">Pending Review</p>
-                <p className="text-xl sm:text-3xl font-bold mt-0.5 sm:mt-1.5">{stats.pending}</p>
-              </div>
-              <div className="p-1.5 sm:p-2.5 bg-white/20 rounded-lg sm:rounded-xl"><Users className="w-4 h-4 sm:w-6 sm:h-6" /></div>
-            </div>
-          </div>
-          <div className="relative overflow-hidden bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl sm:rounded-2xl p-3 sm:p-5 text-white shadow-xl shadow-blue-500/25 card-hover">
-            <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/10 rounded-full -mr-8 -mt-8 sm:-mr-10 sm:-mt-10"></div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-50 text-[11px] sm:text-sm font-medium">Reviewing</p>
-                <p className="text-xl sm:text-3xl font-bold mt-0.5 sm:mt-1.5">{stats.reviewing}</p>
-              </div>
-              <div className="p-1.5 sm:p-2.5 bg-white/20 rounded-lg sm:rounded-xl"><Edit className="w-4 h-4 sm:w-6 sm:h-6" /></div>
-            </div>
-          </div>
-          <div className="relative overflow-hidden bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl sm:rounded-2xl p-3 sm:p-5 text-white shadow-xl shadow-purple-500/25 card-hover">
-            <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/10 rounded-full -mr-8 -mt-8 sm:-mr-10 sm:-mt-10"></div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-50 text-[11px] sm:text-sm font-medium">Interviewing</p>
-                <p className="text-xl sm:text-3xl font-bold mt-0.5 sm:mt-1.5">{stats.interviewing}</p>
-              </div>
-              <div className="p-1.5 sm:p-2.5 bg-white/20 rounded-lg sm:rounded-xl"><Calendar className="w-4 h-4 sm:w-6 sm:h-6" /></div>
-            </div>
-          </div>
-          <div className="relative overflow-hidden bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl sm:rounded-2xl p-3 sm:p-5 text-white shadow-xl shadow-emerald-500/25 card-hover">
-            <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/10 rounded-full -mr-8 -mt-8 sm:-mr-10 sm:-mt-10"></div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-emerald-50 text-[11px] sm:text-sm font-medium">Hired (YTD)</p>
-                <p className="text-xl sm:text-3xl font-bold mt-0.5 sm:mt-1.5">{stats.hired}</p>
-              </div>
-              <div className="p-1.5 sm:p-2.5 bg-white/20 rounded-lg sm:rounded-xl"><CheckCircle className="w-4 h-4 sm:w-6 sm:h-6" /></div>
-            </div>
-          </div>
-          <div className="relative overflow-hidden bg-gradient-to-br from-rose-400 to-red-500 rounded-xl sm:rounded-2xl p-3 sm:p-5 text-white shadow-xl shadow-red-500/25 card-hover">
-            <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/10 rounded-full -mr-8 -mt-8 sm:-mr-10 sm:-mt-10"></div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-rose-50 text-[11px] sm:text-sm font-medium">Rejected/Cancel</p>
-                <p className="text-xl sm:text-3xl font-bold mt-0.5 sm:mt-1.5">{stats.rejected}</p>
-              </div>
-              <div className="p-1.5 sm:p-2.5 bg-white/20 rounded-lg sm:rounded-xl"><XCircle className="w-4 h-4 sm:w-6 sm:h-6" /></div>
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* Recent Applications Table */}
         <Card>
@@ -507,7 +524,62 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
           </div>
 
           {/* Filtered & Paginated Data */}
-          {(() => {
+          {loading ? (
+            <>
+              {/* ===== MOBILE: Card List Skeleton ===== */}
+              <div className="lg:hidden divide-y divide-gray-100 animate-pulse">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="py-3 px-1 flex items-start gap-3">
+                    <div className="w-11 h-11 bg-gray-200 rounded-full flex-shrink-0"></div>
+                    <div className="flex-1 space-y-2 mt-1">
+                      <div className="flex justify-between items-center w-full">
+                        <div className="h-3.5 bg-gray-300 rounded w-1/3"></div>
+                        <div className="h-4 bg-gray-200 rounded-full w-16"></div>
+                      </div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                      <div className="h-2.5 bg-gray-200 rounded w-2/3"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ===== DESKTOP: Table Skeleton ===== */}
+              <div className="hidden lg:block overflow-x-auto animate-pulse">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-16">ลำดับ</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-32">วันที่สมัคร</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ผู้สมัคร / แหล่งที่มา</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ตำแหน่ง / แผนก</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-28">สถานะ</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-28">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {[...Array(5)].map((_, i) => (
+                      <tr key={i} className="h-16">
+                        <td className="px-4 py-3 bg-gray-50/50 text-center"><div className="h-3.5 bg-gray-200 rounded w-1/2 mx-auto"></div></td>
+                        <td className="px-4 py-3"><div className="space-y-1.5"><div className="h-3.5 bg-gray-300 rounded w-2/3"></div><div className="h-2.5 bg-gray-200 rounded w-1/2"></div></div></td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 bg-gray-200 rounded-full flex-shrink-0"></div>
+                            <div className="space-y-1.5 flex-1">
+                              <div className="h-3.5 bg-gray-300 rounded w-1/2"></div>
+                              <div className="h-2.5 bg-gray-200 rounded w-1/3"></div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3"><div className="space-y-1.5"><div className="h-3.5 bg-gray-300 rounded w-3/4"></div><div className="h-2.5 bg-gray-200 rounded w-1/2"></div></div></td>
+                        <td className="px-4 py-3"><div className="h-5 bg-gray-200 rounded-full w-20"></div></td>
+                        <td className="px-4 py-3"><div className="h-7 bg-gray-200 rounded-lg w-16 mx-auto"></div></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : (() => {
             const filtered = applications.filter((app: any) => {
               if (appFilters.status !== 'all') {
                 if (appFilters.status === 'InterviewScheduled' && !isInterviewScheduledStatus(app.status)) return false;
@@ -844,52 +916,71 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
         </Card>
 
         {/* Charts */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <Card className="h-96">
-            <h3 className="text-lg font-bold text-gray-800 mb-6">Application Trends (by Date)</h3>
-            <div className="h-72 w-full" style={{ minWidth: '200px', minHeight: '200px' }}>
-              <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200}>
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} allowDecimals={false} />
-                  <Tooltip
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                    cursor={{ fill: '#F3F4F6' }}
-                  />
-                  <Bar dataKey="value" name="Applications" fill="#4F46E5" radius={[6, 6, 0, 0]} barSize={30} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-          <Card className="h-96">
-            <h3 className="text-lg font-bold text-gray-800 mb-6">Applications by Business Unit</h3>
-            <div className="h-72 w-full" style={{ minWidth: '200px', minHeight: '200px' }}>
-              <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200}>
-                <PieChart>
-                  <Pie
-                    data={buData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
-                    fill="#8884d8"
-                    paddingAngle={5}
-                    dataKey="value"
-                    label={renderCustomizedLabel}
-                    labelLine={false}
-                  >
-                    {buData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={getBuChartColor(entry.name, index)} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                  <Legend verticalAlign="bottom" height={36} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-        </div>
+        {loading ? (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <Card className="h-96 animate-pulse flex flex-col justify-between p-6 bg-white">
+              <div className="h-4 bg-gray-300 rounded w-1/3 mb-6"></div>
+              <div className="h-72 w-full bg-gray-100/50 rounded-lg flex items-end justify-between p-6 gap-2">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="bg-gray-200 rounded-t w-8" style={{ height: `${20 + i * 15}%` }}></div>
+                ))}
+              </div>
+            </Card>
+            <Card className="h-96 animate-pulse flex flex-col justify-between p-6 bg-white">
+              <div className="h-4 bg-gray-300 rounded w-1/3 mb-6"></div>
+              <div className="h-72 w-full flex items-center justify-center">
+                <div className="w-44 h-44 rounded-full border-[10px] border-gray-100 border-t-gray-200 flex items-center justify-center"></div>
+              </div>
+            </Card>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <Card className="h-96">
+              <h3 className="text-lg font-bold text-gray-800 mb-6">Application Trends (by Date)</h3>
+              <div className="h-72 w-full" style={{ minWidth: '200px', minHeight: '200px' }}>
+                <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200}>
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} allowDecimals={false} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                      cursor={{ fill: '#F3F4F6' }}
+                    />
+                    <Bar dataKey="value" name="Applications" fill="#4F46E5" radius={[6, 6, 0, 0]} barSize={30} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+            <Card className="h-96">
+              <h3 className="text-lg font-bold text-gray-800 mb-6">Applications by Business Unit</h3>
+              <div className="h-72 w-full" style={{ minWidth: '200px', minHeight: '200px' }}>
+                <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200}>
+                  <PieChart>
+                    <Pie
+                      data={buData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={90}
+                      fill="#8884d8"
+                      paddingAngle={5}
+                      dataKey="value"
+                      label={renderCustomizedLabel}
+                      labelLine={false}
+                    >
+                      {buData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={getBuChartColor(entry.name, index)} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                    <Legend verticalAlign="bottom" height={36} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          </div>
+        )}
       </div>
 
     </>
