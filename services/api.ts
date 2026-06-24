@@ -46,6 +46,9 @@ export interface WorkflowStatusOptions {
   performedByName?: string;
   rejectionReason?: string;
   interviewDate?: string;
+  interviewStartTime?: string;
+  interviewEndTime?: string;
+  teamsMeetingUrl?: string;
 }
 
 // ============================================================
@@ -372,6 +375,11 @@ export const api = {
           business_unit,
           source_channel,
           campaign_tag,
+          interview_date,
+          interview_start_time,
+          interview_end_time,
+          teams_meeting_url,
+          updated_at,
           nickname:form_data->>nickname,
           photoUrl:form_data->>photoUrl,
           age:form_data->>age,
@@ -479,6 +487,9 @@ export const api = {
         p_note: options.comment || null,
         p_rejection_reason: options.rejectionReason || null,
         p_interview_date: options.interviewDate || null,
+        p_interview_start_time: options.interviewStartTime || null,
+        p_interview_end_time: options.interviewEndTime || null,
+        p_teams_meeting_url: options.teamsMeetingUrl || null,
       });
 
       if (error) return handleError(error, 'updateApplicationStatus');
@@ -1673,6 +1684,57 @@ export const api = {
         if (error) { console.error(error); return []; }
         return data || [];
       } catch (e) { console.error(e); return []; }
+    }
+  },
+
+  // ============================================================
+  // Interview Evaluation / Scorecard Services
+  // ============================================================
+  evaluations: {
+    getByApplicationId: async (appId: string): Promise<any[]> => {
+      try {
+        const { data, error } = await supabase
+          .from('interview_evaluations')
+          .select(`
+            *,
+            interviewer:users!interview_evaluations_interviewer_id_fkey(id, full_name, emp_id)
+          `)
+          .eq('application_id', appId)
+          .order('created_at', { ascending: true });
+
+        if (error) {
+          console.error("Fetch Evaluations Error:", error);
+          return [];
+        }
+        return data || [];
+      } catch (error) {
+        console.error("Fetch Evaluations Error:", error);
+        return [];
+      }
+    },
+
+    submit: async (payload: {
+      application_id: string;
+      interviewer_id: string;
+      interview_round?: number;
+      rating_skills: number;
+      rating_attitude: number;
+      rating_cultural_fit: number;
+      overall_recommendation: string;
+      comments?: string;
+    }): Promise<ApiResponse<any>> => {
+      try {
+        const { data, error } = await supabase
+          .from('interview_evaluations')
+          .insert([payload])
+          .select()
+          .single();
+
+        if (error) return handleError(error, 'submitEvaluation');
+        return { success: true, data };
+      } catch (error) {
+        return handleError(error, 'submitEvaluation');
+      }
     }
   }
 };

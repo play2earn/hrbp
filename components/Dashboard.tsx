@@ -24,10 +24,11 @@ import { OverviewTab } from './dashboard/OverviewTab';
 import { QRGeneratorTab } from './dashboard/QRGeneratorTab';
 import { UserManagementTab } from './dashboard/UserManagementTab';
 import { BlacklistTab } from './dashboard/BlacklistTab';
+import { CalendarTab } from './dashboard/CalendarTab';
 
 
 export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'reports' | 'qr' | 'settings' | 'config' | 'profile' | 'blacklist'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'reports' | 'qr' | 'settings' | 'config' | 'profile' | 'blacklist' | 'calendar'>('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -97,6 +98,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
   }, []);
   const [viewingBlacklistDetail, setViewingBlacklistDetail] = useState<any | null>(null);
   const [claimingApp, setClaimingApp] = useState<any | null>(null);
+  const [evaluatingApp, setEvaluatingApp] = useState<any | null>(null);
   const [unassigningApp, setUnassigningApp] = useState<any | null>(null);
   const [transferringApp, setTransferringApp] = useState<any | null>(null);
   const [transferTarget, setTransferTarget] = useState('');
@@ -593,6 +595,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
             {!sidebarCollapsed && <span className="font-medium">Overview</span>}
           </button>
           <button
+            onClick={() => { setActiveTab('calendar'); setIsMobileMenuOpen(false); }}
+            className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-2' : 'gap-3 px-3'} py-3 rounded-xl transition-all ${activeTab === 'calendar' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+            title="Calendar"
+          >
+            <Calendar className="w-5 h-5 shrink-0" />
+            {!sidebarCollapsed && <span className="font-medium">Calendar</span>}
+          </button>
+          <button
             onClick={() => { setActiveTab('qr'); setIsMobileMenuOpen(false); }}
             className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-2' : 'gap-3 px-3'} py-3 rounded-xl transition-all ${activeTab === 'qr' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
             title="QR Generator"
@@ -688,6 +698,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
         <div className="p-4 sm:p-8 max-w-7xl mx-auto">
 
           {activeTab === 'reports' && <ReportsTab />}
+
+          {activeTab === 'calendar' && (
+            <CalendarTab
+              applications={applications}
+              activeUsers={activeUsers}
+              businessUnits={businessUnits}
+              setViewingApp={setViewingApp}
+              currentUser={currentUser}
+            />
+          )}
 
           {activeTab === 'overview' && (
             <OverviewTab
@@ -859,6 +879,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
         }}
         blacklistEntries={blacklistEntries}
         onViewBlacklistDetail={setViewingBlacklistDetail}
+        setEvaluatingApp={setEvaluatingApp}
       />
 
       {/* Blacklist Details Modal */}
@@ -1344,6 +1365,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
         isDeleting={isDeleting} handleDeleteApplication={handleDeleteApplication}
         confirmQrAction={confirmQrAction} setConfirmQrAction={setConfirmQrAction}
         executeGenerateLink={executeGenerateLink}
+        evaluatingApp={evaluatingApp} setEvaluatingApp={setEvaluatingApp}
       />
 
       {

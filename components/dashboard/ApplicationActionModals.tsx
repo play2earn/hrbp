@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal, Button } from '../UIComponents';
-import { CheckCircle, XCircle, Calendar, Trash2, QrCode } from 'lucide-react';
+import { CheckCircle, XCircle, Calendar, Trash2, QrCode, Star } from 'lucide-react';
 import { api } from '../../services/api';
 import type { ApplicationStatus } from '../../services/api';
 
@@ -47,7 +47,36 @@ interface ActionModalsProps {
     confirmQrAction: 'empty' | 'filled' | null;
     setConfirmQrAction: (val: 'empty' | 'filled' | null) => void;
     executeGenerateLink: () => void;
+
+    evaluatingApp: any | null;
+    setEvaluatingApp: (app: any | null) => void;
 }
+
+const RatingInput = ({ value, onChange, label }: { value: number; onChange: (v: number) => void; label: string }) => {
+    return (
+        <div className="flex items-center justify-between py-2.5 border-b border-gray-150">
+            <span className="text-sm font-medium text-gray-700">{label}</span>
+            <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                        key={star}
+                        type="button"
+                        onClick={() => onChange(star)}
+                        className="p-1 focus:outline-none transition-transform hover:scale-110"
+                    >
+                        <Star
+                            className={`w-5 h-5 ${
+                                star <= value
+                                    ? 'text-yellow-400 fill-yellow-400'
+                                    : 'text-gray-300 hover:text-yellow-300'
+                            }`}
+                        />
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+};
 
 export const ApplicationActionModals: React.FC<ActionModalsProps> = ({
     currentUserId, currentUserName, activeUsers, closeReasons, showToast, fetchData,
@@ -58,8 +87,63 @@ export const ApplicationActionModals: React.FC<ActionModalsProps> = ({
     approvingApp, setApprovingApp,
     interviewingApp, setInterviewingApp, interviewDate, setInterviewDate,
     deletingApp, setDeletingApp, isDeleting, handleDeleteApplication,
-    confirmQrAction, setConfirmQrAction, executeGenerateLink
+    confirmQrAction, setConfirmQrAction, executeGenerateLink,
+    evaluatingApp, setEvaluatingApp
 }) => {
+    const [startTime, setStartTime] = React.useState('10:00');
+    const [endTime, setEndTime] = React.useState('11:00');
+    const [teamsLink, setTeamsLink] = React.useState('');
+
+    // Evaluation states
+    const [ratingSkills, setRatingSkills] = React.useState(3);
+    const [ratingAttitude, setRatingAttitude] = React.useState(3);
+    const [ratingCulturalFit, setRatingCulturalFit] = React.useState(3);
+    const [overallRec, setOverallRec] = React.useState('Hired'); // 'Hired' | 'Shortlisted' | 'Rejected' | 'Hold'
+    const [evaluationComments, setEvaluationComments] = React.useState('');
+    const [isSubmittingEval, setIsSubmittingEval] = React.useState(false);
+    const [nextRound, setNextRound] = React.useState(1);
+
+    // Pre-fill fields on open/reschedule
+    React.useEffect(() => {
+        if (interviewingApp) {
+            if (interviewingApp.interview_start_time) {
+                const start = new Date(interviewingApp.interview_start_time);
+                setStartTime(start.toTimeString().slice(0, 5));
+            } else {
+                setStartTime('10:00');
+            }
+            if (interviewingApp.interview_end_time) {
+                const end = new Date(interviewingApp.interview_end_time);
+                setEndTime(end.toTimeString().slice(0, 5));
+            } else {
+                setEndTime('11:00');
+            }
+            setTeamsLink(interviewingApp.teams_meeting_url || '');
+        }
+    }, [interviewingApp]);
+
+    // Reset evaluation form on open
+    React.useEffect(() => {
+        if (evaluatingApp) {
+            setRatingSkills(3);
+            setRatingAttitude(3);
+            setRatingCulturalFit(3);
+            setOverallRec('Hired');
+            setEvaluationComments('');
+            setIsSubmittingEval(false);
+            setNextRound(1);
+
+            // Fetch existing evaluations to determine next round number
+            api.evaluations.getByApplicationId(evaluatingApp.id)
+                .then(res => {
+                    const count = Array.isArray(res) ? res.length : 0;
+                    setNextRound(count + 1);
+                })
+                .catch(err => {
+                    console.error("Failed to query evaluation round count", err);
+                });
+        }
+    }, [evaluatingApp]);
     return (
         <>
             <Modal
@@ -129,30 +213,66 @@ export const ApplicationActionModals: React.FC<ActionModalsProps> = ({
                                 ตำแหน่ง: {interviewingApp.position || interviewingApp.form_data?.position || '-'}
                             </p>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">วันที่นัดสัมภาษณ์ <span className="text-red-500">*</span></label>
-                            <input
-                                type="date"
-                                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-500 outline-none"
-                                value={interviewDate}
-                                onChange={(e) => setInterviewDate(e.target.value)}
-                                min={new Date().toISOString().split('T')[0]}
-                            />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">วันที่นัดสัมภาษณ์ <span className="text-red-500">*</span></label>
+                                <input
+                                    type="date"
+                                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-500 outline-none"
+                                    value={interviewDate}
+                                    onChange={(e) => setInterviewDate(e.target.value)}
+                                    min={new Date().toISOString().split('T')[0]}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">เวลาเริ่ม (Start Time) <span className="text-red-500">*</span></label>
+                                <input
+                                    type="time"
+                                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-500 outline-none"
+                                    value={startTime}
+                                    onChange={(e) => setStartTime(e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">เวลาสิ้นสุด (End Time) <span className="text-red-500">*</span></label>
+                                <input
+                                    type="time"
+                                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-500 outline-none"
+                                    value={endTime}
+                                    onChange={(e) => setEndTime(e.target.value)}
+                                />
+                            </div>
+                            <div className="col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">ลิงก์การประชุม MS Teams (Optional)</label>
+                                <input
+                                    type="url"
+                                    placeholder="https://teams.microsoft.com/..."
+                                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-500 outline-none font-mono text-xs"
+                                    value={teamsLink}
+                                    onChange={(e) => setTeamsLink(e.target.value)}
+                                />
+                            </div>
                         </div>
                         <div className="flex gap-3 justify-end pt-4 border-t">
                             <Button variant="outline" onClick={() => setInterviewingApp(null)}>ยกเลิก</Button>
                             <Button
                                 className="bg-yellow-500 hover:bg-yellow-600 text-white"
-                                disabled={!interviewDate}
+                                disabled={!interviewDate || !startTime || !endTime}
                                 onClick={async () => {
                                     if (!currentUserId) {
                                         showToast('ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่', 'error');
                                         return;
                                     }
+                                    const startTimestamp = new Date(`${interviewDate}T${startTime}:00`).toISOString();
+                                    const endTimestamp = new Date(`${interviewDate}T${endTime}:00`).toISOString();
+
                                     const result = await api.updateApplicationStatus(interviewingApp.id, 'InterviewScheduled', {
                                         performedByUserId: currentUserId,
                                         performedByName: currentUserName,
                                         interviewDate,
+                                        interviewStartTime: startTimestamp,
+                                        interviewEndTime: endTimestamp,
+                                        teamsMeetingUrl: teamsLink,
                                     });
                                     if (!result.success) {
                                         showToast(result.error?.message || 'นัดสัมภาษณ์ไม่สำเร็จ', 'error');
@@ -160,6 +280,9 @@ export const ApplicationActionModals: React.FC<ActionModalsProps> = ({
                                     }
                                     setInterviewingApp(null);
                                     setInterviewDate('');
+                                    setStartTime('10:00');
+                                    setEndTime('11:00');
+                                    setTeamsLink('');
                                     showToast('นัดสัมภาษณ์เรียบร้อย!', 'success');
                                     fetchData();
                                 }}
@@ -386,14 +509,117 @@ export const ApplicationActionModals: React.FC<ActionModalsProps> = ({
                     </div>
                     <p className="mb-6 text-gray-600">
                         {confirmQrAction === 'empty'
-                            ? 'คุณยังไม่ได้เลือก Business Unit หรือ Channel ยืนยันที่จะสร้าง QR Code แบบไม่ระบุช่องทางหรือไม่?'
-                            : 'ยืนยันการสร้าง QR Code ด้วยข้อมูลที่เลือก?'}
+                             ? 'คุณยังไม่ได้เลือก Business Unit หรือ Channel ยืนยันที่จะสร้าง QR Code แบบไม่ระบุช่องทางหรือไม่?'
+                             : 'ยืนยันการสร้าง QR Code ด้วยข้อมูลที่เลือก?'}
                     </p>
                     <div className="flex gap-3 justify-center">
                         <Button variant="outline" onClick={() => setConfirmQrAction(null)}>ยกเลิก</Button>
                         <Button onClick={executeGenerateLink}>ยืนยัน</Button>
                     </div>
                 </div>
+            </Modal>
+
+            {/* Evaluation Modal */}
+            <Modal
+                isOpen={!!evaluatingApp}
+                onClose={() => setEvaluatingApp(null)}
+                title={`แบบประเมินผลการสัมภาษณ์ รอบที่ ${nextRound}`}
+                size="md"
+                footer={null}
+            >
+                {evaluatingApp && (
+                    <div className="space-y-4 animate-in fade-in duration-200">
+                        <div className="bg-indigo-50/50 p-3.5 rounded-xl border border-indigo-100/50">
+                            <h4 className="font-semibold text-slate-800 text-sm">ผู้สมัคร: {evaluatingApp.full_name || evaluatingApp.form_data?.firstName}</h4>
+                            <p className="text-xs text-gray-500 mt-0.5">ตำแหน่ง: {evaluatingApp.position || '-'}</p>
+                        </div>
+
+                        {/* Rating Star inputs */}
+                        <div className="space-y-1">
+                            <RatingInput label="ทักษะและความสามารถ (Skills & Capability)" value={ratingSkills} onChange={setRatingSkills} />
+                            <RatingInput label="ทัศนคติและแรงจูงใจ (Attitude & Motivation)" value={ratingAttitude} onChange={setRatingAttitude} />
+                            <RatingInput label="ความเข้ากันได้กับองค์กร (Cultural Fit)" value={ratingCulturalFit} onChange={setRatingCulturalFit} />
+                        </div>
+
+                        {/* Overall Recommendation */}
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-1.5">ผลการเสนอแนะ (Recommendation) <span className="text-red-500">*</span></label>
+                            <select
+                                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-medium"
+                                value={overallRec}
+                                onChange={(e) => setOverallRec(e.target.value)}
+                            >
+                                <option value="Hired">🟢 รับเข้าทำงาน (Recommend to Hire)</option>
+                                <option value="Shortlisted">🟡 ผ่านการสัมภาษณ์ / รอการพิจารณา (Shortlist)</option>
+                                <option value="Hold">🔵 พิจารณาเพิ่มเติม (Hold)</option>
+                                <option value="Rejected">🔴 ไม่รับเข้าทำงาน (Reject)</option>
+                            </select>
+                        </div>
+
+                        {/* Detailed Comments */}
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-750 mb-1.5">ความเห็นและข้อเสนอแนะเพิ่มเติม</label>
+                            <textarea
+                                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                rows={4}
+                                placeholder="ระบุเหตุผลในการประเมิน จุดเด่น หรือข้อควรระวัง..."
+                                value={evaluationComments}
+                                onChange={(e) => setEvaluationComments(e.target.value)}
+                            ></textarea>
+                        </div>
+
+                        {/* Footer buttons */}
+                        <div className="flex gap-3 justify-end pt-4 border-t">
+                            <Button variant="outline" onClick={() => setEvaluatingApp(null)} disabled={isSubmittingEval}>ยกเลิก</Button>
+                            <Button
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                                isLoading={isSubmittingEval}
+                                onClick={async () => {
+                                    if (!currentUserId) {
+                                        showToast('ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่', 'error');
+                                        return;
+                                    }
+                                    setIsSubmittingEval(true);
+                                    try {
+                                        const resEval = await api.evaluations.submit({
+                                            application_id: evaluatingApp.id,
+                                            interviewer_id: currentUserId,
+                                            interview_round: nextRound,
+                                            rating_skills: ratingSkills,
+                                            rating_attitude: ratingAttitude,
+                                            rating_cultural_fit: ratingCulturalFit,
+                                            overall_recommendation: overallRec,
+                                            comments: evaluationComments
+                                        });
+                                        if (!resEval.success) {
+                                            showToast(resEval.error?.message || 'บันทึกการประเมินไม่สำเร็จ', 'error');
+                                            return;
+                                        }
+
+                                        // Auto advance status to Interviewed if it is scheduled
+                                        if (evaluatingApp.status === 'Interview' || evaluatingApp.status === 'InterviewScheduled') {
+                                            await api.updateApplicationStatus(evaluatingApp.id, 'Interviewed', {
+                                                performedByUserId: currentUserId,
+                                                comment: `ประเมินสัมภาษณ์เรียบร้อย (ผลประเมิน: ${overallRec === 'Hired' ? 'ผ่าน/รับเข้าทำงาน' : overallRec === 'Rejected' ? 'ไม่ผ่าน' : 'Shortlist/Hold'})`
+                                            });
+                                        }
+
+                                        showToast('บันทึกการประเมินสำเร็จ!', 'success');
+                                        setEvaluatingApp(null);
+                                        fetchData();
+                                    } catch (e) {
+                                        console.error('Failed to submit evaluation', e);
+                                        showToast('เกิดข้อผิดพลาดในการบันทึกการประเมิน', 'error');
+                                    } finally {
+                                        setIsSubmittingEval(false);
+                                    }
+                                }}
+                            >
+                                <Star className="w-4 h-4 mr-2" /> ยืนยันบันทึกประเมิน
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </Modal>
         </>
     );

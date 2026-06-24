@@ -7,7 +7,7 @@ import {
   FileText, ExternalLink, Edit, Calendar, History, Clock,
   CheckCircle, XCircle, UserPlus, UserCheck, Link, Copy, Check,
   Crop, RotateCcw, Upload, ChevronDown, ChevronUp, AlertTriangle, Paperclip, ShieldAlert,
-  Eye, Download, X, Settings
+  Eye, Download, X, Settings, Star
 } from 'lucide-react';
 import {
   LOG_LABELS, getStatusBadgeClass, getStatusLabel,
@@ -52,6 +52,34 @@ const InfoRow = memo(({ label, value, className = '' }: { label: string; value: 
   </div>
 ));
 
+const getOverallRecBadge = (rec: string) => {
+  if (rec === 'Hired') return 'bg-green-100 text-green-800 border-green-200';
+  if (rec === 'Rejected') return 'bg-red-100 text-red-800 border-red-200';
+  if (rec === 'Shortlisted' || rec === 'Hold') return 'bg-amber-100 text-amber-800 border-amber-200';
+  return 'bg-blue-100 text-blue-800 border-blue-200';
+};
+
+const getOverallRecLabel = (rec: string) => {
+  if (rec === 'Hired') return 'รับเข้าทำงาน (Hire)';
+  if (rec === 'Rejected') return 'ไม่ผ่าน (Not Pass)';
+  if (rec === 'Shortlisted') return 'Shortlist';
+  if (rec === 'Hold') return 'พิจารณาภายหลัง (Hold)';
+  return rec;
+};
+
+const StarRating = ({ val }: { val: number }) => (
+  <div className="flex gap-0.5">
+    {[1, 2, 3, 4, 5].map((s) => (
+      <Star
+        key={s}
+        className={`w-3 h-3 ${
+          s <= val ? 'text-yellow-400 fill-yellow-400' : 'text-slate-200'
+        }`}
+      />
+    ))}
+  </div>
+);
+
 interface ApplicationDetailModalProps {
   viewingApp: any;
   setViewingApp: (app: any | null) => void;
@@ -70,6 +98,7 @@ interface ApplicationDetailModalProps {
   onApplicationUpdated?: (app: any) => void;
   blacklistEntries: any[];
   onViewBlacklistDetail: (entry: any) => void;
+  setEvaluatingApp: (app: any | null) => void;
 }
 
 export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
@@ -78,7 +107,8 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
   setInterviewingApp, setInterviewDate,
   setRejectingApp, setRejectComment, setRejectionReason,
   setApprovingApp, onApplicationUpdated, blacklistEntries,
-  onViewBlacklistDetail
+  onViewBlacklistDetail,
+  setEvaluatingApp
 }) => {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
@@ -90,6 +120,28 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
   const [showRevokeConfirm, setShowRevokeConfirm] = useState(false);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [evaluations, setEvaluations] = useState<any[]>([]);
+  const [isLoadingEvaluations, setIsLoadingEvaluations] = useState(false);
+
+  // Calendar confirmation modal state
+  const [calendarModalOpen, setCalendarModalOpen] = useState(false);
+  const [calendarTargetApp, setCalendarTargetApp] = useState<any | null>(null);
+  const [calendarHasShareLink, setCalendarHasShareLink] = useState(false);
+  const [calendarCreateShareLink, setCalendarCreateShareLink] = useState(true);
+  const [calendarShareLinkUrl, setCalendarShareLinkUrl] = useState<string | null>(null);
+  const [isProcessingCalendar, setIsProcessingCalendar] = useState(false);
+
+  useEffect(() => {
+    if (viewingApp?.id) {
+      setIsLoadingEvaluations(true);
+      api.evaluations.getByApplicationId(viewingApp.id).then(res => {
+        setEvaluations(res);
+        setIsLoadingEvaluations(false);
+      });
+    } else {
+      setEvaluations([]);
+    }
+  }, [viewingApp?.id]);
 
   // ── Resubmit Token State ──────────────────────────────────────
   const [showResubmitPanel, setShowResubmitPanel] = useState(false);
@@ -107,6 +159,120 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
   const [showPreview, setShowPreview] = useState(true);
   const [autoSelectOnLoad, setAutoSelectOnLoad] = useState(false);
   const [showMoreActions, setShowMoreActions] = useState(false);
+
+  // Outlook calendar deeplink URL generator
+  const generateOutlookCalendarUrl = (app: any, shareUrl?: string | null) => {
+    const candidateName = app.full_name || app.form_data?.firstName || 'ผู้สมัคร';
+    const position = app.position || app.form_data?.position || '-';
+    const phone = app.phone || app.form_data?.phone || '-';
+    const email = app.email || app.form_data?.email || '-';
+    const teamsLink = app.teams_meeting_url || '';
+
+    let startStr = '';
+    let endStr = '';
+    if (app.interview_start_time) {
+      startStr = new Date(app.interview_start_time).toISOString();
+    } else if (app.interview_date) {
+      startStr = new Date(`${app.interview_date}T10:00:00`).toISOString();
+    } else {
+      startStr = new Date().toISOString();
+    }
+
+    if (app.interview_end_time) {
+      endStr = new Date(app.interview_end_time).toISOString();
+    } else if (app.interview_start_time) {
+      const end = new Date(app.interview_start_time);
+      end.setHours(end.getHours() + 1);
+      endStr = end.toISOString();
+    } else if (app.interview_date) {
+      endStr = new Date(`${app.interview_date}T11:00:00`).toISOString();
+    } else {
+      const end = new Date();
+      end.setHours(end.getHours() + 1);
+      endStr = end.toISOString();
+    }
+
+    const subject = `สัมภาษณ์คุณ ${candidateName} - ตำแหน่ง ${position}`;
+    
+    // Note: Outlook Web Calendar requires CRLF (\r\n) for compose body breaks, standard \n will be lost.
+    const bodyText = `เรียนผู้บริหารและคณะกรรมการ,\r\n\r\n` +
+      `นัดหมายสัมภาษณ์ผู้สมัครงาน:\r\n` +
+      `- ผู้สมัคร: คุณ ${candidateName} (${app.form_data?.nickname ? `ชื่อเล่น: ${app.form_data.nickname}` : ''})\r\n` +
+      `- ตำแหน่ง: ${position}\r\n` +
+      `- เบอร์โทรศัพท์: ${phone}\r\n` +
+      `- อีเมล: ${email}\r\n` +
+      `- ลิงก์โปรไฟล์ผู้สมัคร: ${shareUrl || `${window.location.origin}/dashboard?appId=${app.id}`}\r\n\r\n` +
+      `ขอบคุณครับ/ค่ะ\r\n` +
+      `ฝ่ายบริหารทรัพยากรบุคคล (HR Recruitment)`;
+
+    const url = new URL('https://outlook.office.com/calendar/0/deeplink/compose');
+    url.searchParams.append('path', '/calendar/action/compose');
+    url.searchParams.append('rru', 'addevent');
+    url.searchParams.append('subject', subject);
+    url.searchParams.append('startdt', startStr);
+    url.searchParams.append('enddt', endStr);
+    url.searchParams.append('body', bodyText);
+    if (teamsLink) {
+      url.searchParams.append('location', teamsLink);
+    } else {
+      url.searchParams.append('location', 'Microsoft Teams Meeting');
+    }
+
+    return url.toString();
+  };
+
+  const handleCalendarClick = async (app: any) => {
+    try {
+      setCalendarTargetApp(app);
+      setIsProcessingCalendar(true);
+      
+      const checkTokenRes = await api.getExistingShareToken(app.id);
+      const exists = !!(checkTokenRes.success && checkTokenRes.data);
+      const shareUrl = exists ? checkTokenRes.data.url : null;
+      
+      setCalendarHasShareLink(exists);
+      setCalendarShareLinkUrl(shareUrl);
+      setCalendarCreateShareLink(!exists);
+      setIsProcessingCalendar(false);
+      setCalendarModalOpen(true);
+    } catch (error) {
+      console.error("Error checking share token:", error);
+      setIsProcessingCalendar(false);
+      setCalendarTargetApp(app);
+      setCalendarHasShareLink(false);
+      setCalendarShareLinkUrl(null);
+      setCalendarCreateShareLink(true);
+      setCalendarModalOpen(true);
+    }
+  };
+
+  const executeCalendarOpen = async () => {
+    if (!calendarTargetApp) return;
+    setIsProcessingCalendar(true);
+    try {
+      let finalShareUrl = calendarShareLinkUrl;
+
+      if (!finalShareUrl && calendarCreateShareLink) {
+        const currentUserData = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const createdBy = currentUserData?.full_name || currentUserData?.email || 'ระบบ';
+        const res = await api.generateShareToken(calendarTargetApp.id, createdBy);
+        if (res.success && res.data?.url) {
+          finalShareUrl = res.data.url;
+          setShareLink(res.data.url);
+          setShareToken(res.data.token);
+          setShareLinkExpiry(res.data.expires_at);
+        }
+      }
+
+      const composeUrl = generateOutlookCalendarUrl(calendarTargetApp, finalShareUrl);
+      window.open(composeUrl, '_blank');
+      setCalendarModalOpen(false);
+    } catch (err) {
+      console.error("Failed to process calendar launch:", err);
+    } finally {
+      setIsProcessingCalendar(false);
+    }
+  };
   const moreActionsRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -570,7 +736,9 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
         {viewingApp && (
           <div className="flex flex-col lg:flex-row gap-6 items-stretch min-h-[600px] lg:h-[calc(100vh-140px)] overflow-hidden w-full">
             {/* Left Column: Candidate Info */}
-            <div className={`w-full overflow-y-auto pr-2 pb-8 h-full transition-all duration-300 ${showPreview ? 'lg:w-[45%]' : 'lg:w-full'}`}>
+            <div className={`w-full flex flex-col h-full transition-all duration-300 ${showPreview ? 'lg:w-[45%]' : 'lg:w-full'}`}>
+              {/* Scrollable Profile Info */}
+              <div className="flex-1 overflow-y-auto pr-2 pb-6">
             {/* Blacklist Warning Banner */}
             {isBlacklisted && (
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-5 flex flex-col items-start gap-3.5 shadow-sm">
@@ -840,6 +1008,120 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                 <InfoRow label={t.labels.department} value={fd.department} />
                 <InfoRow label={t.labels.availability} value={fd.availability} />
               </div>
+
+              {/* Interview Details Block */}
+              {(viewingApp.interview_date || viewingApp.interview_start_time || viewingApp.teams_meeting_url) && (() => {
+                const latestEval = evaluations.length > 0 ? evaluations[evaluations.length - 1] : null;
+                const gridColsClass = latestEval 
+                  ? (showPreview ? "grid grid-cols-1 xl:grid-cols-2 gap-5 divide-y xl:divide-y-0 xl:divide-x divide-amber-200" : "grid grid-cols-1 md:grid-cols-2 gap-6 divide-y md:divide-y-0 md:divide-x divide-amber-200")
+                  : "";
+
+                return (
+                  <div className="bg-amber-50/70 border border-amber-200 p-4 rounded-xl mb-4 text-sm shadow-sm animate-in fade-in duration-300">
+                    <div className={gridColsClass}>
+                      {/* Left Pane: Schedule Info */}
+                      <div className={latestEval ? "space-y-2.5 pb-4 md:pb-0 xl:pb-0" : ""}>
+                        <h4 className="font-bold text-amber-800 flex items-center gap-2 mb-2">
+                          <Calendar className="w-4 h-4 text-amber-600" /> รายละเอียดการนัดสัมภาษณ์ (Interview Details)
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                          <div>
+                            <span className="text-gray-500 text-xs block">วันที่สัมภาษณ์:</span>
+                            <span className="font-semibold text-gray-900">
+                              {viewingApp.interview_date ? new Date(viewingApp.interview_date).toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '-'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 text-xs block">เวลาสัมภาษณ์:</span>
+                            <span className="font-semibold text-gray-900">
+                              {viewingApp.interview_start_time ? (
+                                `${new Date(viewingApp.interview_start_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' })}` +
+                                (viewingApp.interview_end_time ? ` - ${new Date(viewingApp.interview_end_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' })}` : '')
+                              ) : '-'}
+                            </span>
+                          </div>
+                          <div className="col-span-2 border-t border-amber-200/50 pt-2.5 mt-1 flex flex-wrap gap-2">
+                            {viewingApp.teams_meeting_url && (
+                              <a
+                                href={viewingApp.teams_meeting_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 text-indigo-600 hover:text-indigo-800 font-semibold bg-white px-3 py-1.5 rounded-lg border border-indigo-150 shadow-sm transition-all text-xs"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                                เข้าร่วมประชุม MS Teams
+                              </a>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleCalendarClick(viewingApp)}
+                              className="inline-flex items-center gap-1.5 text-emerald-700 hover:text-emerald-900 font-semibold bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-200 shadow-sm transition-all text-xs cursor-pointer animate-in fade-in"
+                            >
+                              <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+                              เพิ่มนัดในปฏิทิน Outlook
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right Pane: Latest Evaluation Results */}
+                      {latestEval && (
+                        <div className={`pt-4 md:pt-0 md:pl-5 ${showPreview ? 'xl:pt-0 xl:pl-5' : 'md:pt-0 md:pl-5'} flex flex-col justify-between`}>
+                          <div>
+                            <h4 className="font-bold text-indigo-800 flex items-center gap-1.5 mb-2.5">
+                              <Star className="w-4 h-4 text-indigo-500 fill-indigo-500" /> ผลการประเมินล่าสุด (Latest Evaluation)
+                            </h4>
+                            
+                            <div className="space-y-2">
+                              {/* Round & Recommendation */}
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-semibold text-slate-500">
+                                  สัมภาษณ์รอบที่ {latestEval.interview_round > 1 ? latestEval.interview_round : evaluations.length}
+                                </span>
+                                <span className={`px-2 py-0.5 text-xs font-bold rounded border ${getOverallRecBadge(latestEval.overall_recommendation)}`}>
+                                  {getOverallRecLabel(latestEval.overall_recommendation)}
+                                </span>
+                              </div>
+
+                              {/* Ratings */}
+                              <div className="grid grid-cols-3 gap-1.5 bg-white p-2 rounded-lg border border-slate-150 text-center shadow-sm">
+                                <div className="flex flex-col items-center">
+                                  <span className="text-[9px] text-gray-400 font-medium uppercase">ทักษะ</span>
+                                  <StarRating val={latestEval.rating_skills} />
+                                </div>
+                                <div className="flex flex-col items-center">
+                                  <span className="text-[9px] text-gray-400 font-medium uppercase">ทัศนคติ</span>
+                                  <StarRating val={latestEval.rating_attitude} />
+                                </div>
+                                <div className="flex flex-col items-center">
+                                  <span className="text-[9px] text-gray-400 font-medium uppercase">วัฒนธรรม</span>
+                                  <StarRating val={latestEval.rating_cultural_fit} />
+                                </div>
+                              </div>
+
+                              {/* Comments Snippet */}
+                              {latestEval.comments && (
+                                <div 
+                                  className="text-xs text-gray-600 bg-white/70 p-2 rounded border border-slate-100 leading-relaxed font-sans max-h-16 overflow-y-auto" 
+                                  title={latestEval.comments}
+                                >
+                                  "{latestEval.comments}"
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Interviewer & Date */}
+                          <div className="text-[10px] text-gray-400 flex items-center justify-between mt-3 pt-1.5 border-t border-slate-200/50">
+                            <span>ผู้ประเมิน: {latestEval.interviewer?.full_name || 'ไม่ระบุ'}</span>
+                            <span>{new Date(latestEval.created_at).toLocaleDateString('th-TH')}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* 2. Personal Info */}
               <SectionHeader title={t.sections.personal} icon={User} />
@@ -1112,9 +1394,23 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                   <div className="bg-gray-50 p-3 rounded-lg">
                     <h5 className="font-semibold text-sm text-gray-700 mb-2 border-b pb-1">{t.labels.computer}</h5>
                     <div className="grid grid-cols-2 gap-1 text-sm">
-                      {Object.entries(fd.computerSkills).map(([k, v]) => (
-                        <div key={k} className="flex justify-between"><span className="text-gray-600 capitalize">{k}:</span><span className="font-medium text-xs">{v as string}</span></div>
-                      ))}
+                      {Object.entries(fd.computerSkills).map(([k, v]) => {
+                        const formattedLabel = {
+                          word: 'MS Word',
+                          excel: 'MS Excel',
+                          powerpoint: 'PowerPoint',
+                          sheets: 'Google Sheets',
+                          docs: 'Google Docs',
+                          forms: 'Google Forms',
+                          slides: 'Google Slides',
+                        }[k] || (k.charAt(0).toUpperCase() + k.slice(1));
+                        return (
+                          <div key={k} className="flex justify-between">
+                            <span className="text-gray-600">{formattedLabel}:</span>
+                            <span className="font-medium text-xs">{v as string}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1377,6 +1673,59 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                 </div>
               )}
 
+              {/* Evaluation scorecards section */}
+              <div className="mt-6 pt-4 border-t">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <Star className="w-4 h-4 text-indigo-500" /> ผลการประเมินสัมภาษณ์ (Interview Scorecard History)
+                </h4>
+                {isLoadingEvaluations ? (
+                  <div className="text-center py-4 text-sm text-gray-400">กำลังโหลดผลประเมิน...</div>
+                ) : evaluations.length === 0 ? (
+                  <div className="text-center py-4 text-sm text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">ยังไม่มีผลการประเมินสัมภาษณ์</div>
+                ) : (
+                  <div className="space-y-4 mb-4">
+                    {evaluations.map((ev: any, idx: number) => {
+                      return (
+                        <div key={ev.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 shadow-sm text-sm">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-semibold text-slate-800">สัมภาษณ์รอบที่ {ev.interview_round > 1 ? ev.interview_round : (idx + 1)}</span>
+                            <span className={`px-2 py-0.5 text-xs font-semibold rounded border ${getOverallRecBadge(ev.overall_recommendation)}`}>
+                              {getOverallRecLabel(ev.overall_recommendation)}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-2 bg-white px-3 py-2 rounded-lg border border-slate-100 mb-2.5">
+                            <div className="flex flex-col items-center">
+                              <span className="text-[10px] text-gray-400 font-medium uppercase">ทักษะ (Skills)</span>
+                              <StarRating val={ev.rating_skills} />
+                            </div>
+                            <div className="flex flex-col items-center">
+                              <span className="text-[10px] text-gray-400 font-medium uppercase">ทัศนคติ (Attitude)</span>
+                              <StarRating val={ev.rating_attitude} />
+                            </div>
+                            <div className="flex flex-col items-center">
+                              <span className="text-[10px] text-gray-400 font-medium uppercase">วัฒนธรรม (Fit)</span>
+                              <StarRating val={ev.rating_cultural_fit} />
+                            </div>
+                          </div>
+
+                          {ev.comments && (
+                            <div className="text-xs text-gray-600 bg-white p-2.5 rounded-lg border border-slate-150 mb-2 leading-relaxed">
+                              {ev.comments}
+                            </div>
+                          )}
+
+                          <div className="text-[10px] text-gray-400 flex items-center justify-between pt-1 border-t border-slate-100">
+                            <span>ผู้ประเมิน: {ev.interviewer?.full_name || 'ไม่ระบุผู้ประเมิน'}</span>
+                            <span>{new Date(ev.created_at).toLocaleDateString('th-TH')}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               {/* Activity Log Timeline */}
               <div className="mt-4 pt-3 border-t">
                 <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
@@ -1561,25 +1910,38 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
 
               {/* Share Link Panel */}
               {shareLink && (
-                <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-bold text-emerald-800 flex items-center gap-1"><Link className="w-3.5 h-3.5" /> {t.labels.shareProfile}</span>
-                    <span className="text-[10px] text-emerald-600">
+                <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm">
+                  {/* Title and Expiration Info */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-2.5">
+                    <span className="text-xs font-bold text-emerald-800 flex items-center gap-1.5">
+                      <Link className="w-3.5 h-3.5 text-emerald-600" /> {t.labels.shareProfile}
+                    </span>
+                    <span className="text-[10px] text-emerald-600 bg-emerald-100/60 px-2.5 py-0.5 rounded-full font-semibold self-start sm:self-auto">
                       {t.labels.expires}: {shareLinkExpiry ? new Date(shareLinkExpiry).toLocaleDateString(lang === 'th' ? 'th-TH' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <input readOnly value={shareLink} className="flex-1 text-xs bg-white border border-emerald-200 rounded px-2 py-1.5 text-emerald-900 truncate" />
+
+                  {/* Share Link Input with Embedded Copy Button */}
+                  <div className="relative flex items-center mb-2.5">
+                    <input 
+                      readOnly 
+                      value={shareLink} 
+                      className="w-full text-xs bg-white border border-emerald-200 rounded-lg pl-3 pr-28 py-2.5 text-emerald-900 font-mono shadow-sm focus:outline-none focus:ring-1 focus:ring-emerald-500" 
+                    />
                     <button
                       onClick={handleCopyShareLink}
-                      className="flex-shrink-0 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-semibold flex items-center gap-1 transition"
+                      className="absolute right-1 top-1 bottom-1 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-semibold flex items-center gap-1 transition shadow-sm"
                     >
-                      {shareLinkCopied ? <><Check className="w-3.5 h-3.5" /> {t.labels.copied}</> : <><Copy className="w-3.5 h-3.5" /> {t.labels.copy}</>}
+                      {shareLinkCopied ? <><Check className="w-3 h-3" /> {t.labels.copied}</> : <><Copy className="w-3 h-3" /> {t.labels.copy}</>}
                     </button>
+                  </div>
+
+                  {/* Revoke Option */}
+                  <div className="flex justify-end pt-2 border-t border-emerald-100/60">
                     <button
                       onClick={handleRevokeShareLink}
                       disabled={isGeneratingLink}
-                      className="flex-shrink-0 px-2.5 py-1.5 bg-red-100 hover:bg-red-200 text-red-600 rounded text-xs font-semibold flex items-center gap-1 transition disabled:opacity-50"
+                      className="px-3 py-1.5 bg-red-50 hover:bg-red-100 hover:text-red-700 text-red-600 border border-red-200 rounded-lg text-xs font-semibold flex items-center gap-1 transition disabled:opacity-50"
                       title={t.labels.stopSharing}
                     >
                       <XCircle className="w-3.5 h-3.5" /> {t.labels.stopSharing}
@@ -1587,12 +1949,14 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                   </div>
                 </div>
               )}
+            </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-2 pt-4 mt-4 border-t sticky bottom-0 bg-white pb-2 z-30 flex-wrap sm:flex-nowrap">
+            {/* Action Buttons */}
+            <div className="relative bg-white border-t border-slate-200 py-3 px-4 z-30 flex flex-wrap items-center justify-end gap-1.5 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] shrink-0">
                 {!showPreview && hasAnyDocuments && (
                   <Button
                     variant="primary"
+                    size={showPreview ? "sm" : "md"}
                     onClick={() => {
                       setShowPreview(true);
                       setAutoSelectOnLoad(true);
@@ -1607,6 +1971,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                 <div className="relative" ref={moreActionsRef}>
                   <Button
                     variant="outline"
+                    size={showPreview ? "sm" : "md"}
                     onClick={() => setShowMoreActions(!showMoreActions)}
                     className="border-slate-200 text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 shadow-sm"
                   >
@@ -1616,7 +1981,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                   </Button>
 
                   {showMoreActions && (
-                    <div className="absolute right-0 bottom-full mb-2 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                    <div className={`absolute ${showPreview ? 'left-0' : 'right-0'} bottom-full mb-2 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150`}>
                       {/* 1. Print Preview */}
                       <button
                         type="button"
@@ -1746,30 +2111,43 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                 {/* Primary Workflow Status Actions */}
                 {viewingApp.status === 'Reviewing' && (
                   <>
-                    <Button className="bg-yellow-500 hover:bg-yellow-600 text-white" onClick={() => { setInterviewingApp(viewingApp); setInterviewDate(''); setViewingApp(null); }}>
+                    <Button size={showPreview ? "sm" : "md"} className="bg-yellow-500 hover:bg-yellow-600 text-white" onClick={() => { setInterviewingApp(viewingApp); setInterviewDate(''); setViewingApp(null); }}>
                       <Calendar className="w-4 h-4 mr-2" /> {lang === 'en' ? 'Schedule Interview' : 'นัดสัมภาษณ์'}
                     </Button>
-                    <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => { setRejectingApp(viewingApp); setViewingApp(null); setRejectComment(''); setRejectionReason(''); }}>
+                    <Button size={showPreview ? "sm" : "md"} variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => { setRejectingApp(viewingApp); setViewingApp(null); setRejectComment(''); setRejectionReason(''); }}>
                       <XCircle className="w-4 h-4 mr-2" /> {lang === 'en' ? 'Reject' : 'ไม่รับ'}
                     </Button>
                   </>
                 )}
                 {isInterviewScheduledStatus(viewingApp.status) && (
-                  <Button className="bg-yellow-500 hover:bg-yellow-600 text-white" onClick={() => { setInterviewingApp(viewingApp); setInterviewDate(viewingApp.interview_date || ''); setViewingApp(null); }}>
+                  <Button size={showPreview ? "sm" : "md"} className="bg-yellow-500 hover:bg-yellow-600 text-white" onClick={() => { setInterviewingApp(viewingApp); setInterviewDate(viewingApp.interview_date || ''); setViewingApp(null); }}>
                     <Calendar className="w-4 h-4 mr-2" /> {lang === 'en' ? 'Reschedule Interview' : 'เปลี่ยนวันสัมภาษณ์'}
+                  </Button>
+                )}
+                {/* Evaluate Candidate Button */}
+                {(isInterviewScheduledStatus(viewingApp.status) || viewingApp.status === 'Interviewed') && (
+                  <Button
+                    size={showPreview ? "sm" : "md"}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                    onClick={() => {
+                      setEvaluatingApp(viewingApp);
+                      setViewingApp(null);
+                    }}
+                  >
+                    <Star className="w-4 h-4 mr-2" /> {lang === 'en' ? 'Evaluate Candidate' : 'บันทึกการประเมิน'}
                   </Button>
                 )}
                 {(isInterviewScheduledStatus(viewingApp.status) || viewingApp.status === 'Interviewed' || viewingApp.status === 'Offer') && (
                   <>
-                    <Button className="bg-green-600 hover:bg-green-700" onClick={() => { setApprovingApp(viewingApp); setViewingApp(null); }}>
+                    <Button size={showPreview ? "sm" : "md"} className="bg-green-600 hover:bg-green-700" onClick={() => { setApprovingApp(viewingApp); setViewingApp(null); }}>
                       <CheckCircle className="w-4 h-4 mr-2" /> {lang === 'en' ? 'Hire' : 'รับเข้าทำงาน'}
                     </Button>
-                    <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => { setRejectingApp(viewingApp); setViewingApp(null); setRejectComment(''); setRejectionReason(''); }}>
+                    <Button size={showPreview ? "sm" : "md"} variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => { setRejectingApp(viewingApp); setViewingApp(null); setRejectComment(''); setRejectionReason(''); }}>
                       <XCircle className="w-4 h-4 mr-2" /> {lang === 'en' ? 'Not Pass' : 'ไม่ผ่าน'}
                     </Button>
                   </>
                 )}
-                <Button variant="outline" onClick={() => setViewingApp(null)}>{lang === 'en' ? 'Close' : 'ปิด'}</Button>
+                <Button size={showPreview ? "sm" : "md"} variant="outline" onClick={() => setViewingApp(null)}>{lang === 'en' ? 'Close' : 'ปิด'}</Button>
               </div>
             </div>
 
@@ -2014,6 +2392,129 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
         </div>
       )}
     </Modal>
+
+      {/* Outlook Calendar Confirmation Modal */}
+      <Modal
+        isOpen={calendarModalOpen}
+        onClose={() => setCalendarModalOpen(false)}
+        title="เพิ่มนัดลงในปฏิทิน (Outlook Calendar)"
+        size="md"
+        footer={null}
+      >
+        {calendarTargetApp && (
+          <div className="space-y-4 text-slate-700">
+            {/* Header / Icon */}
+            <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+              <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+                <Calendar className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-slate-800">
+                  รายละเอียดนัดหมายปฏิทิน
+                </h4>
+                <p className="text-xs text-slate-500">
+                  เตรียมข้อมูลผู้สมัครเพื่อเปิดหน้าจอบันทึกปฏิทินของ Outlook Web
+                </p>
+              </div>
+            </div>
+
+            {/* Candidate Summary Card */}
+            <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-100 space-y-2">
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <span className="text-slate-400 block">ผู้สมัคร (Candidate)</span>
+                  <span className="font-bold text-slate-800">{calendarTargetApp.full_name || calendarTargetApp.form_data?.firstName || '-'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block">ตำแหน่ง (Position)</span>
+                  <span className="font-bold text-slate-800">{calendarTargetApp.position || '-'}</span>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-slate-400 block">วันเวลาสัมภาษณ์ (Date & Time)</span>
+                  <span className="font-bold text-slate-800">
+                    {calendarTargetApp.interview_start_time ? (
+                      new Date(calendarTargetApp.interview_start_time).toLocaleString('th-TH', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      }) + ' น.'
+                    ) : calendarTargetApp.interview_date ? (
+                      `${new Date(calendarTargetApp.interview_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })} (เวลา 10:00 น.)`
+                    ) : '-'}
+                  </span>
+                </div>
+                {calendarTargetApp.teams_meeting_url && (
+                  <div className="col-span-2 truncate">
+                    <span className="text-slate-400 block">ลิงก์การสัมภาษณ์ (Microsoft Teams Link)</span>
+                    <span className="font-semibold text-blue-600 underline font-mono text-[10px] break-all">{calendarTargetApp.teams_meeting_url}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Share Link Settings */}
+            <div className="p-3.5 bg-emerald-50/50 border border-emerald-100 rounded-xl space-y-2">
+              <span className="text-xs font-bold text-emerald-800 block mb-1">
+                การตั้งค่าลิงก์ข้อมูลผู้สมัคร (Profile Sharing Link)
+              </span>
+
+              {calendarHasShareLink ? (
+                <div className="flex items-start gap-2 text-xs text-emerald-700 bg-emerald-50 p-2.5 rounded-lg border border-emerald-100">
+                  <span className="text-emerald-500 font-bold">✓</span>
+                  <span>
+                    พบลิงก์แชร์โปรไฟล์ผู้สมัครแล้ว ระบบจะแนบลิงก์แชร์นี้ลงในคำอธิบายนัดหมายให้อัตโนมัติ เพื่อให้กรรมการผู้ประเมินคลิกเปิดดูเอกสารประวัติได้ทันที
+                  </span>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                    <input 
+                      type="checkbox"
+                      checked={calendarCreateShareLink}
+                      onChange={(e) => setCalendarCreateShareLink(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 text-emerald-600 border-emerald-300 rounded focus:ring-emerald-500"
+                    />
+                    <div className="text-xs">
+                      <span className="font-semibold text-slate-800 block">สร้างลิงก์แชร์โปรไฟล์ผู้สมัครโดยอัตโนมัติ (แนะนำ)</span>
+                      <span className="text-slate-500 text-[11px] block mt-0.5">
+                        ระบบจะสร้างลิงก์แชร์ภายนอกและแนบไปในรายละเอียดนัดหมายปฏิทิน ช่วยให้กรรมการสามารถคลิกดูประวัติ ผลทดสอบ และเอกสารแนบได้โดยไม่ต้องล็อกอินเข้าระบบ
+                      </span>
+                    </div>
+                  </label>
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 justify-end pt-3 border-t border-slate-100">
+              <Button 
+                variant="outline" 
+                onClick={() => setCalendarModalOpen(false)}
+                disabled={isProcessingCalendar}
+              >
+                ยกเลิก
+              </Button>
+              <Button
+                onClick={executeCalendarOpen}
+                disabled={isProcessingCalendar}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold flex items-center gap-1.5 shadow-md shadow-blue-200"
+              >
+                {isProcessingCalendar ? (
+                  <>
+                    <span className="animate-spin text-xs">⏳</span> กำลังเตรียมการ...
+                  </>
+                ) : (
+                  <>
+                    <Calendar className="w-4 h-4" /> ยืนยันเปิดปฏิทิน Outlook
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Share Link Confirm Modal */}
       <Modal

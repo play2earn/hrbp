@@ -1498,15 +1498,20 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
               <div>
                 <h3 className="font-bold text-gray-900 mb-4 border-b pb-2">{t.labels.computer}</h3>
                 <div className="space-y-1">
-                  {Object.keys(formData.computerSkills).map((k) => (
-                    <SkillRadioGroup
-                      key={k}
-                      label={`Microsoft Office - ${k.charAt(0).toUpperCase() + k.slice(1)}`}
-                      value={formData.computerSkills[k as keyof typeof formData.computerSkills]}
-                      onChange={(val) => updateNested('computerSkills', k, val)}
-                      optionsText={t.options}
-                    />
-                  ))}
+                  {Object.keys(formData.computerSkills).map((k) => {
+                    const isGoogle = ['sheets', 'docs', 'forms', 'slides'].includes(k);
+                    const name = k === 'powerpoint' ? 'PowerPoint' : k.charAt(0).toUpperCase() + k.slice(1);
+                    const label = isGoogle ? `Google - ${name}` : `Microsoft Office - ${name}`;
+                    return (
+                      <SkillRadioGroup
+                        key={k}
+                        label={label}
+                        value={formData.computerSkills[k as keyof typeof formData.computerSkills]}
+                        onChange={(val) => updateNested('computerSkills', k, val)}
+                        optionsText={t.options}
+                      />
+                    );
+                  })}
                   <h3 className="font-bold text-gray-900 mt-6 mb-4 border-b pb-2">{t.labels.graphics}</h3>
                   <SkillRadioGroup label="Canva" value={formData.graphicsSkills.canva} onChange={(val) => updateNested('graphicsSkills', 'canva', val)} optionsText={t.options} />
                   <SkillRadioGroup label="Video Editor" value={formData.graphicsSkills.videoEditor} onChange={(val) => updateNested('graphicsSkills', 'videoEditor', val)} optionsText={t.options} />

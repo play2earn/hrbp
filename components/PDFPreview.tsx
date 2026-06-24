@@ -602,12 +602,23 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
               <div>
                 <h4 className="font-bold border-b border-black mb-2 pb-1 text-sm uppercase text-black">{t.labels.computer}</h4>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-black">
-                  {Object.entries(data.computerSkills).map(([k, v]) => (
-                    <div key={k} className="flex justify-between items-center border-b border-dotted border-gray-300 pb-0.5">
-                      <span className="capitalize text-gray-700">{k}</span>
-                      <span className="font-bold text-xs">{getSkillLabel(v)}</span>
-                    </div>
-                  ))}
+                  {Object.entries(data.computerSkills).map(([k, v]) => {
+                    const formattedLabel = {
+                      word: 'MS Word',
+                      excel: 'MS Excel',
+                      powerpoint: 'PowerPoint',
+                      sheets: 'Google Sheets',
+                      docs: 'Google Docs',
+                      forms: 'Google Forms',
+                      slides: 'Google Slides',
+                    }[k] || (k.charAt(0).toUpperCase() + k.slice(1));
+                    return (
+                      <div key={k} className="flex justify-between items-center border-b border-dotted border-gray-300 pb-0.5">
+                        <span className="text-gray-700">{formattedLabel}</span>
+                        <span className="font-bold text-xs">{getSkillLabel(v)}</span>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <h4 className="font-bold border-b border-black mb-2 pb-1 text-sm uppercase mt-6 text-black">{t.labels.graphics}</h4>

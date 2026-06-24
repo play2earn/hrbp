@@ -681,6 +681,8 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
                 { label: 'PowerPoint', value: fd.computerSkills.powerpoint },
                 { label: 'Google Sheets', value: fd.computerSkills.sheets },
                 { label: 'Google Docs', value: fd.computerSkills.docs },
+                { label: 'Google Forms', value: fd.computerSkills.forms },
+                { label: 'Google Slides', value: fd.computerSkills.slides },
                 { label: 'Canva', value: fd.graphicsSkills?.canva },
                 { label: 'Video Editor', value: fd.graphicsSkills?.videoEditor },
               ]} />
