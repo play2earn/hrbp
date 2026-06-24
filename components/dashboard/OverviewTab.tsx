@@ -640,7 +640,17 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                               {/* Photo */}
                               <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-br from-indigo-100 to-purple-100 border border-gray-200 flex items-center justify-center mt-0.5">
                                 {fd.photoUrl ? (
-                                  <img src={fd.photoUrl.startsWith('http') ? `/api/proxy-image?url=${encodeURIComponent(fd.photoUrl)}` : fd.photoUrl} alt="" className="w-full h-full object-cover" />
+                                  <img 
+                                    src={fd.photoUrl.startsWith('http') ? `/api/proxy-image?url=${encodeURIComponent(fd.photoUrl)}` : fd.photoUrl} 
+                                    alt="" 
+                                    className="w-full h-full object-cover" 
+                                    onError={(e) => {
+                                      const img = e.currentTarget;
+                                      if (img.src.includes('/api/proxy-image')) {
+                                        img.src = fd.photoUrl;
+                                      }
+                                    }}
+                                  />
                                 ) : (
                                   <span className="text-sm font-bold text-indigo-400">
                                     {(fullName.charAt(0) || '?').toUpperCase()}
@@ -777,7 +787,17 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                                 {/* Profile Thumbnail */}
                                 <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-br from-indigo-100 to-purple-100 border border-gray-200 flex items-center justify-center">
                                   {fd.photoUrl ? (
-                                    <img src={fd.photoUrl.startsWith('http') ? `/api/proxy-image?url=${encodeURIComponent(fd.photoUrl)}` : fd.photoUrl} alt="" className="w-full h-full object-cover" />
+                                    <img 
+                                      src={fd.photoUrl.startsWith('http') ? `/api/proxy-image?url=${encodeURIComponent(fd.photoUrl)}` : fd.photoUrl} 
+                                      alt="" 
+                                      className="w-full h-full object-cover" 
+                                      onError={(e) => {
+                                        const img = e.currentTarget;
+                                        if (img.src.includes('/api/proxy-image')) {
+                                          img.src = fd.photoUrl;
+                                        }
+                                      }}
+                                    />
                                   ) : (
                                     <span className="text-xs font-bold text-indigo-400">
                                       {(fullName.charAt(0) || '?').toUpperCase()}

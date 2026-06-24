@@ -382,7 +382,10 @@ export const api = {
           firstName:form_data->>firstName,
           lastName:form_data->>lastName,
           departmentEn:form_data->>departmentEn,
-          positionEn:form_data->>positionEn
+          positionEn:form_data->>positionEn,
+          height:form_data->>height,
+          weight:form_data->>weight,
+          education:form_data->education
         `)
         .order('created_at', { ascending: false });
 
@@ -394,7 +397,8 @@ export const api = {
       return (data || []).map((app: any) => {
         const {
           nickname, photoUrl, age, nationalId, passportNo, isThaiNational,
-          prefix, firstName, lastName, departmentEn, positionEn, ...rest
+          prefix, firstName, lastName, departmentEn, positionEn,
+          height, weight, education, ...rest
         } = app;
         return {
           ...rest,
@@ -410,6 +414,9 @@ export const api = {
             lastName,
             departmentEn,
             positionEn,
+            height,
+            weight,
+            education,
             businessUnit: rest.business_unit,
             sourceChannel: rest.source_channel,
             campaignTag: rest.campaign_tag

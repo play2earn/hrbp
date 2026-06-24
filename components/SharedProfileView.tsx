@@ -336,7 +336,19 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
                     </a>
                   );
                 }
-                return <img src={photo.startsWith('http') ? `/api/proxy-image?url=${encodeURIComponent(photo)}` : photo} alt="Photo" className="w-full h-full object-cover" />;
+                return (
+                  <img 
+                    src={photo.startsWith('http') ? `/api/proxy-image?url=${encodeURIComponent(photo)}` : photo} 
+                    alt="Photo" 
+                    className="w-full h-full object-cover" 
+                    onError={(e) => {
+                      const img = e.currentTarget;
+                      if (img.src.includes('/api/proxy-image')) {
+                        img.src = photo;
+                      }
+                    }}
+                  />
+                );
               })()}
             </div>
             <div>
