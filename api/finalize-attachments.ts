@@ -72,8 +72,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const finalizedKeys: string[] = [];
 
-    // 2. Loop through and copy each file to applications/{applicationId}/ and delete the original draft file in parallel
-    const finalizePromises = objects.map(async (obj) => {
+    // 2. Loop through and copy each file to applications/{applicationId}/
+    const copyPromises = objects.map(async (obj) => {
       if (!obj.Key) return;
 
       const fileName = obj.Key.substring(draftPrefix.length);
@@ -88,17 +88,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         Key: targetKey,
       }));
 
-      // Delete the original draft file
-      await r2.send(new DeleteObjectCommand({
-        Bucket: bucketName,
-        Key: obj.Key,
-      }));
-
       finalizedKeys.push(targetKey);
-      console.log(`[R2 Finalize] Finalized: ${obj.Key} -> ${targetKey}`);
+      console.log(`[R2 Finalize] Copied: ${obj.Key} -> ${targetKey}`);
     });
 
-    await Promise.all(finalizePromises);
+    await Promise.all(copyPromises);
 
     // 3. Connect to Supabase to update URLs in the DB
     const cleanEnvVar = (val?: string) => val ? val.replace(/^["']|["']$/g, '').trim() : '';
@@ -189,6 +183,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       console.log(`[R2 Finalize Success] DB updated for application ID: ${applicationId}`);
     }
+
+    // 4. Once DB update is successful, delete the original draft files from R2
+    const deletePromises = objects.map(async (obj) => {
+      if (!obj.Key) return;
+      await r2.send(new DeleteObjectCommand({
+        Bucket: bucketName,
+        Key: obj.Key,
+      }));
+      console.log(`[R2 Finalize] Cleaned up draft: ${obj.Key}`);
+    });
+
+    await Promise.all(deletePromises);
 
     return res.status(200).json({
       success: true,
