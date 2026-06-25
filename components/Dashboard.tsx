@@ -1206,7 +1206,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-500 outline-none"
                 value={interviewDate}
                 onChange={(e) => setInterviewDate(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
               />
             </div>
             <div className="flex gap-3 justify-end pt-4 border-t">
