@@ -1736,5 +1736,72 @@ export const api = {
         return handleError(error, 'submitEvaluation');
       }
     }
+  },
+
+  // ============================================================
+  // System Activity Logs Services
+  // ============================================================
+  systemLogs: {
+    addLog: async (log: {
+      user_id?: string;
+      user_name: string;
+      user_role?: string;
+      action: string;
+      target_id?: string;
+      target_name?: string;
+      metadata?: any;
+    }): Promise<ApiResponse<any>> => {
+      try {
+        const { error } = await supabase
+          .from('system_activity_logs')
+          .insert([log]);
+        if (error) return handleError(error, 'systemLogs.addLog');
+        return { success: true };
+      } catch (error) {
+        return handleError(error, 'systemLogs.addLog');
+      }
+    },
+
+    getLogs: async (params: {
+      page?: number;
+      limit?: number;
+      userFilter?: string;
+      actionFilter?: string;
+      startDate?: string;
+      endDate?: string;
+    }): Promise<ApiResponse<{ logs: any[]; count: number }>> => {
+      try {
+        const page = params.page || 1;
+        const limit = params.limit || 30;
+        const from = (page - 1) * limit;
+        const to = from + limit - 1;
+
+        let query = supabase
+          .from('system_activity_logs')
+          .select('*', { count: 'exact' });
+
+        if (params.userFilter) {
+          query = query.ilike('user_name', `%${params.userFilter}%`);
+        }
+        if (params.actionFilter && params.actionFilter !== 'all') {
+          query = query.eq('action', params.actionFilter);
+        }
+        if (params.startDate) {
+          query = query.gte('created_at', params.startDate);
+        }
+        if (params.endDate) {
+          query = query.lte('created_at', params.endDate);
+        }
+
+        const { data, error, count } = await query
+          .order('created_at', { ascending: false })
+          .range(from, to);
+
+        if (error) return handleError(error, 'systemLogs.getLogs');
+        return { success: true, data: { logs: data || [], count: count || 0 } };
+      } catch (error) {
+        return handleError(error, 'systemLogs.getLogs');
+      }
+    }
   }
 };

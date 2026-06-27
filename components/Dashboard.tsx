@@ -25,10 +25,11 @@ import { QRGeneratorTab } from './dashboard/QRGeneratorTab';
 import { UserManagementTab } from './dashboard/UserManagementTab';
 import { BlacklistTab } from './dashboard/BlacklistTab';
 import { CalendarTab } from './dashboard/CalendarTab';
+import { SystemLogsTab } from './dashboard/SystemLogsTab';
 
 
 export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'reports' | 'qr' | 'settings' | 'config' | 'profile' | 'blacklist' | 'calendar'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'reports' | 'qr' | 'settings' | 'config' | 'profile' | 'blacklist' | 'calendar' | 'logs'>('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -249,7 +250,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     loadFilteredPositions();
   }, [editForm.departmentId]);
 
-  // Fetch activity logs when viewing an application
+  // Fetch activity logs and record profile view in system logs
   useEffect(() => {
     if (viewingApp?.id) {
       setIsLoadingLogs(true);
@@ -257,10 +258,57 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
         setAppLogs(logs);
         setIsLoadingLogs(false);
       });
+
+      // Record profile view action
+      if (currentUser) {
+        api.systemLogs.addLog({
+          user_id: currentUser.id,
+          user_name: currentUser.full_name,
+          user_role: currentUser.role,
+          action: 'view_candidate_profile',
+          target_id: viewingApp.id,
+          target_name: viewingApp.full_name,
+          metadata: {
+            position: viewingApp.position || '',
+            department: viewingApp.department || '',
+            business_unit: viewingApp.business_unit || viewingApp.form_data?.businessUnit || 'ไม่ระบุ BU',
+            status: viewingApp.status || ''
+          }
+        });
+      }
     } else {
       setAppLogs([]);
     }
-  }, [viewingApp?.id]);
+  }, [viewingApp?.id, currentUser]);
+
+  // Log tab navigation clicks
+  useEffect(() => {
+    if (currentUser && activeTab) {
+      const tabActions: Record<string, { action: string, label: string }> = {
+        overview: { action: 'view_tab_overview', label: 'Overview' },
+        calendar: { action: 'view_tab_calendar', label: 'Calendar' },
+        qr: { action: 'view_tab_qr', label: 'QR Generator' },
+        reports: { action: 'view_tab_reports', label: 'Reports' },
+        config: { action: 'view_tab_config', label: 'Master Data Config' },
+        blacklist: { action: 'view_tab_blacklist', label: 'Blacklist' },
+        settings: { action: 'view_tab_settings', label: 'Settings (User Management)' },
+        profile: { action: 'view_tab_profile', label: 'My Profile' },
+        logs: { action: 'view_tab_system_logs', label: 'System Logs' },
+      };
+
+      const mapped = tabActions[activeTab];
+      if (mapped) {
+        api.systemLogs.addLog({
+          user_id: currentUser.id,
+          user_name: currentUser.full_name,
+          user_role: currentUser.role,
+          action: mapped.action,
+          target_name: mapped.label,
+          metadata: { tab: activeTab }
+        });
+      }
+    }
+  }, [activeTab, currentUser]);
 
   // Helper to open full preview in new tab
   const openFullPreview = (app: any) => {
@@ -635,14 +683,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
             {!sidebarCollapsed && <span className="font-medium">Blacklist</span>}
           </button>
           {role === 'admin' && (
-            <button
-              onClick={() => { setActiveTab('settings'); setIsMobileMenuOpen(false); }}
-              className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-2' : 'gap-3 px-3'} py-3 rounded-xl transition-all ${activeTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
-              title="Settings"
-            >
-              <Settings className="w-5 h-5 shrink-0" />
-              {!sidebarCollapsed && <span className="font-medium">Settings</span>}
-            </button>
+            <>
+              <button
+                onClick={() => { setActiveTab('settings'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-2' : 'gap-3 px-3'} py-3 rounded-xl transition-all ${activeTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                title="Settings"
+              >
+                <Settings className="w-5 h-5 shrink-0" />
+                {!sidebarCollapsed && <span className="font-medium">Settings</span>}
+              </button>
+              <button
+                onClick={() => { setActiveTab('logs'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-2' : 'gap-3 px-3'} py-3 rounded-xl transition-all ${activeTab === 'logs' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                title="System Logs"
+              >
+                <History className="w-5 h-5 shrink-0" />
+                {!sidebarCollapsed && <span className="font-medium">System Logs</span>}
+              </button>
+            </>
           )}
           <button
             onClick={() => { setActiveTab('profile'); setIsMobileMenuOpen(false); }}
@@ -780,6 +838,35 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               setEditingUser={setEditingUser}
               isConfirmingDisable={isConfirmingDisable}
               setIsConfirmingDisable={setIsConfirmingDisable}
+            />
+          )}
+
+          {activeTab === 'logs' && role === 'admin' && (
+            <SystemLogsTab
+              showToast={showToast}
+              currentUser={currentUser}
+              onViewCandidate={async (appId) => {
+                const found = applications.find(a => a.id === appId);
+                if (found) {
+                  setViewingApp(found);
+                  return;
+                }
+                // Fallback to fetch from database if not in memory
+                try {
+                  const { data, error } = await supabase
+                    .from('applications')
+                    .select('*')
+                    .eq('id', appId)
+                    .maybeSingle();
+                  if (error || !data) {
+                    showToast('ไม่พบข้อมูลผู้สมัครรายนี้แล้ว (อาจถูกลบหรือไม่มีในระบบ)', 'error');
+                  } else {
+                    setViewingApp(data);
+                  }
+                } catch (err) {
+                  showToast('เกิดข้อผิดพลาดในการดึงข้อมูลผู้สมัคร', 'error');
+                }
+              }}
             />
           )}
 

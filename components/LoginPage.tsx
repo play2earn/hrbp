@@ -37,10 +37,35 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onBack, lang, onT
     setError('');
     setSuccess('');
 
+    // Fetch IP with abort timeout
+    let clientIp = 'unknown';
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1000);
+      const ipRes = await fetch('https://api.ipify.org?format=json', { signal: controller.signal }).then(r => r.json());
+      clearTimeout(timeoutId);
+      clientIp = ipRes.ip || 'unknown';
+    } catch (ipErr) {
+      console.warn('Could not fetch client IP:', ipErr);
+    }
+
     try {
       const response = await api.auth.signIn(username, password);
 
       if (response.needsRegistration) {
+        // Log failed login: Needs Registration
+        await api.systemLogs.addLog({
+          user_name: username,
+          user_role: 'unauthenticated',
+          action: 'login_failed',
+          target_name: 'HRMS Portal',
+          metadata: {
+            reason: 'Account not registered in portal',
+            ip: clientIp,
+            userAgent: navigator.userAgent
+          }
+        });
+
         // Prepare registration data
         setRegData({
           ...regData,
@@ -58,6 +83,20 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onBack, lang, onT
       }
 
       if (response.user) {
+        // Log successful login
+        await api.systemLogs.addLog({
+          user_id: response.user.id,
+          user_name: response.user.full_name,
+          user_role: response.user.role,
+          action: 'login_success',
+          target_name: 'HRMS Portal',
+          metadata: {
+            username: username,
+            ip: clientIp,
+            userAgent: navigator.userAgent
+          }
+        });
+
         setSuccess('เชื่อมต่อระบบ HRMS สำเร็จ!');
         // Store user info for use in Dashboard
         localStorage.setItem('currentUser', JSON.stringify({
@@ -73,6 +112,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onBack, lang, onT
       }
     } catch (err: any) {
       console.error('Login error:', err);
+      // Log failed login
+      await api.systemLogs.addLog({
+        user_name: username,
+        user_role: 'unauthenticated',
+        action: 'login_failed',
+        target_name: 'HRMS Portal',
+        metadata: {
+          reason: err.message || 'Invalid username or password',
+          ip: clientIp,
+          userAgent: navigator.userAgent
+        }
+      });
       setError(err.message || 'Invalid username or password');
     } finally {
       setIsLoading(false);
