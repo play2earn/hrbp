@@ -522,7 +522,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
       fetchPendingUsers();
       fetchActiveUsers();
     }
-  }, [role, fetchData, fetchQrMasterData, fetchQrLogs, fetchQrLogCreatorsList, fetchPendingUsers, fetchActiveUsers]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const SidebarItem = ({ id, label, icon: Icon }: { id: typeof activeTab, label: string, icon: any }) => (
 
