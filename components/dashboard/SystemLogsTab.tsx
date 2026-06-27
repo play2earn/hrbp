@@ -15,7 +15,9 @@ import {
   UserCheck,
   RefreshCw,
   ExternalLink,
-  User
+  User,
+  Plus,
+  Edit
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { supabase } from '../../supabaseClient';
@@ -219,6 +221,24 @@ export const SystemLogsTab: React.FC<SystemLogsTabProps> = ({ showToast, current
             <FileText className="w-3.5 h-3.5" /> Export Data
           </span>
         );
+      case 'create_master_data':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800">
+            <Plus className="w-3.5 h-3.5" /> Create Master Data
+          </span>
+        );
+      case 'update_master_data':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
+            <Edit className="w-3.5 h-3.5" /> Update Master Data
+          </span>
+        );
+      case 'toggle_master_data':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
+            <RefreshCw className="w-3.5 h-3.5" /> Toggle Master Data
+          </span>
+        );
       default:
         // Handle view_tab_XXX actions
         if (action.startsWith('view_tab_')) {
@@ -353,6 +373,9 @@ export const SystemLogsTab: React.FC<SystemLogsTabProps> = ({ showToast, current
                   <option value="view_candidate_profile">การกดส่องประวัติใบสมัคร (View Profile)</option>
                   <option value="view_blacklist_detail">การส่องรายละเอียดประวัติเสีย (View Blacklist)</option>
                   <option value="export_report">การกดส่งออกข้อมูล (Export)</option>
+                  <option value="create_master_data">สร้างข้อมูลหลัก (Create Master Data)</option>
+                  <option value="update_master_data">แก้ไขข้อมูลหลัก (Update Master Data)</option>
+                  <option value="toggle_master_data">เปิด-ปิดข้อมูลหลัก (Toggle Master Data)</option>
                 </select>
               </div>
             </div>

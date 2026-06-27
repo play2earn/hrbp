@@ -871,7 +871,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
           )}
 
           {activeTab === 'config' && (
-            <MasterDataConfig showToast={showToast} />
+            <MasterDataConfig showToast={showToast} currentUser={currentUser} />
           )}
 
           {activeTab === 'blacklist' && (
@@ -1506,7 +1506,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
 };
 
 // --- Sub-component for Master Data Configuration ---
-const MasterDataConfig = ({ showToast }: { showToast: (message: string, type?: 'success' | 'error') => void }) => {
+const MasterDataConfig = ({ showToast, currentUser }: { showToast: (message: string, type?: 'success' | 'error') => void; currentUser: any }) => {
   const [activeTable, setActiveTable] = useState('departments');
   const [data, setData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -1672,9 +1672,29 @@ const MasterDataConfig = ({ showToast }: { showToast: (message: string, type?: '
   const confirmToggle = async () => {
     if (!confirmAction) return;
     try {
+      const targetItem = data.find(item => item.id === confirmAction.id);
+      const targetName = targetItem 
+        ? (targetItem.name_th || targetItem.name || targetItem.title || `ID ${confirmAction.id}`) 
+        : `ID ${confirmAction.id}`;
+        
       const result = await api.master.toggleActive(activeTable, confirmAction.id, confirmAction.current);
       if (!result.success) {
         alert(`Failed to update: ${result.error?.message || 'Unknown error'}`);
+      } else {
+        // Log toggling master data action
+        await api.systemLogs.addLog({
+          user_id: currentUser?.id,
+          user_name: currentUser?.full_name || 'System / Unknown',
+          user_role: currentUser?.role || 'mod',
+          action: 'toggle_master_data',
+          target_id: String(confirmAction.id),
+          target_name: targetName,
+          metadata: {
+            table: activeTable,
+            new_status: !confirmAction.current ? 'Active' : 'Inactive',
+            item_id: confirmAction.id
+          }
+        }).catch(err => console.error("Logging toggle_master_data failed:", err));
       }
       fetchTableData();
     } catch (err: any) {
@@ -1704,12 +1724,50 @@ const MasterDataConfig = ({ showToast }: { showToast: (message: string, type?: '
     try {
       if (editingItem) {
         console.log("Updating item:", editingItem.id);
-        const { error } = await api.master.updateItem(activeTable, editingItem.id, formData);
-        if (error) throw error;
+        const result = await api.master.updateItem(activeTable, editingItem.id, formData);
+        if (result.error) throw result.error;
+        
+        // Log master data update
+        const targetName = result.data 
+          ? (result.data.name_th || result.data.name || result.data.title || `ID ${editingItem.id}`)
+          : `ID ${editingItem.id}`;
+          
+        await api.systemLogs.addLog({
+          user_id: currentUser?.id,
+          user_name: currentUser?.full_name || 'System / Unknown',
+          user_role: currentUser?.role || 'mod',
+          action: 'update_master_data',
+          target_id: String(editingItem.id),
+          target_name: targetName,
+          metadata: {
+            table: activeTable,
+            payload: formData,
+            item_id: editingItem.id
+          }
+        }).catch(err => console.error("Logging update_master_data failed:", err));
       } else {
         console.log("Adding new item");
-        const { error } = await api.master.addItem(activeTable, formData);
-        if (error) throw error;
+        const result = await api.master.addItem(activeTable, formData);
+        if (result.error) throw result.error;
+        
+        // Log master data creation
+        const targetName = result.data 
+          ? (result.data.name_th || result.data.name || result.data.title || `ID ${result.data.id}`)
+          : `New Item`;
+          
+        await api.systemLogs.addLog({
+          user_id: currentUser?.id,
+          user_name: currentUser?.full_name || 'System / Unknown',
+          user_role: currentUser?.role || 'mod',
+          action: 'create_master_data',
+          target_id: result.data ? String(result.data.id) : undefined,
+          target_name: targetName,
+          metadata: {
+            table: activeTable,
+            payload: formData,
+            item_id: result.data ? result.data.id : undefined
+          }
+        }).catch(err => console.error("Logging create_master_data failed:", err));
       }
       setIsModalOpen(false);
       setEditingItem(null);
