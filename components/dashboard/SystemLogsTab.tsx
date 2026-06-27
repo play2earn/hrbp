@@ -14,9 +14,11 @@ import {
   FileText,
   UserCheck,
   RefreshCw,
-  ExternalLink
+  ExternalLink,
+  User
 } from 'lucide-react';
 import { api } from '../../services/api';
+import { supabase } from '../../supabaseClient';
 
 interface SystemLogsTabProps {
   showToast: (message: string, type: 'success' | 'error') => void;
@@ -35,6 +37,7 @@ export const SystemLogsTab: React.FC<SystemLogsTabProps> = ({ showToast, current
   const [actionFilter, setActionFilter] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [usersList, setUsersList] = useState<any[]>([]);
 
   // Stats
   const [stats, setStats] = useState({
@@ -46,6 +49,26 @@ export const SystemLogsTab: React.FC<SystemLogsTabProps> = ({ showToast, current
 
   // Modal details
   const [viewingMetadata, setViewingMetadata] = useState<any | null>(null);
+
+  // Fetch users for dropdown filter
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('id, full_name, role, status')
+          .order('full_name');
+        if (data) {
+          setUsersList(data);
+        } else if (error) {
+          console.error('Error fetching users for dropdown:', error);
+        }
+      } catch (err) {
+        console.error('Error in fetchUsers:', err);
+      }
+    };
+    fetchUsers();
+  }, []);
 
   const fetchLogs = useCallback(async (targetPage = 1) => {
     setIsLoading(true);
@@ -292,18 +315,23 @@ export const SystemLogsTab: React.FC<SystemLogsTabProps> = ({ showToast, current
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Recruiter / User Name Filter */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-gray-700 uppercase">ค้นหาผู้ใช้ (Who)</label>
+              <label className="block text-xs font-bold text-gray-700 uppercase">ผู้ทำกิจกรรม (Who)</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                  <Search className="w-4 h-4" />
+                  <User className="w-4 h-4" />
                 </div>
-                <input
-                  type="text"
+                <select
                   value={userFilter}
                   onChange={(e) => setUserFilter(e.target.value)}
-                  placeholder="เช่น สมศรี ดีใจ"
                   className="block w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl bg-white/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                />
+                >
+                  <option value="">ทั้งหมด (All Users)</option>
+                  {usersList.map((user) => (
+                    <option key={user.id} value={user.full_name}>
+                      {user.full_name} ({user.role === 'admin' ? 'Admin' : 'Moderator'}{user.status !== 'Active' ? ` - ${user.status}` : ''})
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
