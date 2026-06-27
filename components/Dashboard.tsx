@@ -281,11 +281,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     }
   }, [viewingApp?.id, currentUser]);
 
-  // Log tab navigation clicks
+  // Log tab navigation clicks (excluding Overview tab to avoid redundant logging on load)
   useEffect(() => {
     if (currentUser && activeTab) {
       const tabActions: Record<string, { action: string, label: string }> = {
-        overview: { action: 'view_tab_overview', label: 'Overview' },
         calendar: { action: 'view_tab_calendar', label: 'Calendar' },
         qr: { action: 'view_tab_qr', label: 'QR Generator' },
         reports: { action: 'view_tab_reports', label: 'Reports' },
