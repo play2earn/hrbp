@@ -835,7 +835,7 @@ export const api = {
         .maybeSingle();
 
       if (existing) {
-        const url = `${window.location.origin}/share/${existing.token}`;
+        const url = `https://realestate.mygreentownhousing.com/processmygreen/career/share/?t=${existing.token}`;
         return { success: true, data: { token: existing.token, url, expires_at: existing.expires_at } };
       }
 
@@ -857,7 +857,7 @@ export const api = {
 
       if (error) return handleError(error, 'generateShareToken');
 
-      const url = `${window.location.origin}/share/${data.token}`;
+      const url = `https://realestate.mygreentownhousing.com/processmygreen/career/share/?t=${data.token}`;
       return { success: true, data: { token: data.token, url, expires_at: data.expires_at } };
     } catch (error) {
       return handleError(error, 'generateShareToken');
@@ -882,7 +882,7 @@ export const api = {
       if (error) return handleError(error, 'getExistingShareToken');
       if (!data) return { success: true, data: null };
 
-      const url = `${window.location.origin}/share/${data.token}`;
+      const url = `https://realestate.mygreentownhousing.com/processmygreen/career/share/?t=${data.token}`;
       return { success: true, data: { token: data.token, url, expires_at: data.expires_at } };
     } catch (error) {
       return handleError(error, 'getExistingShareToken');
