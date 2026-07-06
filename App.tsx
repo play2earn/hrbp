@@ -2,12 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { TRANSLATIONS, LANDING_CONTENT, FEATURED_JOBS } from './constants';
 import { Role, Language, ApplicationForm, INITIAL_FORM_STATE } from './types';
-import { ApplicantFormComp } from './components/ApplicantForm';
-import { Dashboard } from './components/Dashboard';
-import { LoginPage } from './components/LoginPage';
-import { PDFPreview } from './components/PDFPreview';
-import { SharedProfileView } from './components/SharedProfileView';
-import ResubmitView from './components/ResubmitView';
+const ApplicantFormComp = React.lazy(() => import('./components/ApplicantForm').then(m => ({ default: m.ApplicantFormComp })));
+const Dashboard = React.lazy(() => import('./components/Dashboard').then(m => ({ default: m.Dashboard })));
+const LoginPage = React.lazy(() => import('./components/LoginPage').then(m => ({ default: m.LoginPage })));
+const PDFPreview = React.lazy(() => import('./components/PDFPreview').then(m => ({ default: m.PDFPreview })));
+const SharedProfileView = React.lazy(() => import('./components/SharedProfileView').then(m => ({ default: m.SharedProfileView })));
+const ResubmitView = React.lazy(() => import('./components/ResubmitView'));
 import { Button, Card, Modal } from './components/UIComponents';
 import { 
   Users, 
@@ -42,13 +42,21 @@ export default function App() {
   // Check for /share/:token path first
   const shareMatch = window.location.pathname.match(/^\/share\/([a-f0-9]{64})$/i);
   if (shareMatch) {
-    return <SharedProfileView token={shareMatch[1]} />;
+    return (
+      <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div></div>}>
+        <SharedProfileView token={shareMatch[1]} />
+      </React.Suspense>
+    );
   }
 
   // Check for /resubmit/:token path (applicant self-service document resubmission)
   const resubmitMatch = window.location.pathname.match(/^\/resubmit\/([a-f0-9]{64})$/i);
   if (resubmitMatch) {
-    return <ResubmitView token={resubmitMatch[1]} />;
+    return (
+      <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div></div>}>
+        <ResubmitView token={resubmitMatch[1]} />
+      </React.Suspense>
+    );
   }
 
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
@@ -156,24 +164,31 @@ export default function App() {
   // 1. Login Page
   if (showLogin) {
     return (
-      <LoginPage
-        onLogin={handleLogin}
-        onBack={() => setShowLogin(false)}
-        lang={lang}
-        onToggleLang={toggleLang}
-      />
+      <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div></div>}>
+        <LoginPage
+          onLogin={handleLogin}
+          onBack={() => setShowLogin(false)}
+          lang={lang}
+          onToggleLang={toggleLang}
+        />
+      </React.Suspense>
     );
   }
 
   // 2. Moderator / Admin Dashboard
   if (role === 'mod' || role === 'admin') {
-    return <Dashboard role={role} onLogout={handleLogout} />;
+    return (
+      <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div></div>}>
+        <Dashboard role={role} onLogout={handleLogout} />
+      </React.Suspense>
+    );
   }
 
   // 3. Applicant View (Post-PDPA)
   if (role === 'applicant' && pdpaAccepted) {
     return (
-      <div className="min-h-screen flex flex-col bg-slate-50">
+      <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div></div>}>
+        <div className="min-h-screen flex flex-col bg-slate-50">
         <header className="bg-white shadow-sm sticky top-0 z-40 border-b border-slate-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
             <div className="flex items-center min-w-0">
@@ -231,12 +246,14 @@ export default function App() {
           </div>
         </footer>
       </div>
+      </React.Suspense>
     );
   }
 
   // 4. Landing Page (Guest View)
   return (
-    <div className="min-h-screen bg-white font-sans">
+    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div></div>}>
+      <div className="min-h-screen bg-white font-sans">
 
       {/* Navbar - Enhanced with glass effect */}
       <nav className="fixed top-0 w-full z-50 glass border-b border-white/20">
@@ -836,6 +853,7 @@ export default function App() {
       <TrackingSystem isOpen={isTrackingOpen} onClose={() => setIsTrackingOpen(false)} lang={lang} />
       <CookieConsent lang={lang} />
 
-    </div>
+      </div>
+    </React.Suspense>
   );
 }

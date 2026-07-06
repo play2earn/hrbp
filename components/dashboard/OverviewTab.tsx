@@ -151,6 +151,8 @@ interface OverviewTabProps {
   blacklistEntries: any[];
   onViewBlacklistDetail: (entry: any) => void;
   loading?: boolean;
+  totalCount?: number;
+  statsApplications?: any[];
 }
 
 export const OverviewTab = React.memo<OverviewTabProps>(({
@@ -160,7 +162,7 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
   setClaimingApp, setTransferringApp, setUnassigningApp, setInterviewingApp,
   setRejectingApp, setApprovingApp, currentUserId,
   appPerPage, setAppPerPage, openActionMenu, blacklistEntries,
-  onViewBlacklistDetail, loading = false
+  onViewBlacklistDetail, loading = false, totalCount, statsApplications
 }) => {
 
   const checkIsBlacklisted = React.useCallback((app: any) => {
@@ -184,12 +186,13 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
 
   const appsByBU = useMemo(() => {
     const acc: Record<string, number> = {};
-    applications.forEach((app: any) => {
+    const sourceData = statsApplications || applications;
+    sourceData.forEach((app: any) => {
       const bu = app.form_data?.businessUnit || app.business_unit || 'Unknown';
       acc[bu] = (acc[bu] || 0) + 1;
     });
     return Object.entries(acc).map(([name, value]) => ({ name, value }));
-  }, [applications]);
+  }, [applications, statsApplications]);
 
   const selectedDeptObj = useMemo(() => {
     if (!appFilters.department) return null;
@@ -237,7 +240,8 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
 
   const appsByStatus = useMemo(() => {
     const acc: Record<string, number> = {};
-    applications.forEach((app: any) => {
+    const sourceData = statsApplications || applications;
+    sourceData.forEach((app: any) => {
       acc[app.status] = (acc[app.status] || 0) + 1;
     });
     return Object.entries(acc).map(([name, value]) => ({
@@ -245,28 +249,29 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
       value,
       originalKey: name
     }));
-  }, [applications]);
+  }, [applications, statsApplications]);
 
   const appsByDept = useMemo(() => {
     const acc: Record<string, number> = {};
-    applications.forEach((app: any) => {
+    const sourceData = statsApplications || applications;
+    sourceData.forEach((app: any) => {
       const dept = app.department || 'Unknown';
       acc[dept] = (acc[dept] || 0) + 1;
     });
     return Object.entries(acc).map(([name, value]) => ({ name, value }));
-  }, [applications]);
+  }, [applications, statsApplications]);
 
   const appsByDate = useMemo(() => {
     const acc: Record<string, number> = {};
-    // Sort applications by date first
-    const sorted = [...applications].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    const sourceData = statsApplications || applications;
+    const sorted = [...sourceData].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
     
     sorted.forEach((app: any) => {
       const date = new Date(app.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
       acc[date] = (acc[date] || 0) + 1;
     });
     return Object.entries(acc).map(([name, value]) => ({ name, value }));
-  }, [applications]);
+  }, [applications, statsApplications]);
 
   const RADIAN = Math.PI / 180;
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
@@ -580,39 +585,50 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
               </div>
             </>
           ) : (() => {
-            const filtered = applications.filter((app: any) => {
-              if (appFilters.status !== 'all') {
-                if (appFilters.status === 'InterviewScheduled' && !isInterviewScheduledStatus(app.status)) return false;
-                if (appFilters.status !== 'InterviewScheduled' && app.status !== appFilters.status) return false;
-              }
-              if (appFilters.assignment === 'me' && (!currentUserId || String(app.assigned_to).toLowerCase() !== String(currentUserId).toLowerCase())) return false;
-              if (appFilters.assignment === 'unassigned' && app.assigned_to) return false;
-              if (appFilters.position && (app.position || app.form_data?.position) !== appFilters.position) return false;
-              if (appFilters.department) {
-                const appDept = (app.department || app.form_data?.department || app.form_data?.departmentEn || '').trim().toLowerCase();
-                const filterDept = appFilters.department.trim().toLowerCase();
-                if (appDept !== filterDept) return false;
-              }
-              if (appFilters.bu && (app.form_data?.businessUnit || app.business_unit) !== appFilters.bu) return false;
-              if (appFilters.channel && (app.form_data?.sourceChannel || app.source_channel) !== appFilters.channel) return false;
-              
-              // Blacklist filter
-              if (appFilters.blacklist && appFilters.blacklist !== 'all') {
-                const isBlacklisted = checkIsBlacklisted(app);
-                if (appFilters.blacklist === 'yes' && !isBlacklisted) return false;
-                if (appFilters.blacklist === 'no' && isBlacklisted) return false;
-              }
+            let totalPages = 0;
+            let paginated: any[] = [];
+            let totalMatchingCount = 0;
 
-              if (appFilters.search) {
-                const q = appFilters.search.toLowerCase();
-                const name = (app.full_name || `${app.form_data?.firstName || ''} ${app.form_data?.lastName || ''}`).toLowerCase();
-                const phone = (app.phone || app.form_data?.phone || '').toLowerCase();
-                if (!name.includes(q) && !phone.includes(q)) return false;
-              }
-              return true;
-            });
-            const totalPages = Math.ceil(filtered.length / appPerPage);
-            const paginated = filtered.slice((appPage - 1) * appPerPage, appPage * appPerPage);
+            if (totalCount !== undefined) {
+              totalPages = Math.ceil(totalCount / appPerPage);
+              paginated = applications;
+              totalMatchingCount = totalCount;
+            } else {
+              const filtered = applications.filter((app: any) => {
+                if (appFilters.status !== 'all') {
+                  if (appFilters.status === 'InterviewScheduled' && !isInterviewScheduledStatus(app.status)) return false;
+                  if (appFilters.status !== 'InterviewScheduled' && app.status !== appFilters.status) return false;
+                }
+                if (appFilters.assignment === 'me' && (!currentUserId || String(app.assigned_to).toLowerCase() !== String(currentUserId).toLowerCase())) return false;
+                if (appFilters.assignment === 'unassigned' && app.assigned_to) return false;
+                if (appFilters.position && (app.position || app.form_data?.position) !== appFilters.position) return false;
+                if (appFilters.department) {
+                  const appDept = (app.department || app.form_data?.department || app.form_data?.departmentEn || '').trim().toLowerCase();
+                  const filterDept = appFilters.department.trim().toLowerCase();
+                  if (appDept !== filterDept) return false;
+                }
+                if (appFilters.bu && (app.form_data?.businessUnit || app.business_unit) !== appFilters.bu) return false;
+                if (appFilters.channel && (app.form_data?.sourceChannel || app.source_channel) !== appFilters.channel) return false;
+                
+                // Blacklist filter
+                if (appFilters.blacklist && appFilters.blacklist !== 'all') {
+                  const isBlacklisted = checkIsBlacklisted(app);
+                  if (appFilters.blacklist === 'yes' && !isBlacklisted) return false;
+                  if (appFilters.blacklist === 'no' && isBlacklisted) return false;
+                }
+
+                if (appFilters.search) {
+                  const q = appFilters.search.toLowerCase();
+                  const name = (app.full_name || `${app.form_data?.firstName || ''} ${app.form_data?.lastName || ''}`).toLowerCase();
+                  const phone = (app.phone || app.form_data?.phone || '').toLowerCase();
+                  if (!name.includes(q) && !phone.includes(q)) return false;
+                }
+                return true;
+              });
+              totalPages = Math.ceil(filtered.length / appPerPage);
+              paginated = filtered.slice((appPage - 1) * appPerPage, appPage * appPerPage);
+              totalMatchingCount = filtered.length;
+            }
 
             return (
               <>
@@ -920,7 +936,7 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                       <option value={50}>50</option>
                       <option value={100}>100</option>
                     </select>
-                    <span>รายการ | {filtered.length === 0 ? 0 : (appPage - 1) * appPerPage + 1}-{Math.min(appPage * appPerPage, filtered.length)} จาก {filtered.length}</span>
+                    <span>รายการ | {totalMatchingCount === 0 ? 0 : (appPage - 1) * appPerPage + 1}-{Math.min(appPage * appPerPage, totalMatchingCount)} จาก {totalMatchingCount}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Button size="sm" variant="outline" disabled={appPage === 1} onClick={() => setAppPage(1)}>«</Button>

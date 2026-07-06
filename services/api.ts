@@ -51,6 +51,22 @@ export interface WorkflowStatusOptions {
   teamsMeetingUrl?: string;
 }
 
+export interface GetApplicationsParams {
+  page: number;
+  limit: number;
+  search: string;
+  status: string;
+  position: string;
+  department: string;
+  bu: string;
+  channel: string;
+  assignment: string;
+  currentUserId: string | null;
+  blacklist: string;
+  blacklistEntries: any[];
+}
+
+
 // ============================================================
 // Error Handler Utility
 // ============================================================
@@ -436,6 +452,243 @@ export const api = {
       return [];
     }
   },
+
+  /**
+   * Fetch all applications with server-side pagination, filtering, and sorting
+   */
+  getApplicationsPaginated: async (params: GetApplicationsParams): Promise<{ data: any[]; count: number }> => {
+    try {
+      const sessionResult = await api.auth.verifySession();
+      if (!sessionResult.success) return { data: [], count: 0 };
+
+      let query = supabase
+        .from('applications')
+        .select(`
+          id,
+          created_at,
+          full_name,
+          phone,
+          position,
+          department,
+          status,
+          assigned_to,
+          assigned_user:users!applications_assigned_to_fkey(id, full_name, emp_id),
+          business_unit,
+          source_channel,
+          campaign_tag,
+          interview_date,
+          interview_start_time,
+          interview_end_time,
+          teams_meeting_url,
+          updated_at,
+          nickname:form_data->>nickname,
+          photoUrl:form_data->>photoUrl,
+          isThaiNational:form_data->>isThaiNational,
+          nationalId:form_data->>nationalId,
+          passportNo:form_data->>passportNo,
+          prefix:form_data->>prefix,
+          firstName:form_data->>firstName,
+          lastName:form_data->>lastName,
+          departmentEn:form_data->>departmentEn,
+          positionEn:form_data->>positionEn
+        `, { count: 'exact' });
+
+      // 1. Status Filter
+      if (params.status && params.status !== 'all') {
+        if (params.status === 'InterviewScheduled') {
+          query = query.eq('status', 'InterviewScheduled');
+        } else {
+          query = query.eq('status', params.status);
+        }
+      }
+
+      // 2. Assignment Filter
+      if (params.assignment === 'me' && params.currentUserId) {
+        query = query.eq('assigned_to', params.currentUserId);
+      } else if (params.assignment === 'unassigned') {
+        query = query.is('assigned_to', null);
+      }
+
+      // 3. Position Filter
+      if (params.position) {
+        query = query.eq('position', params.position);
+      }
+
+      // 4. Department Filter
+      if (params.department) {
+        query = query.eq('department', params.department);
+      }
+
+      // 5. Business Unit (BU) Filter
+      if (params.bu) {
+        query = query.eq('business_unit', params.bu);
+      }
+
+      // 6. Source Channel Filter
+      if (params.channel) {
+        query = query.eq('source_channel', params.channel);
+      }
+
+      // 7. Blacklist Filter (using client-provided blacklist entries)
+      if (params.blacklist && params.blacklist !== 'all' && params.blacklistEntries && params.blacklistEntries.length > 0) {
+        const activeIds = params.blacklistEntries.map(e => e.national_id).filter(Boolean).map(x => `"${x}"`);
+        const activePassports = params.blacklistEntries.map(e => e.passport_no).filter(Boolean).map(x => `"${x.toUpperCase()}"`);
+        
+        if (params.blacklist === 'yes') {
+          const orConditions: string[] = [];
+          if (activeIds.length > 0) orConditions.push(`form_data->>nationalId.in.(${activeIds.join(',')})`);
+          if (activePassports.length > 0) orConditions.push(`form_data->>passportNo.in.(${activePassports.join(',')})`);
+          
+          if (orConditions.length > 0) {
+            query = query.or(orConditions.join(','));
+          } else {
+            // Force return empty if yes selected but no active blacklists exist
+            query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+          }
+        } else if (params.blacklist === 'no') {
+          if (activeIds.length > 0) {
+            query = query.not('form_data->>nationalId', 'in', `(${activeIds.join(',')})`);
+          }
+          if (activePassports.length > 0) {
+            query = query.not('form_data->>passportNo', 'in', `(${activePassports.join(',')})`);
+          }
+        }
+      }
+
+      // 8. Search Filter
+      if (params.search) {
+        const q = `%${params.search.trim().toLowerCase()}%`;
+        query = query.or(`full_name.ilike.${q},phone.ilike.${q},form_data->>nickname.ilike.${q}`);
+      }
+
+      // Order by created_at desc
+      query = query.order('created_at', { ascending: false });
+
+      // Range selection
+      const from = (params.page - 1) * params.limit;
+      const to = from + params.limit - 1;
+      query = query.range(from, to);
+
+      const { data, error, count } = await query;
+
+      if (error) {
+        console.error("Fetch Apps Paginated Error:", error);
+        return { data: [], count: 0 };
+      }
+
+      const mappedData = (data || []).map((app: any) => {
+        const {
+          nickname, photoUrl, nationalId, passportNo, isThaiNational,
+          prefix, firstName, lastName, departmentEn, positionEn, ...rest
+        } = app;
+        return {
+          ...rest,
+          form_data: {
+            nickname,
+            photoUrl,
+            nationalId,
+            passportNo,
+            isThaiNational: isThaiNational === 'true' ? true : isThaiNational === 'false' ? false : isThaiNational,
+            prefix,
+            firstName,
+            lastName,
+            departmentEn,
+            positionEn,
+            businessUnit: rest.business_unit,
+            sourceChannel: rest.source_channel,
+            campaignTag: rest.campaign_tag
+          }
+        };
+      });
+
+      return { data: mappedData, count: count || 0 };
+    } catch (error) {
+      console.error("Fetch Apps Paginated Error:", error);
+      return { data: [], count: 0 };
+    }
+  },
+
+  /**
+   * Fetch only applications that have interview dates scheduled
+   */
+  getCalendarInterviews: async (): Promise<any[]> => {
+    try {
+      const sessionResult = await api.auth.verifySession();
+      if (!sessionResult.success) return [];
+
+      const { data, error } = await supabase
+        .from('applications')
+        .select(`
+          id,
+          created_at,
+          full_name,
+          phone,
+          position,
+          department,
+          status,
+          assigned_to,
+          assigned_user:users!applications_assigned_to_fkey(id, full_name, emp_id),
+          business_unit,
+          source_channel,
+          campaign_tag,
+          interview_date,
+          interview_start_time,
+          interview_end_time,
+          teams_meeting_url,
+          updated_at,
+          nickname:form_data->>nickname,
+          photoUrl:form_data->>photoUrl
+        `)
+        .not('interview_date', 'is', null)
+        .order('interview_date', { ascending: true });
+
+      if (error) {
+        console.error("Fetch Calendar Interviews Error:", error);
+        return [];
+      }
+
+      return (data || []).map((app: any) => {
+        const { nickname, photoUrl, ...rest } = app;
+        return {
+          ...rest,
+          form_data: {
+            nickname,
+            photoUrl,
+            businessUnit: rest.business_unit,
+            sourceChannel: rest.source_channel,
+            campaignTag: rest.campaign_tag
+          }
+        };
+      });
+    } catch (error) {
+      console.error("Fetch Calendar Interviews Error:", error);
+      return [];
+    }
+  },
+
+  /**
+   * Fetch lightweight fields of all applications for charts/stats calculation
+   */
+  getApplicationsStats: async (): Promise<any[]> => {
+    try {
+      const sessionResult = await api.auth.verifySession();
+      if (!sessionResult.success) return [];
+
+      const { data, error } = await supabase
+        .from('applications')
+        .select('id, created_at, status, business_unit, department');
+
+      if (error) {
+        console.error("Fetch Stats Error:", error);
+        return [];
+      }
+      return data || [];
+    } catch (error) {
+      console.error("Fetch Stats Error:", error);
+      return [];
+    }
+  },
+
 
   /**
    * Fetch a single application by ID with full details (including complete form_data)

@@ -40,6 +40,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
 
   // Data State
   const [applications, setApplications] = useState<any[]>([]);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [calendarApplications, setCalendarApplications] = useState<any[]>([]);
+  const [statsApplications, setStatsApplications] = useState<any[]>([]);
   const [blacklistEntries, setBlacklistEntries] = useState<BlacklistEntry[]>([]);
   const [pendingUsers, setPendingUsers] = useState<any[]>([]);
   const [activeUsers, setActiveUsers] = useState<any[]>([]);
@@ -334,25 +337,95 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
 
   const fetchData = React.useCallback(async () => {
     setLoading(true);
-    const data = await api.getApplications();
-    setApplications(data);
-
+    
+    // 1. Fetch Blacklist Entries (needed for table marking and filters)
     const blacklistRes = await api.blacklist.getEntries();
+    let currentBlacklist: any[] = [];
     if (blacklistRes.success && blacklistRes.data) {
-      setBlacklistEntries(blacklistRes.data.filter(e => e.status === 'active'));
+      currentBlacklist = blacklistRes.data.filter(e => e.status === 'active');
+      setBlacklistEntries(currentBlacklist);
     }
 
-    // Calculate simple stats
-    const total = data.length;
-    const pending = data.filter((a: any) => a.status === 'Pending').length;
-    const reviewing = data.filter((a: any) => a.status === 'Reviewing').length;
-    const interviewing = data.filter((a: any) => isInterviewScheduledStatus(a.status) || a.status === 'Interviewed' || a.status === 'Offer').length;
-    const hired = data.filter((a: any) => a.status === 'Hired').length;
-    const rejected = data.filter((a: any) => a.status === 'Rejected' || a.status === 'Withdrawn' || a.status === 'NoShow').length;
+    // 2. Fetch stats payload (lightweight list of all rows)
+    const statsData = await api.getApplicationsStats();
+    setStatsApplications(statsData);
 
+    // Calculate simple stats
+    const total = statsData.length;
+    const pending = statsData.filter((a: any) => a.status === 'Pending').length;
+    const reviewing = statsData.filter((a: any) => a.status === 'Reviewing').length;
+    const interviewing = statsData.filter((a: any) => isInterviewScheduledStatus(a.status) || a.status === 'Interviewed' || a.status === 'Offer').length;
+    const hired = statsData.filter((a: any) => a.status === 'Hired').length;
+    const rejected = statsData.filter((a: any) => a.status === 'Rejected' || a.status === 'Withdrawn' || a.status === 'NoShow').length;
     setStats({ total, pending, reviewing, interviewing, hired, rejected });
-    setLoading(false);
-  }, []);
+
+    // 3. Fetch current page of applications
+    try {
+      const result = await api.getApplicationsPaginated({
+        page: appPage,
+        limit: appPerPage,
+        search: appFilters.search,
+        status: appFilters.status,
+        position: appFilters.position,
+        department: appFilters.department,
+        bu: appFilters.bu,
+        channel: appFilters.channel,
+        assignment: appFilters.assignment,
+        currentUserId: currentUserId,
+        blacklist: appFilters.blacklist,
+        blacklistEntries: currentBlacklist
+      });
+      setApplications(result.data);
+      setTotalCount(result.count);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [appPage, appPerPage, appFilters, currentUserId]);
+
+  const fetchPaginatedApplications = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await api.getApplicationsPaginated({
+        page: appPage,
+        limit: appPerPage,
+        search: appFilters.search,
+        status: appFilters.status,
+        position: appFilters.position,
+        department: appFilters.department,
+        bu: appFilters.bu,
+        channel: appFilters.channel,
+        assignment: appFilters.assignment,
+        currentUserId: currentUserId,
+        blacklist: appFilters.blacklist,
+        blacklistEntries: blacklistEntries
+      });
+      setApplications(result.data);
+      setTotalCount(result.count);
+    } catch (err) {
+      console.error("Failed to fetch paginated applications:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [appPage, appPerPage, appFilters, currentUserId, blacklistEntries]);
+
+  // Effect to refetch when pagination/filters change (after initial mount)
+  const isInitialMount = React.useRef(true);
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    fetchPaginatedApplications();
+  }, [appPage, appPerPage, appFilters]);
+
+  // Effect to refetch calendar interviews when tab changes to calendar
+  useEffect(() => {
+    if (activeTab === 'calendar') {
+      api.getCalendarInterviews().then(setCalendarApplications);
+    }
+  }, [activeTab]);
 
   const fetchPendingUsers = React.useCallback(async () => {
     const { data } = await api.auth.getPendingUsers();
@@ -546,14 +619,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
   // Prepare chart data from real applications dynamically
   const deptData = React.useMemo(() => {
     const counts: Record<string, number> = {};
-    applications.forEach(app => {
-      const bu = app.business_unit || app.form_data?.businessUnit || app.department || 'ไม่ระบุ BU';
+    statsApplications.forEach(app => {
+      const bu = app.business_unit || app.department || 'ไม่ระบุ BU';
       counts[bu] = (counts[bu] || 0) + 1;
     });
     return Object.entries(counts)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
-  }, [applications]);
+  }, [statsApplications]);
 
   // Prepare real application trend data for the last 6 months
   const chartData = React.useMemo(() => {
@@ -571,7 +644,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
       });
     }
 
-    applications.forEach(app => {
+    statsApplications.forEach(app => {
       if (!app.created_at) return;
       const d = new Date(app.created_at);
       const targetTarget = result.find(r => r.month === d.getMonth() && r.year === d.getFullYear());
@@ -581,7 +654,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     });
 
     return result;
-  }, [applications]);
+  }, [statsApplications]);
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 overflow-hidden">
@@ -759,7 +832,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
 
           {activeTab === 'calendar' && (
             <CalendarTab
-              applications={applications}
+              applications={calendarApplications}
               activeUsers={activeUsers}
               businessUnits={businessUnits}
               setViewingApp={setViewingApp}
@@ -797,6 +870,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               blacklistEntries={blacklistEntries}
               onViewBlacklistDetail={setViewingBlacklistDetail}
               loading={loading}
+              totalCount={totalCount}
+              statsApplications={statsApplications}
             />
           )}
 
