@@ -2535,7 +2535,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
           <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600 space-y-1.5">
             <div className="flex items-start gap-2">
               <span className="text-indigo-500 font-bold">•</span>
-              <span>ลิงก์จะหมดอายุอัตโนมัติใน <strong>30 วัน</strong></span>
+              <span>ลิงก์จะหมดอายุอัตโนมัติใน <strong>7 วัน</strong></span>
             </div>
             <div className="flex items-start gap-2">
               <span className="text-indigo-500 font-bold">•</span>

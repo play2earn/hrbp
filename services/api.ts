@@ -1072,7 +1072,7 @@ export const api = {
   // ============================================================
 
   /**
-   * Generate (or reuse existing) a 30-day share token for an application
+   * Generate (or reuse existing) a 7-day share token for an application
    */
   generateShareToken: async (applicationId: string, createdBy: string): Promise<ApiResponse<{ token: string; url: string; expires_at: string }>> => {
     try {
@@ -1095,7 +1095,7 @@ export const api = {
       // Generate new token: crypto-safe 32-byte hex
       const token = Array.from(crypto.getRandomValues(new Uint8Array(32)))
         .map(b => b.toString(16).padStart(2, '0')).join('');
-      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
       const { data, error } = await supabase
         .from('application_share_tokens')
@@ -1204,7 +1204,7 @@ export const api = {
   // ============================================================
 
   /**
-   * HR: Generate a 48-hour resubmit token for an application.
+   * HR: Generate a 7-day resubmit token for an application.
    * PIN hash is computed here on the client using SubtleCrypto before inserting to DB
    * so that raw PIN values (last4 ID + last4 phone) never leave the browser unencrypted.
    */
@@ -1265,7 +1265,7 @@ export const api = {
       // 4. Generate new crypto-safe token
       const token = Array.from(crypto.getRandomValues(new Uint8Array(32)))
         .map(b => b.toString(16).padStart(2, '0')).join('');
-      const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
       const { data: tokenData, error: insertError } = await supabase
         .from('application_share_tokens')
@@ -1303,7 +1303,7 @@ export const api = {
       await api.addApplicationLog({
         application_id: applicationId,
         action: 'resubmit_token_created',
-        note: `HR ขอเอกสารใหม่: ${fieldLabels} (token หมดอายุใน 48 ชม.)`,
+        note: `HR ขอเอกสารใหม่: ${fieldLabels} (token หมดอายุใน 7 วัน)`,
         performed_by: createdBy,
       });
 
