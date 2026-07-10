@@ -434,10 +434,18 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
                       ? `${editForm.firstName} ${editForm.lastName}`.trim()
                       : `${editForm.firstNameEn} ${editForm.lastNameEn}`.trim();
 
+                    const matchedPos = positions.find((p: any) => (p.name_th === editForm.position) || (p.name === editForm.position) || (p.name_en === editForm.position));
+                    const positionEn = matchedPos ? matchedPos.name_en : (editForm.position === editingApp.form_data?.position ? editingApp.form_data?.positionEn : '');
+
+                    const matchedDept = departments.find((d: any) => (d.name_th === editForm.department) || (d.name === editForm.department) || (d.name_en === editForm.department));
+                    const departmentEn = matchedDept ? matchedDept.name_en : (editForm.department === editingApp.form_data?.department ? editingApp.form_data?.departmentEn : '');
+
                     const updatedFormData = {
                       ...editingApp.form_data,
                       position: editForm.position,
+                      positionEn,
                       department: editForm.department,
+                      departmentEn,
                       expectedSalary: editForm.expectedSalary,
                       phone: editForm.phone,
                       email: editForm.email,
