@@ -3,10 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { ApplicationForm, INITIAL_FORM_STATE, Language, SkillLevel, EducationEntry, WorkEntry } from '../types';
 import { TRANSLATIONS, MOCK_BU, MOCK_DEPARTMENTS, MOCK_POSITIONS, MILITARY_STATUS_OPTIONS, UPCOUNTRY_LOCATIONS, UPCOUNTRY_LOCATIONS_DATA, MOCK_APPLICATION_DATA } from '../constants';
 import { Button, Input, Select, TextArea, Card, DatePicker, FileUpload, Modal } from './UIComponents';
-import { Check, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Check, ChevronRight, ChevronLeft, RotateCcw, X } from 'lucide-react';
 import { PDFPreview } from './PDFPreview';
 import { api } from '../services/api';
 import { finalizeR2Attachments } from '../utils/r2-upload';
+import { useFormDraft } from '../hooks/useFormDraft';
 
 
 interface ApplicantFormProps {
@@ -126,6 +127,18 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
   const [showPreview, setShowPreview] = useState(false);
   const [isAgeModalOpen, setIsAgeModalOpen] = useState(false);
   const [draftId, setDraftId] = useState<string>('');
+
+  // --- Draft Auto-Save (localStorage) ---
+  const draftScopeKey = [urlParams.bu, urlParams.ch, urlParams.tag].filter(Boolean).join('_') || 'default';
+  const { showRestoreBanner, restoreDraft, dismissDraft, saveDraft, clearDraft, lastSavedText } = useFormDraft({
+    scopeKey: draftScopeKey,
+    lang,
+  });
+
+  // Auto-save ทุกครั้งที่ formData หรือ currentStep เปลี่ยน
+  useEffect(() => {
+    saveDraft(formData, currentStep);
+  }, [formData, currentStep]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const generateDraftId = () => {
@@ -410,6 +423,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
           console.error('[Submit] Failed to finalize R2 attachments:', err);
         }
       }
+      clearDraft(); // ลบ draft หลัง submit สำเร็จ
       setSubmitSuccess(true);
     } else {
       // Show actual error message if possible, or fallback
@@ -675,6 +689,52 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
 
   return (
     <div className="max-w-5xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+
+      {/* ── Draft Restore Banner ── */}
+      {showRestoreBanner && (
+        <div className="mb-6 flex items-center justify-between gap-3 bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex-shrink-0 w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center">
+              <RotateCcw className="w-4 h-4 text-indigo-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-indigo-900 leading-tight">
+                {lang === 'th' ? 'พบข้อมูลที่กรอกค้างไว้' : 'Draft found'}
+              </p>
+              <p className="text-xs text-indigo-500 mt-0.5">
+                {lang === 'th' ? `บันทึกเมื่อ ${lastSavedText}` : `Saved ${lastSavedText}`}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2 flex-shrink-0">
+            <button
+              onClick={() => {
+                const saved = restoreDraft();
+                if (saved) {
+                  setFormData(saved.formData);
+                  setCurrentStep(saved.currentStep);
+                }
+              }}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+            >
+              {lang === 'th' ? 'โหลดคืน' : 'Restore'}
+            </button>
+            <button
+              onClick={dismissDraft}
+              className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition-colors"
+            >
+              {lang === 'th' ? 'เริ่มใหม่' : 'Start fresh'}
+            </button>
+            <button
+              onClick={dismissDraft}
+              className="p-1.5 rounded-lg text-indigo-400 hover:text-indigo-600 hover:bg-indigo-100 transition-colors"
+              aria-label="dismiss"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Progress Bar (Compact Mobile / Expanded Desktop) */}
       <div className="mb-8">
