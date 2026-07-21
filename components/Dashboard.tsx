@@ -38,7 +38,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
   const [dontShowReleaseAgain, setDontShowReleaseAgain] = useState(false);
 
   const handleCloseReleaseModal = React.useCallback((shouldRedirect: boolean = false) => {
-    const currentVersion = "v1.1-talent-analytics";
+    const currentVersion = "v1.1.2-talent-analytics";
     if (dontShowReleaseAgain || shouldRedirect) {
       localStorage.setItem("last_seen_release_version", currentVersion);
     }
@@ -612,7 +612,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     }
 
     // Check if user has seen new release feature announcement
-    const currentVersion = "v1.1-talent-analytics";
+    const currentVersion = "v1.1.2-talent-analytics";
     const lastSeen = localStorage.getItem("last_seen_release_version");
     if (lastSeen !== currentVersion) {
       const timer = setTimeout(() => {
