@@ -614,11 +614,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     // Check if user has seen new release feature announcement
     const currentVersion = "v1.1.2-talent-analytics";
     const lastSeen = localStorage.getItem("last_seen_release_version");
+    console.log("Release Modal Check - lastSeen:", lastSeen, "currentVersion:", currentVersion);
     if (lastSeen !== currentVersion) {
+      console.log("Registering timeout for Release Modal...");
       const timer = setTimeout(() => {
+        console.log("Triggering Release Modal to true");
         setShowReleaseModal(true);
       }, 1500);
-      return () => clearTimeout(timer);
+      return () => {
+        console.log("Clearing Release Modal timeout (cleanup)");
+        clearTimeout(timer);
+      };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
