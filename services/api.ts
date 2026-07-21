@@ -409,7 +409,15 @@ export const api = {
           positionEn:form_data->>positionEn,
           height:form_data->>height,
           weight:form_data->>weight,
-          education:form_data->education
+          education:form_data->education,
+          englishSkill:form_data->>englishSkill,
+          englishScore:form_data->>englishScore,
+          chineseSkill:form_data->>chineseSkill,
+          chineseScore:form_data->>chineseScore,
+          otherLang:form_data->>otherLang,
+          availability:form_data->>availability,
+          isAvailableImmediately:form_data->>isAvailableImmediately,
+          expectedSalary:form_data->>expectedSalary
         `)
         .order('created_at', { ascending: false });
 
@@ -422,7 +430,10 @@ export const api = {
         const {
           nickname, photoUrl, age, nationalId, passportNo, isThaiNational,
           prefix, firstName, lastName, departmentEn, positionEn,
-          height, weight, education, ...rest
+          height, weight, education,
+          englishSkill, englishScore, chineseSkill, chineseScore, otherLang,
+          availability, isAvailableImmediately, expectedSalary,
+          ...rest
         } = app;
         return {
           ...rest,
@@ -441,6 +452,14 @@ export const api = {
             height,
             weight,
             education,
+            englishSkill,
+            englishScore,
+            chineseSkill,
+            chineseScore,
+            otherLang,
+            availability,
+            isAvailableImmediately: isAvailableImmediately === 'true' ? true : isAvailableImmediately === 'false' ? false : isAvailableImmediately,
+            expectedSalary,
             businessUnit: rest.business_unit,
             sourceChannel: rest.source_channel,
             campaignTag: rest.campaign_tag

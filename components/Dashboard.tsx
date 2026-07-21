@@ -828,7 +828,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
       <main className="flex-1 overflow-y-auto pt-16 lg:pt-0 w-full">
         <div className="p-4 sm:p-8 max-w-7xl mx-auto">
 
-          {activeTab === 'reports' && <ReportsTab />}
+          {activeTab === 'reports' && (
+            <ReportsTab
+              setViewingApp={setViewingApp}
+              currentUserId={currentUserId}
+              activeUsers={activeUsers}
+              businessUnits={businessUnits}
+              departments={departments}
+            />
+          )}
 
           {activeTab === 'calendar' && (
             <CalendarTab
