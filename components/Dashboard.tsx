@@ -1626,6 +1626,74 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
         </div>
       </Modal>
 
+      {/* Feature Release Announcement Modal */}
+      <Modal
+        isOpen={showReleaseModal}
+        onClose={() => handleCloseReleaseModal(false)}
+        title="✨ อัปเดตระบบวิเคราะห์ผู้สมัคร"
+        footer={null}
+      >
+        <div className="relative overflow-hidden text-slate-700">
+          {/* Header & Icon */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2.5 bg-indigo-50 rounded-xl text-indigo-600">
+              <Sparkles className="w-6 h-6 animate-pulse" />
+            </div>
+            <div>
+              <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                Release v1.1.2
+              </span>
+              <h4 className="text-sm font-bold text-slate-800 mt-0.5">
+                เปิดตัวแท็บวิเคราะห์ประวัติและรายงานใหม่!
+              </h4>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className="text-xs text-slate-600 space-y-3 mb-6 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
+            <p className="font-semibold text-slate-700">ฟังก์ชันใหม่ที่เปิดใช้งานให้คุณแล้ว:</p>
+            <ul className="list-disc list-inside space-y-1.5 pl-1 text-[11px] text-slate-500">
+              <li>วิเคราะห์ระดับการศึกษา เกรดเฉลี่ยสะสม และทักษะภาษาแบบไดนามิก</li>
+              <li>เจาะลึก (Drill-down) จากกราฟสถิติเพื่อคัดกรองข้อมูลผู้สมัครได้ทันที</li>
+              <li>ฟิลเตอร์ค้นหาชื่อแผนก ตำแหน่ง และสถาบันแบบ Searchable รวดเร็ว</li>
+              <li>คัดกรองประวัติพร้อมเริ่มงานทันทีและตรวจสอบผู้รับเคส</li>
+            </ul>
+          </div>
+
+          {/* Controls & Footer */}
+          <div className="space-y-4 pt-2">
+            <div className="flex items-center gap-2 select-none">
+              <input
+                type="checkbox"
+                id="dontShowAgain"
+                checked={dontShowReleaseAgain}
+                onChange={(e) => setDontShowReleaseAgain(e.target.checked)}
+                className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
+              />
+              <label htmlFor="dontShowAgain" className="text-xs text-slate-500 cursor-pointer">
+                ฉันเข้าใจแล้ว ไม่ต้องแสดงหน้าจอนี้อีกในครั้งถัดไป
+              </label>
+            </div>
+
+            <div className="flex gap-2.5">
+              <button
+                onClick={() => handleCloseReleaseModal(false)}
+                className="flex-1 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all cursor-pointer border border-slate-200"
+              >
+                ปิดหน้าต่าง
+              </button>
+              <button
+                onClick={() => handleCloseReleaseModal(true)}
+                className="flex-1 px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 active:scale-95 transition-all shadow-md shadow-indigo-200 cursor-pointer flex items-center justify-center gap-1"
+              >
+                เปิดใช้งานทันที
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
     </div >
   );
 };
@@ -2448,74 +2516,6 @@ const MasterDataConfig = ({ showToast, currentUser }: { showToast: (message: str
               ))}
             </div>
           )}
-        </div>
-      </Modal>
-
-      {/* Feature Release Announcement Modal */}
-      <Modal
-        isOpen={showReleaseModal}
-        onClose={() => handleCloseReleaseModal(false)}
-        title="✨ อัปเดตระบบวิเคราะห์ผู้สมัคร"
-        footer={null}
-      >
-        <div className="relative overflow-hidden text-slate-700">
-          {/* Header & Icon */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2.5 bg-indigo-50 rounded-xl text-indigo-600">
-              <Sparkles className="w-6 h-6 animate-pulse" />
-            </div>
-            <div>
-              <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                Release v1.1.2
-              </span>
-              <h4 className="text-sm font-bold text-slate-800 mt-0.5">
-                เปิดตัวแท็บวิเคราะห์ประวัติและรายงานใหม่!
-              </h4>
-            </div>
-          </div>
-
-          {/* Description */}
-          <div className="text-xs text-slate-600 space-y-3 mb-6 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
-            <p className="font-semibold text-slate-700">ฟังก์ชันใหม่ที่เปิดใช้งานให้คุณแล้ว:</p>
-            <ul className="list-disc list-inside space-y-1.5 pl-1 text-[11px] text-slate-500">
-              <li>วิเคราะห์ระดับการศึกษา เกรดเฉลี่ยสะสม และทักษะภาษาแบบไดนามิก</li>
-              <li>เจาะลึก (Drill-down) จากกราฟสถิติเพื่อคัดกรองข้อมูลผู้สมัครได้ทันที</li>
-              <li>ฟิลเตอร์ค้นหาชื่อแผนก ตำแหน่ง และสถาบันแบบ Searchable รวดเร็ว</li>
-              <li>คัดกรองประวัติพร้อมเริ่มงานทันทีและตรวจสอบผู้รับเคส</li>
-            </ul>
-          </div>
-
-          {/* Controls & Footer */}
-          <div className="space-y-4 pt-2">
-            <div className="flex items-center gap-2 select-none">
-              <input
-                type="checkbox"
-                id="dontShowAgain"
-                checked={dontShowReleaseAgain}
-                onChange={(e) => setDontShowReleaseAgain(e.target.checked)}
-                className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
-              />
-              <label htmlFor="dontShowAgain" className="text-xs text-slate-500 cursor-pointer">
-                ฉันเข้าใจแล้ว ไม่ต้องแสดงหน้าจอนี้อีกในครั้งถัดไป
-              </label>
-            </div>
-
-            <div className="flex gap-2.5">
-              <button
-                onClick={() => handleCloseReleaseModal(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all cursor-pointer border border-slate-200"
-              >
-                ปิดหน้าต่าง
-              </button>
-              <button
-                onClick={() => handleCloseReleaseModal(true)}
-                className="flex-1 px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 active:scale-95 transition-all shadow-md shadow-indigo-200 cursor-pointer flex items-center justify-center gap-1"
-              >
-                เปิดใช้งานทันที
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
         </div>
       </Modal>
 
