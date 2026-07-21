@@ -481,6 +481,7 @@ interface ModalProps {
 import { createPortal } from 'react-dom';
 
 export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, footer, size = 'md' }) => {
+  console.log("Modal rendering! Title:", title, "isOpen:", isOpen);
   const isFull = size === 'full';
 
   const sizeClasses = {
