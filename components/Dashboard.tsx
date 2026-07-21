@@ -614,31 +614,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     // Check if user has seen new release feature announcement
     const currentVersion = "v1.1.2-talent-analytics";
     const lastSeen = localStorage.getItem("last_seen_release_version");
-    console.log("Release Modal Check - lastSeen:", lastSeen, "currentVersion:", currentVersion);
     if (lastSeen !== currentVersion) {
-      console.log("Registering timeout for Release Modal...");
       const timer = setTimeout(() => {
-        console.log("Triggering Release Modal to true");
         setShowReleaseModal(true);
       }, 1500);
-      return () => {
-        console.log("Clearing Release Modal timeout (cleanup)");
-        clearTimeout(timer);
-      };
+      return () => clearTimeout(timer);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Diagnostic effect to check if the modal is successfully mounted in the DOM
-  useEffect(() => {
-    if (showReleaseModal) {
-      console.log("Diagnostic - showReleaseModal is TRUE. Initial DOM check for title:", document.body.innerHTML.includes("อัปเดตระบบวิเคราะห์ผู้สมัคร"));
-      setTimeout(() => {
-        console.log("Diagnostic - Deferred DOM check for title:", document.body.innerHTML.includes("อัปเดตระบบวิเคราะห์ผู้สมัคร"));
-        console.log("Diagnostic - Modal element in DOM:", document.querySelector('.fixed.z-\\[9999\\]') !== null);
-      }, 1000);
-    }
-  }, [showReleaseModal]);
 
   const SidebarItem = ({ id, label, icon: Icon }: { id: typeof activeTab, label: string, icon: any }) => (
 
