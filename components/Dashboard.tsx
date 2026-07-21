@@ -629,6 +629,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Diagnostic effect to check if the modal is successfully mounted in the DOM
+  useEffect(() => {
+    if (showReleaseModal) {
+      console.log("Diagnostic - showReleaseModal is TRUE. Initial DOM check for title:", document.body.innerHTML.includes("อัปเดตระบบวิเคราะห์ผู้สมัคร"));
+      setTimeout(() => {
+        console.log("Diagnostic - Deferred DOM check for title:", document.body.innerHTML.includes("อัปเดตระบบวิเคราะห์ผู้สมัคร"));
+        console.log("Diagnostic - Modal element in DOM:", document.querySelector('.fixed.z-\\[9999\\]') !== null);
+      }, 1000);
+    }
+  }, [showReleaseModal]);
+
   const SidebarItem = ({ id, label, icon: Icon }: { id: typeof activeTab, label: string, icon: any }) => (
 
     <button
