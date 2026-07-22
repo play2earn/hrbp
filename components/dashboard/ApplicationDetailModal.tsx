@@ -1990,6 +1990,9 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                           const fd = viewingApp.form_data ? { ...viewingApp.form_data } : {};
                           fd.created_at = viewingApp.created_at;
                           fd.id = viewingApp.id;
+                          if (shareLink) fd.shareUrl = shareLink;
+                          if (shareToken) fd.shareToken = shareToken;
+                          if (shareLinkExpiry) fd.shareLinkExpiry = shareLinkExpiry;
                           localStorage.setItem('printPreviewData', JSON.stringify(fd));
                           window.open('/print.html', '_blank');
                         }}
