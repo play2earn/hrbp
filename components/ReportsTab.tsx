@@ -94,22 +94,44 @@ const getAvailabilityStatus = (app: any) => {
   return fd.availability || 'ต้องแจ้งล่วงหน้า (ปกติ)';
 };
 
-const getLangBadgeClass = (skill: string) => {
-  switch ((skill || '').toLowerCase().trim()) {
-    case 'advanced': return 'bg-emerald-55/20 text-emerald-700 border border-emerald-200';
-    case 'good': return 'bg-blue-50 text-blue-700 border border-blue-200';
-    case 'fair': return 'bg-amber-50 text-amber-700 border border-amber-200';
-    default: return 'bg-slate-50 text-slate-400 border border-slate-200';
+const getLangBadgeClass = (skill?: string, score?: string) => {
+  const s = (skill || '').toLowerCase().trim();
+  if (['advanced', 'fluent', 'เชี่ยวชาญ', 'ดีมาก', 'คล่องแคล่ว', 'คล่องแคล่ว / ดีมาก'].includes(s)) {
+    return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
   }
+  if (['good', 'ดี'].includes(s)) {
+    return 'bg-blue-50 text-blue-700 border border-blue-200';
+  }
+  if (['fair', 'พอใช้'].includes(s)) {
+    return 'bg-amber-50 text-amber-700 border border-amber-200';
+  }
+  if (['basic', 'พื้นฐาน'].includes(s)) {
+    return 'bg-sky-50 text-sky-700 border border-sky-200';
+  }
+  if (score && score.trim() !== '' && score.trim() !== '-') {
+    return 'bg-indigo-50 text-indigo-700 border border-indigo-200';
+  }
+  return 'bg-slate-50 text-slate-400 border border-slate-200';
 };
 
-const translateLangSkill = (skill: string) => {
-  switch ((skill || '').toLowerCase().trim()) {
-    case 'advanced': return 'ดีมาก';
-    case 'good': return 'ดี';
-    case 'fair': return 'พอใช้';
-    default: return 'ไม่มีทักษะ';
-  }
+const translateLangSkill = (skill?: string, score?: string) => {
+  const s = (skill || '').toLowerCase().trim();
+  if (['advanced', 'fluent', 'เชี่ยวชาญ', 'ดีมาก', 'คล่องแคล่ว', 'คล่องแคล่ว / ดีมาก'].includes(s)) return 'ดีมาก';
+  if (['good', 'ดี'].includes(s)) return 'ดี';
+  if (['fair', 'พอใช้'].includes(s)) return 'พอใช้';
+  if (['basic', 'พื้นฐาน'].includes(s)) return 'พื้นฐาน';
+  if (score && score.trim() !== '' && score.trim() !== '-') return score.trim();
+  return 'ไม่มีทักษะ';
+};
+
+const getNormalizedLangCategory = (skill?: string, score?: string) => {
+  const s = (skill || '').toLowerCase().trim();
+  if (['advanced', 'fluent', 'เชี่ยวชาญ', 'ดีมาก', 'คล่องแคล่ว', 'คล่องแคล่ว / ดีมาก'].includes(s)) return 'advanced';
+  if (['good', 'ดี'].includes(s)) return 'good';
+  if (['fair', 'พอใช้'].includes(s)) return 'fair';
+  if (['basic', 'พื้นฐาน'].includes(s)) return 'basic';
+  if (score && score.trim() !== '' && score.trim() !== '-') return 'fair';
+  return 'none';
 };
 
 const mapLangLabelToFilter = (label: string) => {
@@ -381,16 +403,16 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
       }
 
       // 6. Languages (English/Chinese)
-      const eng = (fd.englishSkill || 'None').trim().toLowerCase();
-      if (eng === 'advanced') langLevels.English.Advanced++;
-      else if (eng === 'good') langLevels.English.Good++;
-      else if (eng === 'fair') langLevels.English.Fair++;
+      const engCat = getNormalizedLangCategory(fd.englishSkill, fd.englishScore);
+      if (engCat === 'advanced') langLevels.English.Advanced++;
+      else if (engCat === 'good') langLevels.English.Good++;
+      else if (engCat === 'fair' || engCat === 'basic') langLevels.English.Fair++;
       else langLevels.English.None++;
 
-      const chi = (fd.chineseSkill || 'None').trim().toLowerCase();
-      if (chi === 'advanced') langLevels.Chinese.Advanced++;
-      else if (chi === 'good') langLevels.Chinese.Good++;
-      else if (chi === 'fair') langLevels.Chinese.Fair++;
+      const chiCat = getNormalizedLangCategory(fd.chineseSkill, fd.chineseScore);
+      if (chiCat === 'advanced') langLevels.Chinese.Advanced++;
+      else if (chiCat === 'good') langLevels.Chinese.Good++;
+      else if (chiCat === 'fair' || chiCat === 'basic') langLevels.Chinese.Fair++;
       else langLevels.Chinese.None++;
     });
 
@@ -482,8 +504,15 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
 
       // 5. Language Filter
       if (langFilter !== 'all') {
-        const hasEng = (fd.englishSkill || '').toLowerCase().trim() === langFilter;
-        const hasChi = (fd.chineseSkill || '').toLowerCase().trim() === langFilter;
+        const engCat = getNormalizedLangCategory(fd.englishSkill, fd.englishScore);
+        const chiCat = getNormalizedLangCategory(fd.chineseSkill, fd.chineseScore);
+        const target = langFilter.toLowerCase().trim();
+        const hasEng = (target === 'advanced' && engCat === 'advanced') ||
+                       (target === 'good' && engCat === 'good') ||
+                       (target === 'fair' && (engCat === 'fair' || engCat === 'basic'));
+        const hasChi = (target === 'advanced' && chiCat === 'advanced') ||
+                       (target === 'good' && chiCat === 'good') ||
+                       (target === 'fair' && (chiCat === 'fair' || chiCat === 'basic'));
         if (!hasEng && !hasChi) return false;
       }
 
@@ -820,7 +849,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                   <div className="h-72">
                     {chartsData.edu.length > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
-                        <PieChart margin={{ top: 10, bottom: 10 }}>
+                        <PieChart margin={{ top: 10, right: 0, left: 0, bottom: 10 }}>
                           <Pie
                             data={chartsData.edu}
                             cx="50%"
@@ -1120,7 +1149,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                   <div className="h-72">
                     {chartsData.bu.length > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
-                        <PieChart margin={{ top: 10, bottom: 10 }}>
+                        <PieChart margin={{ top: 10, right: 0, left: 0, bottom: 10 }}>
                           <Pie
                             data={chartsData.bu}
                             cx="50%"
@@ -1650,11 +1679,11 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                               {/* Languages (Horizontal Layout) */}
                               <td className="py-3 px-4 text-center">
                                 <div className="inline-flex items-center gap-1.5 bg-slate-50 p-1.5 rounded-lg border border-slate-100">
-                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold flex items-center gap-0.5 ${getLangBadgeClass(fd.englishSkill)}`}>
-                                    <span className="opacity-60 text-[9px]">EN:</span> {translateLangSkill(fd.englishSkill)}
+                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold flex items-center gap-0.5 ${getLangBadgeClass(fd.englishSkill, fd.englishScore)}`}>
+                                    <span className="opacity-60 text-[9px]">EN:</span> {translateLangSkill(fd.englishSkill, fd.englishScore)}
                                   </span>
-                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold flex items-center gap-0.5 ${getLangBadgeClass(fd.chineseSkill)}`}>
-                                    <span className="opacity-60 text-[9px]">CN:</span> {translateLangSkill(fd.chineseSkill)}
+                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold flex items-center gap-0.5 ${getLangBadgeClass(fd.chineseSkill, fd.chineseScore)}`}>
+                                    <span className="opacity-60 text-[9px]">CN:</span> {translateLangSkill(fd.chineseSkill, fd.chineseScore)}
                                   </span>
                                 </div>
                               </td>
@@ -1818,11 +1847,11 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                           <div className="flex items-center justify-between gap-3 text-xs border-t border-slate-50 pt-2">
                             {/* Languages (Horizontal Inline layout) */}
                             <div className="inline-flex items-center gap-1.5 bg-slate-50 p-1.5 rounded-lg border border-slate-100">
-                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold flex items-center gap-0.5 ${getLangBadgeClass(fd.englishSkill)}`}>
-                                <span className="opacity-60 text-[9px]">EN:</span> {translateLangSkill(fd.englishSkill)}
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold flex items-center gap-0.5 ${getLangBadgeClass(fd.englishSkill, fd.englishScore)}`}>
+                                <span className="opacity-60 text-[9px]">EN:</span> {translateLangSkill(fd.englishSkill, fd.englishScore)}
                               </span>
-                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold flex items-center gap-0.5 ${getLangBadgeClass(fd.chineseSkill)}`}>
-                                <span className="opacity-60 text-[9px]">CN:</span> {translateLangSkill(fd.chineseSkill)}
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold flex items-center gap-0.5 ${getLangBadgeClass(fd.chineseSkill, fd.chineseScore)}`}>
+                                <span className="opacity-60 text-[9px]">CN:</span> {translateLangSkill(fd.chineseSkill, fd.chineseScore)}
                               </span>
                             </div>
 
