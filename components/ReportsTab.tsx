@@ -28,8 +28,16 @@ const getBuColor = (buName: string, index: number): string => {
 };
 
 // Helper: Find highest education entry
-const getHighestEdu = (eduList: any[]) => {
-  if (!eduList || !Array.isArray(eduList) || eduList.length === 0) return null;
+const getHighestEdu = (eduList: any) => {
+  if (!eduList) return null;
+  let list: any[] = [];
+  if (Array.isArray(eduList)) {
+    list = eduList;
+  } else if (typeof eduList === 'object') {
+    list = Object.values(eduList);
+  }
+  if (list.length === 0) return null;
+
   const levelOrder: Record<string, number> = {
     'doctor': 5,
     'master': 4,
@@ -40,13 +48,14 @@ const getHighestEdu = (eduList: any[]) => {
     'other': 0
   };
   
-  const normalizedList = eduList.map(e => {
-    const lvl = (e.level || '').toLowerCase().trim();
+  const normalizedList = list.map(e => {
+    if (!e) return { stdLevel: 'other' };
+    const lvl = (e.level || e.degree || e.educationLevel || '').toLowerCase().trim();
     let stdLevel = 'other';
     if (lvl.includes('doctor') || lvl.includes('เอก') || lvl.includes('phd')) stdLevel = 'doctor';
     else if (lvl.includes('master') || lvl.includes('โท') || lvl.includes('mba')) stdLevel = 'master';
     else if (lvl.includes('bachelor') || lvl.includes('ตรี') || lvl.includes('ba') || lvl.includes('bs')) stdLevel = 'bachelor';
-    else if (lvl.includes('diploma') || lvl.includes('ปวส') || lvl.includes('ปวช') || lvl.includes('อนุปริญญา')) stdLevel = 'diploma';
+    else if (lvl.includes('diploma') || lvl.includes('vocational') || lvl.includes('voc') || lvl.includes('ปวส') || lvl.includes('ปวช') || lvl.includes('อนุปริญญา') || lvl.includes('อาชีว')) stdLevel = 'diploma';
     else if (lvl.includes('school') || lvl.includes('มัธยม') || lvl.includes('ประถม')) stdLevel = 'highschool';
     return { ...e, stdLevel };
   });
