@@ -3,7 +3,7 @@ import { Card, Button } from '../UIComponents';
 import {
   FileText, Users, Edit, Calendar, CheckCircle, XCircle,
   Search, MoreVertical, LayoutGrid, List, ChevronDown, ChevronRight, Check,
-  UserPlus, UserCheck, Phone, Copy, ShieldAlert
+  UserPlus, UserCheck, Phone, Copy, ShieldAlert, Printer
 } from 'lucide-react';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
@@ -425,6 +425,16 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                     </button>
                   ))}
                 </div>
+
+                {/* Print Offline Form Button */}
+                <button
+                  onClick={() => window.open('/print-offline.html', '_blank')}
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-indigo-600 hover:border-indigo-300 shadow-sm transition-all whitespace-nowrap"
+                  title="เปิดฟอร์มใบสมัครเปล่าสำหรับปริ้นไปใช้งาน"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Print Offline Form</span>
+                </button>
               </div>
             </div>
             

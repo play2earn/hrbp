@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>พิมพ์แบบฟอร์มใบสมัครเปล่า - Double A Alliance</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
+
+    :root {
+      --th-bg: #1f2937;
+      --th-text: white;
+      --border-color: #374151;
+      --box-border: 1px solid var(--border-color);
+      --section-margin: 6px;
+      --box-padding: 3px 5px;
+      --photo-radius: 0;
+      --main-border: 1px solid var(--border-color);
+      --header-border: 2px solid black;
+      --body-bg: #e5e7eb;
+      --paper-bg: white;
+      --paper-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+      --app-font: 'Sarabun', sans-serif;
+      --section-radius: 0;
+    }
+    [data-theme="modern"] {
+      --th-bg: #e0e7ff; --th-text: #3730a3; --border-color: #c7d2fe;
+      --main-border: 1px solid var(--border-color); --header-border: 2px solid #4f46e5;
+      --body-bg: #f3f4f6; --paper-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+      --section-margin: 10px; --box-padding: 4px 6px; --section-radius: 4px;
+    }
+    [data-theme="minimal"] {
+      --th-bg: transparent; --th-text: black; --border-color: #d1d5db;
+      --main-border: none; --header-border: 1px solid black;
+      --body-bg: #f9fafb; --paper-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+      --section-margin: 10px; --box-padding: 3px 2px; --section-radius: 0;
+    }
+    [data-theme="doublea"] {
+      --th-bg: #002D72; --th-text: white; --border-color: #93C5FD;
+      --main-border: 1px solid var(--border-color); --header-border: 3px solid #002D72;
+      --body-bg: #EFF6FF; --paper-shadow: 0 10px 25px -5px rgb(0 45 114 / 0.1);
+      --section-margin: 10px; --box-padding: 4px 6px; --section-radius: 0;
+    }
+    [data-theme="nps"] {
+      --th-bg: #FFD500; --th-text: #111827; --border-color: #E5E7EB;
+      --main-border: 1px solid var(--border-color); --header-border: 4px solid #FFD500;
+      --body-bg: #FEFCE8; --paper-shadow: 0 10px 25px -5px rgb(255 213 0 / 0.15);
+      --section-margin: 10px; --box-padding: 4px 6px; --section-radius: 3px;
+    }
+    [data-theme="relo"] {
+      --th-bg: #5A963E; --th-text: white; --border-color: #C8E6C9;
+      --main-border: 1px solid var(--border-color); --header-border: 3px solid #5A963E;
+      --body-bg: #F2F7F2; --paper-shadow: 0 10px 25px -5px rgb(90 150 62 / 0.1);
+      --section-margin: 10px; --box-padding: 4px 6px; --section-radius: 6px;
+    }
+
+    body {
+      font-family: var(--app-font);
+      font-size: 12px;
+      background-color: var(--body-bg);
+      padding-top: 52px;
+    }
+
+    @page { size: A4; margin: 15mm 12mm 12mm 12mm; }
+
+    @media print {
+      body { background-color: transparent !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; padding-top: 0 !important; }
+      .no-print { display: none !important; }
+      .content-wrapper { box-shadow: none !important; padding: 4px 0 0 0 !important; margin: 0 !important; max-width: 100% !important; }
+      .content-wrapper * { box-shadow: none !important; }
+      .section-wrapper { break-inside: avoid; }
+      .section-title { break-after: avoid; }
+      .avoid-break { break-inside: avoid; }
+      .page-break-before { break-before: page; }
+      [data-theme="modern"] .section-body, [data-theme="doublea"] .section-body,
+      [data-theme="nps"] .section-body, [data-theme="relo"] .section-body { border-radius: 0 !important; }
+    }
+
+    .section-title {
+      background: var(--th-bg);
+      color: var(--th-text);
+      padding: 4px 8px;
+      margin-top: var(--section-margin);
+      margin-bottom: 0;
+    }
+    [data-theme="minimal"] .section-title { border-bottom: 2px solid black; padding-left: 0; }
+    [data-theme="modern"] .section-title, [data-theme="doublea"] .section-title,
+    [data-theme="nps"] .section-title, [data-theme="relo"] .section-title {
+      border-top-left-radius: var(--section-radius);
+      border-top-right-radius: var(--section-radius);
+    }
+    .section-title h3 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+
+    .section-body {
+      border: var(--main-border);
+      border-top: none;
+    }
+    [data-theme="minimal"] .section-body { border-bottom: 1px solid black; }
+    [data-theme="modern"] .section-body, [data-theme="doublea"] .section-body,
+    [data-theme="nps"] .section-body, [data-theme="relo"] .section-body {
+      border-bottom-left-radius: var(--section-radius);
+      border-bottom-right-radius: var(--section-radius);
+      background-color: white;
+    }
+    .top-section-body { border-top: var(--main-border); }
+    [data-theme="minimal"] .top-section-body { border: 1px solid black; }
+    [data-theme="modern"] .top-section-body, [data-theme="doublea"] .top-section-body,
+    [data-theme="nps"] .top-section-body, [data-theme="relo"] .top-section-body {
+      border-top-left-radius: var(--section-radius);
+      border-top-right-radius: var(--section-radius);
+    }
+
+    .box-field {
+      padding: var(--box-padding);
+      border-right: var(--box-border);
+      border-bottom: var(--box-border);
+      min-width: 0;
+    }
+    [data-theme="minimal"] .box-field { border-right: none; border-bottom: none; }
+    .box-field:last-child, .no-border-right { border-right: none !important; }
+
+    .box-label {
+      font-size: 8.5px;
+      color: #6b7280;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 1px;
+      line-height: 1.1;
+    }
+    [data-theme="modern"] .box-label { color: #4f46e5; }
+    [data-theme="doublea"] .box-label { color: #002D72; }
+    [data-theme="nps"] .box-label { color: #4B5563; }
+    [data-theme="relo"] .box-label { color: #2E7D32; }
+
+    /* Write-in line */
+    .write-line {
+      border-bottom: 1px dotted #9ca3af;
+      height: 16px;
+      margin-top: 1px;
+    }
+    .write-line-tall {
+      border-bottom: 1px dotted #9ca3af;
+      height: 20px;
+      margin-top: 2px;
+    }
+
+    /* Checkboxes inline */
+    .check-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      margin-top: 2px;
+    }
+    .check-item {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 9.5px;
+      white-space: nowrap;
+    }
+    .chk {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border: 1px solid #6b7280;
+      border-radius: 1px;
+      flex-shrink: 0;
+    }
+    /* Compact skill checklist (column) */
+    .skill-col { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
+    .skill-col .check-item { font-size: 8.5px; }
+
+    /* Table header */
+    .tbl-hdr { background: #e5e7eb; font-size: 9.5px; font-weight: 700; }
+    .tbl-row { min-height: 28px; }
+
+    /* Section top margin */
+    .mt-section { margin-top: var(--section-margin); }
+
+    /* Signature line */
+    .sig-line { border-bottom: 1px solid #9ca3af; height: 20px; margin-top: 3px; }
+
+    /* Content wrapper */
+    .content-wrapper {
+      max-width: 210mm;
+      margin: 0 auto;
+      background: var(--paper-bg);
+      box-shadow: var(--paper-shadow);
+      padding: 14mm 10mm 10mm 10mm;
+      box-sizing: border-box;
+    }
+
+    /* Header style */
+    .header-style { border-bottom: var(--header-border); padding-bottom: 6px; margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+  <!-- Action Bar (no-print) -->
+  <div class="no-print flex flex-col sm:flex-row justify-between items-center gap-3 p-3 bg-white shadow-md sticky top-0 z-50">
+    <div class="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+      <span class="text-xs font-semibold text-gray-700 whitespace-nowrap">Theme:</span>
+      <div class="flex flex-wrap gap-1 bg-gray-100 rounded-lg p-1">
+        <button onclick="setTheme('basic')" id="btn-theme-basic" class="px-2.5 py-1 text-xs font-medium rounded-md bg-white shadow-sm text-gray-800">📄 Classic</button>
+        <button onclick="setTheme('modern')" id="btn-theme-modern" class="px-2.5 py-1 text-xs font-medium rounded-md text-gray-500 hover:text-gray-800">✨ Modern</button>
+        <button onclick="setTheme('minimal')" id="btn-theme-minimal" class="px-2.5 py-1 text-xs font-medium rounded-md text-gray-500 hover:text-gray-800">📝 Minimal</button>
+        <button onclick="setTheme('doublea')" id="btn-theme-doublea" class="px-2.5 py-1 text-xs font-medium rounded-md text-gray-500 hover:text-gray-800">📘 Double A</button>
+        <button onclick="setTheme('nps')" id="btn-theme-nps" class="px-2.5 py-1 text-xs font-medium rounded-md text-gray-500 hover:text-gray-800">🟡 NPS</button>
+        <button onclick="setTheme('relo')" id="btn-theme-relo" class="px-2.5 py-1 text-xs font-medium rounded-md text-gray-500 hover:text-gray-800">🏡 ReLo</button>
+      </div>
+    </div>
+    <div class="flex gap-2 items-center">
+      <div class="flex bg-gray-100 rounded-lg p-1">
+        <button onclick="setLang('th')" id="btn-lang-th" class="px-2.5 py-1 text-xs font-bold rounded-md bg-white shadow-sm text-gray-800">🇹🇭 TH</button>
+        <button onclick="setLang('en')" id="btn-lang-en" class="px-2.5 py-1 text-xs font-bold rounded-md text-gray-500 hover:text-gray-800">🇺🇸 EN</button>
+      </div>
+      <button onclick="window.print()" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 text-xs flex items-center gap-1.5 shadow-sm">
+        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+        <span data-i18n="printPdf">พิมพ์ / Print</span>
+      </button>
+      <button onclick="window.close()" class="px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg font-bold hover:bg-gray-50 text-xs">
+        <span data-i18n="closeWindow">ปิด</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ====== MAIN PRINT CONTENT (single continuous flow) ====== -->
+  <div class="content-wrapper mt-6">
+
+    <!-- DOCUMENT TITLE -->
+    <div class="flex justify-between items-end mb-3 header-style">
+      <div>
+        <h1 class="text-xl font-extrabold text-gray-900 leading-normal pt-1" data-i18n="docTitle">ใบสมัครงาน (ฟอร์มเปล่า)</h1>
+        <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1" data-i18n="docSubtitle">Application for Employment — Blank Form for Manual Completion</p>
+      </div>
+      <div class="text-right text-[9px] text-gray-400">
+        <span data-i18n="internalUse">Internal Use Only</span>
+      </div>
+    </div>
+
+    <!-- ── HEADER: Photo + Position Row ── -->
+    <div class="flex items-start gap-3 mb-0 avoid-break">
+      <div class="w-20 h-28 border-2 border-dashed border-gray-400 flex flex-col items-center justify-center bg-gray-50 text-gray-400 text-[8.5px] text-center flex-shrink-0 leading-snug" style="border-radius: var(--photo-radius)">
+        <span data-i18n="photoBoxLabel">ติดรูปถ่าย<br>(1-1.5 นิ้ว)<br>Photo</span>
+      </div>
+      <div class="section-body flex-1 top-section-body">
+        <div class="grid grid-cols-4">
+          <div class="box-field"><div class="box-label" data-i18n="position">ตำแหน่งที่สมัคร</div><div class="write-line"></div></div>
+          <div class="box-field"><div class="box-label" data-i18n="department">แผนก</div><div class="write-line"></div></div>
+          <div class="box-field"><div class="box-label" data-i18n="expectedSalary">เงินเดือนที่คาดหวัง</div><div class="write-line"></div></div>
+          <div class="box-field no-border-right"><div class="box-label" data-i18n="startDate">วันที่พร้อมเริ่มงาน</div><div class="write-line"></div></div>
+        </div>
+        <div class="grid grid-cols-1">
+          <div class="box-field no-border-right" style="border-bottom:none">
+            <div class="box-label" data-i18n="sourceChannel">ช่องทางที่ทราบข่าวสาร / Recruitment Source</div>
+            <div class="write-line"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PERSONAL TH ── -->
+    <div class="section-wrapper avoid-break">
+      <div class="section-title"><h3 data-i18n="secPersonalTh">ข้อมูลส่วนตัว (ภาษาไทย)</h3></div>
+      <div class="section-body">
+        <div class="grid grid-cols-5">
+          <div class="box-field">
+            <div class="box-label" data-i18n="prefix">คำนำหน้า</div>
+            <div class="check-row">
+              <span class="check-item"><span class="chk"></span><span data-i18n="prefixMr">นาย</span></span>
+              <span class="check-item"><span class="chk"></span><span data-i18n="prefixMrs">นาง</span></span>
+              <span class="check-item"><span class="chk"></span><span data-i18n="prefixMs">น.ส.</span></span>
+            </div>
+          </div>
+          <div class="box-field col-span-2"><div class="box-label" data-i18n="firstName">ชื่อ</div><div class="write-line"></div></div>
+          <div class="box-field col-span-2" style="border-right:none"><div class="box-label" data-i18n="lastName">นามสกุล</div><div class="write-line"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PERSONAL EN ── -->
+    <div class="section-wrapper avoid-break">
+      <div class="section-title"><h3 data-i18n="secPersonalEn">ข้อมูลส่วนตัว (English)</h3></div>
+      <div class="section-body">
+        <div class="grid grid-cols-5">
+          <div class="box-field">
+            <div class="box-label">Title</div>
+            <div class="check-row">
+              <span class="check-item"><span class="chk"></span>Mr.</span>
+              <span class="check-item"><span class="chk"></span>Mrs.</span>
+              <span class="check-item"><span class="chk"></span>Ms.</span>
+            </div>
+          </div>
+          <div class="box-field col-span-2"><div class="box-label">First Name</div><div class="write-line"></div></div>
+          <div class="box-field col-span-2" style="border-right:none"><div class="box-label">Last Name</div><div class="write-line"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── BASIC INFO ── -->
+    <div class="section-wrapper avoid-break">
+      <div class="section-title"><h3 data-i18n="secBasicInfo">ข้อมูลพื้นฐาน / Personal Background</h3></div>
+      <div class="section-body">
+        <div class="grid grid-cols-8">
+          <div class="box-field"><div class="box-label" data-i18n="nicknameTh">ชื่อเล่น TH</div><div class="write-line"></div></div>
+          <div class="box-field"><div class="box-label" data-i18n="nicknameEn">ชื่อเล่น EN</div><div class="write-line"></div></div>
+          <div class="box-field"><div class="box-label" data-i18n="dob">วันเกิด</div><div class="write-line"></div></div>
+          <div class="box-field"><div class="box-label" data-i18n="age">อายุ</div><div class="write-line"></div></div>
+          <div class="box-field"><div class="box-label" data-i18n="weight">น้ำหนัก กก.</div><div class="write-line"></div></div>
+          <div class="box-field"><div class="box-label" data-i18n="height">ส่วนสูง ซม.</div><div class="write-line"></div></div>
+          <div class="box-field col-span-2" style="border-right:none">
+            <div class="box-label" data-i18n="military">สถานะทหาร / Military</div>
+            <div class="check-row" style="margin-top:2px; gap:4px 8px;">
+              <span class="check-item"><span class="chk"></span><span data-i18n="militaryCompleted">ผ่านเกณฑ์</span></span>
+              <span class="check-item"><span class="chk"></span><span data-i18n="militaryRotc">จบ รด.</span></span>
+              <span class="check-item"><span class="chk"></span><span data-i18n="militaryExempt">ยกเว้น/หญิง</span></span>
+              <span class="check-item"><span class="chk"></span><span data-i18n="militaryNotYet">ยังไม่เกณฑ์</span></span>
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-3">
+          <div class="box-field"><div class="box-label" data-i18n="nationalId">เลขบัตรประชาชน / Passport</div><div class="write-line"></div></div>
+          <div class="box-field"><div class="box-label" data-i18n="phone">เบอร์โทรศัพท์</div><div class="write-line"></div></div>
+          <div class="box-field" style="border-right:none"><div class="box-label" data-i18n="email">อีเมล</div><div class="write-line"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ADDRESS ── -->
+    <div class="section-wrapper avoid-break">
+      <div class="section-title"><h3 data-i18n="secAddress">ที่อยู่ / Address</h3></div>
+      <div class="section-body">
+        <div class="grid grid-cols-1">
+          <div class="box-field"><div class="box-label" data-i18n="registeredAddr">ที่อยู่ตามทะเบียนบ้าน / Registered Address</div><div class="write-line"></div></div>
+        </div>
+        <div class="grid grid-cols-1">
+          <div class="box-field no-border-right" style="border-bottom:none"><div class="box-label" data-i18n="currentAddr">ที่อยู่ปัจจุบัน / Current Address (กรอกเฉพาะถ้าต่างจากทะเบียนบ้าน)</div><div class="write-line"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── FAMILY INFO ── -->
+    <div class="section-wrapper avoid-break">
+      <div class="section-title"><h3 data-i18n="secFamily">ข้อมูลครอบครัว / Family Information</h3></div>
+      <div class="section-body">
+        <div class="grid grid-cols-5">
+          <div class="box-field col-span-2">
+            <div class="box-label" data-i18n="marital">สถานภาพ / Marital Status</div>
+            <div class="check-row">
+              <span class="check-item"><span class="chk"></span><span data-i18n="maritalSingle">โสด</span></span>
+              <span class="check-item"><span class="chk"></span><span data-i18n="maritalMarried">สมรส</span></span>
+              <span class="check-item"><span class="chk"></span><span data-i18n="maritalDivorced">หย่า</span></span>
+              <span class="check-item"><span class="chk"></span><span data-i18n="maritalWidowed">หม้าย</span></span>
+            </div>
+          </div>
+          <div class="box-field"><div class="box-label" data-i18n="children">จำนวนบุตร</div><div class="write-line"></div></div>
+          <div class="box-field"><div class="box-label" data-i18n="siblings">จำนวนพี่น้อง</div><div class="write-line"></div></div>
+          <div class="box-field no-border-right"><div class="box-label" data-i18n="spouse">คู่สมรส / Spouse</div><div class="write-line"></div></div>
+        </div>
+        <div class="grid grid-cols-4">
+          <div class="box-field"><div class="box-label" data-i18n="fatherName">ชื่อบิดา / Father</div><div class="write-line"></div></div>
+          <div class="box-field"><div class="box-label" data-i18n="ageJob">อายุ / อาชีพ</div><div class="write-line"></div></div>
+          <div class="box-field"><div class="box-label" data-i18n="motherName">ชื่อมารดา / Mother</div><div class="write-line"></div></div>
+          <div class="box-field no-border-right"><div class="box-label" data-i18n="ageJob">อายุ / อาชีพ</div><div class="write-line"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── EDUCATION ── -->
+    <div class="section-wrapper avoid-break">
+      <div class="section-title"><h3 data-i18n="secEducation">ประวัติการศึกษา / Education Background</h3></div>
+      <div class="section-body">
+        <div class="grid grid-cols-5 tbl-hdr">
+          <div class="box-field py-0.5" data-i18n="eduLevel">ระดับ / Level</div>
+          <div class="box-field py-0.5" data-i18n="eduInstitute">สถาบัน / Institution</div>
+          <div class="box-field py-0.5" data-i18n="eduMajor">สาขา / Major</div>
+          <div class="box-field py-0.5">GPA</div>
+          <div class="box-field py-0.5" style="border-right:none" data-i18n="eduYear">ปีที่จบ</div>
+        </div>
+        <!-- 4 rows: Primary (optional), High/Voc, Bachelor (prominent), Master/PhD -->
+        <div class="grid grid-cols-5 tbl-row">
+          <div class="box-field text-[9.5px] font-semibold" data-i18n="levelHigh">มัธยมฯ / ปวช.</div>
+          <div class="box-field"><div class="write-line"></div></div>
+          <div class="box-field"><div class="write-line"></div></div>
+          <div class="box-field"><div class="write-line"></div></div>
+          <div class="box-field" style="border-right:none"><div class="write-line"></div></div>
+        </div>
+        <div class="grid grid-cols-5 tbl-row">
+          <div class="box-field text-[9.5px] font-semibold" data-i18n="levelDiploma">อนุปริญญา / ปวส.</div>
+          <div class="box-field"><div class="write-line"></div></div>
+          <div class="box-field"><div class="write-line"></div></div>
+          <div class="box-field"><div class="write-line"></div></div>
+          <div class="box-field" style="border-right:none"><div class="write-line"></div></div>
+        </div>
+        <div class="grid grid-cols-5 tbl-row">
+          <div class="box-field text-[9.5px] font-semibold" data-i18n="levelBachelor">ปริญญาตรี</div>
+          <div class="box-field"><div class="write-line"></div></div>
+          <div class="box-field"><div class="write-line"></div></div>
+          <div class="box-field"><div class="write-line"></div></div>
+          <div class="box-field" style="border-right:none"><div class="write-line"></div></div>
+        </div>
+        <div class="grid grid-cols-5 tbl-row">
+          <div class="box-field text-[9.5px] font-semibold" data-i18n="levelPostgrad">ปริญญาโท-เอก</div>
+          <div class="box-field"><div class="write-line"></div></div>
+          <div class="box-field"><div class="write-line"></div></div>
+          <div class="box-field"><div class="write-line"></div></div>
+          <div class="box-field" style="border-right:none"><div class="write-line"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── WORK EXPERIENCE ── -->
+    <div class="section-wrapper avoid-break">
+      <div class="section-title"><h3 data-i18n="secExperience">ประวัติการทำงาน / Work Experience</h3></div>
+      <div class="section-body">
+        <div class="grid tbl-hdr" style="grid-template-columns: 14% 22% 20% 13% 31%;">
+          <div class="box-field py-0.5" data-i18n="expPeriod">ช่วงเวลา</div>
+          <div class="box-field py-0.5" data-i18n="expCompany">บริษัท</div>
+          <div class="box-field py-0.5" data-i18n="expPosition">ตำแหน่ง</div>
+          <div class="box-field py-0.5" data-i18n="expSalary">เงินเดือน</div>
+          <div class="box-field py-0.5" style="border-right:none" data-i18n="expDuty">หน้าที่รับผิดชอบ</div>
+        </div>
+        <!-- 3 rows, compact height -->
+        <div class="grid tbl-row" style="grid-template-columns: 14% 22% 20% 13% 31%; min-height:32px;">
+          <div class="box-field"><div class="write-line"></div></div>
+          <div class="box-field"><div class="write-line"></div></div>
+          <div class="box-field"><div class="write-line"></div></div>
+          <div class="box-field"><div class="write-line"></div></div>
+          <div class="box-field" style="border-right:none"><div class="write-line"></div></div>
+        </div>
+        <div class="grid tbl-row" style="grid-template-columns: 14% 22% 20% 13% 31%; min-height:32px;">
+          <div class="box-field"><div class="write-line"></div></div>
+          <div class="box-field"><div class="write-line"></div></div>
+          <div class="box-field"><div class="write-line"></div></div>
+          <div class="box-field"><div class="write-line"></div></div>
+          <div class="box-field" style="border-right:none"><div class="write-line"></div></div>
+        </div>
+        <div class="grid tbl-row" style="grid-template-columns: 14% 22% 20% 13% 31%; min-height:32px;">
+          <div class="box-field" style="border-bottom:none"><div class="write-line"></div></div>
+          <div class="box-field" style="border-bottom:none"><div class="write-line"></div></div>
+          <div class="box-field" style="border-bottom:none"><div class="write-line"></div></div>
+          <div class="box-field" style="border-bottom:none"><div class="write-line"></div></div>
+          <div class="box-field" style="border-right:none; border-bottom:none"><div class="write-line"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SKILLS: Language + Computer + Driving (single row each, compact) ── -->
+    <div class="section-wrapper avoid-break">
+      <div class="section-title"><h3 data-i18n="secLangSkill">ทักษะภาษา / Language Skills</h3></div>
+      <div class="section-body">
+        <div class="grid grid-cols-5">
+          <div class="box-field">
+            <div class="box-label" data-i18n="english">ภาษาอังกฤษ</div>
+            <div class="check-row" style="gap:3px 6px;">
+              <span class="check-item"><span class="chk"></span><span data-i18n="fluent">ดีเยี่ยม</span></span>
+              <span class="check-item"><span class="chk"></span><span data-i18n="good">ดี</span></span>
+              <span class="check-item"><span class="chk"></span><span data-i18n="fair">พอใช้</span></span>
+              <span class="check-item"><span class="chk"></span><span data-i18n="basic">เบื้องต้น</span></span>
+            </div>
+          </div>
+          <div class="box-field"><div class="box-label" data-i18n="testScore">คะแนน TOEIC/IELTS</div><div class="write-line"></div></div>
+          <div class="box-field">
+            <div class="box-label" data-i18n="chinese">ภาษาจีน</div>
+            <div class="check-row" style="gap:3px 6px;">
+              <span class="check-item"><span class="chk"></span><span data-i18n="good">ดี</span></span>
+              <span class="check-item"><span class="chk"></span><span data-i18n="fair">พอใช้</span></span>
+              <span class="check-item"><span class="chk"></span><span data-i18n="basic">เบื้องต้น</span></span>
+            </div>
+          </div>
+          <div class="box-field"><div class="box-label" data-i18n="chineseScore">คะแนน HSK</div><div class="write-line"></div></div>
+          <div class="box-field no-border-right" style="border-bottom:none"><div class="box-label" data-i18n="otherLang">ภาษาอื่นๆ / Other</div><div class="write-line"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Computer Skills (compact: 7 items, level options inline) -->
+    <div class="section-wrapper avoid-break">
+      <div class="section-title"><h3 data-i18n="secComputer">ทักษะคอมพิวเตอร์ / IT Skills</h3></div>
+      <div class="section-body">
+        <div class="grid grid-cols-7">
+          <div class="box-field">
+            <div class="box-label">MS Word</div>
+            <div class="check-row" style="gap:2px 4px;"><span class="check-item"><span class="chk"></span><span data-i18n="good">ดี</span></span><span class="check-item"><span class="chk"></span><span data-i18n="fair">พอใช้</span></span></div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">MS Excel</div>
+            <div class="check-row" style="gap:2px 4px;"><span class="check-item"><span class="chk"></span><span data-i18n="good">ดี</span></span><span class="check-item"><span class="chk"></span><span data-i18n="fair">พอใช้</span></span></div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">PowerPoint</div>
+            <div class="check-row" style="gap:2px 4px;"><span class="check-item"><span class="chk"></span><span data-i18n="good">ดี</span></span><span class="check-item"><span class="chk"></span><span data-i18n="fair">พอใช้</span></span></div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">Google Sheets</div>
+            <div class="check-row" style="gap:2px 4px;"><span class="check-item"><span class="chk"></span><span data-i18n="good">ดี</span></span><span class="check-item"><span class="chk"></span><span data-i18n="fair">พอใช้</span></span></div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">Google Docs</div>
+            <div class="check-row" style="gap:2px 4px;"><span class="check-item"><span class="chk"></span><span data-i18n="good">ดี</span></span><span class="check-item"><span class="chk"></span><span data-i18n="fair">พอใช้</span></span></div>
+          </div>
+          <div class="box-field">
+            <div class="box-label">Canva</div>
+            <div class="check-row" style="gap:2px 4px;"><span class="check-item"><span class="chk"></span><span data-i18n="good">ดี</span></span><span class="check-item"><span class="chk"></span><span data-i18n="fair">พอใช้</span></span></div>
+          </div>
+          <div class="box-field no-border-right" style="border-bottom:none">
+            <div class="box-label">Video Editor</div>
+            <div class="check-row" style="gap:2px 4px;"><span class="check-item"><span class="chk"></span><span data-i18n="good">ดี</span></span><span class="check-item"><span class="chk"></span><span data-i18n="fair">พอใช้</span></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Driving + Other Skills side by side -->
+    <div class="section-wrapper avoid-break">
+      <div class="grid grid-cols-2 gap-x-0" style="gap:0">
+        <div>
+          <div class="section-title" style="margin-right:0; border-right: var(--box-border)"><h3 data-i18n="secDriving">การขับขี่ / Driving</h3></div>
+          <div class="section-body" style="border-right: var(--box-border)">
+            <div class="grid grid-cols-2">
+              <div class="box-field">
+                <div class="box-label" data-i18n="motorcycle">รถจักรยานยนต์</div>
+                <div class="check-row" style="gap:2px 6px;">
+                  <span class="check-item"><span class="chk"></span><span data-i18n="canDrive">ขับขี่ได้</span></span>
+                  <span class="check-item"><span class="chk"></span><span data-i18n="motoLicense">มีใบขับขี่</span></span>
+                </div>
+              </div>
+              <div class="box-field no-border-right" style="border-bottom:none">
+                <div class="box-label" data-i18n="car">รถยนต์</div>
+                <div class="check-row" style="gap:2px 6px;">
+                  <span class="check-item"><span class="chk"></span><span data-i18n="canDrive">ขับได้</span></span>
+                  <span class="check-item"><span class="chk"></span><span data-i18n="carLicense">มีใบขับขี่</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><h3 data-i18n="secOtherSkill">ความสามารถอื่นๆ / Others</h3></div>
+          <div class="section-body">
+            <div class="box-field no-border-right">
+              <div class="box-label" data-i18n="specialAbility">ความสามารถพิเศษ</div><div class="write-line"></div>
+            </div>
+            <div class="box-field no-border-right" style="border-bottom:none">
+              <div class="box-label" data-i18n="hobbies">งานอดิเรก / Hobbies</div><div class="write-line"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── QUESTIONNAIRE ── -->
+    <div class="section-wrapper avoid-break">
+      <div class="section-title"><h3 data-i18n="secQuestionnaire">แบบสอบถาม / Questionnaire</h3></div>
+      <div class="section-body">
+        <!-- Upcountry Locations -->
+        <div class="box-field no-border-right" style="border-bottom: var(--box-border)">
+          <div class="box-label" data-i18n="upcountry">พื้นที่สะดวกไปปฏิบัติงานต่างจังหวัด / Upcountry Work Location</div>
+          <div class="check-row mt-1" style="gap:4px 16px;">
+            <span class="check-item"><span class="chk"></span>ฉะเชิงเทรา บางนา-ตราด กม.42 (DAP)</span>
+            <span class="check-item"><span class="chk"></span>ฉะเชิงเทรา บางปะกง (IP5)</span>
+            <span class="check-item"><span class="chk"></span>ฉะเชิงเทรา พนมสารคาม (IP2)</span>
+            <span class="check-item"><span class="chk"></span>ปราจีนบุรี 304 ดั๊บเบิ้ล เอ (IP1)</span>
+            <span class="check-item"><span class="chk"></span>ชลบุรี ศรีราชา</span>
+            <span class="check-item"><span class="chk"></span>กรุงเทพฯ One Bangkok</span>
+            <span class="check-item"><span class="chk"></span><span data-i18n="unableUpcountry">ไม่สะดวกต่างจังหวัด</span></span>
+          </div>
+        </div>
+        <!-- Open questions 2-col -->
+        <div class="grid grid-cols-2">
+          <div class="box-field">
+            <div class="box-label" data-i18n="strength">จุดแข็ง / Strengths</div>
+            <div class="write-line"></div><div class="write-line"></div>
+          </div>
+          <div class="box-field no-border-right">
+            <div class="box-label" data-i18n="weakness">จุดอ่อน / Weaknesses</div>
+            <div class="write-line"></div><div class="write-line"></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2">
+          <div class="box-field">
+            <div class="box-label" data-i18n="lessFit">งานที่ไม่ถนัดและเหตุผล</div>
+            <div class="write-line"></div><div class="write-line"></div>
+          </div>
+          <div class="box-field no-border-right">
+            <div class="box-label" data-i18n="principles">หลักการในการทำงาน</div>
+            <div class="write-line"></div><div class="write-line"></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2">
+          <div class="box-field" style="border-bottom:none">
+            <div class="box-label" data-i18n="troubleResolve">วิธีแก้ปัญหาเมื่อเกิดอุปสรรค</div>
+            <div class="write-line"></div><div class="write-line"></div>
+          </div>
+          <div class="box-field no-border-right" style="border-bottom:none">
+            <div class="box-label" data-i18n="jobCriteria">เกณฑ์การเลือกที่ทำงาน</div>
+            <div class="write-line"></div><div class="write-line"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── HEALTH ── -->
+    <div class="section-wrapper avoid-break">
+      <div class="section-title"><h3 data-i18n="secHealth">ข้อมูลสุขภาพ / Health Records</h3></div>
+      <div class="section-body">
+        <div class="grid grid-cols-3">
+          <div class="box-field" style="border-bottom:none">
+            <div class="box-label" data-i18n="chronic">โรคประจำตัว</div>
+            <div class="check-row"><span class="check-item"><span class="chk"></span><span data-i18n="no">ไม่มี</span></span><span class="check-item"><span class="chk"></span><span data-i18n="yes">มี ระบุ:</span></span></div>
+            <div class="write-line"></div>
+          </div>
+          <div class="box-field" style="border-bottom:none">
+            <div class="box-label" data-i18n="surgery">ประวัติผ่าตัด</div>
+            <div class="check-row"><span class="check-item"><span class="chk"></span><span data-i18n="no">ไม่มี</span></span><span class="check-item"><span class="chk"></span><span data-i18n="yes">มี ระบุ:</span></span></div>
+            <div class="write-line"></div>
+          </div>
+          <div class="box-field no-border-right" style="border-bottom:none">
+            <div class="box-label" data-i18n="medical">ประวัติการรักษาร้ายแรง</div>
+            <div class="check-row"><span class="check-item"><span class="chk"></span><span data-i18n="no">ไม่มี</span></span><span class="check-item"><span class="chk"></span><span data-i18n="yes">มี ระบุ:</span></span></div>
+            <div class="write-line"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── EMERGENCY CONTACT ── -->
+    <div class="section-wrapper avoid-break">
+      <div class="section-title"><h3 data-i18n="secEmergency">ผู้ติดต่อฉุกเฉิน / Emergency Contact</h3></div>
+      <div class="section-body">
+        <div class="grid grid-cols-5">
+          <div class="box-field" style="border-bottom:none"><div class="box-label" data-i18n="emName">ชื่อ-สกุล</div><div class="write-line"></div></div>
+          <div class="box-field" style="border-bottom:none"><div class="box-label" data-i18n="emRelation">ความสัมพันธ์</div><div class="write-line"></div></div>
+          <div class="box-field" style="border-bottom:none"><div class="box-label" data-i18n="emPhone">เบอร์โทร</div><div class="write-line"></div></div>
+          <div class="box-field" style="border-bottom:none"><div class="box-label" data-i18n="emCompany">สถานที่ทำงาน</div><div class="write-line"></div></div>
+          <div class="box-field no-border-right" style="border-bottom:none"><div class="box-label" data-i18n="emPosition">ตำแหน่ง</div><div class="write-line"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CONSENT (Declaration) ── -->
+    <div class="section-wrapper avoid-break mt-section">
+      <div class="section-title"><h3 data-i18n="secConsent">หนังสือยินยอมและรับรอง / Declaration & Consent</h3></div>
+      <div class="section-body p-3">
+        <p class="text-[10.5px] leading-relaxed text-justify" id="consent-text-1"></p>
+        <div class="grid grid-cols-2 gap-6 mt-3">
+          <div><p class="text-[9px] text-gray-500" data-i18n="consentApplicantName">ชื่อ-นามสกุล (ผู้สมัคร)</p><div class="sig-line"></div></div>
+          <div><p class="text-[9px] text-gray-500" data-i18n="consentDate">วัน/เดือน/ปี (Date)</p><div class="sig-line"></div></div>
+        </div>
+        <div class="grid grid-cols-2 gap-6 mt-2">
+          <div><p class="text-[9px] text-gray-500" data-i18n="consentPosition">ตำแหน่งที่สมัคร</p><div class="sig-line"></div></div>
+          <div><p class="text-[9px] text-gray-500" data-i18n="consentPhone">เบอร์โทรติดต่อ</p><div class="sig-line"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PRIVACY NOTICE (PDPA) ── -->
+    <div class="section-wrapper avoid-break mt-section">
+      <div class="section-title"><h3 data-i18n="secPrivacyNotice">รายละเอียดเกี่ยวกับข้อมูลส่วนบุคคล / Privacy Notice (PDPA)</h3></div>
+      <div class="section-body p-3">
+        <p class="text-[10px] leading-relaxed text-justify mb-2" id="privacy-intro"></p>
+        <div class="grid grid-cols-2 gap-x-4 text-[10px] leading-relaxed">
+          <div>
+            <p class="font-bold mt-1" id="privacy-h1"></p><p class="text-justify" id="privacy-p1"></p>
+            <p class="font-bold mt-1" id="privacy-h2"></p><p class="text-justify" id="privacy-p2"></p>
+            <p class="font-bold mt-1" id="privacy-h3"></p><p class="text-justify" id="privacy-p3"></p>
+          </div>
+          <div>
+            <p class="font-bold mt-1" id="privacy-h4"></p><p class="text-justify" id="privacy-p4"></p>
+            <p class="font-bold mt-1" id="privacy-h5"></p><p class="text-justify" id="privacy-p5a"></p>
+            <p class="text-justify" id="privacy-p5b"></p>
+          </div>
+        </div>
+        <div class="mt-2 bg-gray-50 border border-gray-200 rounded p-2 text-[9px]">
+          <p><strong id="privacy-dpo-label">ผู้ควบคุมข้อมูลส่วนบุคคล:</strong> <span id="privacy-dpo-name">บริษัท ดั๊บเบิ้ล เอ (1991) จำกัด (มหาชน)</span> &nbsp;|&nbsp; <strong id="privacy-addr-label">ที่อยู่:</strong> <span id="privacy-addr-dept">ฝ่ายสรรหาฯ</span> <span id="privacy-addr-line1">187/3 ถนนบางนา-ตราด กม.42 ต.บางวัว อ.บางปะกง</span> <span id="privacy-addr-line2">จ.ฉะเชิงเทรา 24180</span> &nbsp;|&nbsp; <strong>Email:</strong> recruit@doublea1991.com</p>
+        </div>
+        <p class="text-[9.5px] font-semibold mt-2" id="privacy-confirm"></p>
+        <div class="grid grid-cols-2 gap-6 mt-2">
+          <div><p class="text-[9px] text-gray-500" data-i18n="consentApplicantName">ชื่อ-นามสกุล (ผู้สมัคร)</p><div class="sig-line"></div></div>
+          <div><p class="text-[9px] text-gray-500" data-i18n="consentDate">วัน/เดือน/ปี (Date)</p><div class="sig-line"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DATA CONSENT ── -->
+    <div class="section-wrapper avoid-break mt-section">
+      <div class="section-title"><h3 data-i18n="secDataConsent">ความยินยอมในการประมวลผลข้อมูล / Data Processing Consent</h3></div>
+      <div class="section-body p-3">
+        <p class="text-[10.5px] leading-relaxed text-justify mb-1" id="consent-text-2"></p>
+        <p class="text-[10.5px] leading-relaxed text-justify" id="consent-text-3"></p>
+        <div class="grid grid-cols-2 gap-6 mt-3">
+          <div><p class="text-[9px] text-gray-500" data-i18n="consentApplicantName">ชื่อ-นามสกุล (ผู้สมัคร)</p><div class="sig-line"></div></div>
+          <div><p class="text-[9px] text-gray-500" data-i18n="consentDate">วัน/เดือน/ปี (Date)</p><div class="sig-line"></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end content-wrapper -->
+
+  <script>
+    const THEMES = ['basic', 'modern', 'minimal', 'doublea', 'nps', 'relo'];
+    function setTheme(theme) {
+      if (!THEMES.includes(theme)) theme = 'basic';
+      document.body.setAttribute('data-theme', theme);
+      THEMES.forEach(t => {
+        const btn = document.getElementById('btn-theme-' + t);
+        if (!btn) return;
+        if (t === theme) { btn.classList.add('bg-white', 'shadow-sm', 'text-gray-800'); btn.classList.remove('text-gray-500'); }
+        else { btn.classList.remove('bg-white', 'shadow-sm', 'text-gray-800'); btn.classList.add('text-gray-500'); }
+      });
+      localStorage.setItem('hrbp-print-offline-theme', theme);
+    }
+    setTheme(localStorage.getItem('hrbp-print-offline-theme') || 'basic');
+
+    const I18N = {
+      th: {
+        docTitle:'ใบสมัครงาน (ฟอร์มเปล่า)', docSubtitle:'Application for Employment — Blank Form for Manual Completion',
+        internalUse:'ใช้ภายใน (Internal Use Only)',
+        printPdf:'พิมพ์ / Print', closeWindow:'ปิด',
+        position:'ตำแหน่งที่สมัคร', department:'แผนก', expectedSalary:'เงินเดือนที่คาดหวัง',
+        startDate:'วันที่พร้อมเริ่มงาน', sourceChannel:'ช่องทางที่ทราบข่าวสาร / Source',
+        secPersonalTh:'ข้อมูลส่วนตัว (ภาษาไทย)', secPersonalEn:'ข้อมูลส่วนตัว (English)',
+        prefix:'คำนำหน้า', firstName:'ชื่อ', lastName:'นามสกุล',
+        prefixMr:'นาย', prefixMrs:'นาง', prefixMs:'น.ส.',
+        secBasicInfo:'ข้อมูลพื้นฐาน / Personal Background',
+        nicknameTh:'ชื่อเล่น TH', nicknameEn:'ชื่อเล่น EN',
+        dob:'วันเกิด', age:'อายุ', weight:'น้ำหนัก กก.', height:'ส่วนสูง ซม.', military:'สถานะทหาร',
+        militaryCompleted:'ผ่านเกณฑ์', militaryRotc:'จบ รด.', militaryExempt:'ยกเว้น/หญิง', militaryNotYet:'ยังไม่เกณฑ์',
+        nationalId:'เลขบัตรประชาชน / Passport', phone:'เบอร์โทรศัพท์', email:'อีเมล',
+        secAddress:'ที่อยู่ / Address', registeredAddr:'ที่อยู่ตามทะเบียนบ้าน', currentAddr:'ที่อยู่ปัจจุบัน (กรอกถ้าต่างจากทะเบียนบ้าน)',
+        secFamily:'ข้อมูลครอบครัว / Family Information',
+        marital:'สถานภาพ', maritalSingle:'โสด', maritalMarried:'สมรส', maritalDivorced:'หย่า', maritalWidowed:'หม้าย',
+        children:'จำนวนบุตร', siblings:'จำนวนพี่น้อง', spouse:'คู่สมรส',
+        fatherName:'ชื่อบิดา / Father', motherName:'ชื่อมารดา / Mother', ageJob:'อายุ / อาชีพ',
+        secEducation:'ประวัติการศึกษา / Education Background',
+        eduLevel:'ระดับ / Level', eduInstitute:'สถาบัน / Institution', eduMajor:'สาขา / Major', eduYear:'ปีที่จบ',
+        levelHigh:'มัธยมฯ / ปวช.', levelDiploma:'อนุปริญญา / ปวส.', levelBachelor:'ปริญญาตรี', levelPostgrad:'ปริญญาโท-เอก',
+        secExperience:'ประวัติการทำงาน / Work Experience',
+        expPeriod:'ช่วงเวลา', expCompany:'บริษัท', expPosition:'ตำแหน่ง', expSalary:'เงินเดือน', expDuty:'หน้าที่รับผิดชอบ',
+        secLangSkill:'ทักษะภาษา / Language Skills',
+        english:'ภาษาอังกฤษ', testScore:'คะแนน TOEIC/IELTS', chinese:'ภาษาจีน', chineseScore:'คะแนน HSK', otherLang:'ภาษาอื่นๆ',
+        fluent:'ดีเยี่ยม', good:'ดี', fair:'พอใช้', basic:'เบื้องต้น',
+        secComputer:'ทักษะคอมพิวเตอร์ / IT Skills',
+        secDriving:'การขับขี่ / Driving', motorcycle:'รถจักรยานยนต์', car:'รถยนต์',
+        canDrive:'ขับขี่ได้', motoLicense:'มีใบขับขี่', carLicense:'มีใบขับขี่',
+        secOtherSkill:'ความสามารถอื่นๆ / Others', specialAbility:'ความสามารถพิเศษ', hobbies:'งานอดิเรก',
+        secQuestionnaire:'แบบสอบถาม / Questionnaire',
+        upcountry:'พื้นที่สะดวกไปปฏิบัติงานต่างจังหวัด / Upcountry Work Location',
+        unableUpcountry:'ไม่สะดวกต่างจังหวัด',
+        strength:'จุดแข็ง / Strengths', weakness:'จุดอ่อน / Weaknesses',
+        lessFit:'งานที่ไม่ถนัดและเหตุผล', principles:'หลักการในการทำงาน',
+        troubleResolve:'วิธีแก้ปัญหาเมื่อเกิดอุปสรรค', jobCriteria:'เกณฑ์การเลือกที่ทำงาน',
+        secHealth:'ข้อมูลสุขภาพ / Health Records',
+        chronic:'โรคประจำตัว', surgery:'ประวัติผ่าตัด', medical:'ประวัติการรักษาร้ายแรง',
+        yes:'มี ระบุ:', no:'ไม่มี',
+        secEmergency:'ผู้ติดต่อฉุกเฉิน / Emergency Contact',
+        emName:'ชื่อ-สกุล', emRelation:'ความสัมพันธ์', emPhone:'เบอร์โทร', emCompany:'สถานที่ทำงาน', emPosition:'ตำแหน่ง',
+        secConsent:'หนังสือยินยอมและรับรอง / Declaration & Consent',
+        secPrivacyNotice:'รายละเอียดเกี่ยวกับข้อมูลส่วนบุคคล / Privacy Notice (PDPA)',
+        secDataConsent:'ความยินยอมในการประมวลผลข้อมูล / Data Processing Consent',
+        consentApplicantName:'ชื่อ-นามสกุล (ผู้สมัคร)', consentDate:'วัน/เดือน/ปี (Date)',
+        consentPosition:'ตำแหน่งที่สมัคร', consentPhone:'เบอร์โทรติดต่อ',
+        photoBoxLabel:'ติดรูปถ่าย<br>(1-1.5 นิ้ว)<br>Photo',
+      },
+      en: {
+        docTitle:'Job Application Form (Blank)', docSubtitle:'Application for Employment — Blank Form for Manual Completion',
+        internalUse:'Internal Use Only',
+        printPdf:'Print / PDF', closeWindow:'Close',
+        position:'Position Applied', department:'Department', expectedSalary:'Expected Salary',
+        startDate:'Available Start Date', sourceChannel:'Recruitment Source',
+        secPersonalTh:'Personal Information (Thai)', secPersonalEn:'Personal Information (English)',
+        prefix:'Title', firstName:'First Name', lastName:'Last Name',
+        prefixMr:'Mr.', prefixMrs:'Mrs.', prefixMs:'Ms.',
+        secBasicInfo:'Personal Background',
+        nicknameTh:'Nickname (TH)', nicknameEn:'Nickname (EN)',
+        dob:'Date of Birth', age:'Age', weight:'Weight kg', height:'Height cm', military:'Military Status',
+        militaryCompleted:'Completed', militaryRotc:'ROTC', militaryExempt:'Exempted/Female', militaryNotYet:'Not Yet',
+        nationalId:'National ID / Passport No.', phone:'Phone Number', email:'Email Address',
+        secAddress:'Address', registeredAddr:'Registered Address', currentAddr:'Current Address (if different from registered)',
+        secFamily:'Family Information',
+        marital:'Marital Status', maritalSingle:'Single', maritalMarried:'Married', maritalDivorced:'Divorced', maritalWidowed:'Widowed',
+        children:'No. of Children', siblings:'No. of Siblings', spouse:'Spouse Name',
+        fatherName:"Father's Name", motherName:"Mother's Name", ageJob:'Age / Occupation',
+        secEducation:'Education Background',
+        eduLevel:'Level', eduInstitute:'Institution', eduMajor:'Major / Subject', eduYear:'Year Graduated',
+        levelHigh:'Secondary / Vocational', levelDiploma:'Diploma / Higher Voc.', levelBachelor:"Bachelor's Degree", levelPostgrad:'Master / Ph.D.',
+        secExperience:'Work Experience',
+        expPeriod:'Period', expCompany:'Company', expPosition:'Position', expSalary:'Salary', expDuty:'Duties & Responsibilities',
+        secLangSkill:'Language Skills',
+        english:'English', testScore:'TOEIC/IELTS Score', chinese:'Chinese', chineseScore:'HSK Score', otherLang:'Other Languages',
+        fluent:'Fluent', good:'Good', fair:'Fair', basic:'Basic',
+        secComputer:'Computer / IT Skills',
+        secDriving:'Driving', motorcycle:'Motorcycle', car:'Car',
+        canDrive:'Can drive', motoLicense:'Have license', carLicense:'Have license',
+        secOtherSkill:'Other Skills & Hobbies', specialAbility:'Special Ability', hobbies:'Sports & Hobbies',
+        secQuestionnaire:'Questionnaire',
+        upcountry:'Upcountry Work Locations Available',
+        unableUpcountry:'Cannot work in other provinces',
+        strength:'Strengths', weakness:'Weaknesses',
+        lessFit:'Least Preferred Tasks & Reason', principles:'Work Attitude & Principles',
+        troubleResolve:'Problem Solving Method', jobCriteria:'Job Selection Criteria',
+        secHealth:'Health Records',
+        chronic:'Chronic Disease', surgery:'Surgery History', medical:'Serious Illness',
+        yes:'Yes (specify):', no:'None',
+        secEmergency:'Emergency Contact',
+        emName:'Full Name', emRelation:'Relationship', emPhone:'Phone No.', emCompany:'Workplace', emPosition:'Position',
+        secConsent:'Declaration & Consent Letter',
+        secPrivacyNotice:'Privacy Notice (PDPA)',
+        secDataConsent:'Personal Data Processing Consent',
+        consentApplicantName:'Applicant Name', consentDate:'Date',
+        consentPosition:'Position Applied', consentPhone:'Contact Number',
+        photoBoxLabel:'Attach Photo<br>(1-1.5 inches)',
+      }
+    };
+
+    let currentLang = 'th';
+    function setLang(lang) {
+      currentLang = lang;
+      const map = I18N[lang] || I18N.th;
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (map[key] !== undefined) {
+          if (key === 'photoBoxLabel') el.innerHTML = map[key];
+          else el.textContent = map[key];
+        }
+      });
+      ['th','en'].forEach(l => {
+        const btn = document.getElementById('btn-lang-' + l);
+        if (!btn) return;
+        if (l === lang) { btn.classList.add('bg-white','shadow-sm','text-gray-800'); btn.classList.remove('text-gray-500'); }
+        else { btn.classList.remove('bg-white','shadow-sm','text-gray-800'); btn.classList.add('text-gray-500'); }
+      });
+
+      const isEN = lang === 'en';
+      // Consent / Privacy texts
+      const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+      set('consent-text-1', isEN
+        ? 'I hereby certify that all information provided in this application form is true and complete to the best of my knowledge. I understand that any misrepresentation or omission of facts may result in immediate termination of employment without any claim for compensation from the company.'
+        : 'ข้าพเจ้าขอรับรองว่า รายละเอียดทั้งหมดที่ให้ไว้ในใบสมัครงานนี้ถูกต้องและเป็นความจริงทุกประการ หากภายหลังบริษัทฯ ตรวจพบว่าข้อใดเป็นเท็จ ข้าพเจ้ายินยอมให้บริษัทฯ บอกเลิกการว่าจ้างข้าพเจ้าได้ทันที');
+      set('consent-text-2', isEN
+        ? 'The applicant consents to the company collecting, using, and processing personal data for employment consideration and workforce management purposes.'
+        : 'ผู้สมัครงานให้บริษัทฯ เก็บ รวบรวม ใช้ ประมวลผลข้อมูลส่วนบุคคลที่มีอยู่ในใบสมัครงานเพื่อการพิจารณาจ้างงานและการบริหารจัดการแรงงานของบริษัทฯ');
+      set('consent-text-3', isEN
+        ? 'This consent covers data storage and use for 5 years from the application date.'
+        : 'ทั้งนี้ยินยอมให้จัดเก็บและใช้งานข้อมูลดังกล่าวเป็นระยะเวลา 5 ปี นับแต่วันที่สมัครงาน');
+      set('privacy-intro', isEN
+        ? 'This Privacy Notice clarifies how Double A (1991) Public Company Limited collects, uses, and discloses personal data from applicants in accordance with the company\'s policies.'
+        : 'หนังสือนี้จัดทำขึ้นเพื่อชี้แจงรายละเอียดเกี่ยวกับข้อมูลส่วนบุคคลระหว่างบริษัท ดั๊บเบิ้ล เอ (1991) จำกัด (มหาชน) และผู้สมัครงาน ตามหลักเกณฑ์และนโยบายของบริษัทฯ');
+      set('privacy-h1', isEN ? '1. Data Collection & Use' : '1. การเก็บรวบรวมและใช้ข้อมูลส่วนบุคคล');
+      set('privacy-p1', isEN
+        ? 'The Company collects personal data (name, ID, address, education, work history, email, phone, photo) to verify identity and consider employment eligibility.'
+        : 'บริษัทฯ จะเก็บรวบรวมข้อมูลส่วนบุคคล ได้แก่ ชื่อ-นามสกุล เลขประจำตัวประชาชน ที่อยู่ ประวัติการศึกษา ประวัติการทำงาน อีเมล เบอร์โทรศัพท์ เพื่อยืนยันตัวบุคคลและพิจารณาความเหมาะสมในการจ้างงาน');
+      set('privacy-h2', isEN ? '2. Disclosure' : '2. การเปิดเผยข้อมูล');
+      set('privacy-p2', isEN
+        ? 'Data may be shared with alliance companies for employment consideration purposes only.'
+        : 'บริษัทฯ อาจเปิดเผยข้อมูลต่อบริษัทในเครือพันธมิตรเพื่อการพิจารณาจ้างงานเท่านั้น');
+      set('privacy-h3', isEN ? '3. Data Processing' : '3. การประมวลผลข้อมูล');
+      set('privacy-p3', isEN
+        ? 'Data is processed only by authorized personnel for recruitment purposes.'
+        : 'ข้อมูลจะถูกประมวลผลโดยบุคคลที่ได้รับอนุมัติจากบริษัทฯ เพื่อการสรรหาบุคลากรเท่านั้น');
+      set('privacy-h4', isEN ? '4. Retention Period' : '4. ระยะเวลาการจัดเก็บ');
+      set('privacy-p4', isEN
+        ? 'Personal data will be retained for 5 years from the application date.'
+        : 'บริษัทฯ จะจัดเก็บข้อมูลส่วนบุคคลเป็นระยะเวลา 5 ปี นับแต่วันที่สมัครงาน');
+      set('privacy-h5', isEN ? '5. Rights of Applicant' : '5. สิทธิของผู้สมัครงาน');
+      set('privacy-p5a', isEN
+        ? 'Applicant rights are per the Personal Data Protection Act B.E. 2562 (2019) and company policy.'
+        : 'สิทธิของผู้สมัครงานเป็นไปตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 และนโยบายบริษัทฯ');
+      set('privacy-p5b', isEN
+        ? 'To access, correct, or delete your data, contact: recruit@doublea1991.com'
+        : 'หากต้องการเข้าถึง แก้ไข หรือลบข้อมูล ติดต่อ: recruit@doublea1991.com');
+      set('privacy-confirm', isEN
+        ? 'The applicant has read and understood this Privacy Notice and certifies that all provided data is true and correct.'
+        : 'ผู้สมัครงานได้อ่าน เข้าใจ และยอมรับรองว่าข้อมูลที่นำส่งแก่บริษัทฯ ถูกต้องและเป็นความจริงทุกประการ');
+      // DPO block
+      set('privacy-dpo-label', isEN ? 'Data Controller:' : 'ผู้ควบคุมข้อมูลส่วนบุคคล:');
+      set('privacy-dpo-name', isEN ? 'Double A (1991) Public Company Limited' : 'บริษัท ดั๊บเบิ้ล เอ (1991) จำกัด (มหาชน)');
+      set('privacy-addr-label', isEN ? 'Address:' : 'ที่อยู่:');
+      set('privacy-addr-dept', isEN ? 'Recruitment Dept.' : 'ฝ่ายสรรหาฯ');
+      set('privacy-addr-line1', isEN ? '187/3 Moo 1, Bangna-Trad Km.42, Bangwua, Bangpakong,' : '187/3 ถนนบางนา-ตราด กม.42 ต.บางวัว อ.บางปะกง');
+      set('privacy-addr-line2', isEN ? 'Chachoengsao 24180, Thailand' : 'จ.ฉะเชิงเทรา 24180');
+
+      localStorage.setItem('hrbp-print-offline-lang', lang);
+    }
+    setLang(localStorage.getItem('hrbp-print-offline-lang') || 'th');
+  </script>
+</body>
+</html>
