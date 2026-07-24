@@ -595,12 +595,12 @@
           </div>
 
           <!-- Row 6b: Extra Incentive MIB2 (toggled) -->
-          <div id="mib2-row-bachelor" class="hidden flex items-start gap-x-2 rounded px-2 py-1.5" style="background-color:#d1fae5;border:1px solid #6ee7b7;">
-            <span class="font-bold text-slate-900 shrink-0 w-40" data-translate-key="label_mib2">Extra Incentive (MIB2)</span>
-            <span id="mib2Amount" contenteditable="true" class="editable-field w-32 text-center font-bold" data-placeholder="-" data-translate-key-placeholder="placeholder_mib2_amount"></span>
+          <div id="mib2-row-bachelor" class="hidden flex items-start gap-x-2">
+            <span class="font-bold text-slate-800 shrink-0 w-40 pl-4" data-translate-key="label_mib2">Extra Incentive (MIB2)</span>
+            <span id="mib2Amount" contenteditable="true" class="editable-field w-32 text-center font-bold" data-placeholder="-">ตามนโยบายของบริษัท</span>
             <span class="font-bold shrink-0" data-translate-key="label_baht_month">บาท/เดือน</span>
             <span class="ml-4 font-bold text-slate-800 shrink-0" data-translate-key="label_condition">เงื่อนไข :</span>
-            <span id="mib2Condition" contenteditable="true" class="editable-field flex-1" data-placeholder="หลักเกณฑ์การจ่าย Extra Incentive Cap Max 25,000 บาท เป็นไปตามเงื่อนไขและหลักเกณฑ์ที่บริษัทฯกำหนด"></span>
+            <span id="mib2Condition" contenteditable="true" class="editable-field flex-1" data-placeholder="-">หลักเกณฑ์การจ่าย Extra Incentive Cap Max 25,000 บาท เป็นไปตามเงื่อนไขและหลักเกณฑ์ที่บริษัทฯกำหนด</span>
           </div>
 
           <!-- Row 7: Welfare -->
@@ -1292,7 +1292,11 @@
       "โบนัสประจำปี": { en: "Yearly bonus", th: "โบนัสประจำปี" },
       "Job Value": { en: "Job Value", th: "Job Value" },
       "Job Value 12.5% ส่วนแรก": { en: "Job Value 12.5% First Part", th: "Job Value 12.5% ส่วนแรก" },
-      "Job Value 12.5% ส่วนหลัง": { en: "Job Value 12.5% Second Part", th: "Job Value 12.5% ส่วนหลัง" }
+      "Job Value 12.5% ส่วนหลัง": { en: "Job Value 12.5% Second Part", th: "Job Value 12.5% ส่วนหลัง" },
+      "หลักเกณฑ์การจ่าย Extra Incentive Cap Max 25,000 บาท เป็นไปตามเงื่อนไขและหลักเกณฑ์ที่บริษัทฯกำหนด": {
+        en: "Extra Incentive payment criteria: Cap Max 25,000 THB, subject to conditions and criteria set by the company",
+        th: "หลักเกณฑ์การจ่าย Extra Incentive Cap Max 25,000 บาท เป็นไปตามเงื่อนไขและหลักเกณฑ์ที่บริษัทฯกำหนด"
+      }
     };
 
     function translateText(text, lang) {
@@ -1372,7 +1376,8 @@
         'jobValueCondition', 'jobValueAllowance', 'interviewDate_bachelor', 'interviewDate_vocational',
         'interviewers_bachelor', 'interviewers_vocational', 'interviewScore_bachelor', 'interviewScore_vocational',
         'interviewPercent_bachelor', 'interviewPercent_vocational', 'growingTogetherNote_vocational',
-        'jobValueLabel_vocational', 'jobValueAllowance_vocational'
+        'jobValueLabel_vocational', 'jobValueAllowance_vocational',
+        'mib2Amount', 'mib2Condition'
       ];
       translatableFieldIds.forEach(id => {
         const el = document.getElementById(id);
