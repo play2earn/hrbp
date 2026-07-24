@@ -134,6 +134,14 @@
         </select>
       </div>
 
+      <!-- MIB2 Toggle Button (visible only when bachelor template is active) -->
+      <div id="mib2-toggle-wrapper" class="hidden items-center gap-2 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 shadow-sm cursor-pointer select-none" onclick="toggleMIB2()" title="Extra Incentive (MIB2)">
+        <div id="mib2-toggle-track" class="relative w-9 h-5 rounded-full transition-colors duration-200 bg-slate-600">
+          <div id="mib2-toggle-thumb" class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 translate-x-0"></div>
+        </div>
+        <span class="text-xs font-bold text-slate-300" data-translate-key="ui_mib2_label">Extra Incentive (MIB2)</span>
+      </div>
+
       <button onclick="downloadAsImage()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-sm flex items-center gap-2 shadow-sm transition-all hover:-translate-y-0.5 active:translate-y-0">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -586,6 +594,15 @@
             <span id="bonusCondition" contenteditable="true" class="editable-field flex-1" data-placeholder="โดยพิจารณาตามรอบการประเมิน Bonus ประจำปีของบริษัท พนักงานจะได้ประโยชน์เมื่อผ่านทดลองงาน และ pro rate ตามจำนวนเดือนที่เริ่มงาน"></span>
           </div>
 
+          <!-- Row 6b: Extra Incentive MIB2 (toggled) -->
+          <div id="mib2-row-bachelor" class="hidden flex items-start gap-x-2 rounded px-2 py-1.5" style="background-color:#d1fae5;border:1px solid #6ee7b7;">
+            <span class="font-bold text-slate-900 shrink-0 w-40" data-translate-key="label_mib2">Extra Incentive (MIB2)</span>
+            <span id="mib2Amount" contenteditable="true" class="editable-field w-32 text-center font-bold" data-placeholder="-" data-translate-key-placeholder="placeholder_mib2_amount"></span>
+            <span class="font-bold shrink-0" data-translate-key="label_baht_month">บาท/เดือน</span>
+            <span class="ml-4 font-bold text-slate-800 shrink-0" data-translate-key="label_condition">เงื่อนไข :</span>
+            <span id="mib2Condition" contenteditable="true" class="editable-field flex-1" data-placeholder="หลักเกณฑ์การจ่าย Extra Incentive Cap Max 25,000 บาท เป็นไปตามเงื่อนไขและหลักเกณฑ์ที่บริษัทฯกำหนด"></span>
+          </div>
+
           <!-- Row 7: Welfare -->
           <div class="flex items-center gap-x-2">
             <span class="font-bold text-slate-800 shrink-0 w-40" data-translate-key="label_welfare">สวัสดิการ</span>
@@ -938,7 +955,11 @@
         val_jobvalue_label_default: "Job Value",
         label_prev_education_title: "วุฒิการศึกษาก่อนหน้า",
         label_growint_together: "1. ผล Growing Together วันที่",
-        label_growing_together_criteria_pass: "ผ่านเกณฑ์"
+        label_growing_together_criteria_pass: "ผ่านเกณฑ์",
+        ui_mib2_label: "Extra Incentive (MIB2)",
+        label_mib2: "Extra Incentive (MIB2)",
+        placeholder_mib2_amount: "ตามนโยบายบริษัท",
+        placeholder_mib2_condition: "หลักเกณฑ์การจ่าย Extra Incentive Cap Max 25,000 บาท เป็นไปตามเงื่อนไขและหลักเกณฑ์ที่บริษัทฯกำหนด"
       },
       en: {
         ui_header_title: "Hiring Memo Generation System",
@@ -1010,7 +1031,11 @@
         val_jobvalue_label_default: "Job Value",
         label_prev_education_title: "Previous Education",
         label_growint_together: "1. Result of Growing Together on",
-        label_growing_together_criteria_pass: "Passed criteria"
+        label_growing_together_criteria_pass: "Passed criteria",
+        ui_mib2_label: "Extra Incentive (MIB2)",
+        label_mib2: "Extra Incentive (MIB2)",
+        placeholder_mib2_amount: "Per company policy",
+        placeholder_mib2_condition: "Extra Incentive payment criteria: Cap Max 25,000 THB, subject to conditions and criteria set by the company"
       }
     };
 
@@ -1084,7 +1109,9 @@
         interviewScore_vocational: "-",
         interviewPercent_bachelor: "-",
         interviewPercent_vocational: "-",
-        growingTogetherNote_vocational: "ระบุหมายเหตุการเข้าร่วมกิจกรรม (เว้นว่างได้)..."
+        growingTogetherNote_vocational: "ระบุหมายเหตุการเข้าร่วมกิจกรรม (เว้นว่างได้)...",
+        mib2Amount: "ตามนโยบายบริษัท",
+        mib2Condition: "หลักเกณฑ์การจ่าย Extra Incentive Cap Max 25,000 บาท เป็นไปตามเงื่อนไขและหลักเกณฑ์ที่บริษัทฯกำหนด"
       },
       en: {
         company: "Specify company...",
@@ -1155,7 +1182,9 @@
         interviewScore_vocational: "-",
         interviewPercent_bachelor: "-",
         interviewPercent_vocational: "-",
-        growingTogetherNote_vocational: "Specify activity remarks (optional)..."
+        growingTogetherNote_vocational: "Specify activity remarks (optional)...",
+        mib2Amount: "Per company policy",
+        mib2Condition: "Extra Incentive payment criteria: Cap Max 25,000 THB, subject to conditions and criteria set by the company"
       }
     };
 
@@ -1413,75 +1442,74 @@
       if (dataStr) {
         try {
           const data = JSON.parse(dataStr);
-          populateData(data);
-          setupMasterDataDropdowns(data);
           
-          // Auto-detect template based on education level
+          // 1. Auto-detect template based on education level first
           const highestEdu = getHighestEducation(data);
           const eduLevel = highestEdu.level ? highestEdu.level.toLowerCase() : '';
-          const levelMap = {
-            'phd': 'ปริญญาเอก',
-            'master': 'ปริญญาโท',
-            'bachelor': 'ปริญญาตรี',
-            'vocational': 'ปวส.',
-            'highSchool': 'ม.ปลาย',
-            'juniorHighSchool': 'ม.ต้น',
-            'primarySchool': 'ประถมศึกษา'
-          };
-          const eduName = (levelMap[eduLevel] || highestEdu.level || '').toLowerCase();
           
-          const isBachelorOrAbove = 
-            ['bachelor', 'master', 'phd'].includes(eduLevel) ||
-            eduName.includes('ปริญญาตรี') || 
-            eduName.includes('ปริญญาโท') || 
-            eduName.includes('ปริญญาเอก') ||
-            eduName.includes('ป.ตรี') || 
-            eduName.includes('ป.โท') || 
-            eduName.includes('ป.เอก');
+          const isBachelorOrAbove = ['bachelor', 'master', 'phd'].includes(eduLevel);
+          const isVocational = eduLevel === 'vocational';
 
-          const isVocational =
-            eduLevel === 'vocational' ||
-            eduName.includes('ปวส') ||
-            eduName.includes('ปวส.');
+          const targetTemplate = isBachelorOrAbove ? 'bachelor' : (isVocational ? 'vocational' : 'workskill');
+          activeTemplate = targetTemplate;
 
           const selector = document.getElementById('template-selector');
-          if (isBachelorOrAbove) {
-            selector.value = 'bachelor';
-            switchTemplate('bachelor');
-          } else if (isVocational) {
-            selector.value = 'vocational';
-            switchTemplate('vocational');
-          } else {
-            selector.value = 'workskill';
-            switchTemplate('workskill');
-          }
+          if (selector) selector.value = targetTemplate;
+
+          // 2. Populate data to DOM
+          populateData(data);
+          setupMasterDataDropdowns(data);
+
+          // 3. Set correct initial template visibility
+          applyTemplateVisibility(targetTemplate);
         } catch (e) {
           console.error("Failed to parse candidate data", e);
         }
       }
     };
 
+    function normalizeEduLevel(rawLvl) {
+      if (!rawLvl) return '';
+      const str = String(rawLvl).trim().toLowerCase();
+      if (str.includes('phd') || str.includes('doctor') || str.includes('เอก')) return 'phd';
+      if (str.includes('master') || str.includes('postgrad') || str.includes('โท')) return 'master';
+      if (str.includes('bachelor') || str.includes('undergrad') || str.includes('ตรี') || str.includes('ปริญญา')) return 'bachelor';
+      if (str.includes('vocational') || str.includes('diploma') || str.includes('ปวส')) return 'vocational';
+      if (str.includes('highschool') || str.includes('ปวช') || str.includes('ปลาย')) return 'highSchool';
+      if (str.includes('junior') || str.includes('ต้น')) return 'juniorHighSchool';
+      if (str.includes('primary') || str.includes('ประถม')) return 'primarySchool';
+      return str;
+    }
+
     function getHighestEducation(data) {
       let highestEdu = { level: '', institute: '', major: '', gpa: '' };
       const eduData = data.education;
-      
+      const levelOrder = ['phd', 'master', 'bachelor', 'vocational', 'highSchool', 'juniorHighSchool', 'primarySchool'];
+
       if (Array.isArray(eduData)) {
-        const levelOrder = ['phd', 'master', 'bachelor', 'vocational', 'highSchool', 'juniorHighSchool', 'primarySchool'];
-        const sorted = [...eduData].filter(e => e && e.institute).sort((a, b) => {
-          return levelOrder.indexOf(a.level) - levelOrder.indexOf(b.level);
+        const sorted = [...eduData].filter(e => e && (e.institute || e.major || e.level)).sort((a, b) => {
+          const aLvl = normalizeEduLevel(a.level);
+          const bLvl = normalizeEduLevel(b.level);
+          const aIdx = levelOrder.indexOf(aLvl);
+          const bIdx = levelOrder.indexOf(bLvl);
+          return (aIdx === -1 ? 99 : aIdx) - (bIdx === -1 ? 99 : bIdx);
         });
         if (sorted.length > 0) {
-          highestEdu = sorted[0];
+          highestEdu = {
+            level: normalizeEduLevel(sorted[0].level),
+            institute: sorted[0].institute || '',
+            major: sorted[0].major || '',
+            gpa: sorted[0].gpa || ''
+          };
         }
       } else if (eduData && typeof eduData === 'object') {
-        const levels = ['phd', 'master', 'bachelor', 'vocational', 'highSchool', 'juniorHighSchool', 'primarySchool'];
-        for (const lvl of levels) {
-          if (eduData[lvl] && eduData[lvl].institute) {
+        for (const lvl of levelOrder) {
+          if (eduData[lvl] && (eduData[lvl].institute || eduData[lvl].major)) {
             highestEdu = {
               level: lvl,
-              institute: eduData[lvl].institute,
-              major: eduData[lvl].major,
-              gpa: eduData[lvl].gpa
+              institute: eduData[lvl].institute || '',
+              major: eduData[lvl].major || '',
+              gpa: eduData[lvl].gpa || ''
             };
             break;
           }
@@ -1496,11 +1524,18 @@
       const levels = ['phd', 'master', 'bachelor', 'vocational', 'highSchool', 'juniorHighSchool', 'primarySchool'];
       
       if (Array.isArray(eduData)) {
-        const sorted = [...eduData].filter(e => e && e.institute && e.level !== highestEdu.level).sort((a, b) => {
-          return levels.indexOf(a.level) - levels.indexOf(b.level);
+        const sorted = [...eduData].filter(e => e && (e.institute || e.major) && normalizeEduLevel(e.level) !== highestEdu.level).sort((a, b) => {
+          const aLvl = normalizeEduLevel(a.level);
+          const bLvl = normalizeEduLevel(b.level);
+          return levels.indexOf(aLvl) - levels.indexOf(bLvl);
         });
         if (sorted.length > 0) {
-          prevEdu = sorted[0];
+          prevEdu = {
+            level: normalizeEduLevel(sorted[0].level),
+            institute: sorted[0].institute || '',
+            major: sorted[0].major || '',
+            gpa: sorted[0].gpa || ''
+          };
         }
       } else if (eduData && typeof eduData === 'object') {
         let foundHighest = false;
@@ -1509,12 +1544,12 @@
             foundHighest = true;
             continue;
           }
-          if (foundHighest && eduData[lvl] && eduData[lvl].institute) {
+          if (foundHighest && eduData[lvl] && (eduData[lvl].institute || eduData[lvl].major)) {
             prevEdu = {
               level: lvl,
-              institute: eduData[lvl].institute,
-              major: eduData[lvl].major,
-              gpa: eduData[lvl].gpa
+              institute: eduData[lvl].institute || '',
+              major: eduData[lvl].major || '',
+              gpa: eduData[lvl].gpa || ''
             };
             break;
           }
@@ -1548,7 +1583,7 @@
       document.getElementById('company_job_vocational').textContent = companyName;
 
       // 2. Candidate full name
-      const prefix = data.prefix || '';
+      const prefix = data.prefix || data.title || '';
       const firstName = data.firstName || data.first_name || '';
       const lastName = data.lastName || data.last_name || '';
       const fullName = `${prefix} ${firstName} ${lastName}`.trim() || data.full_name || '';
@@ -1557,22 +1592,39 @@
       document.getElementById('fullName_vocational').textContent = fullName;
 
       // 3. Age, Height, Weight
-      let cleanedAge = '';
-      if (data.age) {
-        cleanedAge = String(data.age).replace(/[^0-9]/g, '');
-        document.getElementById('age').textContent = cleanedAge || data.age || '';
-        document.getElementById('age_bachelor').textContent = cleanedAge || data.age || '';
-        document.getElementById('age_vocational').textContent = cleanedAge || data.age || '';
+      let ageVal = data.age != null ? String(data.age).replace(/[^0-9]/g, '') : '';
+      if (!ageVal && data.dateOfBirth) {
+        const dob = new Date(data.dateOfBirth);
+        if (!isNaN(dob.getTime())) {
+          const today = new Date();
+          let calculatedAge = today.getFullYear() - dob.getFullYear();
+          const m = today.getMonth() - dob.getMonth();
+          if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+            calculatedAge--;
+          }
+          if (calculatedAge > 0 && calculatedAge < 120) {
+            ageVal = String(calculatedAge);
+          }
+        }
       }
-      if (data.height) {
-        document.getElementById('height').textContent = data.height;
-        document.getElementById('height_bachelor').textContent = data.height;
-        document.getElementById('height_vocational').textContent = data.height;
+      if (ageVal) {
+        document.getElementById('age').textContent = ageVal;
+        document.getElementById('age_bachelor').textContent = ageVal;
+        document.getElementById('age_vocational').textContent = ageVal;
       }
-      if (data.weight) {
-        document.getElementById('weight').textContent = data.weight;
-        document.getElementById('weight_bachelor').textContent = data.weight;
-        document.getElementById('weight_vocational').textContent = data.weight;
+
+      const heightVal = data.height != null ? String(data.height) : '';
+      if (heightVal) {
+        document.getElementById('height').textContent = heightVal;
+        document.getElementById('height_bachelor').textContent = heightVal;
+        document.getElementById('height_vocational').textContent = heightVal;
+      }
+
+      const weightVal = data.weight != null ? String(data.weight) : '';
+      if (weightVal) {
+        document.getElementById('weight').textContent = weightVal;
+        document.getElementById('weight_bachelor').textContent = weightVal;
+        document.getElementById('weight_vocational').textContent = weightVal;
       }
       
       calculateBMI();
@@ -1597,14 +1649,14 @@
         'master': 'ปริญญาโท',
         'bachelor': 'ปริญญาตรี',
         'vocational': 'ปวส.',
-        'highSchool': 'ปวช.', // Treat high school as ปวช. contextually if they are vocational stream
+        'highSchool': 'ปวช.',
         'juniorHighSchool': 'ม.ต้น',
         'primarySchool': 'ประถมศึกษา'
       };
 
       const eduLevelText = levelMap[highestEdu.level] || highestEdu.level || '';
 
-      if (highestEdu.institute) {
+      if (highestEdu.level || highestEdu.institute || highestEdu.major) {
         // Work Skill
         document.getElementById('education').textContent = eduLevelText;
         document.getElementById('major').textContent = highestEdu.major || '';
@@ -1695,8 +1747,10 @@
       syncTemplates(activeTemplate, type);
       
       activeTemplate = type;
-      
-      // Update DOM visibility
+      applyTemplateVisibility(type);
+    }
+
+    function applyTemplateVisibility(type) {
       const wsLayout = document.getElementById('workskill-layout');
       const bachLayout = document.getElementById('bachelor-layout');
       const vocLayout = document.getElementById('vocational-layout');
@@ -1708,15 +1762,73 @@
       vocLayout.classList.add('hidden');
       vocLayout.classList.remove('flex');
       
+      const mib2Wrapper = document.getElementById('mib2-toggle-wrapper');
+
       if (type === 'bachelor') {
         bachLayout.classList.remove('hidden');
         bachLayout.classList.add('flex');
-      } else if (type === 'vocational') {
-        vocLayout.classList.remove('hidden');
-        vocLayout.classList.add('flex');
+        if (mib2Wrapper) {
+          mib2Wrapper.classList.remove('hidden');
+          mib2Wrapper.classList.add('flex');
+        }
       } else {
-        wsLayout.classList.remove('hidden');
-        wsLayout.classList.add('flex');
+        if (type === 'vocational') {
+          vocLayout.classList.remove('hidden');
+          vocLayout.classList.add('flex');
+        } else {
+          wsLayout.classList.remove('hidden');
+          wsLayout.classList.add('flex');
+        }
+
+        if (mib2Wrapper) {
+          mib2Wrapper.classList.add('hidden');
+          mib2Wrapper.classList.remove('flex');
+        }
+        
+        // Also reset MIB2 row
+        const mib2Row = document.getElementById('mib2-row-bachelor');
+        if (mib2Row) mib2Row.classList.add('hidden');
+        const track = document.getElementById('mib2-toggle-track');
+        if (track) {
+          track.classList.remove('bg-emerald-500');
+          track.classList.add('bg-slate-600');
+        }
+        const thumb = document.getElementById('mib2-toggle-thumb');
+        if (thumb) {
+          thumb.classList.remove('translate-x-4');
+          thumb.classList.add('translate-x-0');
+        }
+        mib2Enabled = false;
+      }
+    }
+
+    // --- MIB2 Toggle State ---
+    let mib2Enabled = false;
+
+    function toggleMIB2() {
+      mib2Enabled = !mib2Enabled;
+      const row = document.getElementById('mib2-row-bachelor');
+      const track = document.getElementById('mib2-toggle-track');
+      const thumb = document.getElementById('mib2-toggle-thumb');
+
+      if (mib2Enabled) {
+        // Show row
+        row.classList.remove('hidden');
+        row.classList.add('flex');
+        // Animate toggle ON
+        track.classList.remove('bg-slate-600');
+        track.classList.add('bg-emerald-500');
+        thumb.classList.remove('translate-x-0');
+        thumb.classList.add('translate-x-4');
+      } else {
+        // Hide row
+        row.classList.add('hidden');
+        row.classList.remove('flex');
+        // Animate toggle OFF
+        track.classList.remove('bg-emerald-500');
+        track.classList.add('bg-slate-600');
+        thumb.classList.remove('translate-x-4');
+        thumb.classList.add('translate-x-0');
       }
     }
 
@@ -1727,7 +1839,7 @@
         
         const fromEl = document.getElementById(fromId);
         const toEl = document.getElementById(toId);
-        if (fromEl && toEl) {
+        if (fromEl && toEl && fromEl.textContent.trim() !== '') {
           toEl.textContent = fromEl.textContent;
         }
       });

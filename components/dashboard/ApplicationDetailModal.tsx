@@ -2007,13 +2007,22 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                         type="button"
                         onClick={async () => {
                           setShowMoreActions(false);
-                          const fd = viewingApp.form_data ? { ...viewingApp.form_data } : {};
-                          fd.created_at = viewingApp.created_at;
-                          fd.id = viewingApp.id;
-                          fd.interview_date = viewingApp.interview_date;
-                          fd.position = viewingApp.position;
-                          fd.department = viewingApp.department;
-                          fd.business_unit = viewingApp.business_unit;
+                          let fullApp = viewingApp;
+                          try {
+                            const fetched = await api.getApplicationById(viewingApp.id);
+                            if (fetched) fullApp = fetched;
+                          } catch (e) {
+                            console.error("Failed to fetch full application for memo", e);
+                          }
+
+                          const fd = fullApp.form_data ? { ...fullApp.form_data } : {};
+                          fd.created_at = fullApp.created_at;
+                          fd.id = fullApp.id;
+                          fd.full_name = fullApp.full_name;
+                          fd.interview_date = fullApp.interview_date;
+                          fd.position = fullApp.position;
+                          fd.department = fullApp.department;
+                          fd.business_unit = fullApp.business_unit;
 
                           try {
                             const [condsRes, calsRes] = await Promise.all([

@@ -1248,13 +1248,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               <button
                 className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-left text-gray-700 hover:bg-gray-50 transition-colors"
                 onClick={async () => {
-                  const fd = app.form_data ? { ...app.form_data } : {};
-                  fd.created_at = app.created_at;
-                  fd.id = app.id;
-                  fd.interview_date = app.interview_date;
-                  fd.position = app.position;
-                  fd.department = app.department;
-                  fd.business_unit = app.business_unit;
+                  let fullApp = app;
+                  try {
+                    const fetched = await api.getApplicationById(app.id);
+                    if (fetched) fullApp = fetched;
+                  } catch (e) {
+                    console.error("Failed to fetch full application for memo", e);
+                  }
+
+                  const fd = fullApp.form_data ? { ...fullApp.form_data } : {};
+                  fd.created_at = fullApp.created_at;
+                  fd.id = fullApp.id;
+                  fd.full_name = fullApp.full_name;
+                  fd.interview_date = fullApp.interview_date;
+                  fd.position = fullApp.position;
+                  fd.department = fullApp.department;
+                  fd.business_unit = fullApp.business_unit;
                   
                   // Fetch master conditions & calendars for memo.html DDL
                   try {
