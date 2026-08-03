@@ -329,3 +329,48 @@ export const stringUtils = {
         return phone;
     }
 };
+
+// ============================================================
+// Unicode Sanitization (PostgreSQL / JSONB Compatibility)
+// ============================================================
+
+/**
+ * Recursively cleans invalid / unsupported Unicode sequences from any object/string.
+ * Removes Null characters (\u0000 / \0) and unpaired surrogate pairs that break PostgreSQL JSONB / text insertion.
+ */
+export function sanitizeUnicode<T>(input: T): T {
+  if (input === null || input === undefined) {
+    return input;
+  }
+
+  if (typeof input === 'string') {
+    let str = input.replace(/\0/g, '').replace(/\u0000/g, '');
+    if (typeof (str as any).toWellFormed === 'function') {
+      str = (str as any).toWellFormed();
+    } else {
+      // Fallback for older JS engines: replace unpaired surrogates with replacement character \uFFFD
+      str = str.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|([^\uD800-\uDBFF]|^)[\uDC00-\uDFFF]/g, '$1\uFFFD');
+    }
+    return str as unknown as T;
+  }
+
+  if (Array.isArray(input)) {
+    return input.map(item => sanitizeUnicode(item)) as unknown as T;
+  }
+
+  if (typeof input === 'object') {
+    // Preserve special objects like Date or File
+    if (input instanceof Date || (typeof File !== 'undefined' && input instanceof File) || (typeof Blob !== 'undefined' && input instanceof Blob)) {
+      return input;
+    }
+    const cleaned: Record<string, any> = {};
+    for (const key of Object.keys(input)) {
+      const cleanedKey = sanitizeUnicode(key);
+      cleaned[cleanedKey] = sanitizeUnicode((input as Record<string, any>)[key]);
+    }
+    return cleaned as T;
+  }
+
+  return input;
+}
+

@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient';
 import { ApplicationForm, BlacklistEntry, BlacklistAuditLog } from '../types';
 import md5 from 'js-md5';
 import { uploadToR2, deleteFromR2, getStorageProvider } from '../utils/r2-upload';
+import { sanitizeUnicode } from './utils';
 
 // ============================================================
 // API Response Types
@@ -203,8 +204,11 @@ export const api = {
   /**
    * Submit the full application to the database
    */
-  submitApplication: async (formData: ApplicationForm): Promise<ApiResponse<{ id: string }>> => {
+  submitApplication: async (rawFormData: ApplicationForm): Promise<ApiResponse<{ id: string }>> => {
     try {
+      // Sanitize input to strip null bytes (\u0000) & broken unicode surrogates from copy-pasting
+      const formData = sanitizeUnicode(rawFormData);
+
       // Validate required fields
       const hasThaiName = formData.firstName && formData.lastName;
       const hasEnglishName = formData.firstNameEn && formData.lastNameEn;
@@ -239,6 +243,7 @@ export const api = {
         form_data: formData,
         created_at: new Date().toISOString(),
       };
+
 
       const { data, error } = await supabase
         .from('applications')

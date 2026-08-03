@@ -4,6 +4,8 @@ import { CheckCircle } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { api } from '../../services/api';
 import type { ApplicationStatus } from '../../services/api';
+import { sanitizeUnicode } from '../../services/utils';
+
 
 interface EditFormState {
   position?: string;
@@ -465,10 +467,12 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
                       titleEn: editForm.titleEn,
                     };
 
+                    const cleanFormData = sanitizeUnicode(updatedFormData);
+
                     // Only update columns that definitely exist in the database
                     const { error } = await supabase
                       .from('applications')
-                      .update({
+                      .update(sanitizeUnicode({
                         position: editForm.position,
                         department: editForm.department,
                         phone: editForm.phone,
@@ -486,9 +490,11 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
                         first_name: editForm.firstName,
                         last_name: editForm.lastName,
                         title: editForm.title,
-                        form_data: updatedFormData,
-                      })
+                        form_data: cleanFormData,
+                      }))
                       .eq('id', editingApp.id);
+
+
                     if (error) throw error;
 
                     // Add log for manual edit
