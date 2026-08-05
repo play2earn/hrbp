@@ -54,7 +54,7 @@ export async function uploadToR2(file: File, folder: string, draftId?: string): 
  */
 export async function deleteFromR2(url: string): Promise<boolean> {
   try {
-    const res = await fetch('/api/delete-r2', {
+    const res = await fetch('/api/upload-r2', {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -74,6 +74,7 @@ export async function deleteFromR2(url: string): Promise<boolean> {
     return false;
   }
 }
+
 
 /**
  * Call the backend to finalize attachments: copying them from drafts to final application directories

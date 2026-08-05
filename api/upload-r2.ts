@@ -29,16 +29,54 @@ const MAX_SIZE = 10 * 1024 * 1024; // 10MB default guardrail
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS configuration
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
+  // DELETE handler for removing R2 files
+  if (req.method === 'DELETE' || (req.method === 'POST' && req.body?.action === 'delete-r2')) {
+    try {
+      const r2 = getR2Client();
+      const { url } = req.body || {};
+      if (!url) return res.status(400).json({ error: 'Missing required url parameter' });
+
+      const publicDomain = process.env.R2_PUBLIC_DOMAIN;
+      if (!publicDomain) throw new Error('R2_PUBLIC_DOMAIN is not defined in environment.');
+
+      const domainPattern = publicDomain.endsWith('/') ? publicDomain : `${publicDomain}/`;
+      let key = '';
+      if (url.startsWith(domainPattern)) {
+        key = url.slice(domainPattern.length);
+      } else {
+        try {
+          const parsedUrl = new URL(url);
+          key = parsedUrl.pathname.slice(1);
+        } catch {
+          return res.status(400).json({ error: `Invalid R2 URL: ${url}` });
+        }
+      }
+
+      if (!key) return res.status(400).json({ error: 'Could not resolve R2 key from URL' });
+
+      const bucketName = process.env.R2_BUCKET_NAME || 'hrbp-applicants';
+      const { DeleteObjectCommand } = await import('@aws-sdk/client-s3');
+      await r2.send(new DeleteObjectCommand({ Bucket: bucketName, Key: key }));
+
+      console.log(`[R2 Delete Success] Key: ${key}`);
+      return res.status(200).json({ success: true, key });
+    } catch (error: any) {
+      console.error('[R2 Delete Error]:', error);
+      return res.status(500).json({ error: error.message || 'R2 delete error' });
+    }
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
 
   try {
     const r2 = getR2Client();
