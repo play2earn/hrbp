@@ -20,10 +20,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const publicDomain = cleanEnvVar(process.env.R2_PUBLIC_DOMAIN);
     const supabaseUrl = cleanEnvVar(process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL);
 
-    // Validate that the URL belongs to either our R2 public domain or Supabase URL for security
+    // Validate that the URL belongs to our R2 public domain, Supabase URL, or AWS S3 for security
     const isAllowed = 
       (publicDomain && url.startsWith(publicDomain)) || 
-      (supabaseUrl && url.startsWith(supabaseUrl));
+      (supabaseUrl && url.startsWith(supabaseUrl)) ||
+      url.includes('.amazonaws.com');
 
     if (!isAllowed) {
       return res.status(403).json({ error: 'Forbidden: URL domain is not allowed' });

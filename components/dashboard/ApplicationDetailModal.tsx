@@ -1,4 +1,5 @@
 import React, { useState, useEffect, memo } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../../supabaseClient';
 import { api } from '../../services/api';
 import { Modal, Button } from '../UIComponents';
@@ -7,7 +8,7 @@ import {
   FileText, ExternalLink, Edit, Calendar, History, Clock,
   CheckCircle, XCircle, UserPlus, UserCheck, Link, Copy, Check,
   Crop, RotateCcw, Upload, ChevronDown, ChevronUp, AlertTriangle, Paperclip, ShieldAlert,
-  Eye, Download, X, Settings, Star
+  Eye, Download, X, Settings, Star, HardDrive, ShieldCheck, ArrowRight
 } from 'lucide-react';
 import {
   LOG_LABELS, getStatusBadgeClass, getStatusLabel,
@@ -99,6 +100,7 @@ interface ApplicationDetailModalProps {
   blacklistEntries: any[];
   onViewBlacklistDetail: (entry: any) => void;
   setEvaluatingApp: (app: any | null) => void;
+  onOpenHrDrive?: (prefix: string) => void;
 }
 
 export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
@@ -108,7 +110,8 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
   setRejectingApp, setRejectComment, setRejectionReason,
   setApprovingApp, onApplicationUpdated, blacklistEntries,
   onViewBlacklistDetail,
-  setEvaluatingApp
+  setEvaluatingApp,
+  onOpenHrDrive,
 }) => {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
@@ -125,11 +128,74 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
 
   // Calendar confirmation modal state
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
+  const [showFileDrawer, setShowFileDrawer] = useState(false);
+  const [migratingFileKey, setMigratingFileKey] = useState<string | null>(null);
+  const [isMigratingAll, setIsMigratingAll] = useState(false);
+  const [migrateProgress, setMigrateProgress] = useState<string>('');
+  const [showConfirmMoveAll, setShowConfirmMoveAll] = useState(false);
+  const [pendingFilesToMigrate, setPendingFilesToMigrate] = useState<{ label: string; url: string; field: string }[]>([]);
+  const [toastNotification, setToastNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [calendarTargetApp, setCalendarTargetApp] = useState<any | null>(null);
   const [calendarHasShareLink, setCalendarHasShareLink] = useState(false);
   const [calendarCreateShareLink, setCalendarCreateShareLink] = useState(true);
   const [calendarShareLinkUrl, setCalendarShareLinkUrl] = useState<string | null>(null);
   const [isProcessingCalendar, setIsProcessingCalendar] = useState(false);
+
+  useEffect(() => {
+    if (toastNotification) {
+      const timer = setTimeout(() => setToastNotification(null), 4500);
+      return () => clearTimeout(timer);
+    }
+  }, [toastNotification]);
+
+  const handleExecuteMoveAll = async () => {
+    if (!pendingFilesToMigrate.length || !viewingApp) return;
+
+    setIsMigratingAll(true);
+    let updatedFd = { ...(viewingApp.form_data || {}) };
+    let successCount = 0;
+
+    try {
+      for (let i = 0; i < pendingFilesToMigrate.length; i++) {
+        const file = pendingFilesToMigrate[i];
+        setMigrateProgress(`กำลังย้าย (${i + 1}/${pendingFilesToMigrate.length}): ${file.label}...`);
+
+        const res = await fetch('/api/migrate-s3', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileUrl: file.url,
+            applicationId: viewingApp.id,
+            fieldName: file.field,
+          }),
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          successCount++;
+          updatedFd[file.field] = data.newProxyUrl;
+          if (file.field === 'photo_url') viewingApp.photo_url = data.newProxyUrl;
+          if (file.field === 'resume_url') viewingApp.resume_url = data.newProxyUrl;
+        }
+      }
+
+      const updatedApp = { ...viewingApp, form_data: updatedFd };
+      setViewingApp(updatedApp);
+      onApplicationUpdated?.(updatedApp);
+      setToastNotification({
+        message: `ย้ายไฟล์สำเร็จทั้งหมด ${successCount} รายการเข้า AWS S3 เรียบร้อยแล้ว!`,
+        type: 'success',
+      });
+    } catch (err: any) {
+      setToastNotification({
+        message: `เกิดข้อผิดพลาดขณะย้ายไฟล์: ${err.message}`,
+        type: 'error',
+      });
+    } finally {
+      setIsMigratingAll(false);
+      setMigrateProgress('');
+    }
+  };
 
   useEffect(() => {
     if (viewingApp?.id) {
@@ -159,6 +225,60 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
   const [showPreview, setShowPreview] = useState(true);
   const [autoSelectOnLoad, setAutoSelectOnLoad] = useState(false);
   const [showMoreActions, setShowMoreActions] = useState(false);
+  const [replacingFileField, setReplacingFileField] = useState<string | null>(null);
+
+  const handleReplaceCandidateFile = async (
+    fileField: string,
+    fileLabel: string,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file || !viewingApp) return;
+
+    setReplacingFileField(fileField);
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = (reader.result as string).split(',')[1];
+        const res = await fetch('/api/upload-s3', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileBase64: base64,
+            fileName: file.name,
+            fileType: file.type || 'application/pdf',
+            applicantId: viewingApp.id,
+            fieldName: fileField,
+          }),
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          setToastNotification({
+            message: `อัปโหลดเปลี่ยนไฟล์ [${fileLabel}] เข้า AWS S3 สำเร็จ!`,
+            type: 'success',
+          });
+
+          const updatedFd = { ...(viewingApp.form_data || {}), [fileField]: data.proxyUrl };
+          const updatedApp = { ...viewingApp, form_data: updatedFd };
+          if (fileField === 'photo_url') updatedApp.photo_url = data.proxyUrl;
+          if (fileField === 'resume_url') updatedApp.resume_url = data.proxyUrl;
+          setViewingApp(updatedApp);
+        } else {
+          setToastNotification({
+            message: data.error || `อัปโหลดไฟล์ [${fileLabel}] ล้มเหลว`,
+            type: 'error',
+          });
+        }
+        setReplacingFileField(null);
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      console.error('File replacement error:', err);
+      setToastNotification({ message: 'เกิดข้อผิดพลาดในการอัปโหลดไฟล์', type: 'error' });
+      setReplacingFileField(null);
+    }
+  };
 
   // Outlook calendar deeplink URL generator
   const generateOutlookCalendarUrl = (app: any, shareUrl?: string | null) => {
@@ -939,10 +1059,23 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                   <p className="text-sm text-gray-600">{fd.nickname || fd.nicknameEn ? `(${[fd.nickname, fd.nicknameEn].filter(Boolean).join(' / ')})` : ''}</p>
                   <p className="text-sm text-indigo-600 font-medium mt-1">{fd.isThaiNational === false ? (fd.positionEn || fd.position || viewingApp.position || 'ไม่ระบุตำแหน่ง') : (fd.position || viewingApp.position || 'ไม่ระบุตำแหน่ง')}</p>
                   <p className="text-sm text-gray-500">{fd.isThaiNational === false ? (fd.departmentEn || fd.department || viewingApp.department || '') : (fd.department || viewingApp.department || '')}</p>
-                  <div className="flex flex-wrap gap-2 mt-2">
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
                     <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(viewingApp.status)}`}>
                       {getStatusLabel(viewingApp.status)}
                     </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowFileDrawer(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/15 hover:bg-amber-500/25 text-amber-950 dark:text-amber-200 font-bold rounded-full border border-amber-500/40 transition-all text-xs shadow-xs cursor-pointer pointer-events-auto relative z-20 hover:scale-105 active:scale-95 select-none"
+                      title="ดูไฟล์ทั้งหมดใน HR Drive"
+                    >
+                      <HardDrive className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                      📁 HR Drive (ไฟล์ผู้สมัครคนนี้)
+                    </button>
                   </div>
                   {/* Timeline */}
                   <div className="mt-3 flex items-center gap-2 text-xs text-slate-500 overflow-x-auto pb-1">
@@ -2351,6 +2484,21 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                 >
                   บัญชีธนาคาร{fd.bankName ? ` (${fd.bankName})` : ''}
                 </button>
+
+                {/* 10. HR Drive All Files Button */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowFileDrawer(true);
+                  }}
+                  className="px-3 py-1 text-xs rounded-full font-bold transition border flex items-center gap-1.5 shrink-0 bg-amber-500/15 hover:bg-amber-500/25 text-amber-950 dark:text-amber-200 border-amber-500/40 shadow-xs cursor-pointer pointer-events-auto relative z-20 hover:scale-105 active:scale-95 select-none"
+                  title="ดูไฟล์ทั้งหมดใน HR Drive"
+                >
+                  <HardDrive className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                  📁 HR Drive (ไฟล์ทั้งหมด)
+                </button>
               </div>
 
               {/* View Box Container */}
@@ -2659,6 +2807,415 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
           onCropComplete={handleCropComplete}
           isUploading={isUploadingPhoto}
         />
+      )}
+
+      {/* Applicant File Side Drawer Modal */}
+      {showFileDrawer && viewingApp && createPortal(
+        <div className="fixed inset-0 z-[100000] bg-black/60 backdrop-blur-xs flex justify-end transition-opacity">
+          <div className="w-full max-w-xl bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col animate-in slide-in-from-right border-l border-slate-200 dark:border-slate-800">
+            {/* Drawer Header */}
+            <div className="p-5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <HardDrive className="w-5 h-5 text-amber-400" />
+                <div>
+                  <h3 className="font-bold text-sm text-white">HR Drive — ไฟล์ผู้สมัคร</h3>
+                  <p className="text-xs text-slate-300 font-mono">{fullName} ({viewingApp.id})</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowFileDrawer(false)}
+                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Storage Info Bar — compact */}
+            <div className="bg-amber-950/40 border-b border-amber-600/20 px-4 py-2.5 flex items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-1.5 text-amber-300 font-medium min-w-0">
+                <ShieldCheck className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <span className="font-mono text-[11px] text-amber-200/70 truncate">applicants/{viewingApp.id}/</span>
+              </div>
+              {onOpenHrDrive && (
+                <button
+                  onClick={() => onOpenHrDrive(`applicants/${viewingApp.id}/`)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-[11px] transition-colors shrink-0 shadow-sm"
+                  title="ไปยัง folder ของผู้สมัครใน HR Drive"
+                >
+                  <HardDrive className="w-3 h-3" /> เปิดใน HR Drive
+                </button>
+              )}
+            </div>
+
+            {/* Migration Progress Bar Banner */}
+            {isMigratingAll && (
+              <div className="bg-amber-600 text-white px-5 py-2.5 text-xs font-semibold flex items-center justify-between animate-pulse">
+                <span>{migrateProgress || 'กำลังย้ายไฟล์ทั้งหมดเข้า AWS S3...'}</span>
+                <span className="animate-spin text-sm">🔄</span>
+              </div>
+            )}
+
+            {/* Files List */}
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-1.5">
+              {(() => {
+                const knownLabels: Record<string, string> = {
+                  photo_url: 'รูปถ่ายหน้าตรง',
+                  photoUrl: 'รูปถ่ายหน้าตรง',
+                  originalPhotoUrl: 'รูปถ่ายต้นฉบับ',
+                  resume_url: 'เรซูเม่ (Resume / CV)',
+                  resumeUrl: 'เรซูเม่ (Resume / CV)',
+                  transcriptUrl: 'ใบทรานสคริปต์ (Transcript)',
+                  idCardUrl: 'สำเนาบัตรประชาชน',
+                  houseRegUrl: 'สำเนาทะเบียนบ้าน',
+                  eduCertificateUrl: 'ใบรับรองวุฒิการศึกษา',
+                  militaryCertUrl: 'ใบผ่านการเกณฑ์ทหาร (สด.43)',
+                  toeicCertUrl: 'ผลสอบภาษา (TOEIC / English)',
+                  bankBookUrl: 'สำเนาบัญชีธนาคาร',
+                  certificateUrl: 'ใบรับรอง / ประกาศนียบัตร',
+                  otherDocsUrl: 'เอกสารประกอบอื่นๆ',
+                };
+
+                const getFieldGroupKey = (field: string): string => {
+                  const lower = field.toLowerCase();
+                  if (lower.includes('photo') && !lower.includes('original')) return 'photo';
+                  if (lower.includes('originalphoto')) return 'originalPhoto';
+                  if (lower.includes('resume')) return 'resume';
+                  if (lower.includes('transcript')) return 'transcript';
+                  if (lower.includes('idcard')) return 'idCard';
+                  if (lower.includes('housereg')) return 'houseReg';
+                  if (lower.includes('educert')) return 'eduCertificate';
+                  if (lower.includes('military')) return 'militaryCert';
+                  if (lower.includes('toeic')) return 'toeicCert';
+                  if (lower.includes('bankbook')) return 'bankBook';
+                  if (lower.includes('certificate')) return 'certificate';
+                  if (lower.includes('otherdocs')) return 'otherDocs';
+                  return field;
+                };
+
+                const fileGroupMap = new Map<string, { label: string; url: string; field: string }>();
+
+                const addOrUpdateFile = (label: string, url: string, field: string) => {
+                  const groupKey = getFieldGroupKey(field);
+                  const existing = fileGroupMap.get(groupKey);
+                  const isS3 = url.includes('amazonaws.com') || url.startsWith('/api/files?key=');
+
+                  if (!existing) {
+                    fileGroupMap.set(groupKey, { label, url, field });
+                  } else {
+                    const existingIsS3 = existing.url.includes('amazonaws.com') || existing.url.startsWith('/api/files?key=');
+                    if (!existingIsS3 && isS3) {
+                      fileGroupMap.set(groupKey, { label, url, field });
+                    }
+                  }
+                };
+
+                if (viewingApp.photo_url) addOrUpdateFile('รูปถ่ายหน้าตรง', viewingApp.photo_url, 'photo_url');
+                if (viewingApp.resume_url) addOrUpdateFile('เรซูเม่ (Resume / CV)', viewingApp.resume_url, 'resume_url');
+
+                Object.entries(fd).forEach(([key, val]) => {
+                  if (typeof val === 'string' && val.trim() !== '') {
+                    if (key.toLowerCase().endsWith('url') || val.startsWith('http') || val.startsWith('/api/files')) {
+                      const label = knownLabels[key] || `เอกสารแนบ (${key})`;
+                      addOrUpdateFile(label, val, key);
+                    }
+                  }
+                });
+
+                const candidateFiles = (() => {
+                  const all = Array.from(fileGroupMap.values());
+                  try {
+                    const saved: Array<{ field: string; label: string; order: number }> =
+                      JSON.parse(localStorage.getItem('hr_drive_doc_category_settings') || '[]');
+                    if (saved.length > 0) {
+                      all.sort((a, b) => {
+                        const getOrd = (f: { field: string; label: string }) => {
+                          const m = saved.find(
+                            (c) => c.field === f.field || f.label.toLowerCase().includes(c.label.toLowerCase())
+                          );
+                          return m ? m.order : 999;
+                        };
+                        return getOrd(a) - getOrd(b);
+                      });
+                    }
+                  } catch {}
+                  return all;
+                })();
+
+                if (candidateFiles.length === 0) {
+                  return (
+                    <div className="py-12 text-center text-slate-400 space-y-2">
+                      <Paperclip className="w-10 h-10 mx-auto text-slate-300" />
+                      <p className="text-sm">ไม่พบไฟล์แนบของผู้สมัครรายนี้</p>
+                    </div>
+                  );
+                }
+
+
+                return candidateFiles.map((file, idx) => {
+                  const urlStr = file.url || '';
+                  const isS3 = urlStr.includes('amazonaws.com') || urlStr.startsWith('/api/files?key=');
+                  const isR2 = urlStr.includes('r2.dev') || urlStr.includes('r2.cloudflarestorage.com');
+                  const isSupabase = urlStr.includes('supabase.co');
+
+                  const proxyLink = isS3
+                    ? (urlStr.startsWith('/api/files') ? urlStr : `/api/files?url=${encodeURIComponent(urlStr)}`)
+                    : `/api/files?url=${encodeURIComponent(urlStr)}`;
+
+                  const orderNum = String(idx + 1).padStart(2, '0');
+
+                  // Detect file extension from URL
+                  const rawExt = urlStr.split('?')[0].split('.').pop()?.toLowerCase() || '';
+                  const isPdf = rawExt === 'pdf';
+                  const isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(rawExt);
+
+                  const storeBadge = isS3 ? (
+                    <span className="inline-flex items-center gap-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25 text-[10px] px-1.5 py-0.5 rounded-full font-semibold">
+                      <ShieldCheck className="w-2.5 h-2.5" /> S3
+                    </span>
+                  ) : isR2 ? (
+                    <span className="inline-flex items-center gap-1 bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/25 text-[10px] px-1.5 py-0.5 rounded-full font-semibold">
+                      R2
+                    </span>
+                  ) : isSupabase ? (
+                    <span className="inline-flex items-center gap-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 text-[10px] px-1.5 py-0.5 rounded-full font-semibold">
+                      SB
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-[10px] px-1.5 py-0.5 rounded-full font-semibold">
+                      Ext
+                    </span>
+                  );
+
+                  return (
+                    <div
+                      key={idx}
+                      className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all ${
+                        isS3
+                          ? 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-700/30'
+                          : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/60 hover:border-slate-300 dark:hover:border-slate-600'
+                      }`}
+                    >
+                      {/* Order Badge */}
+                      <span className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg text-[10px] font-bold font-mono bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                        {orderNum}
+                      </span>
+
+                      {/* File Type Icon */}
+                      <div className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs">
+                        {isPdf ? (
+                          <FileText className="w-4 h-4 text-red-500" />
+                        ) : isImage ? (
+                          <FileText className="w-4 h-4 text-blue-500" />
+                        ) : (
+                          <FileText className="w-4 h-4 text-slate-400" />
+                        )}
+                      </div>
+
+                      {/* Label + badges */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-tight">{file.label}</span>
+                          {storeBadge}
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-mono mt-0.5 truncate" title={urlStr}>
+                          {rawExt ? `.${rawExt.toUpperCase()}` : 'ไฟล์'} • {isS3 ? 'AWS S3 Native' : isR2 ? 'Cloudflare R2' : isSupabase ? 'Supabase' : 'External'}
+                        </p>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="shrink-0 flex items-center gap-1.5">
+                        <a
+                          href={proxyLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition-colors"
+                          title="เปิดดูไฟล์"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </a>
+
+                        <label
+                          className="w-7 h-7 flex items-center justify-center rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-300/50 dark:border-amber-600/30 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-600 dark:text-amber-400 transition-colors cursor-pointer"
+                          title={replacingFileField === file.field ? 'กำลังอัปโหลด...' : 'เปลี่ยนไฟล์'}
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                          <input
+                            type="file"
+                            className="hidden"
+                            accept="image/*,.pdf,.doc,.docx"
+                            disabled={replacingFileField === file.field}
+                            onChange={(e) => handleReplaceCandidateFile(file.field, file.label, e)}
+                          />
+                        </label>
+
+                        {!isS3 && (
+                          <button
+                            type="button"
+                            disabled={migratingFileKey === file.field}
+                            onClick={async () => {
+                              setMigratingFileKey(file.field);
+                              try {
+                                const res = await fetch('/api/migrate-s3', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    fileUrl: file.url,
+                                    applicationId: viewingApp.id,
+                                    fieldName: file.field,
+                                  }),
+                                });
+                                const data = await res.json();
+                                if (data.success) {
+                                  setToastNotification({ message: `ย้าย ${file.label} เข้า S3 แล้ว!`, type: 'success' });
+                                  const updatedFd = { ...fd, [file.field]: data.newProxyUrl };
+                                  setViewingApp({ ...viewingApp, form_data: updatedFd });
+                                } else {
+                                  setToastNotification({ message: `ย้ายไฟล์ล้มเหลว: ${data.error}`, type: 'error' });
+                                }
+                              } catch (err: any) {
+                                setToastNotification({ message: `เกิดข้อผิดพลาด: ${err.message}`, type: 'error' });
+                              } finally {
+                                setMigratingFileKey(null);
+                              }
+                            }}
+                            className="h-7 px-2 flex items-center gap-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold transition-colors disabled:opacity-50 shadow-sm"
+                            title="Move to S3"
+                          >
+                            {migratingFileKey === file.field ? '...' : <><ArrowRight className="w-3 h-3" /> S3</>}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                disabled={isMigratingAll}
+                onClick={async () => {
+                  const candidateFiles = [
+                    { label: 'รูปถ่ายหน้าตรง', url: fd.photoUrl, field: 'photo_url' },
+                    { label: 'รูปถ่ายต้นฉบับ', url: fd.originalPhotoUrl, field: 'originalPhotoUrl' },
+                    { label: 'เรซูเม่ (Resume / CV)', url: fd.resumeUrl || viewingApp.resume_url, field: 'resume_url' },
+                    { label: 'ใบทรานสคริปต์ (Transcript)', url: fd.transcriptUrl, field: 'transcriptUrl' },
+                    { label: 'สำเนาบัตรประชาชน', url: fd.idCardUrl, field: 'idCardUrl' },
+                    { label: 'สำเนาทะเบียนบ้าน', url: fd.houseRegUrl, field: 'houseRegUrl' },
+                    { label: 'ใบรับรองวุฒิการศึกษา', url: fd.eduCertificateUrl, field: 'eduCertificateUrl' },
+                    { label: 'ใบผ่านการเกณฑ์ทหาร', url: fd.militaryCertUrl, field: 'militaryCertUrl' },
+                    { label: 'ผลสอบภาษา TOEIC', url: fd.toeicCertUrl, field: 'toeicCertUrl' },
+                    { label: 'สำเนาบัญชีธนาคาร', url: fd.bankBookUrl, field: 'bankBookUrl' },
+                    { label: 'ใบรับรอง / ประกาศนียบัตร', url: fd.certificateUrl, field: 'certificateUrl' },
+                    { label: 'เอกสารประกอบอื่นๆ', url: fd.otherDocsUrl, field: 'otherDocsUrl' },
+                  ].filter(f => !!f.url);
+
+                  const pending = candidateFiles.filter(f => {
+                    const urlStr = f.url || '';
+                    return !(urlStr.includes('amazonaws.com') || urlStr.startsWith('/api/files?key='));
+                  });
+
+                  if (pending.length === 0) {
+                    setToastNotification({
+                      message: 'ไฟล์ทั้งหมดของผู้สมัครรายนี้ถูกย้ายไป AWS S3 เรียบร้อยแล้ว!',
+                      type: 'success',
+                    });
+                    return;
+                  }
+
+                  setPendingFilesToMigrate(pending);
+                  setShowConfirmMoveAll(true);
+                }}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+              >
+                <ArrowRight className="w-4 h-4" />
+                {isMigratingAll ? 'กำลังย้ายไฟล์ทั้งหมด...' : '🚀 Move All (ย้ายทุกไฟล์เข้า S3)'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowFileDrawer(false)}
+                className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl hover:bg-slate-300"
+              >
+                ปิดหน้าต่าง
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Confirmation Modal for Move All */}
+      {showConfirmMoveAll && viewingApp && createPortal(
+        <div className="fixed inset-0 z-[105000] bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl text-white space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
+              <div className="p-2.5 bg-amber-500/20 text-amber-400 rounded-xl">
+                <HardDrive className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-white">ยืนยันการย้ายไฟล์ทั้งหมด</h3>
+                <p className="text-xs text-slate-400">AWS S3 Migration Confirmation</p>
+              </div>
+            </div>
+
+            <div className="text-xs text-slate-300 space-y-2 bg-slate-950/60 p-4 rounded-xl border border-slate-800 font-sans">
+              <p className="text-sm font-semibold text-amber-300">{fullName}</p>
+              <p className="text-slate-400">รหัสผู้สมัคร: <span className="font-mono text-slate-200">{viewingApp.id}</span></p>
+              <p className="text-slate-400">จำนวนไฟล์ที่จะย้าย: <span className="font-bold text-white text-sm">{pendingFilesToMigrate.length} รายการ</span></p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowConfirmMoveAll(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition-colors"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowConfirmMoveAll(false);
+                  handleExecuteMoveAll();
+                }}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <ArrowRight className="w-4 h-4" />
+                🚀 ยืนยันย้ายไฟล์ ({pendingFilesToMigrate.length} รายการ)
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Toast Notification */}
+      {toastNotification && createPortal(
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[200000] animate-in slide-in-from-top duration-300">
+          <div className={`px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 border text-sm font-semibold ${
+            toastNotification.type === 'success'
+              ? 'bg-slate-900 text-white border-emerald-500/50 shadow-emerald-950/40'
+              : 'bg-slate-900 text-white border-red-500/50 shadow-red-950/40'
+          }`}>
+            {toastNotification.type === 'success' ? (
+              <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+            ) : (
+              <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
+            )}
+            <span>{toastNotification.message}</span>
+            <button
+              type="button"
+              onClick={() => setToastNotification(null)}
+              className="ml-3 text-slate-400 hover:text-white p-1 rounded-lg"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>,
+        document.body
       )}
     </>
   );

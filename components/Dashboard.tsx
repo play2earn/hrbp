@@ -26,10 +26,13 @@ import { UserManagementTab } from './dashboard/UserManagementTab';
 import { BlacklistTab } from './dashboard/BlacklistTab';
 import { CalendarTab } from './dashboard/CalendarTab';
 import { SystemLogsTab } from './dashboard/SystemLogsTab';
+import { S3StorageTab } from './dashboard/S3StorageTab';
+import { HardDrive } from 'lucide-react';
 
 
 export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'reports' | 'qr' | 'settings' | 'config' | 'profile' | 'blacklist' | 'calendar' | 'logs'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'reports' | 'qr' | 'settings' | 'config' | 'profile' | 'blacklist' | 'calendar' | 'logs' | 'hr-drive'>('overview');
+  const [hrDrivePrefix, setHrDrivePrefix] = useState<string>('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -780,6 +783,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
             <ShieldAlert className="w-5 h-5 shrink-0" />
             {!sidebarCollapsed && <span className="font-medium">Blacklist</span>}
           </button>
+          <button
+            onClick={() => { setActiveTab('hr-drive'); setIsMobileMenuOpen(false); }}
+            className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-2' : 'gap-3 px-3'} py-3 rounded-xl transition-all ${activeTab === 'hr-drive' ? 'bg-amber-600 text-white shadow-lg shadow-amber-500/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+            title="HR Drive"
+          >
+            <HardDrive className="w-5 h-5 shrink-0" />
+            {!sidebarCollapsed && <span className="font-medium">HR Drive</span>}
+          </button>
           {role === 'admin' && (
             <>
               <button
@@ -905,6 +916,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               loading={loading}
               totalCount={totalCount}
               statsApplications={statsApplications}
+            />
+          )}
+
+          {activeTab === 'hr-drive' && (
+            <S3StorageTab
+              showToast={showToast}
+              currentUser={currentUser}
+              initialPrefix={hrDrivePrefix}
             />
           )}
 
@@ -1075,6 +1094,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
         blacklistEntries={blacklistEntries}
         onViewBlacklistDetail={setViewingBlacklistDetail}
         setEvaluatingApp={setEvaluatingApp}
+        onOpenHrDrive={(prefix: string) => {
+          setHrDrivePrefix(prefix);
+          setActiveTab('hr-drive');
+          setViewingApp(null);
+        }}
       />
 
       {/* Blacklist Details Modal */}

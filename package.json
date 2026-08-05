@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build:api": "esbuild api/*.ts --outdir=dist-api --platform=node --format=cjs",
+    "build": "npm run build:api && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
