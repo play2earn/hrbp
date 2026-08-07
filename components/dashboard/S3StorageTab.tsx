@@ -439,140 +439,140 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Banner: Storage Info & Multi-Cloud Visualizer */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl text-white">
+      <div className="bg-gradient-to-r from-amber-50/70 via-white to-indigo-50/50 border border-slate-200/80 rounded-2xl p-6 shadow-sm text-slate-800">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <HardDrive className="w-6 h-6 text-amber-400" />
-              <h2 className="text-xl font-bold tracking-tight text-white">HR Drive</h2>
-              <span className="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs px-2.5 py-0.5 rounded-full font-medium">
+              <HardDrive className="w-6 h-6 text-amber-500" />
+              <h2 className="text-xl font-bold tracking-tight text-slate-900">HR Drive</h2>
+              <span className="bg-amber-100/80 text-amber-800 border border-amber-300/60 text-xs px-2.5 py-0.5 rounded-full font-semibold">
                 AWS S3 Native Explorer
               </span>
             </div>
-            <p className="text-sm text-slate-300">
+            <p className="text-sm text-slate-600">
               บริหารจัดการไฟล์ผู้สมัครและเอกสาร HRD บนระบบจัดเก็บไฟล์คลาวด์ความปลอดภัยสูง
             </p>
           </div>
 
           {/* Quick Storage Stats */}
-          <div className="flex items-center gap-3 bg-slate-800/80 backdrop-blur border border-slate-700/60 rounded-xl px-4 py-2.5 text-xs">
+          <div className="flex items-center gap-3 bg-white/90 backdrop-blur border border-slate-200/80 shadow-xs rounded-xl px-4 py-2.5 text-xs">
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-              <span className="text-slate-300">AWS S3:</span>
-              <span className="font-semibold text-white">Primary Storage</span>
+              <span className="text-slate-500">AWS S3:</span>
+              <span className="font-semibold text-slate-900">Primary Storage</span>
             </div>
-            <div className="h-4 w-px bg-slate-700"></div>
+            <div className="h-4 w-px bg-slate-200"></div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-400"></span>
-              <span className="text-slate-300">Cloudflare R2:</span>
-              <span className="font-semibold text-slate-200">Active</span>
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+              <span className="text-slate-500">Cloudflare R2:</span>
+              <span className="font-semibold text-slate-700">Active</span>
             </div>
-            <div className="h-4 w-px bg-slate-700"></div>
+            <div className="h-4 w-px bg-slate-200"></div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-              <span className="text-slate-300">Supabase:</span>
-              <span className="font-semibold text-slate-200">Legacy</span>
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+              <span className="text-slate-500">Supabase:</span>
+              <span className="font-semibold text-slate-700">Legacy</span>
             </div>
           </div>
         </div>
 
         {/* Bucket Storage Usage & Capacity Metrics */}
-        <div className="mt-4 pt-4 border-t border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="mt-4 pt-4 border-t border-slate-200/80 grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* Card 1: Total Storage Used & Progress */}
-          <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3.5 flex flex-col justify-between space-y-2">
-            <div className="flex items-center justify-between text-xs text-slate-300">
+          <div className="bg-white/90 border border-slate-200/80 rounded-xl p-3.5 shadow-xs flex flex-col justify-between space-y-2">
+            <div className="flex items-center justify-between text-xs text-slate-600">
               <span className="flex items-center gap-1.5 font-medium">
-                <Database className="w-4 h-4 text-amber-400 shrink-0" /> พื้นที่ใช้งานรวม (AWS S3)
+                <Database className="w-4 h-4 text-amber-500 shrink-0" /> พื้นที่ใช้งานรวม (AWS S3)
               </span>
-              <span className="font-mono text-amber-300 font-bold text-xs">
+              <span className="font-mono text-amber-600 font-bold text-xs">
                 {bucketStats ? bucketStats.formattedTotalSize : 'กำลังคำนวณ...'}
               </span>
             </div>
 
             {/* Usage Progress Bar */}
-            <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+            <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200">
               <div
                 className="bg-gradient-to-r from-amber-500 to-amber-400 h-full rounded-full transition-all duration-500"
                 style={{ width: `${Math.max(1.5, bucketStats ? bucketStats.usagePercent : 0)}%` }}
               />
             </div>
 
-            <div className="flex items-center justify-between text-[11px] text-slate-400">
-              <span>โควต้าเป้าหมาย: <strong className="text-slate-200">{bucketStats ? `${bucketStats.quotaCapGB} GB` : '10 GB'}</strong></span>
-              <span className="font-mono font-bold text-amber-400">{bucketStats ? `${bucketStats.usagePercent}%` : '0%'}</span>
+            <div className="flex items-center justify-between text-[11px] text-slate-500">
+              <span>โควต้าเป้าหมาย: <strong className="text-slate-700">{bucketStats ? `${bucketStats.quotaCapGB} GB` : '10 GB'}</strong></span>
+              <span className="font-mono font-bold text-amber-600">{bucketStats ? `${bucketStats.usagePercent}%` : '0%'}</span>
             </div>
           </div>
 
           {/* Card 2: Total Active Objects */}
-          <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3.5 flex flex-col justify-between space-y-1.5">
-            <div className="flex items-center justify-between text-xs text-slate-300">
+          <div className="bg-white/90 border border-slate-200/80 rounded-xl p-3.5 shadow-xs flex flex-col justify-between space-y-1.5">
+            <div className="flex items-center justify-between text-xs text-slate-600">
               <span className="flex items-center gap-1.5 font-medium">
-                <FileText className="w-4 h-4 text-blue-400 shrink-0" /> จำนวนไฟล์บน S3
+                <FileText className="w-4 h-4 text-blue-500 shrink-0" /> จำนวนไฟล์บน S3
               </span>
-              <span className="font-mono text-blue-300 font-bold text-sm">
+              <span className="font-mono text-blue-600 font-bold text-sm">
                 {bucketStats ? `${bucketStats.totalObjects} ไฟล์` : '0 ไฟล์'}
               </span>
             </div>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-500">
               ไฟล์ผู้สมัครงาน & เอกสารกลางระบบ HRD
             </p>
           </div>
 
           {/* Card 3: Storage Region & Health Status */}
-          <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3.5 flex flex-col justify-between space-y-1.5">
-            <div className="flex items-center justify-between text-xs text-slate-300">
+          <div className="bg-white/90 border border-slate-200/80 rounded-xl p-3.5 shadow-xs flex flex-col justify-between space-y-1.5">
+            <div className="flex items-center justify-between text-xs text-slate-600">
               <span className="flex items-center gap-1.5 font-medium">
-                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" /> สถานะ Storage Bucket
+                <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" /> สถานะ Storage Bucket
               </span>
-              <span className="text-emerald-400 font-bold text-[10px] bg-emerald-950/70 border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Normal
+              <span className="text-emerald-700 font-bold text-[10px] bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Normal
               </span>
             </div>
-            <p className="text-[11px] text-slate-400">
-              AWS Region: <span className="font-mono text-slate-200 font-semibold">ap-southeast-1</span>
+            <p className="text-[11px] text-slate-500">
+              AWS Region: <span className="font-mono text-slate-700 font-semibold">ap-southeast-1</span>
             </p>
           </div>
         </div>
 
         {/* Quick Folder Jump Shortcuts */}
-        <div className="mt-4 pt-4 border-t border-slate-800/80 flex flex-wrap items-center gap-2 text-xs">
-          <span className="text-slate-400">ทางลัดโฟลเดอร์:</span>
+        <div className="mt-4 pt-4 border-t border-slate-200/80 flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-slate-500 font-medium">ทางลัดโฟลเดอร์:</span>
           <button
             onClick={() => setCurrentPrefix('')}
-            className={`px-3 py-1 rounded-lg border transition-all ${
+            className={`px-3 py-1 rounded-lg border transition-all shadow-xs ${
               currentPrefix === ''
-                ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 font-medium'
-                : 'bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-800'
+                ? 'bg-amber-100/90 border-amber-300 text-amber-900 font-semibold'
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
             }`}
           >
             🏠 Root
           </button>
           <button
             onClick={() => setCurrentPrefix('applicants/')}
-            className={`px-3 py-1 rounded-lg border transition-all ${
+            className={`px-3 py-1 rounded-lg border transition-all shadow-xs ${
               currentPrefix.startsWith('applicants')
-                ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 font-medium'
-                : 'bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-800'
+                ? 'bg-amber-100/90 border-amber-300 text-amber-900 font-semibold'
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
             }`}
           >
             📁 applicants/ (ผู้สมัครงาน)
           </button>
           <button
             onClick={() => setCurrentPrefix('hrd-documents/')}
-            className={`px-3 py-1 rounded-lg border transition-all ${
+            className={`px-3 py-1 rounded-lg border transition-all shadow-xs ${
               currentPrefix.startsWith('hrd-documents')
-                ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 font-medium'
-                : 'bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-800'
+                ? 'bg-amber-100/90 border-amber-300 text-amber-900 font-semibold'
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
             }`}
           >
             📁 hrd-documents/ (เอกสารกลาง)
           </button>
           <button
             onClick={() => setCurrentPrefix('drafts/')}
-            className={`px-3 py-1 rounded-lg border transition-all ${
+            className={`px-3 py-1 rounded-lg border transition-all shadow-xs ${
               currentPrefix.startsWith('drafts')
-                ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 font-medium'
-                : 'bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-800'
+                ? 'bg-amber-100/90 border-amber-300 text-amber-900 font-semibold'
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
             }`}
           >
             📁 drafts/ (ไฟล์ร่างค้าง)
@@ -581,19 +581,19 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
       </div>
 
       {/* Main Explorer Card */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5">
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-5">
         {/* Navigation & Controls Header */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-100 pb-4">
           {/* Breadcrumbs */}
-          <div className="flex items-center flex-wrap gap-1 text-sm font-medium text-slate-600 dark:text-slate-300">
+          <div className="flex items-center flex-wrap gap-1 text-sm font-medium text-slate-600">
             {breadcrumbs.map((b, idx) => (
               <React.Fragment key={b.prefix}>
                 {idx > 0 && <ChevronRight className="w-4 h-4 text-slate-400" />}
                 <button
                   onClick={() => setCurrentPrefix(b.prefix)}
-                  className={`hover:text-amber-600 dark:hover:text-amber-400 transition-colors ${
+                  className={`hover:text-amber-600 transition-colors ${
                     idx === breadcrumbs.length - 1
-                      ? 'text-slate-900 dark:text-white font-bold'
+                      ? 'text-slate-900 font-bold'
                       : ''
                   }`}
                 >
@@ -612,13 +612,13 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
                 placeholder="ค้นหาชื่อไฟล์ / โฟลเดอร์..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                className="w-full pl-9 pr-4 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/30 text-slate-800 placeholder-slate-400"
               />
             </div>
 
             <button
               onClick={() => setViewMode(viewMode === 'table' ? 'grid' : 'table')}
-              className="p-2 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="p-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors bg-white shadow-xs"
               title="สลับมุมมอง"
             >
               {viewMode === 'table' ? <Grid className="w-4 h-4" /> : <ListIcon className="w-4 h-4" />}
@@ -626,7 +626,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
 
             <button
               onClick={() => fetchS3Objects(currentPrefix)}
-              className="p-2 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="p-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors bg-white shadow-xs"
               title="รีเฟรชข้อมูล"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -636,7 +636,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
               onClick={() => {
                 setShowCategorySettings(true);
               }}
-              className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs rounded-xl transition-colors flex items-center gap-1.5"
+              className="px-3 py-1.5 border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-xs rounded-xl transition-colors flex items-center gap-1.5 shadow-xs"
               title="ตั้งค่าลำดับการแสดงผลเอกสาร"
             >
               <span>⚙️</span> เรียงลำดับเอกสาร
@@ -647,7 +647,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
                 setShowTrashModal(true);
                 fetchTrashItems();
               }}
-              className="px-3 py-1.5 border border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-950/60 text-red-700 dark:text-red-300 font-semibold text-xs rounded-xl transition-colors flex items-center gap-1.5"
+              className="px-3 py-1.5 border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 font-semibold text-xs rounded-xl transition-colors flex items-center gap-1.5 shadow-xs"
               title="เปิดถังขยะ (.trash/)"
             >
               <Trash2 className="w-3.5 h-3.5 text-red-500" /> ถังขยะ (.trash)
@@ -671,12 +671,12 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
         {loading ? (
           <div className="py-16 text-center text-slate-400 space-y-3">
             <RefreshCw className="w-8 h-8 animate-spin mx-auto text-amber-500" />
-            <p className="text-sm">กำลังโหลดข้อมูลไฟล์จาก AWS S3...</p>
+            <p className="text-sm text-slate-600 font-medium">กำลังโหลดข้อมูลไฟล์จาก AWS S3...</p>
           </div>
         ) : filteredFolders.length === 0 && filteredFiles.length === 0 ? (
-          <div className="py-16 text-center text-slate-400 space-y-3 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
-            <FolderOpen className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-700" />
-            <p className="text-sm font-medium">ไม่พบไฟล์หรือโฟลเดอร์ในตำแหน่งนี้</p>
+          <div className="py-16 text-center text-slate-400 space-y-3 border-2 border-dashed border-slate-200 rounded-xl">
+            <FolderOpen className="w-12 h-12 mx-auto text-slate-300" />
+            <p className="text-sm font-medium text-slate-700">ไม่พบไฟล์หรือโฟลเดอร์ในตำแหน่งนี้</p>
             <p className="text-xs text-slate-500">เลือกโฟลเดอร์อื่นหรือทดลองอัปโหลดไฟล์ใหม่</p>
           </div>
         ) : viewMode === 'table' ? (
@@ -684,7 +684,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
           <div className="overflow-x-auto">
             {/* Bulk-delete toolbar — shown when files are selected */}
             {selectedKeys.size > 0 && (
-              <div className="mb-2 flex items-center gap-3 px-2 py-2 bg-red-50 border border-red-200 rounded-xl">
+              <div className="mb-2 flex items-center gap-3 px-3 py-2 bg-red-50 border border-red-200 rounded-xl">
                 <span className="text-sm font-semibold text-red-700">
                   เลือกแล้ว {selectedKeys.size} ไฟล์
                 </span>
@@ -705,7 +705,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
             )}
             <table className="w-full text-left text-sm border-collapse">
               <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <tr className="border-b border-slate-200 bg-slate-50/80 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   {/* Select All checkbox */}
                   <th className="py-3 px-3 w-8">
                     <input
@@ -730,20 +730,20 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
                   <th className="py-3 px-4 text-right">คำสั่ง</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+              <tbody className="divide-y divide-slate-100">
                 {/* Folders */}
                 {displayedFolders.map((folder) => (
                   <tr
                     key={folder.prefix}
                     onClick={() => setCurrentPrefix(folder.prefix)}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors group"
+                    className="hover:bg-amber-50/40 cursor-pointer transition-colors group"
                   >
                     <td className="py-3 px-3"><span className="w-3.5 h-3.5 block" /></td>
                     <td className="py-3 px-3 text-center text-xs text-slate-400">—</td>
-                    <td className="py-3 px-4 font-medium text-slate-800 dark:text-slate-200 flex items-center gap-3">
+                    <td className="py-3 px-4 font-medium text-slate-800 flex items-center gap-3">
                       <Folder className="w-5 h-5 text-amber-500 fill-amber-500/20 group-hover:scale-110 transition-transform shrink-0" />
                       <div className="flex flex-col min-w-0">
-                        <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
+                        <span className="font-bold text-xs sm:text-sm text-slate-900">
                           {folder.name}
                         </span>
                         {folder.refCode && (
@@ -754,7 +754,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
                       </div>
                     </td>
                     <td className="py-3 px-4 text-xs">
-                      <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full font-medium">
+                      <span className="bg-amber-100 text-amber-800 border border-amber-200/80 px-2 py-0.5 rounded-full font-semibold">
                         Directory
                       </span>
                     </td>
@@ -774,8 +774,8 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
                       key={file.key}
                       className={`transition-colors ${
                         isSelected
-                          ? 'bg-red-50 dark:bg-red-950/20'
-                          : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                          ? 'bg-red-50/80'
+                          : 'hover:bg-amber-50/30'
                       }`}
                     >
                       {/* Checkbox */}
@@ -794,17 +794,17 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
                       </td>
                       {/* Order Number */}
                       <td className="py-3 px-3 text-center">
-                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-bold font-mono text-slate-500 dark:text-slate-400">
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-slate-100 border border-slate-200 text-[10px] font-bold font-mono text-slate-600">
                           {String((file as any).sortOrder && (file as any).sortOrder < 50
                             ? (file as any).sortOrder
                             : fileIdx + 1
                           ).padStart(2, '0')}
                         </span>
                       </td>
-                      <td className="py-3 px-4 font-medium text-slate-800 dark:text-slate-200 flex items-center gap-3">
+                      <td className="py-3 px-4 font-medium text-slate-800 flex items-center gap-3">
                         {getFileIcon(file.extension)}
                         <div className="flex flex-col min-w-0">
-                          <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+                          <span className="font-bold text-xs sm:text-sm text-slate-900 flex items-center gap-1.5">
                             {file.docTitle || file.name}
                           </span>
                           <span className="text-[11px] text-slate-400 font-mono truncate max-w-xs sm:max-w-md" title={file.name}>
@@ -813,28 +813,28 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
                         </div>
                       </td>
                       <td className="py-3 px-4 text-xs">
-                        <span className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1 w-fit">
+                        <span className="bg-amber-50 text-amber-800 border border-amber-200/80 px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1 w-fit">
                           <ShieldCheck className="w-3 h-3 text-amber-500" />
                           AWS S3
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-xs text-slate-500 dark:text-slate-400 font-mono">
+                      <td className="py-3 px-4 text-xs text-slate-500 font-mono">
                         {formatSize(file.size)}
                       </td>
-                      <td className="py-3 px-4 text-xs text-slate-500 dark:text-slate-400">
+                      <td className="py-3 px-4 text-xs text-slate-500">
                         {new Date(file.lastModified).toLocaleDateString('th-TH', {
                           year: 'numeric', month: 'short', day: 'numeric',
                           hour: '2-digit', minute: '2-digit',
                         })}
                       </td>
-                      <td className="py-3 px-4 text-right space-x-2">
-                        <button onClick={() => handlePreview(file)} className="p-1.5 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-lg transition-colors" title="เปิดดูไฟล์">
+                      <td className="py-3 px-4 text-right space-x-1">
+                        <button onClick={() => handlePreview(file)} className="p-1.5 text-slate-600 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="เปิดดูไฟล์">
                           <Eye className="w-4 h-4" />
                         </button>
-                        <a href={`${file.proxyUrl}&download=true`} download={file.name} className="inline-block p-1.5 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-lg transition-colors" title="ดาวน์โหลด">
+                        <a href={`${file.proxyUrl}&download=true`} download={file.name} className="inline-block p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="ดาวน์โหลด">
                           <Download className="w-4 h-4" />
                         </a>
-                        <button onClick={() => handleSoftDelete(file)} className="p-1.5 text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors" title="ย้ายไปถังขยะ">
+                        <button onClick={() => handleSoftDelete(file)} className="p-1.5 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="ย้ายไปถังขยะ">
                           <Trash2 className="w-4 h-4 text-red-500" />
                         </button>
                       </td>
@@ -851,10 +851,10 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
               <div
                 key={folder.prefix}
                 onClick={() => setCurrentPrefix(folder.prefix)}
-                className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/70 hover:border-amber-500/50 rounded-xl p-4 cursor-pointer transition-all hover:shadow-md text-center space-y-2 group"
+                className="bg-slate-50/80 border border-slate-200/80 hover:border-amber-400 hover:bg-amber-50/30 rounded-xl p-4 cursor-pointer transition-all hover:shadow-md text-center space-y-2 group"
               >
                 <Folder className="w-10 h-10 mx-auto text-amber-500 fill-amber-500/20 group-hover:scale-110 transition-transform" />
-                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate" title={folder.name}>
+                <p className="text-xs font-bold text-slate-800 truncate" title={folder.name}>
                   {folder.name}
                 </p>
                 {folder.refCode && (
@@ -868,22 +868,22 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
             {displayedFiles.map((file) => (
               <div
                 key={file.key}
-                className="bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 hover:border-amber-500/40 rounded-xl p-3 flex flex-col justify-between space-y-2 transition-all hover:shadow-md"
+                className="bg-white border border-slate-200/80 hover:border-amber-400 rounded-xl p-3 flex flex-col justify-between space-y-2 transition-all hover:shadow-md"
               >
                 <div className="text-center space-y-2 pt-2">
-                  <div className="mx-auto w-10 h-10 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-lg">
+                  <div className="mx-auto w-10 h-10 flex items-center justify-center bg-slate-50 border border-slate-100 rounded-lg">
                     {getFileIcon(file.extension)}
                   </div>
-                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate" title={file.docTitle || file.name}>
+                  <p className="text-xs font-bold text-slate-800 truncate" title={file.docTitle || file.name}>
                     {file.docTitle || file.name}
                   </p>
                   <p className="text-[10px] text-slate-400 font-mono truncate">{file.name} • {formatSize(file.size)}</p>
                 </div>
 
-                <div className="flex items-center justify-center gap-1 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-center gap-1 pt-2 border-t border-slate-100">
                   <button
                     onClick={() => handlePreview(file)}
-                    className="p-1 text-slate-500 hover:text-amber-500 transition-colors"
+                    className="p-1 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors"
                     title="เปิดดู"
                   >
                     <Eye className="w-3.5 h-3.5" />
@@ -891,14 +891,14 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
                   <a
                     href={`${file.proxyUrl}&download=true`}
                     download={file.name}
-                    className="p-1 text-slate-500 hover:text-blue-500 transition-colors"
+                    className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
                     title="ดาวน์โหลด"
                   >
                     <Download className="w-3.5 h-3.5" />
                   </a>
                   <button
                     onClick={() => handleSoftDelete(file)}
-                    className="p-1 text-slate-500 hover:text-red-500 transition-colors"
+                    className="p-1 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                     title="ย้ายไปถังขยะ"
                   >
                     <Trash2 className="w-3.5 h-3.5 text-red-500" />
@@ -911,7 +911,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
 
         {/* Pagination Controls Bar */}
         {totalItems > 0 && (
-          <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
+          <div className="mt-4 pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
             <div className="flex items-center gap-2">
               <span>แสดงผล</span>
               <select
@@ -920,30 +920,30 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
                   setPageSize(Number(e.target.value));
                   setCurrentPage(1);
                 }}
-                className="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1 text-slate-800 dark:text-slate-200 font-medium focus:outline-none"
+                className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-800 font-medium focus:outline-none focus:ring-1 focus:ring-amber-500/50"
               >
                 <option value={20}>20 รายการ/หน้า</option>
                 <option value={50}>50 รายการ/หน้า</option>
                 <option value={100}>100 รายการ/หน้า</option>
               </select>
-              <span>จากทั้งหมด <strong className="text-slate-800 dark:text-slate-200 font-semibold">{totalItems}</strong> รายการ</span>
+              <span>จากทั้งหมด <strong className="text-slate-800 font-semibold">{totalItems}</strong> รายการ</span>
             </div>
 
             <div className="flex items-center gap-2 font-medium">
               <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-1"
+                className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white disabled:opacity-40 hover:bg-slate-50 transition-colors flex items-center gap-1 text-slate-700 shadow-xs"
               >
                 <span>◀</span> ก่อนหน้า
               </button>
               <span className="px-2 font-mono">
-                หน้า <strong className="text-amber-500 font-bold">{currentPage}</strong> / {totalPages}
+                หน้า <strong className="text-amber-600 font-bold">{currentPage}</strong> / {totalPages}
               </span>
               <button
                 disabled={currentPage >= totalPages}
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-1"
+                className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white disabled:opacity-40 hover:bg-slate-50 transition-colors flex items-center gap-1 text-slate-700 shadow-xs"
               >
                 ถัดไป <span>▶</span>
               </button>
@@ -955,21 +955,21 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
       {/* PDF Preview Modal */}
       {previewPdfUrl && (
         <div
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
           onClick={() => setPreviewPdfUrl(null)}
         >
           <div
-            className="relative w-full max-w-5xl h-[85vh] bg-slate-900 border border-slate-800 rounded-2xl flex flex-col overflow-hidden shadow-2xl"
+            className="relative w-full max-w-5xl h-[85vh] bg-white border border-slate-200 rounded-2xl flex flex-col overflow-hidden shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-4 bg-slate-950 text-white flex items-center justify-between border-b border-slate-800">
+            <div className="p-4 bg-slate-50 text-slate-900 flex items-center justify-between border-b border-slate-200">
               <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-red-500" />
-                <h3 className="font-bold text-sm text-slate-200 truncate">{previewPdfTitle}</h3>
+                <FileText className="w-5 h-5 text-red-600" />
+                <h3 className="font-bold text-sm text-slate-800 truncate">{previewPdfTitle}</h3>
               </div>
               <button
                 onClick={() => setPreviewPdfUrl(null)}
-                className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors"
+                className="p-1.5 bg-slate-200 hover:bg-slate-300 text-slate-600 hover:text-slate-900 rounded-lg transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -982,10 +982,10 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
       {/* Image Preview Modal */}
       {previewImageUrl && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4"
           onClick={() => setPreviewImageUrl(null)}
         >
-          <div className="relative max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl bg-slate-900 border border-slate-800 p-2">
+          <div className="relative max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl bg-white border border-slate-200 p-2 shadow-2xl">
             <img
               src={previewImageUrl}
               alt="Preview"
@@ -993,7 +993,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
             />
             <button
               onClick={() => setPreviewImageUrl(null)}
-              className="absolute top-4 right-4 bg-black/60 text-white p-2 rounded-full hover:bg-black"
+              className="absolute top-4 right-4 bg-slate-900/70 text-white p-2 rounded-full hover:bg-slate-900 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -1004,54 +1004,54 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
       {/* ===== 🗑️ Trash Bin Modal (.trash/) ===== */}
       {showTrashModal && (
         <div
-          className="fixed inset-0 z-[120000] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-[120000] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
           onClick={() => setShowTrashModal(false)}
         >
           <div
-            className="relative w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-2xl flex flex-col overflow-hidden shadow-2xl"
+            className="relative w-full max-w-3xl bg-white border border-slate-200 rounded-2xl flex flex-col overflow-hidden shadow-2xl"
             style={{ animation: 'fadeInScale 0.18s ease-out' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="p-4 bg-slate-950 text-white flex items-center justify-between border-b border-slate-800">
+            <div className="p-4 bg-slate-50 text-slate-900 flex items-center justify-between border-b border-slate-200">
               <div className="flex items-center gap-2.5">
-                <Trash2 className="w-5 h-5 text-red-400" />
+                <Trash2 className="w-5 h-5 text-red-500" />
                 <div>
-                  <h3 className="font-bold text-sm text-slate-100">ถังขยะ (.trash/) — ไฟล์ที่ถูกลบชั่วคราว</h3>
-                  <p className="text-[10px] text-slate-400 mt-0.5">ไฟล์จะถูก AWS S3 Lifecycle ลบถาวรอัตโนมัติเมื่อครบ 30 วัน</p>
+                  <h3 className="font-bold text-sm text-slate-900">ถังขยะ (.trash/) — ไฟล์ที่ถูกลบชั่วคราว</h3>
+                  <p className="text-[10px] text-slate-500 mt-0.5">ไฟล์จะถูก AWS S3 Lifecycle ลบถาวรอัตโนมัติเมื่อครบ 30 วัน</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowTrashModal(false)}
-                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Content */}
-            <div className="p-5 max-h-[60vh] overflow-y-auto space-y-2.5">
+            <div className="p-5 max-h-[60vh] overflow-y-auto space-y-2.5 bg-slate-50/50">
               {loadingTrash ? (
                 <div className="py-14 text-center text-slate-400 space-y-2">
                   <RefreshCw className="w-6 h-6 animate-spin mx-auto text-amber-500" />
-                  <p className="text-xs">กำลังโหลดรายการถังขยะ...</p>
+                  <p className="text-xs text-slate-600">กำลังโหลดรายการถังขยะ...</p>
                 </div>
               ) : trashItems.length === 0 ? (
                 <div className="py-14 text-center text-slate-500 space-y-2">
-                  <Trash2 className="w-10 h-10 mx-auto text-slate-700" />
-                  <p className="text-sm font-medium text-slate-400">ถังขยะว่างเปล่า</p>
-                  <p className="text-xs text-slate-600">กดปุ่ม 🗑️ ที่ข้างไฟล์เพื่อย้ายไปถังขยะก่อนลบถาวร</p>
+                  <Trash2 className="w-10 h-10 mx-auto text-slate-300" />
+                  <p className="text-sm font-medium text-slate-600">ถังขยะว่างเปล่า</p>
+                  <p className="text-xs text-slate-400">กดปุ่ม 🗑️ ที่ข้างไฟล์เพื่อย้ายไปถังขยะก่อนลบถาวร</p>
                 </div>
               ) : (
                 trashItems.map((item: any) => (
                   <div
                     key={item.key}
-                    className="bg-slate-800/80 border border-slate-700/80 rounded-xl p-3.5 flex items-center justify-between gap-3"
+                    className="bg-white border border-slate-200 rounded-xl p-3.5 flex items-center justify-between gap-3 shadow-xs"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       {getFileIcon(item.extension || item.name?.split('.').pop()?.toLowerCase() || '')}
                       <div className="min-w-0">
-                        <p className="font-semibold text-xs text-slate-200 truncate">{item.name}</p>
+                        <p className="font-semibold text-xs text-slate-800 truncate">{item.name}</p>
                         <p className="text-[10px] text-slate-400 font-mono truncate mt-0.5">
                           {item.key} • {formatSize(item.size || 0)}
                         </p>
@@ -1062,14 +1062,14 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
                       <button
                         disabled={actionKey === item.key}
                         onClick={() => handleRestoreTrash(item.key)}
-                        className="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+                        className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
                       >
                         {actionKey === item.key ? '...' : '↺ กู้คืน'}
                       </button>
                       <button
                         disabled={actionKey === item.key}
                         onClick={() => handlePurgeTrash(item.key)}
-                        className="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/40 text-red-300 border border-red-500/30 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+                        className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
                       >
                         {actionKey === item.key ? '...' : '❌ ลบถาวร'}
                       </button>
@@ -1080,11 +1080,11 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
-              <span>💡 S3 Lifecycle Rule จะลบไฟล์ใน <code className="font-mono text-slate-400">.trash/</code> อัตโนมัติหลัง 30 วัน</span>
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+              <span>💡 S3 Lifecycle Rule จะลบไฟล์ใน <code className="font-mono text-slate-700 bg-slate-200 px-1.5 py-0.5 rounded">.trash/</code> อัตโนมัติหลัง 30 วัน</span>
               <button
                 onClick={() => setShowTrashModal(false)}
-                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium text-xs"
+                className="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg font-semibold text-xs transition-colors"
               >
                 ปิด
               </button>
@@ -1096,48 +1096,48 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
       {/* ===== ⚙️ Document Category Order Settings Modal ===== */}
       {showCategorySettings && (
         <div
-          className="fixed inset-0 z-[120000] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-[120000] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
           onClick={() => setShowCategorySettings(false)}
         >
           <div
-            className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl flex flex-col overflow-hidden shadow-2xl"
+            className="relative w-full max-w-xl bg-white border border-slate-200 rounded-2xl flex flex-col overflow-hidden shadow-2xl"
             style={{ animation: 'fadeInScale 0.18s ease-out' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="p-4 bg-slate-950 text-white flex items-center justify-between border-b border-slate-800">
+            <div className="p-4 bg-slate-50 text-slate-900 flex items-center justify-between border-b border-slate-200">
               <div className="flex items-center gap-2.5">
-                <span className="text-amber-400 text-lg">⚙️</span>
+                <span className="text-amber-500 text-lg">⚙️</span>
                 <div>
-                  <h3 className="font-bold text-sm text-slate-100">ตั้งค่าลำดับการแสดงเอกสาร (Category Order)</h3>
-                  <p className="text-[10px] text-slate-400 mt-0.5">ลำดับนี้จะใช้ในการจัดเรียงเอกสารของผู้สมัครทุกคนในระบบ</p>
+                  <h3 className="font-bold text-sm text-slate-900">ตั้งค่าลำดับการแสดงเอกสาร (Category Order)</h3>
+                  <p className="text-[10px] text-slate-500 mt-0.5">ลำดับนี้จะใช้ในการจัดเรียงเอกสารของผู้สมัครทุกคนในระบบ</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowCategorySettings(false)}
-                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Category List */}
-            <div className="p-5 max-h-[60vh] overflow-y-auto space-y-2">
-              <p className="text-xs text-slate-400 pb-1">
+            <div className="p-5 max-h-[60vh] overflow-y-auto space-y-2 bg-slate-50/50">
+              <p className="text-xs text-slate-500 pb-1 font-medium">
                 ใช้ปุ่ม ⬆️ / ⬇️ เพื่อเรียงลำดับเอกสาร — ระบบจะจัดเรียงไฟล์ตามลำดับที่กำหนดโดยอัตโนมัติ
               </p>
 
               {docCategories.map((cat, idx) => (
                 <div
                   key={cat.id}
-                  className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-3 flex items-center justify-between gap-3 transition-all hover:border-amber-500/30"
+                  className="bg-white border border-slate-200 rounded-xl p-3 flex items-center justify-between gap-3 transition-all hover:border-amber-400 shadow-xs"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="font-mono font-bold text-amber-400 bg-slate-950/80 border border-slate-800 px-2 py-0.5 rounded text-xs shrink-0">
+                    <span className="font-mono font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-xs shrink-0">
                       {String(cat.order).padStart(2, '0')}
                     </span>
                     <span className="text-base shrink-0">{cat.icon}</span>
-                    <span className="text-xs font-semibold text-slate-200 truncate">{cat.label}</span>
+                    <span className="text-xs font-semibold text-slate-800 truncate">{cat.label}</span>
                   </div>
 
                   <div className="flex items-center gap-1 shrink-0">
@@ -1145,7 +1145,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
                       disabled={idx === 0}
                       onClick={() => moveCategory(idx, 'up')}
                       title="เลื่อนขึ้น"
-                      className="w-7 h-7 flex items-center justify-center bg-slate-700 hover:bg-slate-600 disabled:opacity-25 disabled:cursor-not-allowed text-white rounded-lg transition-colors text-sm font-bold"
+                      className="w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed text-slate-700 rounded-lg transition-colors text-sm font-bold border border-slate-200"
                     >
                       ▲
                     </button>
@@ -1153,7 +1153,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
                       disabled={idx === docCategories.length - 1}
                       onClick={() => moveCategory(idx, 'down')}
                       title="เลื่อนลง"
-                      className="w-7 h-7 flex items-center justify-center bg-slate-700 hover:bg-slate-600 disabled:opacity-25 disabled:cursor-not-allowed text-white rounded-lg transition-colors text-sm font-bold"
+                      className="w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed text-slate-700 rounded-lg transition-colors text-sm font-bold border border-slate-200"
                     >
                       ▼
                     </button>
@@ -1163,20 +1163,20 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between">
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
               <button
                 onClick={() => {
                   setDocCategories(DEFAULT_DOC_CATEGORIES);
                   localStorage.removeItem('hr_drive_doc_category_settings');
                   showToast('คืนค่าลำดับเริ่มต้นสำเร็จ', 'success');
                 }}
-                className="text-xs text-slate-500 hover:text-amber-400 underline transition-colors font-medium"
+                className="text-xs text-slate-500 hover:text-amber-600 underline transition-colors font-medium"
               >
                 🔄 คืนค่าเริ่มต้น (Reset Default)
               </button>
               <button
                 onClick={() => setShowCategorySettings(false)}
-                className="px-5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-xs transition-colors"
+                className="px-5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs transition-colors shadow-sm"
               >
                 เสร็จสิ้น ✓
               </button>
