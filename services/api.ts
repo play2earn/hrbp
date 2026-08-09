@@ -27,6 +27,13 @@ export interface AuthUser {
   created_at: string;
   emp_id?: string;
   hrms_username?: string;
+  position_name?: string;
+  company_name?: string;
+  department_name?: string;
+  is_hr_team?: boolean;
+  last_login_at?: string;
+  last_active_at?: string;
+  last_synced_at?: string;
 }
 
 export type ApplicationStatus =
@@ -1460,7 +1467,77 @@ export const api = {
           if (profile.status !== 'Active') {
             return { user: null, error: { message: 'Account is pending approval. Please contact the administrator.' } };
           }
-          return { user: profile, error: null };
+
+          // Update last_login_at timestamp & sync latest org details from Worklog API
+          const nowIso = new Date().toISOString();
+          let orgDetails: any = {
+            position_name: profile.position_name || 'เจ้าหน้าที่สรรหาบุคลากร (Recruiter)',
+            department_name: profile.department_name || 'ฝ่ายทรัพยากรบุคคล (HRBP)',
+            company_name: profile.company_name || 'Double A (1991) PLC',
+            is_hr_team: profile.is_hr_team ?? true
+          };
+
+          try {
+            const res = await fetch(`/api/worklog-emp-info?emp_id=${encodeURIComponent(empId || profile.emp_id || '')}`);
+            if (res.ok) {
+              const resData = await res.json();
+              if (resData.success) {
+                orgDetails = {
+                  full_name: resData.full_name,
+                  name_th: resData.name_th,
+                  name_en: resData.name_en,
+                  position_name: resData.position_name,
+                  department_name: resData.department_name,
+                  company_name: resData.company_name,
+                  is_hr_team: resData.is_hr_team
+                };
+              }
+            }
+          } catch (fetchErr) {
+            console.warn('Worklog detail sync warning:', fetchErr);
+          }
+
+          // Security Audit: Demote if no longer in HR team (except system admin override)
+          if (orgDetails.is_hr_team === false && profile.role !== 'admin') {
+            await supabase
+              .from('users')
+              .update({
+                status: 'Pending',
+                is_hr_team: false,
+                last_synced_at: nowIso
+              })
+              .eq('id', profile.id);
+
+            return {
+              user: null,
+              error: {
+                message: '⚠️ ตรวจพบการย้ายสายงานไปอยู่นอกทีมสรรหา บัญชีของคุณถูกระงับชั่วคราวเพื่อรอ Admin ตรวจสอบสิทธิ์'
+              }
+            };
+          }
+
+          const updatePayload: any = {
+            last_login_at: nowIso,
+            last_active_at: nowIso,
+            last_synced_at: nowIso,
+            position_name: orgDetails.position_name,
+            company_name: orgDetails.company_name,
+            department_name: orgDetails.department_name,
+            is_hr_team: orgDetails.is_hr_team
+          };
+
+          if (orgDetails.full_name) updatePayload.full_name = orgDetails.full_name;
+          if (orgDetails.name_th) updatePayload.name_th = orgDetails.name_th;
+          if (orgDetails.name_en) updatePayload.name_en = orgDetails.name_en;
+
+          const { data: updatedProfile } = await supabase
+            .from('users')
+            .update(updatePayload)
+            .eq('id', profile.id)
+            .select()
+            .single();
+
+          return { user: updatedProfile || { ...profile, ...updatePayload }, error: null };
         }
 
         // 3. Not found - needs registration
@@ -1499,6 +1576,33 @@ export const api = {
            return { success: false, error: { message: 'This email is already in use.' } };
         }
 
+        // Fetch position & department details from Worklog API during registration
+        let orgDetails = {
+          position_name: 'เจ้าหน้าที่สรรหาบุคลากร (Recruiter)',
+          department_name: 'ฝ่ายทรัพยากรบุคคล (HRBP)',
+          company_name: 'Double A (1991) PLC',
+          is_hr_team: true
+        };
+
+        try {
+          const res = await fetch(`/api/worklog-emp-info?emp_id=${encodeURIComponent(userData.emp_id)}`);
+          if (res.ok) {
+            const resData = await res.json();
+            if (resData.success) {
+              orgDetails = {
+                position_name: resData.position_name,
+                department_name: resData.department_name,
+                company_name: resData.company_name,
+                is_hr_team: resData.is_hr_team
+              };
+            }
+          }
+        } catch (fetchErr) {
+          console.warn('Worklog initial fetch warning:', fetchErr);
+        }
+
+        const nowIso = new Date().toISOString();
+
         // Create profile in users table (No passwords needed anymore)
         const { data: profile, error: profileError } = await supabase
           .from('users')
@@ -1510,7 +1614,12 @@ export const api = {
             status: 'Pending',
             emp_id: userData.emp_id,
             hrms_username: userData.hrms_username,
-            created_at: new Date().toISOString()
+            position_name: orgDetails.position_name,
+            department_name: orgDetails.department_name,
+            company_name: orgDetails.company_name,
+            is_hr_team: orgDetails.is_hr_team,
+            last_synced_at: nowIso,
+            created_at: nowIso
           }])
           .select()
           .single();
@@ -1523,6 +1632,81 @@ export const api = {
         };
       } catch (error) {
         return handleError(error, 'registerHrmsUser');
+      }
+    },
+
+    /**
+     * Re-sync user info from Worklog-NewGen API (Admin trigger)
+     */
+    syncUserWorklogDetails: async (userId: string, empId: string): Promise<ApiResponse<AuthUser>> => {
+      try {
+        let orgDetails: any = {
+          position_name: 'เจ้าหน้าที่สรรหาบุคลากร (Recruiter)',
+          department_name: 'ฝ่ายทรัพยากรบุคคล (HRBP)',
+          company_name: 'Double A (1991) PLC',
+          is_hr_team: true
+        };
+
+        try {
+          const res = await fetch(`/api/worklog-emp-info?emp_id=${encodeURIComponent(empId)}`);
+          if (res.ok) {
+            const resData = await res.json();
+            if (resData.success) {
+              orgDetails = {
+                full_name: resData.full_name,
+                name_th: resData.name_th,
+                name_en: resData.name_en,
+                position_name: resData.position_name,
+                department_name: resData.department_name,
+                company_name: resData.company_name,
+                is_hr_team: resData.is_hr_team
+              };
+            }
+          }
+        } catch (fetchErr) {
+          console.warn('Worklog resync fetch warning:', fetchErr);
+        }
+
+        const nowIso = new Date().toISOString();
+        const updatePayload: any = {
+          position_name: orgDetails.position_name,
+          department_name: orgDetails.department_name,
+          company_name: orgDetails.company_name,
+          is_hr_team: orgDetails.is_hr_team,
+          last_synced_at: nowIso
+        };
+
+        if (orgDetails.full_name) updatePayload.full_name = orgDetails.full_name;
+        if (orgDetails.name_th) updatePayload.name_th = orgDetails.name_th;
+        if (orgDetails.name_en) updatePayload.name_en = orgDetails.name_en;
+
+        const { data: updated, error } = await supabase
+          .from('users')
+          .update(updatePayload)
+          .eq('id', userId)
+          .select()
+          .single();
+
+        if (error) return handleError(error, 'syncUserWorklogDetails');
+        return { success: true, data: updated };
+      } catch (err) {
+        return handleError(err, 'syncUserWorklogDetails');
+      }
+    },
+
+    /**
+     * Touch user active timestamp when user is actively using the app (Heartbeat / Session Touch)
+     */
+    touchUserActivity: async (userId: string): Promise<void> => {
+      try {
+        if (!userId) return;
+        const nowIso = new Date().toISOString();
+        await supabase
+          .from('users')
+          .update({ last_active_at: nowIso })
+          .eq('id', userId);
+      } catch (err) {
+        console.warn('Failed to update user last active timestamp:', err);
       }
     },
 

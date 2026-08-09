@@ -680,29 +680,75 @@ export default function App() {
         title={lang === 'th' ? 'ข้อกำหนดและเงื่อนไข' : 'Terms & Conditions'}
         size="lg"
         footer={
-          <div className="w-full flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setIsPdpaModalOpen(false)}>
-              {lang === 'th' ? 'ยกเลิก' : 'Cancel'}
-            </Button>
-            <Button onClick={handleStartApplication} disabled={!pdpaAccepted}>
-              {lang === 'th' ? 'ยอมรับและดำเนินการต่อ' : 'Accept & Continue'}
-            </Button>
+          <div className="w-full space-y-3">
+            {/* Touch-optimized Checkbox Box */}
+            <label 
+              htmlFor="pdpa-check" 
+              className={`flex items-start gap-3 text-xs sm:text-sm text-gray-800 cursor-pointer select-none p-3.5 rounded-xl border transition-all duration-200 ${
+                pdpaAccepted 
+                  ? 'bg-indigo-50/80 border-indigo-300 shadow-sm ring-1 ring-indigo-200' 
+                  : 'bg-slate-50 border-slate-200 hover:bg-indigo-50/30 hover:border-indigo-200'
+              }`}
+            >
+              <input
+                type="checkbox"
+                id="pdpa-check"
+                checked={pdpaAccepted}
+                onChange={(e) => setPdpaAccepted(e.target.checked)}
+                className="w-5 h-5 mt-0.5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer accent-indigo-600 shrink-0"
+              />
+              <span className="font-semibold leading-relaxed">
+                {lang === 'th'
+                  ? 'ข้าพเจ้ารับทราบและยอมรับตามรายละเอียดเกี่ยวกับข้อมูลส่วนบุคคลและความยินยอมในการประมวลผลข้อมูลข้างต้น'
+                  : 'I acknowledge and agree to the Privacy Notice and Consent to Processing Personal Data.'
+                }
+              </span>
+            </label>
+
+            {/* Action Buttons: Full width on mobile */}
+            <div className="flex flex-col-reverse sm:flex-row gap-2.5 w-full justify-end pt-1">
+              <Button 
+                variant="outline" 
+                size="md" 
+                onClick={() => setIsPdpaModalOpen(false)}
+                className="w-full sm:w-auto justify-center text-gray-600 border-gray-300"
+              >
+                {lang === 'th' ? 'ยกเลิก' : 'Cancel'}
+              </Button>
+              <Button 
+                size="md" 
+                onClick={handleStartApplication} 
+                disabled={!pdpaAccepted} 
+                className={`w-full sm:w-auto justify-center font-bold text-base py-3 transition-all duration-300 shadow-md ${
+                  pdpaAccepted 
+                    ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white hover:from-indigo-700 hover:to-blue-700 shadow-indigo-200 active:scale-[0.98]' 
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                {lang === 'th' ? 'ยอมรับและดำเนินการต่อ' : 'Accept & Continue'}
+              </Button>
+            </div>
           </div>
         }
       >
         <div className="space-y-4">
-          {/* Language Toggle inside modal */}
-          <div className="flex items-center justify-end">
-            <div className="inline-flex items-center bg-white rounded-full border border-gray-200 shadow-sm p-0.5">
+          {/* Header: Language Switcher & Quick Navigation */}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3 bg-gray-50/50 p-2 rounded-xl">
+            <div className="text-xs text-indigo-700 font-bold flex items-center gap-1.5 px-2">
+              <span className="animate-bounce">👇</span>
+              {lang === 'th' ? 'ติ๊กยอมรับที่แถบด้านล่างเพื่อดำเนินการต่อ' : 'Check agree box at the bottom to continue'}
+            </div>
+            
+            <div className="inline-flex items-center bg-white rounded-full border border-gray-200 shadow-sm p-0.5 ml-auto">
               <button
                 onClick={() => setLang('th')}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${lang === 'th' ? 'bg-gradient-to-r from-[#1a3a7a] to-[#2855a8] text-white shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`px-3 py-1 rounded-full text-xs font-bold transition-all duration-200 ${lang === 'th' ? 'bg-gradient-to-r from-[#1a3a7a] to-[#2855a8] text-white shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
               >
                 🇹🇭 ไทย
               </button>
               <button
                 onClick={() => setLang('en')}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${lang === 'en' ? 'bg-gradient-to-r from-[#1a3a7a] to-[#2855a8] text-white shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`px-3 py-1 rounded-full text-xs font-bold transition-all duration-200 ${lang === 'en' ? 'bg-gradient-to-r from-[#1a3a7a] to-[#2855a8] text-white shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
               >
                 🇬🇧 EN
               </button>
@@ -711,37 +757,37 @@ export default function App() {
 
           {/* Section 1: Privacy Notice */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="bg-gradient-to-r from-[#1a3a7a] to-[#2855a8] px-5 py-3">
-              <h4 className="text-white font-bold text-base">
+            <div className="bg-gradient-to-r from-[#1a3a7a] to-[#2855a8] px-4 py-3 flex items-center justify-between">
+              <h4 className="text-white font-bold text-sm sm:text-base flex items-center gap-2">
+                <span>📋</span>
                 {lang === 'th' ? 'รายละเอียดเกี่ยวกับข้อมูลส่วนบุคคล' : 'Privacy Notice'}
               </h4>
+              <span className="text-[10px] text-indigo-100 bg-white/10 px-2 py-0.5 rounded-full">1/2</span>
             </div>
-            <div className="p-5 max-h-72 overflow-y-auto text-sm text-gray-700 leading-relaxed space-y-3">
+            <div className="p-4 sm:p-5 text-sm text-gray-700 leading-relaxed space-y-3">
               {lang === 'th' ? (
                 <>
                   <p>หนังสือนี้จัดทำขึ้นเพื่อชี้แจงรายละเอียดเกี่ยวกับข้อมูลส่วนบุคคลระหว่างบริษัท ดั๊บเบิ้ล เอ (1991) จำกัด (มหาชน) ("<strong>บริษัทฯ</strong>") และผู้ที่มีความประสงค์จะสมัครงานเพื่อเข้าทำงานกับบริษัทฯ และ/หรือบริษัทในเครือพันธมิตรของบริษัทฯ ("<strong>ผู้สมัครงาน</strong>") ตามหลักเกณฑ์และนโยบายของบริษัทฯ ดังนี้</p>
 
                   <p className="font-bold text-gray-900">1. การเก็บรวบรวมข้อมูลส่วนบุคคล</p>
-                  <p className="pl-4">บริษัทฯ จะเก็บ รวบรวม ใช้ ประมวลผล และเปิดเผยข้อมูลส่วนบุคคลของผู้สมัครงาน ได้แก่ ชื่อ นามสกุล เลขประจำตัวประชาชน ที่อยู่ ประวัติการศึกษา ประวัติการทำงานหรือการอบรม ประวัติการเกณฑ์ทหาร อีเมล เบอร์โทรศัพท์ ข้อมูลตามที่ผู้สมัครงานระบุใน Resume และ CV ที่ผู้สมัครนำส่งให้บริษัทฯ ที่ไม่ใช่ข้อมูลอ่อนไหว เพื่อประโยชน์ของผู้สมัครงานในการยืนยันตัวบุคคลของผู้สมัครงาน และเพื่อการพิจารณาความเหมาะสมในการเข้าทำสัญญาจ้างแรงงานกับบริษัทฯ</p>
+                  <p className="pl-3 sm:pl-4">บริษัทฯ จะเก็บ รวบรวม ใช้ ประมวลผล และเปิดเผยข้อมูลส่วนบุคคลของผู้สมัครงาน ได้แก่ ชื่อ นามสกุล เลขประจำตัวประชาชน ที่อยู่ ประวัติการศึกษา ประวัติการทำงานหรือการอบรม ประวัติการเกณฑ์ทหาร อีเมล เบอร์โทรศัพท์ ข้อมูลตามที่ผู้สมัครงานระบุใน Resume และ CV ที่ผู้สมัครนำส่งให้บริษัทฯ ที่ไม่ใช่ข้อมูลอ่อนไหว เพื่อประโยชน์ของผู้สมัครงานในการยืนยันตัวบุคคลของผู้สมัครงาน และเพื่อการพิจารณาความเหมาะสมในการเข้าทำสัญญาจ้างแรงงานกับบริษัทฯ</p>
 
                   <p className="font-bold text-gray-900">2. การเปิดเผยข้อมูลส่วนบุคคล</p>
-                  <p className="pl-4">บริษัทฯ อาจเปิดเผยข้อมูลส่วนบุคคลของผู้สมัครงานต่อบริษัทในเครือพันธมิตรของบริษัทฯ เพื่อผลประโยชน์ของผู้สมัครงานในการพิจารณาความเหมาะสมในการเข้าทำสัญญาจ้างแรงงานกับบริษัทในเครือพันธมิตรของบริษัทฯ รวมถึงเพื่อการดำเนินการตามวัตถุประสงค์ที่เกี่ยวข้องกับวัตถุประสงค์ดังกล่าว</p>
+                  <p className="pl-3 sm:pl-4">บริษัทฯ อาจเปิดเผยข้อมูลส่วนบุคคลของผู้สมัครงานต่อบริษัทในเครือพันธมิตรของบริษัทฯ เพื่อผลประโยชน์ของผู้สมัครงานในการพิจารณาความเหมาะสมในการเข้าทำสัญญาจ้างแรงงานกับบริษัทในเครือพันธมิตรของบริษัทฯ รวมถึงเพื่อการดำเนินการตามวัตถุประสงค์ที่เกี่ยวข้องกับวัตถุประสงค์ดังกล่าว</p>
 
                   <p className="font-bold text-gray-900">3. การประมวลผลข้อมูล</p>
-                  <p className="pl-4">ข้อมูลส่วนบุคคลของผู้สมัครงานจะถูกประมวลผลโดยผู้ที่ได้รับอนุมัติจากบริษัทฯ และ/หรือบริษัทในเครือพันธมิตรของบริษัทฯ เพื่อการพิจารณารับบุคคลเข้าทำงาน</p>
+                  <p className="pl-3 sm:pl-4">ข้อมูลส่วนบุคคลของผู้สมัครงานจะถูกประมวลผลโดยผู้ที่ได้รับอนุมัติจากบริษัทฯ และ/หรือบริษัทในเครือพันธมิตรของบริษัทฯ เพื่อการพิจารณารับบุคคลเข้าทำงาน</p>
 
                   <p className="font-bold text-gray-900">4. ระยะเวลาในการจัดเก็บข้อมูล</p>
-                  <p className="pl-4">บริษัทฯ จะเก็บข้อมูลส่วนบุคคลของผู้สมัครงานเพื่อการดำเนินการตามวัตถุประสงค์เป็นระยะเวลา 5 ปี นับแต่วันที่ผู้สมัครงานทำการสมัครงานเพื่อเข้าทำงานกับบริษัทฯ และ/หรือบริษัทในเครือพันธมิตรของบริษัทฯ</p>
+                  <p className="pl-3 sm:pl-4">บริษัทฯ จะเก็บข้อมูลส่วนบุคคลของผู้สมัครงานเพื่อการดำเนินการตามวัตถุประสงค์เป็นระยะเวลา 5 ปี นับแต่วันที่ผู้สมัครงานทำการสมัครงานเพื่อเข้าทำงานกับบริษัทฯ และ/หรือบริษัทในเครือพันธมิตรของบริษัทฯ</p>
 
                   <p className="font-bold text-gray-900">5. สิทธิของผู้สมัครงาน</p>
-                  <p className="pl-4">รายละเอียดปรากฏตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 นโยบายคุ้มครองข้อมูลส่วนบุคคลของบริษัทฯ เรื่อง "สิทธิของเจ้าของข้อมูล"</p>
-                  <p className="pl-4">กรณีที่ผู้สมัครงานต้องการเข้าถึง แก้ไข ลบข้อมูลส่วนบุคคล ที่ให้ไว้แก่บริษัทฯ ผู้สมัครงานสามารถติดต่อมายังบริษัทฯ เพื่อยื่นคำขอเกี่ยวกับข้อมูลส่วนบุคคลของท่านผ่านช่องทางการติดต่อดังนี้</p>
+                  <p className="pl-3 sm:pl-4">รายละเอียดปรากฏตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 นโยบายคุ้มครองข้อมูลส่วนบุคคลของบริษัทฯ เรื่อง "สิทธิของเจ้าของข้อมูล"</p>
+                  <p className="pl-3 sm:pl-4">กรณีที่ผู้สมัครงานต้องการเข้าถึง แก้ไข ลบข้อมูลส่วนบุคคล ที่ให้ไว้แก่บริษัทฯ ผู้สมัครงานสามารถติดต่อมายังบริษัทฯ เพื่อยื่นคำขอเกี่ยวกับข้อมูลส่วนบุคคลของท่านผ่านช่องทางการติดต่อดังนี้</p>
 
-                  <div className="pl-4 mt-2 bg-gray-50 p-3 rounded-lg text-xs">
+                  <div className="pl-3 sm:pl-4 mt-2 bg-gray-50 p-3 rounded-lg text-xs space-y-1 border">
                     <p><strong>ผู้ควบคุมข้อมูลส่วนบุคคล:</strong> บริษัท ดั๊บเบิ้ล เอ (1991) จำกัด (มหาชน)</p>
-                    <p><strong>สถานที่ติดต่อ:</strong> ฝ่ายสรรหาและคัดเลือกบุคลากร</p>
-                    <p className="pl-24">187/3 หมู่ที่ 1 ถนนบางนา-ตราด กม. 42 ตำบลบางวัว อำเภอบางปะกง</p>
-                    <p className="pl-24">จังหวัดฉะเชิงเทรา 24180</p>
+                    <p><strong>สถานที่ติดต่อ:</strong> ฝ่ายสรรหาและคัดเลือกบุคลากร 187/3 หมู่ที่ 1 ถนนบางนา-ตราด กม. 42 ตำบลบางวัว อำเภอบางปะกง จังหวัดฉะเชิงเทรา 24180</p>
                     <p><strong>Email:</strong> recruit@doublea1991.com</p>
                   </div>
 
@@ -749,25 +795,24 @@ export default function App() {
 
                   <p>ทั้งนี้ผู้สมัครงานยืนยันว่าข้อมูลส่วนบุคคลของบุคคลที่สามที่ผู้สมัครงานให้แก่บริษัทฯ เพื่อผลประโยชน์ของผู้สมัครงานในการพิจารณาความเหมาะสมในการเข้าทำสัญญาจ้างแรงงานกับบริษัทฯ หรือบริษัทในเครือ ถูกต้อง และเจ้าของข้อมูลส่วนบุคคลทราบถึงการเปิดเผยข้อมูลดังกล่าวแก่บริษัทฯ แล้ว</p>
 
-                  <p className="font-semibold">ผู้สมัครงาน อ่าน เข้าใจ และรายละเอียดข้อซึ่งระบุไว้ข้างต้นแล้ว โดยยอมรับรองว่าข้อมูลที่นำส่งให้แก่บริษัทฯ เพื่อการประมวลผลข้อมูลนั้นถูกต้อง และเป็นความจริงทุกประการ</p>
+                  <p className="font-semibold text-gray-900">ผู้สมัครงาน อ่าน เข้าใจ และรายละเอียดข้อซึ่งระบุไว้ข้างต้นแล้ว โดยยอมรับรองว่าข้อมูลที่นำส่งให้แก่บริษัทฯ เพื่อการประมวลผลข้อมูลนั้นถูกต้อง และเป็นความจริงทุกประการ</p>
                 </>
               ) : (
                 <>
                   <p>This Privacy Notice is to clarify the personal data processing between Double A (1991) Public Company Limited (the "<strong>Company</strong>") and the applicant who intends to apply for a job at the Company and/or the Company's alliance (the "<strong>Applicant</strong>") according to the Policy of the Company.</p>
 
                   <p className="font-bold text-gray-900">1. Processing of the Personal Data</p>
-                  <p className="pl-4">The Company will collect, use, or disclose the Applicant's personal data, including name, surname, identification number, address, education background, work/ training experience, military status, email, contact number, photo, and the information in the Applicant's resume or CV, which is not sensitive personal data<sup>1</sup> (the "<strong>Personal Data</strong>") for the benefit of the Applicant, to verify identity and to consider the employment.</p>
-                  <p className="pl-4">For the benefit of the Applicant, the Company may disclose the Personal Data to the Company's alliance for considering the employment by the Company's alliance and processing for the said purpose.</p>
-                  <p className="pl-4">For the above purposes, the Company shall collect the Personal Data for 5 years from the date that the Applicant applies the job with the Company and/or the Company's alliance.</p>
+                  <p className="pl-3 sm:pl-4">The Company will collect, use, or disclose the Applicant's personal data, including name, surname, identification number, address, education background, work/ training experience, military status, email, contact number, photo, and the information in the Applicant's resume or CV, which is not sensitive personal data<sup>1</sup> (the "<strong>Personal Data</strong>") for the benefit of the Applicant, to verify identity and to consider the employment.</p>
+                  <p className="pl-3 sm:pl-4">For the benefit of the Applicant, the Company may disclose the Personal Data to the Company's alliance for considering the employment by the Company's alliance and processing for the said purpose.</p>
+                  <p className="pl-3 sm:pl-4">For the above purposes, the Company shall collect the Personal Data for 5 years from the date that the Applicant applies the job with the Company and/or the Company's alliance.</p>
 
                   <p className="font-bold text-gray-900">2. Rights of the Applicant</p>
-                  <p className="pl-4">Rights of the Applicant is in accordance with the Personal Data Protection Act, B.E. 2562 (2019) and the Company's Personal Information Protection Policy in the subject "Rights of Data Subject".</p>
-                  <p className="pl-4">If the Applicant would like access, rectification, erasure of the Personal Data provided to the Company, please submit the request to the contact below:</p>
+                  <p className="pl-3 sm:pl-4">Rights of the Applicant is in accordance with the Personal Data Protection Act, B.E. 2562 (2019) and the Company's Personal Information Protection Policy in the subject "Rights of Data Subject".</p>
+                  <p className="pl-3 sm:pl-4">If the Applicant would like access, rectification, erasure of the Personal Data provided to the Company, please submit the request to the contact below:</p>
 
-                  <div className="pl-4 mt-2 bg-gray-50 p-3 rounded-lg text-xs">
+                  <div className="pl-3 sm:pl-4 mt-2 bg-gray-50 p-3 rounded-lg text-xs space-y-1 border">
                     <p><strong>Data Controller:</strong> Double A (1991) Public Company Limited</p>
-                    <p><strong>Address:</strong> Recruitment Department, 187/3 Moo 1, Bangna-Trad Km. 42 Road, Bangwua,</p>
-                    <p className="pl-16">Bangpakong, Chachoengsao 24180, Thailand.</p>
+                    <p><strong>Address:</strong> Recruitment Department, 187/3 Moo 1, Bangna-Trad Km. 42 Road, Bangwua, Bangpakong, Chachoengsao 24180, Thailand.</p>
                     <p><strong>Email:</strong> recruit@doublea1991.com</p>
                   </div>
 
@@ -775,7 +820,7 @@ export default function App() {
 
                   <p>The Applicant certifies that the third party's personal data provided to the Company is true and correct. Furthermore, the third party has acknowledged the said disclosure of their personal data to the Company for the benefit of the Applicant and the employment consideration of the Company and/or the Company's alliance.</p>
 
-                  <p className="font-semibold">The Applicant has read and understood this Privacy Notice including the above terms and conditions. The Applicant certifies that the Personal Data provided to the Company is true and correct.</p>
+                  <p className="font-semibold text-gray-900">The Applicant has read and understood this Privacy Notice including the above terms and conditions. The Applicant certifies that the Personal Data provided to the Company is true and correct.</p>
 
                   <p className="text-xs text-gray-500 mt-4 border-t pt-3"><sup>1</sup> Section 26, the Personal Data Protection Act, B.E. 2562 (2019): Any collection of Personal Data pertaining to racial, ethnic origin, political opinions, cult, religious or philosophical beliefs, sexual behavior, criminal records, health data, disability, trade union information, genetic data, biometric data, or of any data which may affect the data subject in the same manner.</p>
                 </>
@@ -785,23 +830,23 @@ export default function App() {
 
           {/* Section 2: Consent to Processing Personal Data */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="bg-gradient-to-r from-[#1a3a7a] to-[#2855a8] px-5 py-3">
-              <h4 className="text-white font-bold text-base">
+            <div className="bg-gradient-to-r from-[#1a3a7a] to-[#2855a8] px-4 py-3 flex items-center justify-between">
+              <h4 className="text-white font-bold text-sm sm:text-base flex items-center gap-2">
+                <span>📄</span>
                 {lang === 'th' ? 'ความยินยอมในการประมวลผลข้อมูล' : 'Consent to Processing the Personal Data'}
               </h4>
+              <span className="text-[10px] text-indigo-100 bg-white/10 px-2 py-0.5 rounded-full">2/2</span>
             </div>
-            <div className="p-5 max-h-56 overflow-y-auto text-sm text-gray-700 leading-relaxed space-y-3">
+            <div className="p-4 sm:p-5 text-sm text-gray-700 leading-relaxed space-y-3">
               {lang === 'th' ? (
                 <>
                   <p>ผู้สมัครงานยินยอมให้บริษัทฯ เก็บ รวบรวม ใช้ ประมวลผล ข้อมูลส่วนบุคคลที่เป็นข้อมูลอ่อนไหวของผู้สมัครงาน ได้แก่ น้ำหนัก ส่วนสูง ประวัติการรักษาพยาบาลที่เกี่ยวข้องกับการทำงาน เพื่อการพิจารณาความเหมาะสมในการเข้าทำสัญญาจ้างแรงงาน และตำแหน่งงานที่เกี่ยวข้องกับบริษัทฯ และ/หรือ บริษัทในเครือพันธมิตรของบริษัทฯ โดยบริษัทฯ จะเก็บข้อมูลส่วนบุคคลที่เป็นข้อมูลอ่อนไหวของผู้สมัครงานเป็นระเวลา 5 ปี นับแต่วันที่ผู้สมัครงานทำการสมัครงานเพื่อเข้าทำงานกับบริษัทฯ และ/หรือ บริษัทในเครือพันธมิตรของบริษัทฯ</p>
 
                   <p>ผู้สมัครงานสามารถยกเลิกความยินยอมได้ตามสิทธิของเจ้าของข้อมูลได้ที่</p>
 
-                  <div className="bg-gray-50 p-3 rounded-lg text-xs">
+                  <div className="bg-gray-50 p-3 rounded-lg text-xs space-y-1 border">
                     <p><strong>ผู้ควบคุมข้อมูลส่วนบุคคล:</strong> บริษัท ดั๊บเบิ้ล เอ (1991) จำกัด (มหาชน)</p>
-                    <p><strong>สถานที่ติดต่อ:</strong> ฝ่ายสรรหาและคัดเลือกบุคลากร</p>
-                    <p className="pl-24">187/3 หมู่ที่ 1 ถนนบางนา-ตราด กม. 42 ตำบลบางวัว อำเภอบางปะกง</p>
-                    <p className="pl-24">จังหวัดฉะเชิงเทรา 24180</p>
+                    <p><strong>สถานที่ติดต่อ:</strong> ฝ่ายสรรหาและคัดเลือกบุคลากร 187/3 หมู่ที่ 1 ถนนบางนา-ตราด กม. 42 ตำบลบางวัว อำเภอบางปะกง จังหวัดฉะเชิงเทรา 24180</p>
                     <p><strong>Email:</strong> recruit@doublea1991.com</p>
                   </div>
 
@@ -815,10 +860,9 @@ export default function App() {
 
                   <p>According to the right of the data subject, the Applicant can request to withdraw the consent given for the purpose(s) above though the contact below:</p>
 
-                  <div className="bg-gray-50 p-3 rounded-lg text-xs">
+                  <div className="bg-gray-50 p-3 rounded-lg text-xs space-y-1 border">
                     <p><strong>Data Controller:</strong> Double A (1991) Public Company Limited</p>
-                    <p><strong>Address:</strong> Recruitment Department, 187/3 Moo 1, Bangna-Trad Km. 42 Road, Bangwua,</p>
-                    <p className="pl-16">Bangpakong, Chachoengsao 24180, Thailand.</p>
+                    <p><strong>Address:</strong> Recruitment Department, 187/3 Moo 1, Bangna-Trad Km. 42 Road, Bangwua, Bangpakong, Chachoengsao 24180, Thailand.</p>
                     <p><strong>Email:</strong> recruit@doublea1991.com</p>
                   </div>
 
@@ -828,23 +872,6 @@ export default function App() {
                 </>
               )}
             </div>
-          </div>
-
-          {/* Consent Checkbox */}
-          <div className="flex items-start gap-3 p-3 bg-white rounded-xl border border-gray-200 shadow-sm">
-            <input
-              type="checkbox"
-              id="pdpa-check"
-              checked={pdpaAccepted}
-              onChange={(e) => setPdpaAccepted(e.target.checked)}
-              className="w-5 h-5 mt-0.5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 transition-all cursor-pointer accent-indigo-600"
-            />
-            <label htmlFor="pdpa-check" className="text-sm text-gray-700 cursor-pointer select-none leading-relaxed">
-              {lang === 'th'
-                ? 'ข้าพเจ้ารับทราบและยอมรับว่าข้าพเจ้าได้อ่าน เข้าใจ และยินยอมตามรายละเอียดเกี่ยวกับข้อมูลส่วนบุคคล และความยินยอมในการประมวลผลข้อมูลข้างต้น'
-                : 'I acknowledge that I have read, understood, and agree to the Privacy Notice and Consent to Processing the Personal Data as stated above.'
-              }
-            </label>
           </div>
         </div>
       </Modal>

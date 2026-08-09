@@ -67,13 +67,35 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onBack, lang, onT
         });
 
         // Prepare registration data
+        const currentEmpId = response.empId || '';
         setRegData({
           ...regData,
-          emp_id: response.empId || '',
+          emp_id: currentEmpId,
           hrms_username: username
         });
         setIsRegistering(true);
-        setError('บัญชีของคุณยังไม่ได้ลงทะเบียนในระบบ กรุณากรอกข้อมูลเพิ่มเติม');
+        setError('บัญชีของคุณยังไม่ได้ลงทะเบียนในระบบ กรุณาตรวจสอบข้อมูลเพื่อลงทะเบียน');
+
+        // Fetch official HR details automatically
+        if (currentEmpId) {
+          fetch(`/api/worklog-emp-info?emp_id=${encodeURIComponent(currentEmpId)}`)
+            .then(res => res.json())
+            .then(resData => {
+              if (resData.success) {
+                const raw = resData.raw || {};
+                const officialEmail = raw.EMail || `${username}@advanceagro.net`;
+                const officialPhone = raw.Sim_Number || raw.Phone || '';
+                setRegData(prev => ({
+                  ...prev,
+                  full_name: resData.full_name || prev.full_name,
+                  email: officialEmail,
+                  phone: officialPhone
+                }));
+              }
+            })
+            .catch(err => console.warn('Failed to prefill official HRMS data:', err));
+        }
+
         setIsLoading(false);
         return;
       }
@@ -276,85 +298,78 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onBack, lang, onT
                   ) : 'Sign In'}
                 </button>
               </form>
-
             ) : (
-              /* Registration Form (Complete Profile) */
+              /* Registration Form (Official Profile Preview & Complete Registration) */
               <form onSubmit={handleRegister} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="block text-sm font-semibold text-gray-700">Emp ID</label>
-                    <input
-                      type="text"
-                      disabled
-                      value={regData.emp_id}
-                      className="block w-full px-4 py-3.5 border border-gray-200 rounded-xl bg-gray-100 text-gray-500 cursor-not-allowed"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-sm font-semibold text-gray-700">HRMS Username</label>
-                    <input
-                      type="text"
-                      disabled
-                      value={regData.hrms_username}
-                      className="block w-full px-4 py-3.5 border border-gray-200 rounded-xl bg-gray-100 text-gray-500 cursor-not-allowed"
-                    />
+                {/* HR Central Official Profile Read-Only Card */}
+                <div className="bg-gradient-to-br from-gray-50 to-indigo-50/50 p-4 rounded-2xl border border-indigo-100 shadow-sm space-y-3">
+                  <div className="flex items-center gap-3">
+                    {regData.emp_id ? (
+                      <img
+                        src={`https://api-idms.advanceagro.net/hrms/employee/${regData.emp_id}/photocard/?size=120`}
+                        alt="Employee Avatar"
+                        className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md shrink-0 bg-gray-200"
+                        onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div className="w-14 h-14 rounded-full bg-indigo-600 text-white font-bold text-lg flex items-center justify-center border-2 border-white shadow-md shrink-0">
+                        {regData.full_name?.substring(0, 2).toUpperCase() || 'HR'}
+                      </div>
+                    )}
+
+                    <div className="flex-1 min-w-0">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 mb-1">
+                        🔒 ข้อมูลทางการจากระบบ HR กลาง
+                      </span>
+                      <h4 className="font-bold text-gray-900 text-sm leading-snug truncate">
+                        {regData.full_name || 'กำลังตรวจสอบชื่อจากระบบ HRMS...'}
+                      </h4>
+                      <p className="text-xs text-gray-500 font-mono">ID: {regData.emp_id} | User: {regData.hrms_username}</p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="block text-sm font-semibold text-gray-700">Full Name</label>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-indigo-500 transition-colors">
-                      <User className="w-5 h-5" />
-                    </div>
-                    <input
-                      type="text"
-                      value={regData.full_name}
-                      onChange={(e) => setRegData({ ...regData, full_name: e.target.value })}
-                      required
-                      placeholder="John Doe"
-                      className="block w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-xl bg-white/50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-all"
-                    />
-                  </div>
+                {/* Read-Only Official Name Field */}
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-gray-600">ชื่อ-นามสกุลทางการ (Official Full Name)</label>
+                  <input
+                    type="text"
+                    disabled
+                    value={regData.full_name}
+                    className="block w-full px-4 py-2.5 text-xs font-semibold border border-gray-200 rounded-xl bg-gray-100 text-gray-800 cursor-not-allowed"
+                  />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="block text-sm font-semibold text-gray-700">Company Email Address</label>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-indigo-500 transition-colors">
-                      <Mail className="w-5 h-5" />
-                    </div>
-                    <input
-                      type="email"
-                      value={regData.email}
-                      onChange={(e) => setRegData({ ...regData, email: e.target.value })}
-                      required
-                      placeholder="email@advanceagro.net"
-                      className="block w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-xl bg-white/50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-all"
-                    />
-                  </div>
+                {/* Read-Only Official Email Field */}
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-gray-600">อีเมลองค์กร (Company Email Address)</label>
+                  <input
+                    type="email"
+                    disabled
+                    value={regData.email || `${regData.hrms_username}@advanceagro.net`}
+                    className="block w-full px-4 py-2.5 text-xs font-medium border border-gray-200 rounded-xl bg-gray-100 text-gray-700 cursor-not-allowed"
+                  />
                 </div>
                 
-                <div className="space-y-1.5">
-                  <label className="block text-sm font-semibold text-gray-700">Phone</label>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-indigo-500 transition-colors">
-                      <Phone className="w-5 h-5" />
-                    </div>
-                    <input
-                      type="tel"
-                      value={regData.phone}
-                      onChange={(e) => setRegData({ ...regData, phone: e.target.value })}
-                      placeholder="081-XXX-XXXX"
-                      className="block w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-xl bg-white/50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-all"
-                    />
-                  </div>
+                {/* Read-Only Official Phone Field */}
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-gray-600">เบอร์โทรศัพท์ติดต่อ (Official Phone)</label>
+                  <input
+                    type="text"
+                    disabled
+                    value={regData.phone || 'ไม่ระบุในระบบ HR กลาง'}
+                    className="block w-full px-4 py-2.5 text-xs font-medium border border-gray-200 rounded-xl bg-gray-100 text-gray-700 cursor-not-allowed"
+                  />
+                </div>
+
+                <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-800 leading-relaxed font-medium">
+                  💡 ข้อมูลข้างต้นถูกส่งตรงจากระบบ HR กลางขององค์กร (ล็อกดูได้อย่างเดียว) กรุณารีเชคความถูกต้องก่อนกด ยืนยันขอสิทธิ์เข้าใช้งาน
                 </div>
 
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full animated-gradient text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-300/50 hover:shadow-xl hover:shadow-indigo-400/50 transition-all hover:-translate-y-0.5 disabled:opacity-70 mt-2 btn-shine"
+                  className="w-full animated-gradient text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-300/50 hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 mt-2 btn-shine text-sm"
                 >
                   {isLoading ? (
                     <span className="flex items-center justify-center gap-2">
@@ -362,9 +377,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onBack, lang, onT
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                       </svg>
-                      Submitting...
+                      กำลังส่งข้อมูลลงทะเบียน...
                     </span>
-                  ) : 'Submit Request'}
+                  ) : 'ยืนยันลงทะเบียนเข้าใช้งาน (Confirm Registration)'}
                 </button>
 
                 <button

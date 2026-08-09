@@ -40,6 +40,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
   const [showReleaseModal, setShowReleaseModal] = useState(false);
   const [dontShowReleaseAgain, setDontShowReleaseAgain] = useState(false);
 
+  // 30-Day Security Governance Re-Auth State
+  const [isReAuthModalOpen, setIsReAuthModalOpen] = useState(false);
+  const [reAuthPassword, setReAuthPassword] = useState('');
+  const [reAuthLoading, setReAuthLoading] = useState(false);
+  const [reAuthError, setReAuthError] = useState('');
+  const [reAuthReason, setReAuthReason] = useState<string>('เพื่อความปลอดภัยของข้อมูลผู้สมัครตามนโยบาย PDPA กรุณายืนยันรหัสผ่าน HRMS ประจำ 30 วัน');
+
   const handleCloseReleaseModal = React.useCallback((shouldRedirect: boolean = false) => {
     const currentVersion = "v1.1.2-talent-analytics";
     if (dontShowReleaseAgain || shouldRedirect) {
@@ -573,6 +580,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
         if (user.full_name && user.email) {
           defaultFilter = `${user.full_name} (${user.email})`;
           setQrLogCreatorFilter(defaultFilter);
+        }
+        if (user.id) {
+          api.auth.touchUserActivity(user.id);
+          
+          // Check 30-Day Security Governance last_login_at timestamp in Supabase
+          supabase
+            .from('users')
+            .select('id, last_login_at, status, hrms_username, email, emp_id')
+            .eq('id', user.id)
+            .maybeSingle()
+            .then(({ data: dbUser }) => {
+              if (dbUser) {
+                if (dbUser.status !== 'Active') {
+                  onLogout();
+                  return;
+                }
+                const lastLogin = dbUser.last_login_at ? new Date(dbUser.last_login_at).getTime() : 0;
+                const now = Date.now();
+                const diffDays = (now - lastLogin) / (1000 * 60 * 60 * 24);
+
+                if (!dbUser.last_login_at || diffDays > 30) {
+                  setReAuthReason(!dbUser.last_login_at
+                    ? 'ระบบเริ่มใช้นโยบายยืนยันตัวตนรหัสผ่าน กรุณากรอกรหัสผ่าน HRMS 1 ครั้งเพื่อยืนยันสิทธิ์และเริ่มนับ 30 วัน'
+                    : 'คุณไม่ได้ยืนยันรหัสผ่านเกิน 30 วันตามนโยบาย PDPA กรุณากรอกรหัสผ่าน HRMS อีกครั้งเพื่อต่ออายุสิทธิ์เข้าใช้งาน');
+                  setIsReAuthModalOpen(true);
+                }
+              }
+            });
         }
       } catch (e) {
         console.error('Failed to parse stored user', e);
@@ -1707,6 +1742,106 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
               </button>
             </div>
           </div>
+        </div>
+      </Modal>
+
+      {/* 30-Day Security Governance Re-Auth Modal */}
+      <Modal
+        isOpen={isReAuthModalOpen}
+        onClose={() => {}}
+        title="🔒 ยืนยันตัวตนรหัสผ่านประจำ 30 วัน (Security Re-Auth)"
+        size="md"
+        footer={null}
+      >
+        <div className="space-y-4">
+          <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-xl space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold shrink-0 shadow-md">
+                <ShieldAlert className="w-5 h-5 text-white" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h4 className="font-bold text-gray-900 text-sm truncate">{currentUser?.full_name || 'ผู้ใช้งานระบบ HRBP'}</h4>
+                <p className="text-xs text-gray-500 font-mono">ID: {currentUser?.emp_id || '-'}</p>
+              </div>
+            </div>
+            <p className="text-xs text-indigo-900 leading-relaxed pt-1 font-medium">
+              {reAuthReason}
+            </p>
+          </div>
+
+          {reAuthError && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-xs rounded-xl flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 shrink-0 text-red-600" />
+              <span>{reAuthError}</span>
+            </div>
+          )}
+
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!reAuthPassword || !currentUser) return;
+              setReAuthLoading(true);
+              setReAuthError('');
+
+              try {
+                const hrmsUsername = (currentUser as any).hrms_username || currentUser.email?.split('@')[0] || '';
+                const res = await api.auth.signIn(hrmsUsername, reAuthPassword);
+
+                if (res.error) {
+                  setReAuthError(res.error.message || 'รหัสผ่านไม่ถูกต้อง หรือสิทธิ์ของคุณถูกระงับ');
+                  if (res.error.message?.includes('ระงับ') || res.error.message?.includes('Pending')) {
+                    setTimeout(() => {
+                      onLogout();
+                    }, 3000);
+                  }
+                  return;
+                }
+
+                if (res.user) {
+                  showToast('✨ ยืนยันรหัสผ่านและอัปเดตสิทธิ์ทีมสรรหาสำเร็จ!');
+                  setIsReAuthModalOpen(false);
+                  setReAuthPassword('');
+                  localStorage.setItem('currentUser', JSON.stringify(res.user));
+                  setCurrentUser(res.user);
+                }
+              } catch (err: any) {
+                setReAuthError(err.message || 'เกิดข้อผิดพลาดในการยืนยันตัวตน');
+              } finally {
+                setReAuthLoading(false);
+              }
+            }}
+            className="space-y-3 pt-1"
+          >
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-gray-700">กรอกรหัสผ่าน HRMS (IDMS Password)</label>
+              <input
+                type="password"
+                required
+                value={reAuthPassword}
+                onChange={(e) => setReAuthPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+              />
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-1/3 text-xs text-gray-600"
+                onClick={() => onLogout()}
+              >
+                ออกจากระบบ
+              </Button>
+              <Button
+                type="submit"
+                disabled={reAuthLoading || !reAuthPassword}
+                className="w-2/3 text-xs animated-gradient text-white font-bold"
+              >
+                {reAuthLoading ? 'กำลังตรวจสอบ...' : 'ยืนยันรหัสผ่าน (Re-Authenticate)'}
+              </Button>
+            </div>
+          </form>
         </div>
       </Modal>
 
