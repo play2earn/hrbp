@@ -230,15 +230,19 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
       );
     }
 
-    // Identify department category if non-HR
-    const posText = `${user.position_name || ''} ${user.department_name || ''}`.toLowerCase();
+    // Identify department category if non-HR using word boundary regex
+    const posText = `${user.position_name || ''} ${user.department_name || ''}`;
     let label = 'ต่างฝ่าย/ต่างแผนก';
 
-    if (posText.includes('process') || posText.includes('improvement') || posText.includes('ปรับปรุง')) {
+    const IT_REGEX = /\b(it|dit|technology|tech|system|dev|software|programmer|computer|สารสนเทศ|เทคโนโลยี)\b/i;
+    const PROCESS_REGEX = /\b(process|improvement|development|ปรับปรุง|ประสิทธิภาพ|kaizen|lean)\b/i;
+    const AUDIT_REGEX = /\b(audit|auditor|compliance|governance|ตรวจสอบ|ตรวจสอบภายใน)\b/i;
+
+    if (PROCESS_REGEX.test(posText)) {
       label = 'Process Improvement';
-    } else if (posText.includes('it') || posText.includes('สารสนเทศ') || posText.includes('system') || posText.includes('dev')) {
+    } else if (IT_REGEX.test(posText)) {
       label = 'IT / Technology';
-    } else if (posText.includes('audit') || posText.includes('ตรวจ') || posText.includes('compliance')) {
+    } else if (AUDIT_REGEX.test(posText)) {
       label = 'Audit / Governance';
     }
 
@@ -251,6 +255,10 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
 
   // Filter Active Users
   const filteredActiveUsers = React.useMemo(() => {
+    const IT_REGEX = /\b(it|dit|technology|tech|system|dev|software|programmer|computer|สารสนเทศ|เทคโนโลยี)\b/i;
+    const PROCESS_REGEX = /\b(process|improvement|development|ปรับปรุง|ประสิทธิภาพ|kaizen|lean)\b/i;
+    const AUDIT_REGEX = /\b(audit|auditor|compliance|governance|ตรวจสอบ|ตรวจสอบภายใน)\b/i;
+
     return activeUsers.filter(user => {
       // 1. Search Query
       if (searchQuery.trim()) {
@@ -268,19 +276,19 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
 
       // 2. Department Filter
       if (deptFilter !== 'All') {
-        const posText = `${user.position_name || ''} ${user.department_name || ''}`.toLowerCase();
+        const posText = `${user.position_name || ''} ${user.department_name || ''}`;
         const isHr = user.is_hr_team ?? true;
 
         if (deptFilter === 'HR') {
           if (!isHr) return false;
         } else if (deptFilter === 'IT') {
-          if (!posText.includes('it') && !posText.includes('สารสนเทศ') && !posText.includes('system') && !posText.includes('dev') && !posText.includes('tech')) return false;
+          if (isHr || !IT_REGEX.test(posText)) return false;
         } else if (deptFilter === 'Audit') {
-          if (!posText.includes('audit') && !posText.includes('ตรวจ') && !posText.includes('compliance')) return false;
+          if (isHr || !AUDIT_REGEX.test(posText)) return false;
         } else if (deptFilter === 'ProcessImprovement') {
-          if (!posText.includes('process') && !posText.includes('improvement') && !posText.includes('ปรับปรุง') && !posText.includes('ประสิทธิภาพ')) return false;
+          if (isHr || !PROCESS_REGEX.test(posText)) return false;
         } else if (deptFilter === 'Other') {
-          if (isHr) return false;
+          if (isHr || IT_REGEX.test(posText) || PROCESS_REGEX.test(posText) || AUDIT_REGEX.test(posText)) return false;
         }
       }
 
