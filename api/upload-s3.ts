@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'crypto';
 
@@ -15,6 +15,23 @@ const getS3Client = () => {
   return new S3Client({
     region,
     credentials: { accessKeyId, secretAccessKey },
+  });
+};
+
+const getR2Client = () => {
+  const accountId = process.env.R2_ACCOUNT_ID;
+  const accessKeyId = process.env.R2_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
+
+  if (!accountId || !accessKeyId || !secretAccessKey) {
+    throw new Error('R2 credentials are not fully configured.');
+  }
+
+  return new S3Client({
+    region: 'auto',
+    endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+    credentials: { accessKeyId, secretAccessKey },
+    forcePathStyle: true,
   });
 };
 
@@ -39,15 +56,51 @@ const MAX_SIZE = 15 * 1024 * 1024; // 15MB limit
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // Handle R2 DELETE operations
+  if (req.method === 'DELETE' || req.body?.action === 'delete-r2') {
+    try {
+      const r2 = getR2Client();
+      const { url } = req.body || {};
+      if (!url) return res.status(400).json({ error: 'Missing required url parameter' });
+
+      const publicDomain = process.env.R2_PUBLIC_DOMAIN;
+      if (!publicDomain) throw new Error('R2_PUBLIC_DOMAIN is not defined in environment.');
+
+      const domainPattern = publicDomain.endsWith('/') ? publicDomain : `${publicDomain}/`;
+      let key = '';
+      if (url.startsWith(domainPattern)) {
+        key = url.slice(domainPattern.length);
+      } else {
+        try {
+          const parsedUrl = new URL(url);
+          key = parsedUrl.pathname.slice(1);
+        } catch {
+          return res.status(400).json({ error: `Invalid R2 URL: ${url}` });
+        }
+      }
+
+      if (!key) return res.status(400).json({ error: 'Could not resolve R2 key from URL' });
+
+      const bucketName = process.env.R2_BUCKET_NAME || 'hrbp-applicants';
+      await r2.send(new DeleteObjectCommand({ Bucket: bucketName, Key: key }));
+
+      console.log(`[R2 Delete Success] Key: ${key}`);
+      return res.status(200).json({ success: true, key });
+    } catch (error: any) {
+      console.error('[R2 Delete Error]:', error);
+      return res.status(500).json({ error: error.message || 'R2 delete error' });
+    }
+  }
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const s3 = getS3Client();
-    const { fileBase64, fileName, fileType, folder, applicantId, fieldName, overwrite } = req.body;
+    const { fileBase64, fileName, fileType, folder, applicantId, fieldName, overwrite, draftId } = req.body;
 
     if (!fileBase64 || !fileName || !fileType) {
       return res.status(400).json({ error: 'Missing fileBase64, fileName, or fileType' });
@@ -63,9 +116,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const ext = fileName.split('.').pop()?.toLowerCase() || 'bin';
+    const safeExt = ['jpg', 'jpeg', 'png', 'webp', 'pdf'].includes(ext) ? ext : 'bin';
+
+    // If draftId is present, handle via R2 draft storage
+    if (draftId && draftId.startsWith('draft-')) {
+      const r2 = getR2Client();
+      const uniqueName = `${randomUUID()}-${Date.now()}.${safeExt}`;
+      const r2Key = `drafts/${draftId}/${uniqueName}`;
+      const bucketName = process.env.R2_BUCKET_NAME || 'hrbp-applicants';
+      const publicDomain = process.env.R2_PUBLIC_DOMAIN;
+
+      if (!publicDomain) throw new Error('R2_PUBLIC_DOMAIN missing.');
+
+      await r2.send(
+        new PutObjectCommand({
+          Bucket: bucketName,
+          Key: r2Key,
+          Body: fileBuffer,
+          ContentType: fileType,
+        })
+      );
+
+      const normalizedDomain = publicDomain.endsWith('/') ? publicDomain.slice(0, -1) : publicDomain;
+      const publicUrl = `${normalizedDomain}/${r2Key}`;
+
+      return res.status(200).json({ success: true, url: publicUrl, key: r2Key });
+    }
+
+    // Standard AWS S3 Upload
+    const s3 = getS3Client();
     let s3Key = '';
 
-    // Deterministic key for candidate field replacement vs random upload
     if (applicantId && fieldName) {
       const cleanAppId = String(applicantId).trim();
       s3Key = `applicants/${cleanAppId}/${fieldName}.${ext}`;
@@ -80,7 +161,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const bucketName = process.env.AWS_S3_BUCKET || 'hr-recruitment-01';
 
-    // PutObject to S3 (Atomic overwrite if key exists)
     await s3.send(
       new PutObjectCommand({
         Bucket: bucketName,
@@ -90,10 +170,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
     );
 
-    // Cache-Busting Proxy URL with Version Timestamp Tag
     const proxyUrl = `/api/files?key=${encodeURIComponent(s3Key)}&v=${Date.now()}`;
 
-    // Sync to Supabase DB if applicantId & fieldName are provided
     if (applicantId && fieldName) {
       const supabase = getSupabaseClient();
       if (supabase) {
@@ -141,7 +219,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    console.log(`[AWS S3 Upload / Replace Success] Key: ${s3Key}, Size: ${fileBuffer.length} bytes`);
+    console.log(`[AWS S3 Upload Success] Key: ${s3Key}, Size: ${fileBuffer.length} bytes`);
 
     return res.status(200).json({
       success: true,
@@ -152,7 +230,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       fileName,
     });
   } catch (error: any) {
-    console.error('[AWS S3 Upload Error]:', error);
-    return res.status(500).json({ error: error.message || 'Failed to upload file to S3' });
+    console.error('[Upload Error]:', error);
+    return res.status(500).json({ error: error.message || 'Failed to upload file' });
   }
 }
