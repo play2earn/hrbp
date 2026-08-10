@@ -226,17 +226,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (supabase) {
       const { data: dbApps } = await supabase
         .from('applications')
-        .select('id, full_name, position_title, form_data')
+        .select('id, full_name, position_title, position, form_data')
         .limit(2000);
 
       if (dbApps) {
         dbApps.forEach((app) => {
-          allDbAppsMap[String(app.id)] = {
+          const appMeta = {
             id: String(app.id),
             fullName: app.full_name || 'ไม่ระบุชื่อ',
-            position: app.position_title || 'ไม่ระบุตำแหน่ง',
+            position: app.position_title || app.position || 'ไม่ระบุตำแหน่ง',
             formData: app.form_data || {},
           };
+          const keyStr = String(app.id);
+          allDbAppsMap[keyStr] = appMeta;
+          allDbAppsMap[keyStr.toLowerCase()] = appMeta;
         });
       }
     }
@@ -293,10 +296,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const breadcrumbs = [{ name: 'Root (Bucket)', prefix: '' }];
     let currentPath = '';
 
-    pathSegments.forEach((segment) => {
+    pathSegments.forEach((segment, idx) => {
       currentPath += segment + '/';
+      let displayName = segment;
+      if (pathSegments[0] === 'applicants' && idx === 1) {
+        const appMeta = allDbAppsMap[segment] || allDbAppsMap[segment.toLowerCase()];
+        if (appMeta) {
+          displayName = `👤 ${appMeta.fullName}`;
+        }
+      }
       breadcrumbs.push({
-        name: segment,
+        name: displayName,
         prefix: currentPath,
       });
     });
@@ -306,8 +316,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const isApplicantFolder = prefix === 'applicants/';
       let applicantMeta = null;
 
-      if (isApplicantFolder && allDbAppsMap[folderName]) {
-        applicantMeta = allDbAppsMap[folderName];
+      if (isApplicantFolder) {
+        applicantMeta = allDbAppsMap[folderName] || allDbAppsMap[folderName.toLowerCase()] || null;
       }
 
       return {
@@ -335,7 +345,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const keySegments = key.split('/');
       if (keySegments.length >= 2 && keySegments[0] === 'applicants') {
         matchedApplicantId = keySegments[1];
-        const dbApp = allDbAppsMap[matchedApplicantId];
+        const dbApp = allDbAppsMap[matchedApplicantId] || allDbAppsMap[matchedApplicantId.toLowerCase()];
 
         if (dbApp) {
           matchedApplicantName = dbApp.fullName;

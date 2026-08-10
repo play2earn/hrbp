@@ -41,6 +41,13 @@ interface FolderItem {
   name: string;
   prefix: string;
   refCode?: string;
+  isApplicantFolder?: boolean;
+  applicantMeta?: {
+    id: string;
+    fullName: string;
+    position: string;
+    formData?: any;
+  } | null;
 }
 
 interface S3StorageTabProps {
@@ -410,17 +417,31 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
   };
 
   // Filtered & Sorted Lists
-  const filteredFolders = folders.filter(
-    (f) =>
-      f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (f.refCode && f.refCode.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredFolders = folders.filter((f) => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return true;
+    const matchName = f.name.toLowerCase().includes(q);
+    const matchRef = f.refCode ? f.refCode.toLowerCase().includes(q) : false;
+    const matchAppName = f.applicantMeta?.fullName
+      ? f.applicantMeta.fullName.toLowerCase().includes(q)
+      : false;
+    const matchAppPos = f.applicantMeta?.position
+      ? f.applicantMeta.position.toLowerCase().includes(q)
+      : false;
+    return matchName || matchRef || matchAppName || matchAppPos;
+  });
+
   const filteredFiles = files
-    .filter(
-      (f) =>
-        f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (f.docTitle && f.docTitle.toLowerCase().includes(searchQuery.toLowerCase()))
-    )
+    .filter((f) => {
+      const q = searchQuery.toLowerCase().trim();
+      if (!q) return true;
+      const matchName = f.name.toLowerCase().includes(q);
+      const matchDocTitle = f.docTitle ? f.docTitle.toLowerCase().includes(q) : false;
+      const matchApplicantName = (f as any).applicantName
+        ? (f as any).applicantName.toLowerCase().includes(q)
+        : false;
+      return matchName || matchDocTitle || matchApplicantName;
+    })
     .sort((a, b) => getFileSortOrder(a) - getFileSortOrder(b));
 
   const allPaginatedItems = [
@@ -743,13 +764,33 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
                     <td className="py-3 px-4 font-medium text-slate-800 flex items-center gap-3">
                       <Folder className="w-5 h-5 text-amber-500 fill-amber-500/20 group-hover:scale-110 transition-transform shrink-0" />
                       <div className="flex flex-col min-w-0">
-                        <span className="font-bold text-xs sm:text-sm text-slate-900">
-                          {folder.name}
-                        </span>
-                        {folder.refCode && (
-                          <span className="text-[11px] text-slate-400 font-mono truncate" title={folder.refCode}>
-                            {folder.refCode}
-                          </span>
+                        {folder.applicantMeta ? (
+                          <>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-xs sm:text-sm text-slate-900 flex items-center gap-1">
+                                <span>👤</span> {folder.applicantMeta.fullName}
+                              </span>
+                              {folder.applicantMeta.position && (
+                                <span className="bg-indigo-50 text-indigo-700 border border-indigo-200/80 text-[10px] px-2 py-0.5 rounded-md font-medium">
+                                  {folder.applicantMeta.position}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[11px] text-slate-400 font-mono truncate" title={folder.name}>
+                              Folder ID: {folder.name}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="font-bold text-xs sm:text-sm text-slate-900">
+                              {folder.name}
+                            </span>
+                            {folder.refCode && (
+                              <span className="text-[11px] text-slate-400 font-mono truncate" title={folder.refCode}>
+                                {folder.refCode}
+                              </span>
+                            )}
+                          </>
                         )}
                       </div>
                     </td>
@@ -854,13 +895,31 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
                 className="bg-slate-50/80 border border-slate-200/80 hover:border-amber-400 hover:bg-amber-50/30 rounded-xl p-4 cursor-pointer transition-all hover:shadow-md text-center space-y-2 group"
               >
                 <Folder className="w-10 h-10 mx-auto text-amber-500 fill-amber-500/20 group-hover:scale-110 transition-transform" />
-                <p className="text-xs font-bold text-slate-800 truncate" title={folder.name}>
-                  {folder.name}
-                </p>
-                {folder.refCode && (
-                  <p className="text-[10px] text-slate-400 font-mono truncate" title={folder.refCode}>
-                    {folder.refCode}
-                  </p>
+                {folder.applicantMeta ? (
+                  <>
+                    <p className="text-xs font-bold text-slate-900 truncate" title={folder.applicantMeta.fullName}>
+                      👤 {folder.applicantMeta.fullName}
+                    </p>
+                    {folder.applicantMeta.position && (
+                      <p className="text-[10px] text-indigo-600 font-medium truncate" title={folder.applicantMeta.position}>
+                        {folder.applicantMeta.position}
+                      </p>
+                    )}
+                    <p className="text-[9px] text-slate-400 font-mono truncate" title={folder.name}>
+                      ID: {folder.name}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs font-bold text-slate-800 truncate" title={folder.name}>
+                      {folder.name}
+                    </p>
+                    {folder.refCode && (
+                      <p className="text-[10px] text-slate-400 font-mono truncate" title={folder.refCode}>
+                        {folder.refCode}
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
             ))}
