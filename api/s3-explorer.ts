@@ -224,17 +224,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const supabase = getSupabaseClient();
 
     if (supabase) {
-      const { data: dbApps } = await supabase
+      const { data: dbApps, error: dbErr } = await supabase
         .from('applications')
-        .select('id, full_name, position_title, position, form_data')
-        .limit(2000);
+        .select('id, full_name, position, department, form_data')
+        .limit(2500);
+
+      if (dbErr) {
+        console.error('[S3 Explorer] Error fetching applications from Supabase:', dbErr);
+      }
 
       if (dbApps) {
         dbApps.forEach((app) => {
           const appMeta = {
             id: String(app.id),
             fullName: app.full_name || 'ไม่ระบุชื่อ',
-            position: app.position_title || app.position || 'ไม่ระบุตำแหน่ง',
+            position: app.position || 'ไม่ระบุตำแหน่ง',
             formData: app.form_data || {},
           };
           const keyStr = String(app.id);
