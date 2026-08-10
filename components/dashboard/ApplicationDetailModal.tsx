@@ -1070,10 +1070,10 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                         e.stopPropagation();
                         setShowFileDrawer(true);
                       }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/15 hover:bg-amber-500/25 text-amber-950 dark:text-amber-200 font-bold rounded-full border border-amber-500/40 transition-all text-xs shadow-xs cursor-pointer pointer-events-auto relative z-20 hover:scale-105 active:scale-95 select-none"
+                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-bold rounded-full border border-amber-700/30 transition-all text-xs shadow-xs cursor-pointer pointer-events-auto relative z-20 hover:scale-105 active:scale-95 select-none"
                       title="ดูไฟล์ทั้งหมดใน HR Drive"
                     >
-                      <HardDrive className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <HardDrive className="w-3.5 h-3.5 text-amber-100 shrink-0" />
                       📁 HR Drive (ไฟล์ผู้สมัครคนนี้)
                     </button>
                   </div>
@@ -2493,10 +2493,10 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                     e.stopPropagation();
                     setShowFileDrawer(true);
                   }}
-                  className="px-3 py-1 text-xs rounded-full font-bold transition border flex items-center gap-1.5 shrink-0 bg-amber-500/15 hover:bg-amber-500/25 text-amber-950 dark:text-amber-200 border-amber-500/40 shadow-xs cursor-pointer pointer-events-auto relative z-20 hover:scale-105 active:scale-95 select-none"
+                  className="px-3 py-1 text-xs rounded-full font-bold transition-all border flex items-center gap-1.5 shrink-0 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white border-amber-700/30 shadow-xs cursor-pointer pointer-events-auto relative z-20 hover:scale-105 active:scale-95 select-none"
                   title="ดูไฟล์ทั้งหมดใน HR Drive"
                 >
-                  <HardDrive className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <HardDrive className="w-3.5 h-3.5 text-amber-100 shrink-0" />
                   📁 HR Drive (ไฟล์ทั้งหมด)
                 </button>
               </div>
