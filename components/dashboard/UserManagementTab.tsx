@@ -95,6 +95,9 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
   const [currentPage, setCurrentPage] = React.useState<number>(1);
   const [itemsPerPage, setItemsPerPage] = React.useState<number>(10);
 
+  // Audit 2-Step Confirmation State
+  const [auditConfirmUser, setAuditConfirmUser] = React.useState<any | null>(null);
+
   // Reset page when filter or search changes
   React.useEffect(() => {
     setCurrentPage(1);
@@ -113,14 +116,28 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
     fetchActiveUsers();
   };
 
-  const handleUserAction = async (userId: string, status: 'Active' | 'Rejected' | 'Inactive') => {
+  const handleApproveUser = (user: any) => {
+    const isHr = user.is_hr_team ?? true;
+    if (!isHr) {
+      setAuditConfirmUser(user);
+    } else {
+      handleUserAction(user.id, 'Active', { allow_non_hr_access: false });
+    }
+  };
+
+  const handleUserAction = async (
+    userId: string, 
+    status: 'Active' | 'Rejected' | 'Inactive',
+    overrideOptions?: { allow_non_hr_access?: boolean; approved_department_name?: string; approved_position_name?: string }
+  ) => {
     if (status === 'Rejected' && !confirm('ยืนยันที่จะปฏิเสธและลบข้อมูลผู้ใช้งานนี้?')) return;
-    const result = await api.auth.updateUserStatus(userId, status);
+    const result = await api.auth.updateUserStatus(userId, status, overrideOptions);
     if (!result.success) {
       showToast(result.error?.message || 'ดำเนินการล้มเหลว', 'error');
       return;
     }
     showToast(`ดำเนินการ ${status} เรียบร้อย`, 'success');
+    setAuditConfirmUser(null);
     fetchPendingUsers();
     fetchActiveUsers();
   };
@@ -244,6 +261,14 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
       label = 'IT / Technology';
     } else if (AUDIT_REGEX.test(posText)) {
       label = 'Audit / Governance';
+    }
+
+    if (user.allow_non_hr_access) {
+      return (
+        <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200" title={`สิทธิ์ Audit/Guest อนุมัติพิเศษสำหรับสังกัด ${user.approved_department_name || user.department_name || ''}`}>
+          <Shield className="w-3.5 h-3.5 text-purple-600 shrink-0" /> {label} (สิทธิ์พิเศษ)
+        </span>
+      );
     }
 
     return (
@@ -431,7 +456,7 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex gap-2 justify-end">
-                            <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleUserAction(user.id, 'Active')}>Approve</Button>
+                            <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleApproveUser(user)}>Approve</Button>
                             <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => handleUserAction(user.id, 'Rejected')}>Reject</Button>
                           </div>
                         </td>
@@ -473,7 +498,7 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                         {new Date(user.created_at).toLocaleDateString('th-TH')}
                       </span>
                       <div className="flex gap-2">
-                        <Button size="sm" className="bg-green-600 hover:bg-green-700 h-8 px-3 text-xs" onClick={() => handleUserAction(user.id, 'Active')}>Approve</Button>
+                        <Button size="sm" className="bg-green-600 hover:bg-green-700 h-8 px-3 text-xs" onClick={() => handleApproveUser(user)}>Approve</Button>
                         <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 h-8 px-3 text-xs" onClick={() => handleUserAction(user.id, 'Rejected')}>Reject</Button>
                       </div>
                     </div>
@@ -862,6 +887,18 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                           <span className="text-gray-400 block mb-1">การตรวจสอบสายงาน HR:</span>
                           {renderHrVerificationBadge(editingUser)}
                         </div>
+                        {editingUser.allow_non_hr_access && (
+                          <div className="col-span-2 bg-purple-50 border border-purple-200 p-2.5 rounded-lg text-[11px] text-purple-900 mt-1">
+                            <div className="font-bold flex items-center gap-1 text-purple-800">
+                              <Shield className="w-3.5 h-3.5 text-purple-600" />
+                              ได้รับสิทธิ์ Audit / Non-HR Access กรณีพิเศษ
+                            </div>
+                            <div className="mt-1 space-y-0.5 text-purple-700">
+                              <p>สังกัดที่ได้รับอนุมัติ: <strong>{editingUser.approved_department_name || editingUser.department_name}</strong></p>
+                              {editingUser.approved_at && <p>อนุมัติเมื่อ: {new Date(editingUser.approved_at).toLocaleDateString('th-TH')} {editingUser.approved_by ? `โดย ${editingUser.approved_by}` : ''}</p>}
+                            </div>
+                          </div>
+                        )}
                         <div className="col-span-2 pt-1 border-t mt-1">
                           <span className="text-gray-400 block mb-1">การเคลื่อนไหวล่าสุดบนระบบ (Activity):</span>
                           {formatLastLogin(editingUser.last_active_at, editingUser.last_login_at)}
@@ -925,6 +962,64 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                   </div>
                 </div>
               )}
+            </div>
+          )}
+        </Modal>
+
+        {/* 2-Step Confirmation Modal for Audit / Non-HR User Approval */}
+        <Modal
+          isOpen={!!auditConfirmUser}
+          onClose={() => setAuditConfirmUser(null)}
+          title="🛡️ ยืนยันการอนุมัติสิทธิ์กรณีพิเศษ (Audit / Non-HR Access)"
+        >
+          {auditConfirmUser && (
+            <div className="space-y-4 text-gray-700">
+              <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start gap-3">
+                <Shield className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-bold text-amber-900 mb-1">
+                    คำเตือน: ผู้ใช้งานอยู่นอกทีมสรรหา (HR)
+                  </p>
+                  <p className="text-amber-800 text-xs leading-relaxed">
+                    ระบบตรวจพบว่าผู้สมัครไม่ได้สังกัดทีมสรรหา การอนุมัติครั้งนี้จะเป็นการออกสิทธิ์ <strong>Audit / Non-HR Exception</strong> เฉพาะสังกัดปัจจุบันเท่านั้น หากในอนาคตพนักงานย้ายสายงานออกจากสังกัดนี้ ระบบจะระงับสิทธิ์ใหม่อัตโนมัติเพื่อความปลอดภัย
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 border rounded-xl p-4 space-y-2 text-xs">
+                <div className="flex justify-between border-b pb-2">
+                  <span className="text-gray-500">ชื่อ-นามสกุล / รหัส:</span>
+                  <span className="font-bold text-gray-900">{auditConfirmUser.full_name} ({auditConfirmUser.emp_id || 'N/A'})</span>
+                </div>
+                <div className="flex justify-between border-b pb-2">
+                  <span className="text-gray-500">ตำแหน่ง (HRMS):</span>
+                  <span className="font-semibold text-gray-800">{auditConfirmUser.position_name || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between border-b pb-2">
+                  <span className="text-gray-500">สังกัด/แผนก (HRMS):</span>
+                  <span className="font-bold text-indigo-700">{auditConfirmUser.department_name || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between pt-1">
+                  <span className="text-gray-500">บริษัท:</span>
+                  <span className="text-gray-700">{auditConfirmUser.company_name || 'N/A'}</span>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t">
+                <Button variant="outline" onClick={() => setAuditConfirmUser(null)}>
+                  ยกเลิก
+                </Button>
+                <Button
+                  className="bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-1.5"
+                  onClick={() => handleUserAction(auditConfirmUser.id, 'Active', {
+                    allow_non_hr_access: true,
+                    approved_department_name: auditConfirmUser.department_name || '',
+                    approved_position_name: auditConfirmUser.position_name || ''
+                  })}
+                >
+                  <Shield className="w-4 h-4" /> ยืนยันอนุมัติสิทธิ์ Audit Override
+                </Button>
+              </div>
             </div>
           )}
         </Modal>

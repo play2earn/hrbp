@@ -31,6 +31,11 @@ export interface AuthUser {
   company_name?: string;
   department_name?: string;
   is_hr_team?: boolean;
+  allow_non_hr_access?: boolean;
+  approved_department_name?: string;
+  approved_position_name?: string;
+  approved_at?: string;
+  approved_by?: string;
   last_login_at?: string;
   last_active_at?: string;
   last_synced_at?: string;
@@ -1497,8 +1502,17 @@ export const api = {
             console.warn('Worklog detail sync warning:', fetchErr);
           }
 
-          // Security Audit: Demote if no longer in HR team (except system admin override)
-          if (orgDetails.is_hr_team === false && profile.role !== 'admin') {
+          // Security Audit: Demote if no longer in HR team, EXCEPT:
+          // 1. System admin role
+          // 2. Admin explicitly granted Audit / Non-HR exception AND current department matches approved_department_name
+          const isApprovedAuditDept = Boolean(
+            profile.allow_non_hr_access &&
+            profile.approved_department_name &&
+            orgDetails.department_name &&
+            orgDetails.department_name.trim().toLowerCase() === profile.approved_department_name.trim().toLowerCase()
+          );
+
+          if (orgDetails.is_hr_team === false && profile.role !== 'admin' && !isApprovedAuditDept) {
             await supabase
               .from('users')
               .update({
@@ -1733,7 +1747,11 @@ export const api = {
      * the protect_user_roles trigger. Passes caller_user_id explicitly
      * because this system uses custom HRMS auth — auth.uid() is always null.
      */
-    updateUserStatus: async (id: string, status: 'Active' | 'Rejected' | 'Inactive'): Promise<ApiResponse<AuthUser>> => {
+    updateUserStatus: async (
+      id: string, 
+      status: 'Active' | 'Rejected' | 'Inactive',
+      overrideOptions?: { allow_non_hr_access?: boolean; approved_department_name?: string; approved_position_name?: string }
+    ): Promise<ApiResponse<AuthUser>> => {
       try {
         // Get the logged-in admin's ID from localStorage
         const currentUserRaw = localStorage.getItem('currentUser');
@@ -1750,7 +1768,10 @@ export const api = {
           .rpc('admin_update_user_status', {
             target_user_id: id,
             new_status: status,
-            caller_user_id: callerUserId
+            caller_user_id: callerUserId,
+            p_allow_non_hr_access: overrideOptions?.allow_non_hr_access ?? null,
+            p_approved_dept: overrideOptions?.approved_department_name ?? null,
+            p_approved_pos: overrideOptions?.approved_position_name ?? null
           });
 
         if (rpcError) return handleError(rpcError, 'updateUserStatus');

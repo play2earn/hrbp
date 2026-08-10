@@ -7,7 +7,7 @@ import { LucideIcon, Home, FileText, QrCode, Settings, LogOut, CheckCircle, XCir
 import { api } from '../services/api';
 import { supabase } from '../supabaseClient';
 import { Role, BlacklistEntry } from '../types';
-import type { ApplicationStatus } from '../services/api';
+import type { ApplicationStatus, AuthUser } from '../services/api';
 import { ReportsTab } from './ReportsTab';
 
 import type { DashboardProps } from './dashboard/dashboardTypes';
@@ -59,7 +59,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
   }, [dontShowReleaseAgain]);
 
   // Current User Info
-  const [currentUser, setCurrentUser] = useState<{ id?: string; full_name: string; email: string; role: string; emp_id?: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
   const [profileEmpId, setProfileEmpId] = useState<string | null>(null);
 
@@ -898,6 +898,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto pt-16 lg:pt-0 w-full">
         <div className="p-4 sm:p-8 max-w-7xl mx-auto">
+
+          {/* Audit / Governance Compliance Notice Banner */}
+          {(currentUser?.allow_non_hr_access || (currentUser?.department_name && /\b(audit|governance|ตรวจสอบ)\b/i.test(`${currentUser.position_name || ''} ${currentUser.department_name || ''}`))) && (
+            <div className="mb-6 bg-gradient-to-r from-purple-900/90 via-indigo-900/90 to-purple-950/90 text-white p-4 rounded-2xl shadow-md border border-purple-500/30 flex items-start sm:items-center justify-between gap-3 animate-in fade-in duration-300">
+              <div className="flex items-start sm:items-center gap-3">
+                <div className="p-2 bg-purple-500/20 rounded-xl border border-purple-400/30 shrink-0 text-purple-300">
+                  <Shield className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-sm text-purple-100">Audit & Governance Access Mode</span>
+                    <span className="text-[10px] uppercase font-semibold bg-purple-500/30 text-purple-200 px-2 py-0.5 rounded-full border border-purple-400/30">
+                      สิทธิ์เข้าถึงกรณีพิเศษสำหรับงานตรวจสอบ
+                    </span>
+                  </div>
+                  <p className="text-xs text-purple-200/90 mt-0.5 leading-relaxed">
+                    คุณกำลังเข้าใช้งานในสิทธิ์ <strong>{currentUser?.department_name || 'Internal Audit'}</strong> — ทุกกิจกรรมการเข้าดู ค้นหา หรือแก้ไขข้อมูล จะถูกบันทึกใน <strong>System Activity Logs</strong> เพื่อความมั่นคงปลอดภัยตามมาตรฐาน PDPA & Compliance
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {activeTab === 'reports' && (
             <ReportsTab
