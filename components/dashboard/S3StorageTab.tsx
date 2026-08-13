@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { supabase } from '../../supabaseClient';
 import {
   Folder,
   FolderOpen,
@@ -314,12 +315,63 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
       const data = await res.json();
 
       if (data.success) {
-        setFolders(data.folders || []);
+        let loadedFolders: FolderItem[] = data.folders || [];
         setFiles(data.files || []);
-        setBreadcrumbs(data.breadcrumbs || []);
+        let loadedBreadcrumbs = data.breadcrumbs || [];
+
         if (data.bucketStats) {
           setBucketStats(data.bucketStats);
         }
+
+        // Client-side fallback for candidate name mapping if folder.applicantMeta is missing
+        const unmappedApplicantFolders = loadedFolders.filter(
+          (f) => f.isApplicantFolder && !f.applicantMeta
+        );
+
+        if (unmappedApplicantFolders.length > 0) {
+          const unmappedIds = unmappedApplicantFolders.map((f) => f.name.trim());
+          try {
+            const { data: dbApps } = await supabase
+              .from('applications')
+              .select('id, full_name, first_name, last_name, title, position, form_data')
+              .in('id', unmappedIds);
+
+            if (dbApps && dbApps.length > 0) {
+              const appMap: Record<string, any> = {};
+              dbApps.forEach((app: any) => {
+                const fd = app.form_data || {};
+                const rawFullName = app.full_name ? String(app.full_name).trim() : '';
+                const colName = [app.title, app.first_name, app.last_name].filter(Boolean).join(' ').trim();
+                const thaiName = [fd.prefix || fd.title || fd.titleTh, fd.firstName || fd.firstNameTh, fd.lastName || fd.lastNameTh].filter(Boolean).join(' ').trim();
+                const engName = [fd.titleEn, fd.firstNameEn, fd.lastNameEn].filter(Boolean).join(' ').trim();
+                const altName = fd.name || fd.applicantName || fd.fullName || '';
+
+                const fullName = rawFullName || colName || thaiName || engName || altName || 'ไม่ระบุชื่อ';
+                const position = app.position || fd.position || fd.positionEn || 'ไม่ระบุตำแหน่ง';
+
+                appMap[String(app.id).trim()] = {
+                  id: String(app.id),
+                  fullName,
+                  position,
+                  formData: fd,
+                };
+              });
+
+              loadedFolders = loadedFolders.map((f) => {
+                const cleanId = f.name.trim();
+                if (f.isApplicantFolder && !f.applicantMeta && appMap[cleanId]) {
+                  return { ...f, applicantMeta: appMap[cleanId] };
+                }
+                return f;
+              });
+            }
+          } catch (fallbackErr) {
+            console.error('[HR Drive] Client-side applicant mapping fallback error:', fallbackErr);
+          }
+        }
+
+        setFolders(loadedFolders);
+        setBreadcrumbs(loadedBreadcrumbs);
       } else {
         showToast(data.error || 'Failed to load S3 objects', 'error');
       }
