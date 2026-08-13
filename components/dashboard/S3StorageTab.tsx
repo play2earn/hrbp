@@ -95,14 +95,14 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
 }) => {
   const [currentPrefix, setCurrentPrefix] = useState<string>(initialPrefix);
 
-  // When parent passes a new initialPrefix (e.g. navigating from candidate drawer), jump to it
+  // When initialPrefix or currentPrefix changes, jump to prefix and reset search query
   useEffect(() => {
     if (initialPrefix !== undefined && initialPrefix !== currentPrefix) {
       setCurrentPrefix(initialPrefix);
     }
-  // Only re-run when initialPrefix changes from outside
+    setSearchQuery('');
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialPrefix]);
+  }, [initialPrefix, currentPrefix]);
   const [folders, setFolders] = useState<FolderItem[]>([]);
   const [files, setFiles] = useState<S3FileItem[]>([]);
   const [breadcrumbs, setBreadcrumbs] = useState<{ name: string; prefix: string }[]>([]);
@@ -371,6 +371,49 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
         }
 
         setFolders(loadedFolders);
+
+        // Fallback for single candidate folder breadcrumb & files applicantName
+        const pathSegments = prefix.split('/').filter(Boolean);
+        if (pathSegments.length >= 2 && pathSegments[0] === 'applicants') {
+          const currentAppId = pathSegments[1].trim();
+          try {
+            const { data: dbApp } = await supabase
+              .from('applications')
+              .select('id, full_name, first_name, last_name, title, form_data')
+              .eq('id', currentAppId)
+              .maybeSingle();
+
+            if (dbApp) {
+              const fd = dbApp.form_data || {};
+              const rawFullName = dbApp.full_name ? String(dbApp.full_name).trim() : '';
+              const colName = [dbApp.title, dbApp.first_name, dbApp.last_name].filter(Boolean).join(' ').trim();
+              const thaiName = [fd.prefix || fd.title || fd.titleTh, fd.firstName || fd.firstNameTh, fd.lastName || fd.lastNameTh].filter(Boolean).join(' ').trim();
+              const engName = [fd.titleEn, fd.firstNameEn, fd.lastNameEn].filter(Boolean).join(' ').trim();
+              const altName = fd.name || fd.applicantName || fd.fullName || '';
+
+              const fullName = rawFullName || colName || thaiName || engName || altName || '';
+              if (fullName) {
+                loadedBreadcrumbs = loadedBreadcrumbs.map((bc, idx) => {
+                  if (idx === loadedBreadcrumbs.length - 1) {
+                    return { ...bc, name: `👤 ${fullName}` };
+                  }
+                  return bc;
+                });
+
+                let loadedFiles = data.files || [];
+                loadedFiles = loadedFiles.map((f: any) => ({
+                  ...f,
+                  applicantName: fullName,
+                  applicantId: currentAppId,
+                }));
+                setFiles(loadedFiles);
+              }
+            }
+          } catch (appErr) {
+            console.error('[HR Drive] Breadcrumb fallback error:', appErr);
+          }
+        }
+
         setBreadcrumbs(loadedBreadcrumbs);
       } else {
         showToast(data.error || 'Failed to load S3 objects', 'error');
