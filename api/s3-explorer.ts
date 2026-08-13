@@ -22,6 +22,12 @@ const getSupabaseClient = (req?: VercelRequest) => {
   const serviceKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !serviceKey) return null;
+
+  if (process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const adminKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+    return createClient(supabaseUrl, adminKey!);
+  }
+
   const authHeader = req?.headers?.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     return createClient(supabaseUrl, serviceKey, {
@@ -237,31 +243,53 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     let allDbAppsMap: Record<string, { id: string; fullName: string; position: string; formData: Record<string, any> }> = {};
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClient(req);
 
     if (supabase) {
-      const { data: dbApps, error: dbErr } = await supabase
-        .from('applications')
-        .select('id, full_name, position, department, form_data')
-        .limit(2500);
+      let dbApps: any[] = [];
+      let page = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data, error: dbErr } = await supabase
+          .from('applications')
+          .select('id, full_name, first_name, last_name, title, position, department, form_data')
+          .range(page * pageSize, (page + 1) * pageSize - 1);
 
-      if (dbErr) {
-        console.error('[S3 Explorer] Error fetching applications from Supabase:', dbErr);
+        if (dbErr) {
+          console.error('[S3 Explorer] Error fetching applications from Supabase:', dbErr);
+          break;
+        }
+
+        if (data && data.length > 0) {
+          dbApps.push(...data);
+          if (data.length < pageSize) break;
+          page++;
+        } else {
+          break;
+        }
       }
 
-      if (dbApps) {
-        dbApps.forEach((app) => {
-          const appMeta = {
-            id: String(app.id),
-            fullName: app.full_name || 'ไม่ระบุชื่อ',
-            position: app.position || 'ไม่ระบุตำแหน่ง',
-            formData: app.form_data || {},
-          };
-          const keyStr = String(app.id);
-          allDbAppsMap[keyStr] = appMeta;
-          allDbAppsMap[keyStr.toLowerCase()] = appMeta;
-        });
-      }
+      dbApps.forEach((app: any) => {
+        const fd = app.form_data || {};
+        const rawFullName = app.full_name ? String(app.full_name).trim() : '';
+        const colName = [app.title, app.first_name, app.last_name].filter(Boolean).join(' ').trim();
+        const thaiName = [fd.prefix || fd.title || fd.titleTh, fd.firstName || fd.firstNameTh, fd.lastName || fd.lastNameTh].filter(Boolean).join(' ').trim();
+        const engName = [fd.titleEn, fd.firstNameEn, fd.lastNameEn].filter(Boolean).join(' ').trim();
+        const altName = fd.name || fd.applicantName || fd.fullName || '';
+
+        const fullName = rawFullName || colName || thaiName || engName || altName || 'ไม่ระบุชื่อ';
+        const position = app.position || fd.position || fd.positionEn || 'ไม่ระบุตำแหน่ง';
+
+        const appMeta = {
+          id: String(app.id),
+          fullName,
+          position,
+          formData: fd,
+        };
+        const keyStr = String(app.id).trim();
+        allDbAppsMap[keyStr] = appMeta;
+        allDbAppsMap[keyStr.toLowerCase()] = appMeta;
+      });
     }
 
     let isTruncated = true;
@@ -337,7 +365,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       let applicantMeta = null;
 
       if (isApplicantFolder) {
-        applicantMeta = allDbAppsMap[folderName] || allDbAppsMap[folderName.toLowerCase()] || null;
+        const cleanName = folderName.trim();
+        applicantMeta = allDbAppsMap[cleanName] || allDbAppsMap[cleanName.toLowerCase()] || null;
       }
 
       return {
