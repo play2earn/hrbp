@@ -487,12 +487,25 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
     .filter((f) => {
       const q = searchQuery.toLowerCase().trim();
       if (!q) return true;
+      const fileAny = f as any;
       const matchName = f.name.toLowerCase().includes(q);
-      const matchDocTitle = f.docTitle ? f.docTitle.toLowerCase().includes(q) : false;
-      const matchApplicantName = (f as any).applicantName
-        ? (f as any).applicantName.toLowerCase().includes(q)
+      const matchDocTitle = (f.docTitle || fileAny.docLabel || '').toLowerCase().includes(q);
+      const matchApplicantName = fileAny.applicantName
+        ? fileAny.applicantName.toLowerCase().includes(q)
         : false;
-      return matchName || matchDocTitle || matchApplicantName;
+      const matchApplicantId = fileAny.applicantId
+        ? fileAny.applicantId.toLowerCase().includes(q)
+        : false;
+
+      // If inside an applicant folder and search query matches the applicant's name/ID or breadcrumbs, show all files inside
+      const isInsideApplicantFolder = currentPrefix.startsWith('applicants/') && currentPrefix.split('/').filter(Boolean).length >= 2;
+      const currentFolderName = breadcrumbs[breadcrumbs.length - 1]?.name || '';
+      const matchCurrentFolder = isInsideApplicantFolder && (
+        currentFolderName.toLowerCase().includes(q) ||
+        currentPrefix.toLowerCase().includes(q)
+      );
+
+      return matchName || matchDocTitle || matchApplicantName || matchApplicantId || matchCurrentFolder;
     })
     .sort((a, b) => getFileSortOrder(a) - getFileSortOrder(b));
 
