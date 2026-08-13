@@ -17,11 +17,17 @@ const getS3Client = () => {
   });
 };
 
-const getSupabaseClient = () => {
+const getSupabaseClient = (req?: VercelRequest) => {
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !serviceKey) return null;
+  const authHeader = req?.headers?.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return createClient(supabaseUrl, serviceKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+  }
   return createClient(supabaseUrl, serviceKey);
 };
 
@@ -140,7 +146,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const proxyUrl = `/api/files?key=${encodeURIComponent(s3Key)}`;
 
       if (applicationId && fieldName) {
-        const supabase = getSupabaseClient();
+        const supabase = getSupabaseClient(req);
         if (supabase) {
           const { data: appData } = await supabase
             .from('applications')
@@ -182,10 +188,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
             updatePayload.form_data = updatedFd;
 
-            await supabase
+            const { data: updatedRows, error: updateErr } = await supabase
               .from('applications')
               .update(updatePayload)
-              .eq('id', applicationId);
+              .eq('id', applicationId)
+              .select('id');
+
+            if (updateErr || !updatedRows || updatedRows.length === 0) {
+              console.error('[Migration DB Warning] Failed to update Supabase row (Check RLS / SUPABASE_SERVICE_ROLE_KEY):', updateErr || '0 rows updated');
+              return res.status(500).json({
+                error: `File copied to S3, but database update failed: ${updateErr?.message || '0 rows updated (RLS permission issue or SUPABASE_SERVICE_ROLE_KEY missing on server)'}`,
+                dbUpdated: false,
+                proxyUrl,
+              });
+            }
           }
         }
       }

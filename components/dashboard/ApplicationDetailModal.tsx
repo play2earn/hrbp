@@ -155,6 +155,22 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
     let updatedFd = { ...(viewingApp.form_data || {}) };
     let successCount = 0;
 
+    const aliasMap: Record<string, string[]> = {
+      photo_url: ['photo_url', 'photoUrl'],
+      photoUrl: ['photo_url', 'photoUrl'],
+      resume_url: ['resume_url', 'resumeUrl'],
+      resumeUrl: ['resume_url', 'resumeUrl'],
+      transcriptUrl: ['transcriptUrl', 'transcript_url'],
+      idCardUrl: ['idCardUrl', 'id_card_url'],
+      houseRegUrl: ['houseRegUrl', 'house_reg_url'],
+      eduCertificateUrl: ['eduCertificateUrl', 'edu_certificate_url'],
+      militaryCertUrl: ['militaryCertUrl', 'military_cert_url'],
+      toeicCertUrl: ['toeicCertUrl', 'toeic_cert_url'],
+      bankBookUrl: ['bankBookUrl', 'bank_book_url'],
+      certificateUrl: ['certificateUrl', 'certificate_url'],
+      otherDocsUrl: ['otherDocsUrl', 'other_docs_url'],
+    };
+
     try {
       for (let i = 0; i < pendingFilesToMigrate.length; i++) {
         const file = pendingFilesToMigrate[i];
@@ -171,19 +187,33 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
         });
 
         const data = await res.json();
-        if (data.success) {
+        if (data.success || data.newProxyUrl || data.proxyUrl) {
           successCount++;
-          updatedFd[file.field] = data.newProxyUrl;
-          if (file.field === 'photo_url') viewingApp.photo_url = data.newProxyUrl;
-          if (file.field === 'resume_url') viewingApp.resume_url = data.newProxyUrl;
+          const proxyUrl = data.newProxyUrl || data.proxyUrl;
+          const aliases = aliasMap[file.field] || [file.field];
+          aliases.forEach((aliasKey) => {
+            updatedFd[aliasKey] = proxyUrl;
+          });
+          if (file.field === 'photo_url' || file.field === 'photoUrl') viewingApp.photo_url = proxyUrl;
+          if (file.field === 'resume_url' || file.field === 'resumeUrl') viewingApp.resume_url = proxyUrl;
         }
       }
+
+      // Direct client-side update as safety fallback (uses logged-in user auth session for RLS)
+      const updatePayload: Record<string, any> = { form_data: updatedFd };
+      if (updatedFd.photo_url || updatedFd.photoUrl) updatePayload.photo_url = updatedFd.photo_url || updatedFd.photoUrl;
+      if (updatedFd.resume_url || updatedFd.resumeUrl) updatePayload.resume_url = updatedFd.resume_url || updatedFd.resumeUrl;
+
+      await supabase
+        .from('applications')
+        .update(updatePayload)
+        .eq('id', viewingApp.id);
 
       const updatedApp = { ...viewingApp, form_data: updatedFd };
       setViewingApp(updatedApp);
       onApplicationUpdated?.(updatedApp);
       setToastNotification({
-        message: `ย้ายไฟล์สำเร็จทั้งหมด ${successCount} รายการเข้า AWS S3 เรียบร้อยแล้ว!`,
+        message: `ย้ายไฟล์สำเร็จทั้งหมด ${successCount} รายการเข้า AWS S3 และบันทึกเรียบร้อยแล้ว!`,
         type: 'success',
       });
     } catch (err: any) {
@@ -253,17 +283,48 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
         });
 
         const data = await res.json();
-        if (data.success) {
+        if (data.success || data.proxyUrl) {
           setToastNotification({
             message: `อัปโหลดเปลี่ยนไฟล์ [${fileLabel}] เข้า AWS S3 สำเร็จ!`,
             type: 'success',
           });
 
-          const updatedFd = { ...(viewingApp.form_data || {}), [fileField]: data.proxyUrl };
-          const updatedApp = { ...viewingApp, form_data: updatedFd };
-          if (fileField === 'photo_url') updatedApp.photo_url = data.proxyUrl;
-          if (fileField === 'resume_url') updatedApp.resume_url = data.proxyUrl;
+          const proxyUrl = data.proxyUrl;
+          const updatedFd = { ...(viewingApp.form_data || {}), [fileField]: proxyUrl };
+
+          const aliasMap: Record<string, string[]> = {
+            photo_url: ['photo_url', 'photoUrl'],
+            photoUrl: ['photo_url', 'photoUrl'],
+            resume_url: ['resume_url', 'resumeUrl'],
+            resumeUrl: ['resume_url', 'resumeUrl'],
+            transcriptUrl: ['transcriptUrl', 'transcript_url'],
+            idCardUrl: ['idCardUrl', 'id_card_url'],
+            houseRegUrl: ['houseRegUrl', 'house_reg_url'],
+            eduCertificateUrl: ['eduCertificateUrl', 'edu_certificate_url'],
+            militaryCertUrl: ['militaryCertUrl', 'military_cert_url'],
+            toeicCertUrl: ['toeicCertUrl', 'toeic_cert_url'],
+            bankBookUrl: ['bankBookUrl', 'bank_book_url'],
+            certificateUrl: ['certificateUrl', 'certificate_url'],
+            otherDocsUrl: ['otherDocsUrl', 'other_docs_url'],
+          };
+
+          const aliases = aliasMap[fileField] || [fileField];
+          aliases.forEach((aliasKey) => {
+            updatedFd[aliasKey] = proxyUrl;
+          });
+
+          const updatePayload: Record<string, any> = { form_data: updatedFd };
+          if (fileField === 'photo_url' || fileField === 'photoUrl') updatePayload.photo_url = proxyUrl;
+          if (fileField === 'resume_url' || fileField === 'resumeUrl') updatePayload.resume_url = proxyUrl;
+
+          await supabase
+            .from('applications')
+            .update(updatePayload)
+            .eq('id', viewingApp.id);
+
+          const updatedApp = { ...viewingApp, ...updatePayload, form_data: updatedFd };
           setViewingApp(updatedApp);
+          onApplicationUpdated?.(updatedApp);
         } else {
           setToastNotification({
             message: data.error || `อัปโหลดไฟล์ [${fileLabel}] ล้มเหลว`,
@@ -3065,10 +3126,44 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                                   }),
                                 });
                                 const data = await res.json();
-                                if (data.success) {
+                                if (data.success || data.newProxyUrl) {
+                                  const proxyUrl = data.newProxyUrl || data.proxyUrl;
+                                  const updatedFd = { ...fd, [file.field]: proxyUrl };
+
+                                  const aliasMap: Record<string, string[]> = {
+                                    photo_url: ['photo_url', 'photoUrl'],
+                                    photoUrl: ['photo_url', 'photoUrl'],
+                                    resume_url: ['resume_url', 'resumeUrl'],
+                                    resumeUrl: ['resume_url', 'resumeUrl'],
+                                    transcriptUrl: ['transcriptUrl', 'transcript_url'],
+                                    idCardUrl: ['idCardUrl', 'id_card_url'],
+                                    houseRegUrl: ['houseRegUrl', 'house_reg_url'],
+                                    eduCertificateUrl: ['eduCertificateUrl', 'edu_certificate_url'],
+                                    militaryCertUrl: ['militaryCertUrl', 'military_cert_url'],
+                                    toeicCertUrl: ['toeicCertUrl', 'toeic_cert_url'],
+                                    bankBookUrl: ['bankBookUrl', 'bank_book_url'],
+                                    certificateUrl: ['certificateUrl', 'certificate_url'],
+                                    otherDocsUrl: ['otherDocsUrl', 'other_docs_url'],
+                                  };
+
+                                  const aliases = aliasMap[file.field] || [file.field];
+                                  aliases.forEach((aliasKey) => {
+                                    updatedFd[aliasKey] = proxyUrl;
+                                  });
+
+                                  const updatePayload: Record<string, any> = { form_data: updatedFd };
+                                  if (file.field === 'photo_url' || file.field === 'photoUrl') updatePayload.photo_url = proxyUrl;
+                                  if (file.field === 'resume_url' || file.field === 'resumeUrl') updatePayload.resume_url = proxyUrl;
+
+                                  await supabase
+                                    .from('applications')
+                                    .update(updatePayload)
+                                    .eq('id', viewingApp.id);
+
+                                  const updatedApp = { ...viewingApp, ...updatePayload, form_data: updatedFd };
+                                  setViewingApp(updatedApp);
+                                  onApplicationUpdated?.(updatedApp);
                                   setToastNotification({ message: `ย้าย ${file.label} เข้า S3 แล้ว!`, type: 'success' });
-                                  const updatedFd = { ...fd, [file.field]: data.newProxyUrl };
-                                  setViewingApp({ ...viewingApp, form_data: updatedFd });
                                 } else {
                                   setToastNotification({ message: `ย้ายไฟล์ล้มเหลว: ${data.error}`, type: 'error' });
                                 }
