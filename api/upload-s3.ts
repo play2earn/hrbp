@@ -147,9 +147,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const s3 = getS3Client();
     let s3Key = '';
 
-    if (applicantId && fieldName) {
+    const CANONICAL_FIELD_MAP: Record<string, string> = {
+      photo_url: 'photoUrl',
+      photoUrl: 'photoUrl',
+      resume_url: 'resumeUrl',
+      resumeUrl: 'resumeUrl',
+      transcript_url: 'transcriptUrl',
+      transcriptUrl: 'transcriptUrl',
+      id_card_url: 'idCardUrl',
+      idCardUrl: 'idCardUrl',
+      house_reg_url: 'houseRegUrl',
+      houseRegUrl: 'houseRegUrl',
+      edu_certificate_url: 'eduCertificateUrl',
+      eduCertificateUrl: 'eduCertificateUrl',
+      military_cert_url: 'militaryCertUrl',
+      militaryCertUrl: 'militaryCertUrl',
+      toeic_cert_url: 'toeicCertUrl',
+      toeicCertUrl: 'toeicCertUrl',
+      bank_book_url: 'bankBookUrl',
+      bankBookUrl: 'bankBookUrl',
+      certificate_url: 'certificateUrl',
+      certificateUrl: 'certificateUrl',
+      other_docs_url: 'otherDocsUrl',
+      otherDocsUrl: 'otherDocsUrl',
+    };
+
+    const targetFieldName = (fieldName && CANONICAL_FIELD_MAP[fieldName]) ? CANONICAL_FIELD_MAP[fieldName] : fieldName;
+
+    if (applicantId && targetFieldName) {
       const cleanAppId = String(applicantId).trim();
-      s3Key = `applicants/${cleanAppId}/${fieldName}.${ext}`;
+      s3Key = `applicants/${cleanAppId}/${targetFieldName}.${ext}`;
     } else if (applicantId) {
       const cleanAppId = String(applicantId).trim();
       s3Key = `applicants/${cleanAppId}/${randomUUID()}-${Date.now()}.${ext}`;
