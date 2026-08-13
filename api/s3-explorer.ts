@@ -97,10 +97,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // POST Request: Migration handler (migrating file from URL to S3)
   if (req.method === 'POST') {
     try {
-      const { fileUrl, targetFolder, applicationId, fieldName } = req.body;
+      let { fileUrl, targetFolder, applicationId, fieldName } = req.body;
 
       if (!fileUrl) {
         return res.status(400).json({ error: 'Missing fileUrl in request body' });
+      }
+
+      const CANONICAL_FIELD_MAP: Record<string, string> = {
+        photo_url: 'photoUrl',
+        photoUrl: 'photoUrl',
+        resume_url: 'resumeUrl',
+        resumeUrl: 'resumeUrl',
+        transcript_url: 'transcriptUrl',
+        transcriptUrl: 'transcriptUrl',
+        id_card_url: 'idCardUrl',
+        idCardUrl: 'idCardUrl',
+        house_reg_url: 'houseRegUrl',
+        houseRegUrl: 'houseRegUrl',
+        edu_certificate_url: 'eduCertificateUrl',
+        eduCertificateUrl: 'eduCertificateUrl',
+        military_cert_url: 'militaryCertUrl',
+        militaryCertUrl: 'militaryCertUrl',
+        toeic_cert_url: 'toeicCertUrl',
+        toeicCertUrl: 'toeicCertUrl',
+        bank_book_url: 'bankBookUrl',
+        bankBookUrl: 'bankBookUrl',
+        certificate_url: 'certificateUrl',
+        certificateUrl: 'certificateUrl',
+        other_docs_url: 'otherDocsUrl',
+        otherDocsUrl: 'otherDocsUrl',
+      };
+
+      if (fieldName && CANONICAL_FIELD_MAP[fieldName]) {
+        fieldName = CANONICAL_FIELD_MAP[fieldName];
       }
 
       console.log(`[Migration] Fetching source file from: ${fileUrl}`);
