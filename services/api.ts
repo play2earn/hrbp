@@ -393,57 +393,68 @@ export const api = {
         return [];
       }
 
-      const { data, error } = await supabase
-        .from('applications')
-        .select(`
-          id,
-          created_at,
-          full_name,
-          phone,
-          position,
-          department,
-          status,
-          assigned_to,
-          assigned_user:users!applications_assigned_to_fkey(id, full_name, emp_id),
-          business_unit,
-          source_channel,
-          campaign_tag,
-          interview_date,
-          interview_start_time,
-          interview_end_time,
-          teams_meeting_url,
-          updated_at,
-          nickname:form_data->>nickname,
-          photoUrl:form_data->>photoUrl,
-          age:form_data->>age,
-          nationalId:form_data->>nationalId,
-          passportNo:form_data->>passportNo,
-          isThaiNational:form_data->>isThaiNational,
-          prefix:form_data->>prefix,
-          firstName:form_data->>firstName,
-          lastName:form_data->>lastName,
-          departmentEn:form_data->>departmentEn,
-          positionEn:form_data->>positionEn,
-          height:form_data->>height,
-          weight:form_data->>weight,
-          education:form_data->education,
-          englishSkill:form_data->>englishSkill,
-          englishScore:form_data->>englishScore,
-          chineseSkill:form_data->>chineseSkill,
-          chineseScore:form_data->>chineseScore,
-          otherLang:form_data->>otherLang,
-          availability:form_data->>availability,
-          isAvailableImmediately:form_data->>isAvailableImmediately,
-          expectedSalary:form_data->>expectedSalary
-        `)
-        .order('created_at', { ascending: false });
+      let allData: any[] = [];
+      let page = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from('applications')
+          .select(`
+            id,
+            created_at,
+            full_name,
+            phone,
+            position,
+            department,
+            status,
+            assigned_to,
+            assigned_user:users!applications_assigned_to_fkey(id, full_name, emp_id),
+            business_unit,
+            source_channel,
+            campaign_tag,
+            interview_date,
+            interview_start_time,
+            interview_end_time,
+            teams_meeting_url,
+            updated_at,
+            nickname:form_data->>nickname,
+            photoUrl:form_data->>photoUrl,
+            age:form_data->>age,
+            nationalId:form_data->>nationalId,
+            passportNo:form_data->>passportNo,
+            isThaiNational:form_data->>isThaiNational,
+            prefix:form_data->>prefix,
+            firstName:form_data->>firstName,
+            lastName:form_data->>lastName,
+            departmentEn:form_data->>departmentEn,
+            positionEn:form_data->>positionEn,
+            height:form_data->>height,
+            weight:form_data->>weight,
+            education:form_data->education,
+            englishSkill:form_data->>englishSkill,
+            englishScore:form_data->>englishScore,
+            chineseSkill:form_data->>chineseSkill,
+            chineseScore:form_data->>chineseScore,
+            otherLang:form_data->>otherLang,
+            availability:form_data->>availability,
+            isAvailableImmediately:form_data->>isAvailableImmediately,
+            expectedSalary:form_data->>expectedSalary
+          `)
+          .order('created_at', { ascending: false })
+          .range(page * pageSize, (page + 1) * pageSize - 1);
 
-      if (error) {
-        console.error("Fetch Apps Error:", error);
-        return [];
+        if (error) {
+          console.error("Fetch Apps Error:", error);
+          break;
+        }
+
+        if (!data || data.length === 0) break;
+        allData.push(...data);
+        if (data.length < pageSize) break;
+        page++;
       }
 
-      return (data || []).map((app: any) => {
+      return allData.map((app: any) => {
         const {
           nickname, photoUrl, age, nationalId, passportNo, isThaiNational,
           prefix, firstName, lastName, departmentEn, positionEn,
@@ -652,38 +663,49 @@ export const api = {
       const sessionResult = await api.auth.verifySession();
       if (!sessionResult.success) return [];
 
-      const { data, error } = await supabase
-        .from('applications')
-        .select(`
-          id,
-          created_at,
-          full_name,
-          phone,
-          position,
-          department,
-          status,
-          assigned_to,
-          assigned_user:users!applications_assigned_to_fkey(id, full_name, emp_id),
-          business_unit,
-          source_channel,
-          campaign_tag,
-          interview_date,
-          interview_start_time,
-          interview_end_time,
-          teams_meeting_url,
-          updated_at,
-          nickname:form_data->>nickname,
-          photoUrl:form_data->>photoUrl
-        `)
-        .not('interview_date', 'is', null)
-        .order('interview_date', { ascending: true });
+      let allData: any[] = [];
+      let page = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from('applications')
+          .select(`
+            id,
+            created_at,
+            full_name,
+            phone,
+            position,
+            department,
+            status,
+            assigned_to,
+            assigned_user:users!applications_assigned_to_fkey(id, full_name, emp_id),
+            business_unit,
+            source_channel,
+            campaign_tag,
+            interview_date,
+            interview_start_time,
+            interview_end_time,
+            teams_meeting_url,
+            updated_at,
+            nickname:form_data->>nickname,
+            photoUrl:form_data->>photoUrl
+          `)
+          .not('interview_date', 'is', null)
+          .order('interview_date', { ascending: true })
+          .range(page * pageSize, (page + 1) * pageSize - 1);
 
-      if (error) {
-        console.error("Fetch Calendar Interviews Error:", error);
-        return [];
+        if (error) {
+          console.error("Fetch Calendar Interviews Error:", error);
+          break;
+        }
+
+        if (!data || data.length === 0) break;
+        allData.push(...data);
+        if (data.length < pageSize) break;
+        page++;
       }
 
-      return (data || []).map((app: any) => {
+      return allData.map((app: any) => {
         const { nickname, photoUrl, ...rest } = app;
         return {
           ...rest,
@@ -710,15 +732,26 @@ export const api = {
       const sessionResult = await api.auth.verifySession();
       if (!sessionResult.success) return [];
 
-      const { data, error } = await supabase
-        .from('applications')
-        .select('id, created_at, status, business_unit, department');
+      let allData: any[] = [];
+      let page = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from('applications')
+          .select('id, created_at, status, business_unit, department, position')
+          .range(page * pageSize, (page + 1) * pageSize - 1);
 
-      if (error) {
-        console.error("Fetch Stats Error:", error);
-        return [];
+        if (error) {
+          console.error("Fetch Stats Error:", error);
+          break;
+        }
+
+        if (!data || data.length === 0) break;
+        allData.push(...data);
+        if (data.length < pageSize) break;
+        page++;
       }
-      return data || [];
+      return allData;
     } catch (error) {
       console.error("Fetch Stats Error:", error);
       return [];

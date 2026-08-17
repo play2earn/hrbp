@@ -212,7 +212,7 @@ export default function ResubmitView({ token }: ResubmitViewProps) {
 
         try {
             // Upload directly to R2 under the application's permanent folder
-            const url = await uploadToR2(file, `applications/${applicationId}`);
+            const url = await uploadToR2(file, `applicants/${applicationId}`);
             setUploads(prev => ({
                 ...prev,
                 [field]: { ...prev[field]!, uploading: false, uploadedUrl: url }

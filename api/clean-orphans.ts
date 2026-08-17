@@ -71,12 +71,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     });
 
-    const { data: applications, error: dbError } = await supabase
-      .from('applications')
-      .select('photo_url, resume_url, form_data');
+    let applications: any[] = [];
+    let page = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data, error: dbError } = await supabase
+        .from('applications')
+        .select('photo_url, resume_url, form_data')
+        .range(page * pageSize, (page + 1) * pageSize - 1);
 
-    if (dbError) {
-      throw new Error(`Database fetch failed: ${dbError.message}`);
+      if (dbError) {
+        throw new Error(`Database fetch failed: ${dbError.message}`);
+      }
+      if (!data || data.length === 0) break;
+      applications.push(...data);
+      if (data.length < pageSize) break;
+      page++;
     }
 
     // 2. Build a Set of all active R2 keys referenced in the database
@@ -116,8 +126,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // 3. Scan the R2 bucket for files in target prefixes: 'photos/' and 'applications/'
-    const prefixes = ['photos/', 'applications/'];
+    // 3. Scan the R2 bucket for files in target prefixes: 'applicants/', 'photos/', and legacy 'applications/'
+    const prefixes = ['applicants/', 'photos/', 'applications/'];
     const orphanedKeys: string[] = [];
     let totalScanned = 0;
 

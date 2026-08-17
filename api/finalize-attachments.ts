@@ -72,14 +72,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const finalizedKeys: string[] = [];
 
-    // 2. Loop through and copy each file to applications/{applicationId}/
+    // 2. Loop through and copy each file to applicants/{applicationId}/
     const copyPromises = objects.map(async (obj) => {
       if (!obj.Key) return;
 
       const fileName = obj.Key.substring(draftPrefix.length);
       if (!fileName) return;
 
-      const targetKey = `applications/${applicationId}/${fileName}`;
+      const targetKey = `applicants/${applicationId}/${fileName}`;
 
       // Copy in R2 (performed extremely fast inside Cloudflare data centers)
       await r2.send(new CopyObjectCommand({
@@ -130,9 +130,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Replace draft path with final path in JSON stringified form_data to handle all nested URLs generically
       if (updatedFormData) {
         let formDataStr = JSON.stringify(updatedFormData);
-        // Replace all occurrences of drafts/{draftId}/ with applications/{applicationId}/
+        // Replace all occurrences of drafts/{draftId}/ with applicants/{applicationId}/
         const findStr = `drafts/${draftId}/`;
-        const replaceStr = `applications/${applicationId}/`;
+        const replaceStr = `applicants/${applicationId}/`;
         formDataStr = formDataStr.split(findStr).join(replaceStr);
         updatedFormData = JSON.parse(formDataStr);
       }
@@ -149,10 +149,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // Fallback: Replace in main photo_url/resume_url columns if they contain the draft prefix
       if (updatedPhotoUrl && updatedPhotoUrl.includes(`drafts/${draftId}/`)) {
-        updatedPhotoUrl = updatedPhotoUrl.split(`drafts/${draftId}/`).join(`applications/${applicationId}/`);
+        updatedPhotoUrl = updatedPhotoUrl.split(`drafts/${draftId}/`).join(`applicants/${applicationId}/`);
       }
       if (updatedResumeUrl && updatedResumeUrl.includes(`drafts/${draftId}/`)) {
-        updatedResumeUrl = updatedResumeUrl.split(`drafts/${draftId}/`).join(`applications/${applicationId}/`);
+        updatedResumeUrl = updatedResumeUrl.split(`drafts/${draftId}/`).join(`applicants/${applicationId}/`);
       }
 
       // Extract relational columns from updatedFormData
