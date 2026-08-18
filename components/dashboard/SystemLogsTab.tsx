@@ -221,6 +221,18 @@ export const SystemLogsTab: React.FC<SystemLogsTabProps> = ({ showToast, current
             <FileText className="w-3.5 h-3.5" /> Export Data
           </span>
         );
+      case 'search_candidates':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
+            <Search className="w-3.5 h-3.5" /> Search Candidate
+          </span>
+        );
+      case 'view_candidate_document':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-cyan-100 text-cyan-800">
+            <FileText className="w-3.5 h-3.5" /> View Document
+          </span>
+        );
       case 'create_master_data':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800">
@@ -371,6 +383,8 @@ export const SystemLogsTab: React.FC<SystemLogsTabProps> = ({ showToast, current
                   <option value="login_success">การล็อกอินสำเร็จ (Login Success)</option>
                   <option value="login_failed">การล็อกอินล้มเหลว (Login Failed)</option>
                   <option value="view_candidate_profile">การกดส่องประวัติใบสมัคร (View Profile)</option>
+                  <option value="view_candidate_document">การเปิดดูเอกสาร/PDF (View Document)</option>
+                  <option value="search_candidates">การค้นหา/กรองผู้สมัคร (Search Candidates)</option>
                   <option value="view_blacklist_detail">การส่องรายละเอียดประวัติเสีย (View Blacklist)</option>
                   <option value="export_report">การกดส่งออกข้อมูล (Export)</option>
                   <option value="create_master_data">สร้างข้อมูลหลัก (Create Master Data)</option>

@@ -3,7 +3,9 @@ import { Card, Button, Modal } from '../UIComponents';
 import { 
   Users, Shield, Clock, Building2, Briefcase, CheckCircle2, AlertCircle, 
   RefreshCw, Search, Filter, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-  Sparkles, SlidersHorizontal, X, LayoutGrid, Table as TableIcon
+  Sparkles, SlidersHorizontal, X, LayoutGrid, Table as TableIcon,
+  Activity, Eye, Key, FileText, Download, ShieldAlert, CheckCircle, ChevronDown, Calendar,
+  ListFilter, UserCheck, ExternalLink, Code
 } from 'lucide-react';
 import { api } from '../../services/api';
 
@@ -86,6 +88,13 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
   // View Display Mode State: auto | cards | table
   const [viewDisplayMode, setViewDisplayMode] = React.useState<'auto' | 'cards' | 'table'>('auto');
 
+  // Modal Sub-tab & Activity Dossier State
+  const [modalTab, setModalTab] = React.useState<'profile' | 'activity'>('profile');
+  const [userLogs, setUserLogs] = React.useState<any[]>([]);
+  const [isLoadingLogs, setIsLoadingLogs] = React.useState<boolean>(false);
+  const [logCategoryFilter, setLogCategoryFilter] = React.useState<string>('all');
+  const [expandedLogId, setExpandedLogId] = React.useState<string | null>(null);
+
   // Filters State
   const [searchQuery, setSearchQuery] = React.useState<string>('');
   const [deptFilter, setDeptFilter] = React.useState<'All' | 'HR' | 'IT' | 'Audit' | 'ProcessImprovement' | 'Other'>('All');
@@ -102,6 +111,31 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
   React.useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, deptFilter, activityFilter, itemsPerPage]);
+
+  // Fetch specific user activity logs whenever editingUser changes
+  React.useEffect(() => {
+    if (editingUser?.id) {
+      setModalTab('profile');
+      setLogCategoryFilter('all');
+      setExpandedLogId(null);
+      setIsLoadingLogs(true);
+      api.systemLogs.getUserLogs(editingUser.id, editingUser.full_name, 100)
+        .then(res => {
+          if (res.success && res.data) {
+            setUserLogs(res.data);
+          } else {
+            setUserLogs([]);
+          }
+        })
+        .catch(err => {
+          console.error('Failed to fetch user activity logs:', err);
+          setUserLogs([]);
+        })
+        .finally(() => setIsLoadingLogs(false));
+    } else {
+      setUserLogs([]);
+    }
+  }, [editingUser?.id, editingUser?.full_name]);
 
   const handleUpdateUser = async (status: 'Active' | 'Inactive') => {
     if (!editingUser) return;
@@ -711,9 +745,34 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                           <span className="text-xs font-semibold bg-green-100 text-green-700 px-2.5 py-1 rounded-full border border-green-200">Active</span>
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <Button size="sm" variant="ghost" className="hover:bg-indigo-50 hover:text-indigo-600" onClick={() => { setEditingUser(user); setIsConfirmingDisable(false); }}>
-                            Manage
-                          </Button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-1 text-xs"
+                              onClick={() => {
+                                setEditingUser(user);
+                                setIsConfirmingDisable(false);
+                                setModalTab('activity');
+                              }}
+                              title="ดูไทม์ไลน์กิจกรรม (Audit Dossier)"
+                            >
+                              <Activity className="w-3.5 h-3.5 text-indigo-600" />
+                              <span className="hidden xl:inline">Timeline</span>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="hover:bg-indigo-50 hover:text-indigo-600 text-xs"
+                              onClick={() => {
+                                setEditingUser(user);
+                                setIsConfirmingDisable(false);
+                                setModalTab('profile');
+                              }}
+                            >
+                              Manage
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -757,8 +816,32 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex justify-end items-center mt-1 border-t pt-2.5">
-                      <Button size="sm" variant="outline" className="h-8 px-4 text-xs" onClick={() => { setEditingUser(user); setIsConfirmingDisable(false); }}>Manage Profile</Button>
+                    <div className="flex justify-end items-center gap-2 mt-1 border-t pt-2.5">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 px-3 text-xs flex items-center gap-1 text-indigo-600 hover:bg-indigo-50"
+                        onClick={() => {
+                          setEditingUser(user);
+                          setIsConfirmingDisable(false);
+                          setModalTab('activity');
+                        }}
+                      >
+                        <Activity className="w-3.5 h-3.5" />
+                        Timeline
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 px-3 text-xs"
+                        onClick={() => {
+                          setEditingUser(user);
+                          setIsConfirmingDisable(false);
+                          setModalTab('profile');
+                        }}
+                      >
+                        Manage Profile
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -833,116 +916,394 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
           )}
         </Card>
 
-        {/* Edit User Modal */}
+        {/* Edit User Modal & Activity Dossier */}
         <Modal
           isOpen={!!editingUser}
           onClose={() => setEditingUser(null)}
-          title={isConfirmingDisable ? "Confirm Action" : "Manage User Profile"}
+          title={isConfirmingDisable ? "Confirm Action" : "User Profile & Activity Dossier"}
+          size="xl"
           footer={null}
         >
           {editingUser && (
             <div className="space-y-4">
               {!isConfirmingDisable ? (
                 <>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">ข้อมูลผู้ใช้งาน & สังกัด (HRMS Detail)</label>
-                    <div className="p-4 bg-gray-50 border rounded-xl space-y-3 text-sm">
-                      <div className="flex items-center gap-3.5 border-b pb-3.5">
-                        <UserAvatar user={editingUser} size="lg" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-start gap-2">
-                            <p className="font-bold text-gray-900 text-lg leading-snug truncate">{editingUser.full_name}</p>
-                            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${editingUser.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>
-                              {editingUser.role === 'admin' ? 'Admin' : 'Moderator'}
-                            </span>
+                  {/* Top Modal Sub-tab Navigation */}
+                  <div className="flex items-center justify-between border-b pb-3 gap-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setModalTab('profile')}
+                        className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                          modalTab === 'profile'
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Briefcase className="w-3.5 h-3.5" /> ข้อมูลผู้ใช้และสิทธิ์ (Profile)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setModalTab('activity')}
+                        className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                          modalTab === 'activity'
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Activity className="w-3.5 h-3.5" /> ไทม์ไลน์กิจกรรมเจาะลึก (Audit Dossier)
+                        {userLogs.length > 0 && (
+                          <span className={`px-1.5 py-0.5 text-[10px] rounded-full font-bold ${
+                            modalTab === 'activity' ? 'bg-white/20 text-white' : 'bg-indigo-100 text-indigo-700'
+                          }`}>
+                            {userLogs.length}
+                          </span>
+                        )}
+                      </button>
+                    </div>
+
+                    {modalTab === 'activity' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setIsLoadingLogs(true);
+                          api.systemLogs.getUserLogs(editingUser.id, editingUser.full_name, 100)
+                            .then(res => setUserLogs(res.data || []))
+                            .finally(() => setIsLoadingLogs(false));
+                        }}
+                        className="text-xs h-7 px-2.5 text-gray-600 hover:text-indigo-600 flex items-center gap-1"
+                        title="Refresh Activity"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${isLoadingLogs ? 'animate-spin' : ''}`} /> Refresh
+                      </Button>
+                    )}
+                  </div>
+
+                  {modalTab === 'profile' ? (
+                    /* Tab 1: Profile & Permissions */
+                    <>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">ข้อมูลผู้ใช้งาน & สังกัด (HRMS Detail)</label>
+                        <div className="p-4 bg-gray-50 border rounded-xl space-y-3 text-sm">
+                          <div className="flex items-center gap-3.5 border-b pb-3.5">
+                            <UserAvatar user={editingUser} size="lg" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between items-start gap-2">
+                                <p className="font-bold text-gray-900 text-lg leading-snug truncate">{editingUser.full_name}</p>
+                                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${editingUser.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                                  {editingUser.role === 'admin' ? 'Admin' : 'Moderator'}
+                                </span>
+                              </div>
+                              <p className="text-gray-500 text-xs truncate">{editingUser.email}</p>
+                            </div>
                           </div>
-                          <p className="text-gray-500 text-xs truncate">{editingUser.email}</p>
+
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                              <span className="text-gray-400 block">รหัสพนักงาน:</span>
+                              <span className="font-medium text-gray-800">{editingUser.emp_id || '-'}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-400 block">HRMS Account:</span>
+                              <span className="font-medium text-gray-800">{editingUser.hrms_username || '-'}</span>
+                            </div>
+                            <div className="col-span-2">
+                              <span className="text-gray-400 block">ตำแหน่งงาน:</span>
+                              <span className="font-medium text-gray-900 flex items-center gap-1">
+                                <Briefcase className="w-3.5 h-3.5 text-indigo-600" />
+                                {editingUser.position_name || 'เจ้าหน้าที่สรรหาบุคลากร'}
+                              </span>
+                            </div>
+                            <div className="col-span-2">
+                              <span className="text-gray-400 block">สังกัดบริษัท/แผนก:</span>
+                              <span className="font-medium text-gray-900 flex items-center gap-1">
+                                <Building2 className="w-3.5 h-3.5 text-indigo-600" />
+                                {editingUser.company_name || 'Double A (1991) PLC'} {editingUser.department_name ? `• ${editingUser.department_name}` : ''}
+                              </span>
+                            </div>
+                            <div className="col-span-2 pt-1 border-t mt-1">
+                              <span className="text-gray-400 block mb-1">การตรวจสอบสายงาน HR:</span>
+                              {renderHrVerificationBadge(editingUser)}
+                            </div>
+                            {editingUser.allow_non_hr_access && (
+                              <div className="col-span-2 bg-purple-50 border border-purple-200 p-2.5 rounded-lg text-[11px] text-purple-900 mt-1">
+                                <div className="font-bold flex items-center gap-1 text-purple-800">
+                                  <Shield className="w-3.5 h-3.5 text-purple-600" />
+                                  ได้รับสิทธิ์ Audit / Non-HR Access กรณีพิเศษ
+                                </div>
+                                <div className="mt-1 space-y-0.5 text-purple-700">
+                                  <p>สังกัดที่ได้รับอนุมัติ: <strong>{editingUser.approved_department_name || editingUser.department_name}</strong></p>
+                                  {editingUser.approved_at && <p>อนุมัติเมื่อ: {new Date(editingUser.approved_at).toLocaleDateString('th-TH')} {editingUser.approved_by ? `โดย ${editingUser.approved_by}` : ''}</p>}
+                                </div>
+                              </div>
+                            )}
+                            <div className="col-span-2 pt-1 border-t mt-1">
+                              <span className="text-gray-400 block mb-1">การเคลื่อนไหวล่าสุดบนระบบ (Activity):</span>
+                              {formatLastLogin(editingUser.last_active_at, editingUser.last_login_at)}
+                            </div>
+                            {editingUser.last_login_at && (
+                              <div className="col-span-2 text-[11px] text-gray-500">
+                                <span className="text-gray-400">ยืนยันรหัสผ่านล่าสุด (Password Auth): </span>
+                                {new Date(editingUser.last_login_at).toLocaleDateString('th-TH')} {new Date(editingUser.last_login_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                              </div>
+                            )}
+                          </div>
+
+                          {editingUser.emp_id && (
+                            <div className="pt-2 border-t">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full flex items-center justify-center gap-2 text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+                                onClick={() => handleSyncHrms(editingUser)}
+                                disabled={isSyncing}
+                              >
+                                <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                                {isSyncing ? 'กำลังซิงค์ข้อมูล...' : 'Re-sync HRMS Central Org Info'}
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div>
-                          <span className="text-gray-400 block">รหัสพนักงาน:</span>
-                          <span className="font-medium text-gray-800">{editingUser.emp_id || '-'}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-400 block">HRMS Account:</span>
-                          <span className="font-medium text-gray-800">{editingUser.hrms_username || '-'}</span>
-                        </div>
-                        <div className="col-span-2">
-                          <span className="text-gray-400 block">ตำแหน่งงาน:</span>
-                          <span className="font-medium text-gray-900 flex items-center gap-1">
-                            <Briefcase className="w-3.5 h-3.5 text-indigo-600" />
-                            {editingUser.position_name || 'เจ้าหน้าที่สรรหาบุคลากร'}
-                          </span>
-                        </div>
-                        <div className="col-span-2">
-                          <span className="text-gray-400 block">สังกัดบริษัท/แผนก:</span>
-                          <span className="font-medium text-gray-900 flex items-center gap-1">
-                            <Building2 className="w-3.5 h-3.5 text-indigo-600" />
-                            {editingUser.company_name || 'Double A (1991) PLC'} {editingUser.department_name ? `• ${editingUser.department_name}` : ''}
-                          </span>
-                        </div>
-                        <div className="col-span-2 pt-1 border-t mt-1">
-                          <span className="text-gray-400 block mb-1">การตรวจสอบสายงาน HR:</span>
-                          {renderHrVerificationBadge(editingUser)}
-                        </div>
-                        {editingUser.allow_non_hr_access && (
-                          <div className="col-span-2 bg-purple-50 border border-purple-200 p-2.5 rounded-lg text-[11px] text-purple-900 mt-1">
-                            <div className="font-bold flex items-center gap-1 text-purple-800">
-                              <Shield className="w-3.5 h-3.5 text-purple-600" />
-                              ได้รับสิทธิ์ Audit / Non-HR Access กรณีพิเศษ
-                            </div>
-                            <div className="mt-1 space-y-0.5 text-purple-700">
-                              <p>สังกัดที่ได้รับอนุมัติ: <strong>{editingUser.approved_department_name || editingUser.department_name}</strong></p>
-                              {editingUser.approved_at && <p>อนุมัติเมื่อ: {new Date(editingUser.approved_at).toLocaleDateString('th-TH')} {editingUser.approved_by ? `โดย ${editingUser.approved_by}` : ''}</p>}
-                            </div>
-                          </div>
-                        )}
-                        <div className="col-span-2 pt-1 border-t mt-1">
-                          <span className="text-gray-400 block mb-1">การเคลื่อนไหวล่าสุดบนระบบ (Activity):</span>
-                          {formatLastLogin(editingUser.last_active_at, editingUser.last_login_at)}
-                        </div>
-                        {editingUser.last_login_at && (
-                          <div className="col-span-2 text-[11px] text-gray-500">
-                            <span className="text-gray-400">ยืนยันรหัสผ่านล่าสุด (Password Auth): </span>
-                            {new Date(editingUser.last_login_at).toLocaleDateString('th-TH')} {new Date(editingUser.last_login_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
-                          </div>
-                        )}
-                      </div>
-
-                      {editingUser.emp_id && (
-                        <div className="pt-2 border-t">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">จัดการสถานะผู้ใช้</label>
+                        <div className="flex gap-3">
                           <Button
-                            size="sm"
-                            variant="outline"
-                            className="w-full flex items-center justify-center gap-2 text-indigo-600 border-indigo-200 hover:bg-indigo-50"
-                            onClick={() => handleSyncHrms(editingUser)}
-                            disabled={isSyncing}
+                            variant="danger"
+                            className="w-full"
+                            onClick={() => setIsConfirmingDisable(true)}
                           >
-                            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-                            {isSyncing ? 'กำลังซิงค์ข้อมูล...' : 'Re-sync HRMS Central Org Info'}
+                            Disable Account
                           </Button>
                         </div>
-                      )}
-                    </div>
-                  </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                          พนักงานที่ถูก Disable จะไม่สามารถเข้าถึงระบบ HRBP และดูข้อมูลผู้สมัครได้
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    /* Tab 2: Activity Dossier & Timeline */
+                    <div className="space-y-4">
+                      {/* Summary Metrics Cards */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                        <div className="bg-indigo-50/70 border border-indigo-150 p-2.5 rounded-xl">
+                          <span className="text-[11px] font-semibold text-indigo-700 block">กิจกรรมทั้งหมด</span>
+                          <span className="text-lg font-bold text-indigo-900">{userLogs.length}</span>
+                        </div>
+                        <div className="bg-purple-50/70 border border-purple-150 p-2.5 rounded-xl">
+                          <span className="text-[11px] font-semibold text-purple-700 block">ส่องประวัติผู้สมัคร</span>
+                          <span className="text-lg font-bold text-purple-900">
+                            {userLogs.filter(l => l.action === 'view_candidate_profile' || l.action === 'view_candidate_document').length}
+                          </span>
+                        </div>
+                        <div className="bg-amber-50/70 border border-amber-150 p-2.5 rounded-xl">
+                          <span className="text-[11px] font-semibold text-amber-700 block">การค้นหา/กรองข้อมูล</span>
+                          <span className="text-lg font-bold text-amber-900">
+                            {userLogs.filter(l => l.action === 'search_candidates').length}
+                          </span>
+                        </div>
+                        <div className="bg-emerald-50/70 border border-emerald-150 p-2.5 rounded-xl">
+                          <span className="text-[11px] font-semibold text-emerald-700 block">การล็อกอิน (Auth)</span>
+                          <span className="text-lg font-bold text-emerald-900">
+                            {userLogs.filter(l => l.action.startsWith('login_')).length}
+                          </span>
+                        </div>
+                      </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">จัดการสถานะผู้ใช้</label>
-                    <div className="flex gap-3">
-                      <Button
-                        variant="danger"
-                        className="w-full"
-                        onClick={() => setIsConfirmingDisable(true)}
-                      >
-                        Disable Account
-                      </Button>
+                      {/* Filter Chips */}
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                        {[
+                          { key: 'all', label: 'ทั้งหมด' },
+                          { key: 'logins', label: '🔑 ล็อกอิน' },
+                          { key: 'candidates', label: '👤 ส่องประวัติผู้สมัคร' },
+                          { key: 'searches', label: '🔍 การค้นหา' },
+                          { key: 'tabs', label: '📑 การเปิดแท็บ' },
+                          { key: 'exports', label: '📥 ส่งออกข้อมูล' },
+                        ].map(chip => (
+                          <button
+                            key={chip.key}
+                            type="button"
+                            onClick={() => setLogCategoryFilter(chip.key)}
+                            className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                              logCategoryFilter === chip.key
+                                ? 'bg-gray-900 text-white shadow-xs'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
+                          >
+                            {chip.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Activity Timeline List */}
+                      <div className="border border-gray-200 rounded-xl bg-white p-4 max-h-96 overflow-y-auto space-y-3">
+                        {isLoadingLogs ? (
+                          <div className="flex flex-col items-center justify-center py-10 text-gray-400 gap-2">
+                            <RefreshCw className="w-5 h-5 animate-spin text-indigo-600" />
+                            <p className="text-xs">กำลังโหลดบันทึกกิจกรรม...</p>
+                          </div>
+                        ) : userLogs.length === 0 ? (
+                          <div className="text-center py-8 px-4 text-gray-400">
+                            <Activity className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                            <p className="text-sm font-semibold text-gray-700">ยังไม่มีบันทึกกิจกรรมสำคัญ</p>
+                            <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                              ผู้ใช้อาจเข้าใช้งานเฉพาะหน้าภาพรวม Dashboard หรือเปิดหน้าต่างค้างไว้ ซึ่งระบบจะไม่สร้าง Log ซ้ำซ้อน
+                            </p>
+                          </div>
+                        ) : (
+                          (() => {
+                            const filtered = userLogs.filter(log => {
+                              if (logCategoryFilter === 'all') return true;
+                              if (logCategoryFilter === 'logins') return log.action.startsWith('login_');
+                              if (logCategoryFilter === 'candidates') return log.action === 'view_candidate_profile' || log.action === 'view_candidate_document';
+                              if (logCategoryFilter === 'searches') return log.action === 'search_candidates';
+                              if (logCategoryFilter === 'tabs') return log.action.startsWith('view_tab_');
+                              if (logCategoryFilter === 'exports') return log.action === 'export_report';
+                              return true;
+                            });
+
+                            if (filtered.length === 0) {
+                              return (
+                                <div className="text-center py-6 text-xs text-gray-500">
+                                  ไม่พบบันทึกกิจกรรมในหมวดหมู่นี้
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <div className="relative pl-5 border-l-2 border-indigo-100 space-y-4 my-1">
+                                {filtered.map((log, idx) => {
+                                  const logDate = new Date(log.created_at);
+                                  const isExpanded = expandedLogId === log.id;
+
+                                  // Badge and Icon mappings
+                                  let icon = <Activity className="w-3.5 h-3.5 text-gray-600" />;
+                                  let nodeColor = 'bg-gray-100 border-gray-300';
+                                  let badgeClass = 'bg-gray-100 text-gray-800';
+                                  let actionLabel = log.action;
+
+                                  if (log.action === 'login_success') {
+                                    icon = <Key className="w-3.5 h-3.5 text-emerald-600" />;
+                                    nodeColor = 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-100';
+                                    badgeClass = 'bg-emerald-100 text-emerald-800';
+                                    actionLabel = 'Login Success';
+                                  } else if (log.action === 'login_failed') {
+                                    icon = <AlertCircle className="w-3.5 h-3.5 text-rose-600" />;
+                                    nodeColor = 'bg-rose-50 border-rose-500 ring-2 ring-rose-100';
+                                    badgeClass = 'bg-rose-100 text-rose-800';
+                                    actionLabel = 'Login Failed';
+                                  } else if (log.action === 'view_candidate_profile') {
+                                    icon = <Eye className="w-3.5 h-3.5 text-purple-600" />;
+                                    nodeColor = 'bg-purple-50 border-purple-500 ring-2 ring-purple-100';
+                                    badgeClass = 'bg-purple-100 text-purple-800';
+                                    actionLabel = 'View Candidate Profile';
+                                  } else if (log.action === 'view_candidate_document') {
+                                    icon = <FileText className="w-3.5 h-3.5 text-cyan-600" />;
+                                    nodeColor = 'bg-cyan-50 border-cyan-500 ring-2 ring-cyan-100';
+                                    badgeClass = 'bg-cyan-100 text-cyan-800';
+                                    actionLabel = 'View Document Preview';
+                                  } else if (log.action === 'search_candidates') {
+                                    icon = <Search className="w-3.5 h-3.5 text-amber-600" />;
+                                    nodeColor = 'bg-amber-50 border-amber-500 ring-2 ring-amber-100';
+                                    badgeClass = 'bg-amber-100 text-amber-800';
+                                    actionLabel = 'Search Candidates';
+                                  } else if (log.action === 'export_report') {
+                                    icon = <Download className="w-3.5 h-3.5 text-blue-600" />;
+                                    nodeColor = 'bg-blue-50 border-blue-500 ring-2 ring-blue-100';
+                                    badgeClass = 'bg-blue-100 text-blue-800';
+                                    actionLabel = 'Export Report';
+                                  } else if (log.action.startsWith('view_tab_')) {
+                                    icon = <Activity className="w-3.5 h-3.5 text-slate-600" />;
+                                    nodeColor = 'bg-slate-50 border-slate-400';
+                                    badgeClass = 'bg-slate-100 text-slate-800';
+                                    actionLabel = `Open Tab: ${log.action.replace('view_tab_', '')}`;
+                                  }
+
+                                  return (
+                                    <div key={log.id || idx} className="relative group">
+                                      {/* Timeline Node Icon */}
+                                      <div className={`absolute -left-[27px] top-1 w-6 h-6 rounded-full border flex items-center justify-center bg-white ${nodeColor} shadow-xs`}>
+                                        {icon}
+                                      </div>
+
+                                      {/* Log Entry Card */}
+                                      <div className="bg-gray-50 hover:bg-gray-100/80 border border-gray-150 rounded-xl p-3 text-xs transition-colors">
+                                        <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1.5">
+                                          <div className="flex items-center gap-1.5 flex-wrap">
+                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${badgeClass}`}>
+                                              {actionLabel}
+                                            </span>
+                                            {log.target_name && (
+                                              <span className="font-bold text-gray-800 truncate max-w-xs">
+                                                {log.target_name}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <span className="text-[11px] text-gray-400 font-mono">
+                                            {logDate.toLocaleDateString('th-TH')} {logDate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                          </span>
+                                        </div>
+
+                                        {/* Quick Metadata Snippets */}
+                                        <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-500">
+                                          {log.metadata?.ip && (
+                                            <span className="bg-white px-1.5 py-0.5 rounded border border-gray-200 font-mono text-gray-600">
+                                              IP: {log.metadata.ip}
+                                            </span>
+                                          )}
+                                          {log.metadata?.totalMatches !== undefined && (
+                                            <span className="bg-amber-50 text-amber-800 px-1.5 py-0.5 rounded border border-amber-200 font-medium">
+                                              ผลลัพธ์ {log.metadata.totalMatches} รายการ
+                                            </span>
+                                          )}
+                                          {log.metadata?.totalRows !== undefined && (
+                                            <span className="bg-blue-50 text-blue-800 px-1.5 py-0.5 rounded border border-blue-200 font-medium">
+                                              ส่งออก {log.metadata.totalRows} รายการ
+                                            </span>
+                                          )}
+                                          {log.metadata && Object.keys(log.metadata).length > 0 && (
+                                            <button
+                                              type="button"
+                                              onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
+                                              className="text-indigo-600 hover:text-indigo-800 hover:underline font-medium ml-auto flex items-center gap-0.5"
+                                            >
+                                              <Code className="w-3 h-3" />
+                                              {isExpanded ? 'ซ่อน Metadata' : 'ดู Metadata'}
+                                            </button>
+                                          )}
+                                        </div>
+
+                                        {/* Expanded Metadata JSON */}
+                                        {isExpanded && log.metadata && (
+                                          <pre className="mt-2 p-2 bg-gray-900 text-emerald-400 rounded-lg text-[10px] font-mono overflow-x-auto border border-gray-800">
+                                            {JSON.stringify(log.metadata, null, 2)}
+                                          </pre>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()
+                        )}
+                      </div>
+
+                      {/* Governance Info Banner */}
+                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-[11px] text-blue-800 flex items-start gap-2">
+                        <Shield className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold">นโยบายความโปร่งใสและธรรมาภิบาลข้อมูล (Governance Notice):</span>
+                          <p className="text-blue-700 mt-0.5 leading-relaxed">
+                            ระบบจะบันทึกเฉพาะการเข้าถึงข้อมูลอ่อนไหว (PII) การค้นหา การส่องดูประวัติ และการส่งออกรายงาน สำหรับการเปิดหน้าภาพรวม (Overview) ระบบจะบันทึกสถานะใช้งานล่าสุด (Last Active) เพื่อความรวดเร็ว
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      พนักงานที่ถูก Disable จะไม่สามารถเข้าถึงระบบ HRBP และดูข้อมูลผู้สมัครได้
-                    </p>
-                  </div>
+                  )}
+
                   <div className="flex justify-end gap-3 pt-4 border-t">
                     <Button variant="outline" onClick={() => setEditingUser(null)}>Close</Button>
                   </div>

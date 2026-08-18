@@ -2317,6 +2317,30 @@ export const api = {
       } catch (error) {
         return handleError(error, 'systemLogs.getLogs');
       }
+    },
+
+    getUserLogs: async (userId?: string, userName?: string, limit: number = 50): Promise<ApiResponse<any[]>> => {
+      try {
+        let query = supabase
+          .from('system_activity_logs')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(limit);
+
+        if (userId && userName) {
+          query = query.or(`user_id.eq.${userId},user_name.ilike.%${userName}%`);
+        } else if (userId) {
+          query = query.eq('user_id', userId);
+        } else if (userName) {
+          query = query.ilike('user_name', `%${userName}%`);
+        }
+
+        const { data, error } = await query;
+        if (error) return handleError(error, 'systemLogs.getUserLogs');
+        return { success: true, data: data || [] };
+      } catch (error) {
+        return handleError(error, 'systemLogs.getUserLogs');
+      }
     }
   }
 };

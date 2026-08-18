@@ -337,8 +337,82 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     }
   }, [activeTab, currentUser]);
 
+  // Debounced search & filter logging for audit compliance
+  const searchLogTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const lastLoggedSearchRef = React.useRef<string>('');
+
+  useEffect(() => {
+    if (!currentUser) return;
+    const hasSearch = Boolean(appFilters.search && appFilters.search.trim().length >= 2);
+    const hasFilter = Boolean(appFilters.bu || appFilters.status || appFilters.position || appFilters.department);
+
+    if (!hasSearch && !hasFilter) return;
+
+    const currentKey = JSON.stringify({
+      search: appFilters.search?.trim(),
+      bu: appFilters.bu,
+      status: appFilters.status,
+      position: appFilters.position,
+      department: appFilters.department
+    });
+
+    if (currentKey === lastLoggedSearchRef.current) return;
+
+    if (searchLogTimerRef.current) {
+      clearTimeout(searchLogTimerRef.current);
+    }
+
+    searchLogTimerRef.current = setTimeout(() => {
+      lastLoggedSearchRef.current = currentKey;
+      const targetDesc: string[] = [];
+      if (hasSearch) targetDesc.push(`ค้นหา: "${appFilters.search.trim()}"`);
+      if (appFilters.bu) targetDesc.push(`BU: ${appFilters.bu}`);
+      if (appFilters.status) targetDesc.push(`สถานะ: ${appFilters.status}`);
+      if (appFilters.position) targetDesc.push(`ตำแหน่ง: ${appFilters.position}`);
+      if (appFilters.department) targetDesc.push(`แผนก: ${appFilters.department}`);
+
+      api.systemLogs.addLog({
+        user_id: currentUser.id,
+        user_name: currentUser.full_name,
+        user_role: currentUser.role,
+        action: 'search_candidates',
+        target_name: targetDesc.join(' | ') || 'กรองรายชื่อผู้สมัคร',
+        metadata: {
+          searchQuery: appFilters.search?.trim() || null,
+          bu: appFilters.bu || null,
+          status: appFilters.status || null,
+          position: appFilters.position || null,
+          department: appFilters.department || null,
+          channel: appFilters.channel || null,
+          totalMatches: totalCount
+        }
+      }).catch(err => console.warn('Search candidate log error:', err));
+    }, 2000);
+
+    return () => {
+      if (searchLogTimerRef.current) {
+        clearTimeout(searchLogTimerRef.current);
+      }
+    };
+  }, [appFilters, currentUser, totalCount]);
+
   // Helper to open full preview in new tab
   const openFullPreview = (app: any) => {
+    if (currentUser && app) {
+      api.systemLogs.addLog({
+        user_id: currentUser.id,
+        user_name: currentUser.full_name,
+        user_role: currentUser.role,
+        action: 'view_candidate_document',
+        target_id: app.id,
+        target_name: `เอกสารใบสมัคร: ${app.full_name || 'ผู้สมัคร'}`,
+        metadata: {
+          app_id: app.id,
+          position: app.position || '',
+          document_type: 'Full Application PDF Preview'
+        }
+      }).catch(err => console.warn('Log document preview error:', err));
+    }
     const fd = app.form_data || {};
     const previewData = JSON.stringify(fd);
     localStorage.setItem('previewData', previewData);

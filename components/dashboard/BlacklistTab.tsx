@@ -563,6 +563,19 @@ export const BlacklistTab: React.FC<BlacklistTabProps> = ({ showToast, currentUs
       details: `ส่งออกไฟล์ข้อมูลประวัติเสียในระบบ (Exported CSV, ทั้งหมด ${filteredEntries.length} รายการ)`
     });
 
+    await api.systemLogs.addLog({
+      user_id: currentUser?.id,
+      user_name: currentUser?.full_name || 'System / Unknown',
+      user_role: currentUser?.role || 'mod',
+      action: 'export_report',
+      target_name: 'Blacklist Database Export',
+      metadata: {
+        format: 'csv',
+        totalRows: filteredEntries.length,
+        filters: { search: searchQuery, filterType }
+      }
+    }).catch(err => console.warn('System log export error:', err));
+
     const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
