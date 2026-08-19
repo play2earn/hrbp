@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createClient } from '@supabase/supabase-js';
+import { clearSession, configureSameOrigin, getAdminSupabase, requireResubmitSession } from '../server/security';
 
 const ALLOWED_FIELDS = [
   'resumeUrl', 'transcriptUrl', 'certificateUrl', 'photoUrl',
@@ -21,12 +21,22 @@ const FIELD_LABEL_MAP: Record<string, string> = {
   bankBookUrl_ktb: 'สำเนาบัญชีธนาคารกรุงไทย (ออมทรัพย์)',
 };
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+function isAuthorizedUploadUrl(rawValue: unknown, applicationId: string, submittedField: string): rawValue is string {
+  if (typeof rawValue !== 'string') return false;
+  try {
+    const parsed = new URL(rawValue, 'https://hrbp.invalid');
+    if (parsed.origin !== 'https://hrbp.invalid' || parsed.pathname !== '/api/files') return false;
+    const key = parsed.searchParams.get('key') || '';
+    const canonicalField = submittedField.startsWith('bankBookUrl_') ? 'bankBookUrl' : submittedField;
+    return key.startsWith(`applicants/${applicationId}/${canonicalField}.`);
+  } catch {
+    return false;
+  }
+}
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (!configureSameOrigin(req, res, 'POST')) return;
+  if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
@@ -36,17 +46,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'ข้อมูลไม่ครบถ้วน' });
     }
 
-    const cleanEnvVar = (val?: string) => val ? val.replace(/^["']|["']$/g, '').trim() : '';
-    const supabaseUrl = cleanEnvVar(process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL);
-    const supabaseAnonKey = cleanEnvVar(process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY);
+    if (!requireResubmitSession(req, res, String(token), String(applicationId))) return;
 
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error('Supabase environment variables are missing');
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { 'x-admin-key': 'vibe-recruit-admin-secret-2026' } }
-    });
+    const supabase = getAdminSupabase();
 
     // 1. Re-validate the token (security double-check)
     const { data: tokenRow, error: tokenError } = await supabase
@@ -83,6 +85,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (safeKeys.length === 0) {
       return res.status(400).json({ error: 'ไม่มีเอกสารที่ได้รับอนุญาตให้อัปโหลด' });
+    }
+    if (safeKeys.some(key => !isAuthorizedUploadUrl(uploadedFields[key], String(applicationId), key))) {
+      return res.status(400).json({ error: 'พบตำแหน่งไฟล์ที่ไม่ถูกต้องหรือไม่ตรงกับใบสมัคร' });
     }
 
     // 5. Fetch current form_data
@@ -142,6 +147,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log(`[complete-resubmit] Application ${applicationId}: updated fields [${safeKeys.join(', ')}]`);
 
+    clearSession(res, 'resubmit');
     return res.status(200).json({ success: true, updatedFields: safeKeys });
 
   } catch (error: any) {

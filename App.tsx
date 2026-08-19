@@ -60,38 +60,22 @@ export default function App() {
   }
 
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
-  const [role, setRole] = useState<Role>(() => {
-    try {
-      const stored = localStorage.getItem('currentUser');
-      if (stored) {
-        const user = JSON.parse(stored);
-        if (user.role === 'admin' || user.role === 'mod') return user.role;
-      }
-    } catch {}
-    return 'guest';
-  });
+  const [role, setRole] = useState<Role>('guest');
   
   useEffect(() => {
     const checkSession = async () => {
-      const storedUser = localStorage.getItem('currentUser');
-      if (storedUser) {
-        // Verify with server
-        try {
-          const result = await api.auth.verifySession();
-          if (result.success && result.data) {
-            setRole(result.data.role);
-            setCurrentUser(result.data);
-            localStorage.setItem('currentUser', JSON.stringify(result.data));
-          } else {
-            setRole('guest');
-            setCurrentUser(null);
-            localStorage.removeItem('currentUser');
-          }
-        } catch {
+      try {
+        const result = await api.auth.verifySession();
+        if (result.success && result.data) {
+          setRole(result.data.role);
+          setCurrentUser(result.data);
+        } else {
           setRole('guest');
           setCurrentUser(null);
-          localStorage.removeItem('currentUser');
         }
+      } catch {
+        setRole('guest');
+        setCurrentUser(null);
       }
     };
 
@@ -123,16 +107,18 @@ export default function App() {
   const t = TRANSLATIONS[lang];
   const landingText = LANDING_CONTENT[lang];
 
-  const handleLogin = (selectedRole: Role) => {
-    setRole(selectedRole);
+  const handleLogin = (user: AuthUser) => {
+    setCurrentUser(user);
+    setRole(user.role);
     setShowLogin(false);
   };
 
   const handleLogout = () => {
+    void api.auth.signOut();
     setRole('guest');
+    setCurrentUser(null);
     setPdpaAccepted(false);
     setSelectedJob(undefined);
-    localStorage.removeItem('currentUser');
   };
 
   const toggleLang = () => {
@@ -176,10 +162,10 @@ export default function App() {
   }
 
   // 2. Moderator / Admin Dashboard
-  if (role === 'mod' || role === 'admin') {
+  if ((role === 'mod' || role === 'admin') && currentUser) {
     return (
       <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div></div>}>
-        <Dashboard role={role} onLogout={handleLogout} />
+        <Dashboard role={role} currentUser={currentUser} onLogout={handleLogout} />
       </React.Suspense>
     );
   }

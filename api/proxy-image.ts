@@ -1,14 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { authorizeFileAccess, isAllowedStorageUrl } from '../server/file-access';
+import { configureSameOrigin } from '../server/security';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  if (!configureSameOrigin(req, res, 'GET')) return;
+  if (req.method === 'OPTIONS') return res.status(204).end();
 
   const { url } = req.query;
   if (!url || typeof url !== 'string') {
@@ -16,20 +12,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const cleanEnvVar = (val?: string) => val ? val.replace(/^["']|["']$/g, '').trim() : '';
-    const publicDomain = cleanEnvVar(process.env.R2_PUBLIC_DOMAIN);
-    const supabaseUrl = cleanEnvVar(process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL);
-
-    // Validate that the URL belongs to our R2 public domain, Supabase URL, AWS S3, or advanceagro.net for security
-    const isAllowed = 
-      (publicDomain && url.startsWith(publicDomain)) || 
-      (supabaseUrl && url.startsWith(supabaseUrl)) ||
-      url.includes('.amazonaws.com') ||
-      url.includes('advanceagro.net');
-
-    if (!isAllowed) {
-      return res.status(403).json({ error: 'Forbidden: URL domain is not allowed' });
-    }
+    if (!isAllowedStorageUrl(url)) return res.status(403).json({ error: 'Forbidden: URL domain is not allowed' });
+    if (!await authorizeFileAccess(req, res, { url })) return;
 
     const response = await fetch(url);
     if (!response.ok) {
@@ -38,10 +22,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const contentType = response.headers.get('content-type') || 'image/jpeg';
     const arrayBuffer = await response.arrayBuffer();
+    if (arrayBuffer.byteLength > 20 * 1024 * 1024) return res.status(413).json({ error: 'Image exceeds proxy size limit' });
     const buffer = Buffer.from(arrayBuffer);
 
     res.setHeader('Content-Type', contentType);
-    res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
+    res.setHeader('Cache-Control', 'private, max-age=300');
     return res.send(buffer);
   } catch (error: any) {
     console.error('[Proxy Image Error]:', error);

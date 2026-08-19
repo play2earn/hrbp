@@ -7,6 +7,7 @@
  * Upload a file to Cloudflare R2 drafts/permanent folders using base64 payload.
  */
 export async function uploadToR2(file: File, folder: string, draftId?: string): Promise<string> {
+  if (draftId) await ensureDraftSession(draftId);
   // Convert File to Base64 string asynchronously
   const base64 = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -42,11 +43,40 @@ export async function uploadToR2(file: File, folder: string, draftId?: string): 
   }
 
   const data = await res.json();
-  if (!data.url) {
+  const uploadedUrl = data.url || data.proxyUrl;
+  if (!uploadedUrl) {
     throw new Error('R2 upload succeeded but no URL was returned');
   }
 
-  return data.url;
+  return uploadedUrl;
+}
+
+export async function ensureDraftSession(draftId: string): Promise<void> {
+  const response = await fetch('/api/draft-session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ draftId }),
+  });
+  if (!response.ok) throw new Error('Unable to create a secure upload session');
+}
+
+export async function uploadResubmitFile(file: File, applicationId: string, fieldName: string, token: string): Promise<string> {
+  const fileBase64 = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result.split(',')[1]) : reject(new Error('Failed to read file'));
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+  const response = await fetch('/api/upload-s3', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ fileBase64, fileName: file.name, fileType: file.type, applicantId: applicationId, fieldName, resubmitToken: token }),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || 'Document upload failed');
+  return result.proxyUrl || result.url;
 }
 
 /**
@@ -82,6 +112,7 @@ export async function deleteFromR2(url: string): Promise<boolean> {
  */
 export async function finalizeR2Attachments(draftId: string, applicationId: string): Promise<boolean> {
   try {
+    await ensureDraftSession(draftId);
     const res = await fetch('/api/finalize-attachments', {
       method: 'POST',
       headers: {

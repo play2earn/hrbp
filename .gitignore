@@ -45,7 +45,12 @@ scratch/*
 *.sql
 *.md
 !README.md
+!plan_corporate_domain_cloudflare_hybrid.md
+!docs/**/*.md
+!supabase/migrations/*.sql
+!supabase/review/*.sql
 
 .supabase/
 
 dist-api/
+.tmp-test/

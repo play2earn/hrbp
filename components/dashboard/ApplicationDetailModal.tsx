@@ -17,6 +17,7 @@ import {
 import { TRANSLATIONS } from '../../constants';
 import { ImageCropperModal } from './ImageCropperModal';
 import { deleteFromR2 } from '../../utils/r2-upload';
+import type { AuthUser } from '../../services/api';
 
 const fmtYearMonth = (dateStr: string | undefined | null): string => {
   if (!dateStr) return '';
@@ -101,6 +102,7 @@ interface ApplicationDetailModalProps {
   onViewBlacklistDetail: (entry: any) => void;
   setEvaluatingApp: (app: any | null) => void;
   onOpenHrDrive?: (prefix: string) => void;
+  currentUser: AuthUser;
 }
 
 export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
@@ -112,6 +114,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
   onViewBlacklistDetail,
   setEvaluatingApp,
   onOpenHrDrive,
+  currentUser,
 }) => {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
@@ -434,8 +437,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
       let finalShareUrl = calendarShareLinkUrl;
 
       if (!finalShareUrl && calendarCreateShareLink) {
-        const currentUserData = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        const createdBy = currentUserData?.full_name || currentUserData?.email || 'ระบบ';
+        const createdBy = currentUser?.full_name || currentUser?.email || 'ระบบ';
         const res = await api.generateShareToken(calendarTargetApp.id, createdBy);
         if (res.success && res.data?.url) {
           finalShareUrl = res.data.url;
@@ -606,7 +608,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
     if (!viewingApp || resubmitAllowedFields.length === 0) return;
     setIsGeneratingResubmit(true);
     try {
-      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
       const createdBy = currentUser?.full_name || currentUser?.email || 'HR';
       const result = await api.generateResubmitToken(
         viewingApp.id,
@@ -671,7 +672,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
     setShowShareConfirm(false);
     setIsGeneratingLink(true);
     try {
-      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
       const createdBy = currentUser?.full_name || currentUser?.email || 'ระบบ';
       const result = await api.generateShareToken(viewingApp.id, createdBy);
       if (result.success && result.data) {
@@ -791,7 +791,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
           onApplicationUpdated?.(updatedApp);
           
           // Log the action
-          const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
           await api.addApplicationLog({
             application_id: viewingApp.id,
             action: 'updated',
@@ -840,7 +839,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
         onApplicationUpdated?.(updatedApp);
         
         // Log the action
-        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
         await api.addApplicationLog({
           application_id: viewingApp.id,
           action: 'updated',
@@ -886,7 +884,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
     
     const logBlacklistView = async () => {
       try {
-        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
         await api.blacklist.addAuditLog({
           performed_by: currentUser?.id || null,
           performed_by_name: currentUser?.full_name || currentUser?.email || 'HR Recruiter',
@@ -901,7 +898,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
     };
     
     logBlacklistView();
-  }, [viewingApp?.id, isBlacklisted?.id]);
+  }, [viewingApp?.id, isBlacklisted?.id, currentUser]);
 
   return (
     <>
@@ -2187,7 +2184,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                           if (shareLink) fd.shareUrl = shareLink;
                           if (shareToken) fd.shareToken = shareToken;
                           if (shareLinkExpiry) fd.shareLinkExpiry = shareLinkExpiry;
-                          localStorage.setItem('printPreviewData', JSON.stringify(fd));
+                          sessionStorage.setItem('printPreviewData', JSON.stringify({ ...fd, id: viewingApp.id }));
                           window.open('/print.html', '_blank');
                         }}
                         className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"

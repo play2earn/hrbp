@@ -2,12 +2,12 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Globe, ArrowLeft, User, Eye, EyeOff, CheckCircle, AlertCircle, Phone } from 'lucide-react';
 import { Button, Input } from './UIComponents';
-import { Role, Language } from '../types';
+import { Language } from '../types';
 import { TRANSLATIONS } from '../constants';
-import { api } from '../services/api';
+import { api, AuthUser } from '../services/api';
 
 interface LoginPageProps {
-  onLogin: (role: Role) => void;
+  onLogin: (user: AuthUser) => void;
   onBack: () => void;
   lang: Language;
   onToggleLang: () => void;
@@ -120,16 +120,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onBack, lang, onT
         });
 
         setSuccess('เชื่อมต่อระบบ HRMS สำเร็จ!');
-        // Store user info for use in Dashboard
-        localStorage.setItem('currentUser', JSON.stringify({
-          id: response.user.id,
-          full_name: response.user.full_name,
-          email: response.user.email,
-          role: response.user.role,
-          emp_id: response.user.emp_id || ''
-        }));
         setTimeout(() => {
-          onLogin(response.user.role as Role);
+          onLogin(response.user);
         }, 500);
       }
     } catch (err: any) {

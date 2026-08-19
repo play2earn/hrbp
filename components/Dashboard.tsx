@@ -30,7 +30,7 @@ import { S3StorageTab } from './dashboard/S3StorageTab';
 import { HardDrive } from 'lucide-react';
 
 
-export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUser: initialUser }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'reports' | 'qr' | 'settings' | 'config' | 'profile' | 'blacklist' | 'calendar' | 'logs' | 'hr-drive'>('overview');
   const [hrDrivePrefix, setHrDrivePrefix] = useState<string>('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -59,7 +59,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
   }, [dontShowReleaseAgain]);
 
   // Current User Info
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [currentUser, setCurrentUser] = useState<AuthUser>(initialUser);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
   const [profileEmpId, setProfileEmpId] = useState<string | null>(null);
 
@@ -205,12 +205,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
 
   // Helper: current user display name & ID
   const currentUserName = currentUser?.full_name || 'Unknown';
-  const currentUserId = currentUser?.id || (() => {
-    try {
-      const stored = localStorage.getItem('currentUser');
-      return stored ? JSON.parse(stored).id : null;
-    } catch { return null; }
-  })();
+  const currentUserId = currentUser?.id || null;
 
   // Profile photo fallback chain: IDMS API → Intranet empimages → WMS Face API → Initials
   const handleProfilePhotoError = () => {
@@ -644,47 +639,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
 
 
   useEffect(() => {
-    // Load current user from localStorage
-    const storedUser = localStorage.getItem('currentUser');
     let defaultFilter = 'all';
-    if (storedUser) {
-      try {
-        const user = JSON.parse(storedUser);
-        setCurrentUser(user);
-        if (user.full_name && user.email) {
-          defaultFilter = `${user.full_name} (${user.email})`;
-          setQrLogCreatorFilter(defaultFilter);
-        }
-        if (user.id) {
-          api.auth.touchUserActivity(user.id);
-          
-          // Check 30-Day Security Governance last_login_at timestamp in Supabase
-          supabase
-            .from('users')
-            .select('id, last_login_at, status, hrms_username, email, emp_id')
-            .eq('id', user.id)
-            .maybeSingle()
-            .then(({ data: dbUser }) => {
-              if (dbUser) {
-                if (dbUser.status !== 'Active') {
-                  onLogout();
-                  return;
-                }
-                const lastLogin = dbUser.last_login_at ? new Date(dbUser.last_login_at).getTime() : 0;
-                const now = Date.now();
-                const diffDays = (now - lastLogin) / (1000 * 60 * 60 * 24);
-
-                if (!dbUser.last_login_at || diffDays > 30) {
-                  setReAuthReason(!dbUser.last_login_at
-                    ? 'ระบบเริ่มใช้นโยบายยืนยันตัวตนรหัสผ่าน กรุณากรอกรหัสผ่าน HRMS 1 ครั้งเพื่อยืนยันสิทธิ์และเริ่มนับ 30 วัน'
-                    : 'คุณไม่ได้ยืนยันรหัสผ่านเกิน 30 วันตามนโยบาย PDPA กรุณากรอกรหัสผ่าน HRMS อีกครั้งเพื่อต่ออายุสิทธิ์เข้าใช้งาน');
-                  setIsReAuthModalOpen(true);
-                }
-              }
-            });
-        }
-      } catch (e) {
-        console.error('Failed to parse stored user', e);
+    const user = initialUser;
+    if (user.full_name && user.email) {
+      defaultFilter = `${user.full_name} (${user.email})`;
+      setQrLogCreatorFilter(defaultFilter);
+    }
+    if (user.id) {
+      api.auth.touchUserActivity(user.id);
+      const lastLogin = user.last_login_at ? new Date(user.last_login_at).getTime() : 0;
+      const diffDays = (Date.now() - lastLogin) / (1000 * 60 * 60 * 24);
+      if (!user.last_login_at || diffDays > 30) {
+        setReAuthReason(!user.last_login_at
+          ? 'ระบบเริ่มใช้นโยบายยืนยันตัวตนรหัสผ่าน กรุณากรอกรหัสผ่าน HRMS 1 ครั้งเพื่อยืนยันสิทธิ์และเริ่มนับ 30 วัน'
+          : 'คุณไม่ได้ยืนยันรหัสผ่านเกิน 30 วันตามนโยบาย PDPA กรุณากรอกรหัสผ่าน HRMS อีกครั้งเพื่อต่ออายุสิทธิ์เข้าใช้งาน');
+        setIsReAuthModalOpen(true);
       }
     }
 
@@ -693,7 +662,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     api.reports.getCloseReasons().then(setCloseReasons);
 
     // Fetch profile photo from IDMS, fallback to intranet empimages
-    const empId = storedUser ? (() => { try { return JSON.parse(storedUser).emp_id; } catch { return null; } })() : null;
+    const empId = user.emp_id || null;
     if (empId) {
       setProfileEmpId(empId);
       fetch(`https://api-idms.advanceagro.net/hrms/employee/${empId}/photocard/?size=120`)
@@ -1225,6 +1194,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
         blacklistEntries={blacklistEntries}
         onViewBlacklistDetail={setViewingBlacklistDetail}
         setEvaluatingApp={setEvaluatingApp}
+        currentUser={currentUser}
         onOpenHrDrive={(prefix: string) => {
           setHrDrivePrefix(prefix);
           setActiveTab('hr-drive');
@@ -1897,7 +1867,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                   showToast('✨ ยืนยันรหัสผ่านและอัปเดตสิทธิ์ทีมสรรหาสำเร็จ!');
                   setIsReAuthModalOpen(false);
                   setReAuthPassword('');
-                  localStorage.setItem('currentUser', JSON.stringify(res.user));
                   setCurrentUser(res.user);
                 }
               } catch (err: any) {

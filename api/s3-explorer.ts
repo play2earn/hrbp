@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { S3Client, ListObjectsV2Command, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
-import { createClient } from '@supabase/supabase-js';
+import { isAllowedStorageUrl } from '../server/file-access';
+import { configureSameOrigin, getAdminSupabase, requireStaff } from '../server/security';
 
 const getS3Client = () => {
   const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
@@ -17,25 +18,24 @@ const getS3Client = () => {
   });
 };
 
-const getSupabaseClient = (req?: VercelRequest) => {
-  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://safrgojiehjwtftaiqog.supabase.co';
-  const serviceKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+const ALLOWED_S3_ROOTS = ['applicants/', 'hrd-documents/', '.trash/'] as const;
 
-  if (!supabaseUrl || !serviceKey) return null;
+function isAllowedExplorerPrefix(prefix: string): boolean {
+  if (!prefix) return true;
+  return !prefix.includes('..')
+    && !prefix.includes('\\')
+    && ALLOWED_S3_ROOTS.some(root => prefix === root || prefix.startsWith(root));
+}
 
-  const adminKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (adminKey) {
-    return createClient(supabaseUrl, adminKey);
-  }
-
-  const authHeader = req?.headers?.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    return createClient(supabaseUrl, serviceKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
-  }
-  return createClient(supabaseUrl, serviceKey);
-};
+function safeObjectFileName(value: string): string {
+  const sanitized = value
+    .replace(/[\\/]/g, '_')
+    .replace(/\.\./g, '_')
+    .replace(/[^a-zA-Z0-9._-]/g, '_')
+    .replace(/^\.+/, '')
+    .slice(0, 180);
+  return sanitized || `file-${Date.now()}.bin`;
+}
 
 const knownDocLabels: Record<string, { label: string; icon: string; sortOrder: number; field: string }> = {
   photo_url:           { label: 'รูปถ่ายหน้าตรง',               icon: '📷', sortOrder: 1,  field: 'photo_url'         },
@@ -88,11 +88,10 @@ function getDocInfoFromKey(key: string, fieldName?: string): { label: string; ic
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (!configureSameOrigin(req, res, 'GET, POST')) return;
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  const user = await requireStaff(req, res, ['admin']);
+  if (!user) return;
 
   // POST Request: Migration handler (migrating file from URL to S3)
   if (req.method === 'POST') {
@@ -101,6 +100,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (!fileUrl) {
         return res.status(400).json({ error: 'Missing fileUrl in request body' });
+      }
+      if (typeof fileUrl !== 'string' || !isAllowedStorageUrl(fileUrl)) {
+        return res.status(403).json({ error: 'Source storage URL is not allowed' });
       }
 
       const CANONICAL_FIELD_MAP: Record<string, string> = {
@@ -128,7 +130,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         otherDocsUrl: 'otherDocsUrl',
       };
 
-      if (fieldName && CANONICAL_FIELD_MAP[fieldName]) {
+      if (fieldName) {
+        if (!CANONICAL_FIELD_MAP[fieldName]) {
+          return res.status(400).json({ error: 'Invalid document field name' });
+        }
         fieldName = CANONICAL_FIELD_MAP[fieldName];
       }
 
@@ -143,16 +148,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const fileBuffer = Buffer.from(arrayBuffer);
 
       const rawFileName = fileUrl.split('/').pop()?.split('?')[0] || `file-${Date.now()}`;
-      const cleanFileName = decodeURIComponent(rawFileName);
+      const cleanFileName = safeObjectFileName(decodeURIComponent(rawFileName));
       const ext = cleanFileName.split('.').pop()?.toLowerCase() || 'bin';
 
       let s3Key = '';
       if (applicationId) {
+        if (!/^[a-zA-Z0-9_-]{1,100}$/.test(String(applicationId))) {
+          return res.status(400).json({ error: 'Invalid applicationId' });
+        }
         const targetName = fieldName ? `${fieldName}.${ext}` : cleanFileName;
         s3Key = `applicants/${applicationId}/${targetName}`;
       } else {
-        const folder = (targetFolder || 'hrd-documents').replace(/^\/|\/$/g, '');
-        s3Key = `${folder}/${cleanFileName}`;
+        if (targetFolder && String(targetFolder).replace(/^\/|\/$/g, '') !== 'hrd-documents') {
+          return res.status(400).json({ error: 'Only the hrd-documents target folder is allowed' });
+        }
+        s3Key = `hrd-documents/${cleanFileName}`;
       }
 
       const bucketName = process.env.AWS_S3_BUCKET || 'hr-recruitment-01';
@@ -181,7 +191,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const proxyUrl = `/api/files?key=${encodeURIComponent(s3Key)}`;
 
       if (applicationId && fieldName) {
-        const supabase = getSupabaseClient(req);
+        const supabase = getAdminSupabase();
         if (supabase) {
           const { data: appData } = await supabase
             .from('applications')
@@ -270,9 +280,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (prefix && !prefix.endsWith('/')) {
       prefix += '/';
     }
+    if (!isAllowedExplorerPrefix(prefix)) {
+      return res.status(400).json({ error: 'Invalid S3 explorer prefix' });
+    }
 
     let allDbAppsMap: Record<string, { id: string; fullName: string; position: string; formData: Record<string, any> }> = {};
-    const supabase = getSupabaseClient(req);
+    const supabase = getAdminSupabase();
 
     if (supabase) {
       let dbApps: any[] = [];
@@ -327,29 +340,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let totalBucketBytes = 0;
     let totalBucketObjects = 0;
 
-    while (isTruncated) {
-      const command = new ListObjectsV2Command({
-        Bucket: bucketName,
-        ContinuationToken: continuationToken,
-      });
+    const scanPrefixes = prefix ? [prefix] : [...ALLOWED_S3_ROOTS];
+    for (const scanPrefix of scanPrefixes) {
+      isTruncated = true;
+      continuationToken = undefined;
+      while (isTruncated) {
+        const command = new ListObjectsV2Command({
+          Bucket: bucketName,
+          Prefix: scanPrefix,
+          ContinuationToken: continuationToken,
+        });
 
-      const response = await s3.send(command);
-      const contents = response.Contents || [];
-
-      contents.forEach((item) => {
-        totalBucketObjects++;
-        totalBucketBytes += item.Size || 0;
-      });
-
-      if (prefix) {
-        const filtered = contents.filter((item) => item.Key && item.Key.startsWith(prefix));
-        allObjects.push(...filtered);
-      } else {
+        const response = await s3.send(command);
+        const contents = response.Contents || [];
+        contents.forEach((item) => {
+          totalBucketObjects++;
+          totalBucketBytes += item.Size || 0;
+        });
         allObjects.push(...contents);
+        isTruncated = response.IsTruncated || false;
+        continuationToken = response.NextContinuationToken;
       }
-
-      isTruncated = response.IsTruncated || false;
-      continuationToken = response.NextContinuationToken;
     }
 
     const foldersSet = new Set<string>();
