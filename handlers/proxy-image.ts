@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { authorizeFileAccess, isAllowedStorageUrl } from '../server/file-access';
-import { configureSameOrigin } from '../server/security';
+import { authorizeFileAccess, isAllowedStorageUrl } from '../server/file-access.js';
+import { configureSameOrigin } from '../server/security.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!configureSameOrigin(req, res, 'GET')) return;

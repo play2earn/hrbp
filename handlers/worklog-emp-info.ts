@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { configureSameOrigin, getActiveStaff, readSignedSession } from '../server/security';
-import { checkIsHrTeam } from '../server/hr-access';
+import { configureSameOrigin, getActiveStaff, readSignedSession } from '../server/security.js';
+import { checkIsHrTeam } from '../server/hr-access.js';
 
 /**
  * HR / Recruitment keyword detector to verify if job position or department

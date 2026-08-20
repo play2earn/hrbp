@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getActiveStaff, getAdminSupabase } from './security';
+import { getActiveStaff, getAdminSupabase } from './security.js';
 
 function queryValue(value: string | string[] | undefined): string {
   return Array.isArray(value) ? value[0] || '' : value || '';

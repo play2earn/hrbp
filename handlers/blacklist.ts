@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { configureSameOrigin, getAdminSupabase, requireStaff } from '../server/security';
+import { configureSameOrigin, getAdminSupabase, requireStaff } from '../server/security.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!configureSameOrigin(req, res, 'GET, POST')) return;

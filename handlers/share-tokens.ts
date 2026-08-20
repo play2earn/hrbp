@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createHash, randomBytes } from 'crypto';
-import { configureSameOrigin, getAdminSupabase, requireStaff } from '../server/security';
-import { publicAppOrigin } from '../server/origin';
+import { configureSameOrigin, getAdminSupabase, requireStaff } from '../server/security.js';
+import { publicAppOrigin } from '../server/origin.js';
 
 const RESUBMIT_FIELDS = new Set([
   'resumeUrl', 'transcriptUrl', 'certificateUrl', 'photoUrl', 'idCardUrl',

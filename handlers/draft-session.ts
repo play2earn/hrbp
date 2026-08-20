@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { configureSameOrigin, setSignedSession } from '../server/security';
+import { configureSameOrigin, setSignedSession } from '../server/security.js';
 
 const DRAFT_ID = /^draft-[a-f0-9-]{20,50}$/i;
 

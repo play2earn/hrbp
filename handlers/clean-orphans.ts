@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { configureSameOrigin, getAdminSupabase, requireStaff, safeEqual } from '../server/security';
-import { collectReferencedR2Keys } from '../server/orphan-cleanup';
+import { configureSameOrigin, getAdminSupabase, requireStaff, safeEqual } from '../server/security.js';
+import { collectReferencedR2Keys } from '../server/orphan-cleanup.js';
 
 const getR2Client = () => {
   const accountId = process.env.R2_ACCOUNT_ID;

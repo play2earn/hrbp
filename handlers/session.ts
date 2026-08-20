@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { clearSession, configureSameOrigin, getActiveStaff, getAdminSupabase, readSignedSession, setSignedSession } from '../server/security';
-import { checkIsHrTeam } from '../server/hr-access';
+import { clearSession, configureSameOrigin, getActiveStaff, getAdminSupabase, readSignedSession, setSignedSession } from '../server/security.js';
+import { checkIsHrTeam } from '../server/hr-access.js';
 
 async function fetchCurrentOrg(empId: string): Promise<Record<string, unknown> | null> {
   try {

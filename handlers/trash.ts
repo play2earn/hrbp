@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { S3Client, CopyObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
-import { configureSameOrigin, requireStaff } from '../server/security';
+import { configureSameOrigin, requireStaff } from '../server/security.js';
 
 const getS3Client = () => {
   const accessKeyId = process.env.AWS_ACCESS_KEY_ID;

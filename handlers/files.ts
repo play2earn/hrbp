@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { Readable } from 'stream';
-import { authorizeFileAccess, isAllowedStorageUrl } from '../server/file-access';
-import { configureSameOrigin } from '../server/security';
+import { authorizeFileAccess, isAllowedStorageUrl } from '../server/file-access.js';
+import { configureSameOrigin } from '../server/security.js';
 
 const getS3Client = () => {
   const accessKeyId = process.env.AWS_ACCESS_KEY_ID;

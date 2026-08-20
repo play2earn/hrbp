@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { Readable } from 'node:stream';
-import { configureSameOrigin, getActiveStaff, readSignedSession } from '../server/security';
+import { configureSameOrigin, getActiveStaff, readSignedSession } from '../server/security.js';
 
 function getR2Client() {
   const accountId = process.env.R2_ACCOUNT_ID;

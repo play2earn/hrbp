@@ -8,13 +8,13 @@ import {
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
-import { configureSameOrigin, getAdminSupabase, requireDraftSession } from '../server/security';
+import { configureSameOrigin, getAdminSupabase, requireDraftSession } from '../server/security.js';
 import {
   getAttachmentStorageMode,
   permanentObjectUrl,
   possibleDraftUrls,
   replaceObjectReferences,
-} from '../server/storage';
+} from '../server/storage.js';
 
 function getR2Client() {
   const accountId = process.env.R2_ACCOUNT_ID;

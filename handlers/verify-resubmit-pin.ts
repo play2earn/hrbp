@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createHash } from 'crypto';
-import { configureSameOrigin, getAdminSupabase, setSignedSession } from '../server/security';
+import { configureSameOrigin, getAdminSupabase, setSignedSession } from '../server/security.js';
 
 const MAX_ATTEMPTS = 5;
 const LOCK_DURATION_MS = 30 * 60 * 1000; // 30 minutes

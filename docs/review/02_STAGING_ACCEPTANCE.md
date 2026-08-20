@@ -6,6 +6,7 @@
 npm ci
 npm run env:check
 npm run check:function-count
+npm run build:api:vercel-sim
 npm run check
 npm run smoke:security -- --base-url https://staging.example.com
 ```

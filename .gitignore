@@ -54,3 +54,4 @@ scratch/*
 
 dist-api/
 .tmp-test/
+.tmp-vercel/

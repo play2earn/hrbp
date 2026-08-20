@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { configureSameOrigin, getAdminSupabase } from '../server/security';
+import { configureSameOrigin, getAdminSupabase } from '../server/security.js';
 
 async function attachResubmitToken(supabase: ReturnType<typeof getAdminSupabase>, application: any) {
   const { data: row } = await supabase.from('application_share_tokens')

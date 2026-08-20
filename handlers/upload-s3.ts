@@ -2,8 +2,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'crypto';
-import { configureSameOrigin, requireDraftSession, requireResubmitSession, requireStaff } from '../server/security';
-import { draftObjectUrl, getDraftAccessMode } from '../server/storage';
+import { configureSameOrigin, requireDraftSession, requireResubmitSession, requireStaff } from '../server/security.js';
+import { draftObjectUrl, getDraftAccessMode } from '../server/storage.js';
 
 const getS3Client = () => {
   const accessKeyId = process.env.AWS_ACCESS_KEY_ID;

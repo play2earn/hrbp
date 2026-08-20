@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { clearSession, configureSameOrigin, getAdminSupabase, requireResubmitSession } from '../server/security';
+import { clearSession, configureSameOrigin, getAdminSupabase, requireResubmitSession } from '../server/security.js';
 
 const ALLOWED_FIELDS = [
   'resumeUrl', 'transcriptUrl', 'certificateUrl', 'photoUrl',
