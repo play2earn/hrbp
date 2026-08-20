@@ -8,7 +8,7 @@
     "build:api": "esbuild api/*.ts --bundle --outdir=dist-api --platform=node --format=cjs",
     "build": "npm run build:api && vite build",
     "typecheck": "tsc --noEmit",
-    "test:security": "esbuild server/security.ts server/file-access.ts server/storage.ts server/origin.ts server/orphan-cleanup.ts server/hr-access.ts server/api-router.ts --bundle --platform=node --format=cjs --out-extension:.js=.cjs --outdir=.tmp-test && node --test tests/security.test.cjs",
+    "test:security": "esbuild server/security.ts server/file-access.ts server/storage.ts server/origin.ts server/orphan-cleanup.ts server/hr-access.ts server/api-router.ts --bundle --platform=node --format=cjs --out-extension:.js=.cjs --outdir=.tmp-test && esbuild utils/idms-response.ts --bundle --platform=node --format=cjs --outfile=.tmp-test/idms-response.cjs && node --test tests/security.test.cjs",
     "env:check": "node scripts/preflight.mjs --env .env.local --target staging",
     "env:check:production": "node scripts/preflight.mjs --env .env.local --target production",
     "audit:supabase-client": "node scripts/audit-direct-supabase.mjs",

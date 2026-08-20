@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient';
 import { ApplicationForm, BlacklistEntry, BlacklistAuditLog } from '../types';
 import md5 from 'js-md5';
 import { uploadToR2, deleteFromR2, getStorageProvider } from '../utils/r2-upload';
+import { getIdmsErrorMessage } from '../utils/idms-response';
 import { sanitizeUnicode } from './utils';
 
 // ============================================================
@@ -1235,9 +1236,8 @@ export const api = {
           return { user: null, error: { message: 'ระบบ IDMS ตอบกลับข้อมูลผิดรูปแบบ กรุณาลองใหม่' } };
         }
 
-        if (!data || data.Result !== 'OK') {
-            const msg = data?.Result?.replace('Error : ', '') || 'Invalid HRMS credentials';
-            return { user: null, error: { message: msg } };
+        if (!response.ok || !data || data.Result !== 'OK') {
+          return { user: null, error: { message: getIdmsErrorMessage(response.ok, response.status, data) } };
         }
 
         const empId = data.EmpId;

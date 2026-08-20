@@ -13,6 +13,7 @@ const origin = require('../.tmp-test/origin.cjs');
 const orphanCleanup = require('../.tmp-test/orphan-cleanup.cjs');
 const hrAccess = require('../.tmp-test/hr-access.cjs');
 const apiRouter = require('../.tmp-test/api-router.cjs');
+const idmsResponse = require('../.tmp-test/idms-response.cjs');
 
 test('signed staff session verifies and preserves claims', () => {
   const now = Math.floor(Date.now() / 1000);
@@ -132,4 +133,14 @@ test('API router dispatches known routes and returns 404 for unknown routes', as
   await apiRouter.dispatchApiRoute({ query: { route: 'unknown' } }, response, {});
   assert.equal(response.statusCode, 404);
   assert.deepEqual(response.body, { error: 'API endpoint not found' });
+});
+
+test('IDMS errors preserve backend failures instead of blaming user credentials', () => {
+  assert.equal(idmsResponse.getIdmsErrorMessage(false, 500, { error: 'IDMS integration is not configured' }),
+    'IDMS integration is not configured');
+  assert.equal(idmsResponse.getIdmsErrorMessage(false, 404, { error: 'API endpoint not found' }),
+    'API endpoint not found');
+  assert.equal(idmsResponse.getIdmsErrorMessage(true, 200, { Result: 'Error : Invalid account' }),
+    'Invalid account');
+  assert.equal(idmsResponse.getIdmsErrorMessage(false, 502, {}), 'IDMS proxy request failed (HTTP 502)');
 });
