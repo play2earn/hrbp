@@ -126,7 +126,7 @@ test('API router dispatches known routes and returns 404 for unknown routes', as
   await apiRouter.dispatchApiRoute(
     { query: { route: 'session' } },
     response,
-    { session: async () => { called = true; } },
+    { session: async () => ({ default: async () => { called = true; } }) },
   );
   assert.equal(called, true);
 
@@ -135,11 +135,35 @@ test('API router dispatches known routes and returns 404 for unknown routes', as
   assert.deepEqual(response.body, { error: 'API endpoint not found' });
 });
 
+test('API router reports lazy handler initialization failures', async () => {
+  const response = {
+    statusCode: 200,
+    body: null,
+    status(code) { this.statusCode = code; return this; },
+    json(body) { this.body = body; return this; },
+  };
+  const originalError = console.error;
+  console.error = () => {};
+  try {
+    await apiRouter.dispatchApiRoute(
+      { query: { route: 'idms-auth' } },
+      response,
+      { 'idms-auth': async () => { throw new Error('load failed'); } },
+    );
+  } finally {
+    console.error = originalError;
+  }
+  assert.equal(response.statusCode, 500);
+  assert.deepEqual(response.body, { error: 'API handler failed to initialize', code: 'API_HANDLER_INIT_FAILED' });
+});
+
 test('IDMS errors preserve backend failures instead of blaming user credentials', () => {
   assert.equal(idmsResponse.getIdmsErrorMessage(false, 500, { error: 'IDMS integration is not configured' }),
     'IDMS integration is not configured');
   assert.equal(idmsResponse.getIdmsErrorMessage(false, 404, { error: 'API endpoint not found' }),
     'API endpoint not found');
+  assert.equal(idmsResponse.getIdmsErrorMessage(false, 500, { error: { code: 'FUNCTION_INVOCATION_FAILED' } }),
+    'FUNCTION_INVOCATION_FAILED');
   assert.equal(idmsResponse.getIdmsErrorMessage(true, 200, { Result: 'Error : Invalid account' }),
     'Invalid account');
   assert.equal(idmsResponse.getIdmsErrorMessage(false, 502, {}), 'IDMS proxy request failed (HTTP 502)');

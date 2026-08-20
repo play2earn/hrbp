@@ -5,6 +5,10 @@ export function getIdmsErrorMessage(responseOk: boolean, status: number, data: a
   const backendError = typeof data?.error === 'string' ? data.error.trim() : '';
   if (backendError) return backendError;
 
+  const nestedError = data?.error && typeof data.error === 'object' ? data.error : null;
+  if (typeof nestedError?.message === 'string' && nestedError.message.trim()) return nestedError.message.trim();
+  if (typeof nestedError?.code === 'string' && nestedError.code.trim()) return nestedError.code.trim();
+
   if (!responseOk) return `IDMS proxy request failed (HTTP ${status})`;
   return 'IDMS returned an unexpected response';
 }
