@@ -5,17 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build:api": "esbuild api/*.ts --outdir=dist-api --platform=node --format=cjs",
+    "build:api": "esbuild api/*.ts --bundle --outdir=dist-api --platform=node --format=cjs",
     "build": "npm run build:api && vite build",
     "typecheck": "tsc --noEmit",
-    "test:security": "esbuild server/security.ts server/file-access.ts server/storage.ts server/origin.ts server/orphan-cleanup.ts server/hr-access.ts --bundle --platform=node --format=cjs --out-extension:.js=.cjs --outdir=.tmp-test && node --test tests/security.test.cjs",
+    "test:security": "esbuild server/security.ts server/file-access.ts server/storage.ts server/origin.ts server/orphan-cleanup.ts server/hr-access.ts server/api-router.ts --bundle --platform=node --format=cjs --out-extension:.js=.cjs --outdir=.tmp-test && node --test tests/security.test.cjs",
     "env:check": "node scripts/preflight.mjs --env .env.local --target staging",
     "env:check:production": "node scripts/preflight.mjs --env .env.local --target production",
     "audit:supabase-client": "node scripts/audit-direct-supabase.mjs",
     "audit:supabase-client:strict": "node scripts/audit-direct-supabase.mjs --strict --summary",
     "bundle:scan": "node scripts/scan-bundle-secrets.mjs --env .env.local --dir dist",
+    "check:function-count": "node scripts/check-vercel-functions.mjs",
     "smoke:security": "node scripts/smoke-security.mjs",
-    "check": "npm run test:security && npm run typecheck && npm run build && npm run bundle:scan",
+    "check": "npm run check:function-count && npm run test:security && npm run typecheck && npm run build && npm run bundle:scan",
     "preview": "vite preview"
   },
   "dependencies": {

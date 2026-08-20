@@ -25,7 +25,7 @@ npm run smoke:security -- --base-url https://staging.example.com
 
 ## Current review status
 
-- Security code gate: ผ่านแล้ว (`12/12` security tests, typecheck และ production build); ต้องรันซ้ำก่อน push ทุกครั้ง
+- Security code gate: ผ่านแล้ว (`14/14` security/router tests, Vercel Functions `1/12`, typecheck และ production build); ต้องรันซ้ำก่อน push ทุกครั้ง
 - Environment gate: local `.env.local` ผ่าน preflight แล้ว และ Vercel แยก `HRBP_SESSION_SECRET`/`CRON_SECRET` ระหว่าง Preview กับ Production แล้ว
 - Production secret rotation: `IDMS_AGENT_CODE` ยังตรงกับค่าที่เคยอยู่ใน source เดิม; อนุญาตให้ใช้ทดสอบ Preview ได้ แต่ต้องออกค่าใหม่ก่อน Production cutover
 - Storage cutover: code เตรียมหลัง feature flag; ห้ามเปิดจนกว่า staging acceptance ผ่าน

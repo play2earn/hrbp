@@ -5,9 +5,12 @@
 ```bash
 npm ci
 npm run env:check
+npm run check:function-count
 npm run check
 npm run smoke:security -- --base-url https://staging.example.com
 ```
+
+โครงสร้างปัจจุบัน rewrite `/api/<route>` เข้า `api/index.ts` หนึ่ง Serverless Function และเก็บ implementation ใน `handlers/` เพื่อไม่เกินข้อจำกัด Vercel Hobby (`1/12` ณ รอบตรวจล่าสุด)
 
 สำหรับรอบปัจจุบัน ให้แทน `https://staging.example.com` ด้วย Preview URL ที่ Vercel สร้างให้ branch และห้ามใช้ Production URL ในคำสั่ง smoke test
 

@@ -12,6 +12,7 @@ const storage = require('../.tmp-test/storage.cjs');
 const origin = require('../.tmp-test/origin.cjs');
 const orphanCleanup = require('../.tmp-test/orphan-cleanup.cjs');
 const hrAccess = require('../.tmp-test/hr-access.cjs');
+const apiRouter = require('../.tmp-test/api-router.cjs');
 
 test('signed staff session verifies and preserves claims', () => {
   const now = Math.floor(Date.now() / 1000);
@@ -103,4 +104,32 @@ test('HR authorization fails closed when organization data is missing', () => {
   assert.equal(hrAccess.checkIsHrTeam('Three-dimensional designer', 'Creative'), false);
   assert.equal(hrAccess.checkIsHrTeam('Recruiter', 'Human Resources'), true);
   assert.equal(hrAccess.checkIsHrTeam('Manager', 'HRBP'), true);
+});
+
+test('API router preserves legacy aliases and rejects nested routes', () => {
+  assert.equal(apiRouter.resolveApiRoute('session'), 'session');
+  assert.equal(apiRouter.resolveApiRoute('upload-r2'), 'upload-s3');
+  assert.equal(apiRouter.resolveApiRoute('migrate-s3'), 's3-explorer');
+  assert.equal(apiRouter.resolveApiRoute('../session'), null);
+  assert.equal(apiRouter.resolveApiRoute('session/extra'), null);
+});
+
+test('API router dispatches known routes and returns 404 for unknown routes', async () => {
+  let called = false;
+  const response = {
+    statusCode: 200,
+    body: null,
+    status(code) { this.statusCode = code; return this; },
+    json(body) { this.body = body; return this; },
+  };
+  await apiRouter.dispatchApiRoute(
+    { query: { route: 'session' } },
+    response,
+    { session: async () => { called = true; } },
+  );
+  assert.equal(called, true);
+
+  await apiRouter.dispatchApiRoute({ query: { route: 'unknown' } }, response, {});
+  assert.equal(response.statusCode, 404);
+  assert.deepEqual(response.body, { error: 'API endpoint not found' });
 });
