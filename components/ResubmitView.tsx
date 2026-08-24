@@ -4,7 +4,7 @@ import {
     FileText, Image as ImageIcon, Lock, AlertTriangle, ChevronRight,
     CreditCard
 } from 'lucide-react';
-import { uploadToR2 } from '../utils/r2-upload';
+import { uploadResubmitFile } from '../utils/r2-upload';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -211,8 +211,7 @@ export default function ResubmitView({ token }: ResubmitViewProps) {
         }));
 
         try {
-            // Upload directly to R2 under the application's permanent folder
-            const url = await uploadToR2(file, `applicants/${applicationId}`);
+            const url = await uploadResubmitFile(file, applicationId, field, token);
             setUploads(prev => ({
                 ...prev,
                 [field]: { ...prev[field]!, uploading: false, uploadedUrl: url }

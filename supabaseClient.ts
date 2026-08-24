@@ -8,10 +8,4 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     throw new Error('Missing Supabase environment variables');
 }
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  global: {
-    headers: {
-      'x-admin-key': 'vibe-recruit-admin-secret-2026'
-    }
-  }
-});
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

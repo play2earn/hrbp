@@ -142,12 +142,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
 
   useEffect(() => {
     const generateDraftId = () => {
-      const now = new Date();
-      const yy = String(now.getFullYear()).slice(-2);
-      const mm = String(now.getMonth() + 1).padStart(2, '0');
-      const dd = String(now.getDate()).padStart(2, '0');
-      const rand = Math.random().toString(36).substring(2, 6);
-      return `draft-${yy}${mm}${dd}-${rand}`;
+      return `draft-${crypto.randomUUID()}`;
     };
     setDraftId(generateDraftId());
   }, []);
@@ -416,11 +411,16 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
         setTrackingId(appId);
 
         // Finalize draft attachments to permanent application folder in R2
+        let attachmentsFinalized = true;
         try {
           console.log(`[Submit] Finalizing R2 attachments for draft ${draftId} and app ${appId}`);
-          await finalizeR2Attachments(draftId, appId);
+          attachmentsFinalized = await finalizeR2Attachments(draftId, appId);
         } catch (err) {
           console.error('[Submit] Failed to finalize R2 attachments:', err);
+          attachmentsFinalized = false;
+        }
+        if (!attachmentsFinalized) {
+          console.warn('[Submit] Application was saved but attachment finalization is pending server recovery.');
         }
       }
       clearDraft(); // ลบ draft หลัง submit สำเร็จ

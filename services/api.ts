@@ -2,7 +2,8 @@
 import { supabase } from '../supabaseClient';
 import { ApplicationForm, BlacklistEntry, BlacklistAuditLog } from '../types';
 import md5 from 'js-md5';
-import { uploadToR2, deleteFromR2, getStorageProvider } from '../utils/r2-upload';
+import { uploadToR2, getStorageProvider } from '../utils/r2-upload';
+import { getIdmsErrorMessage } from '../utils/idms-response';
 import { sanitizeUnicode } from './utils';
 
 // ============================================================
@@ -285,38 +286,12 @@ export const api = {
    */
   trackApplication: async (trackingId: string): Promise<ApiResponse<any>> => {
     try {
-      // Validate UUID format
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(trackingId)) {
-        return { success: false, error: { message: 'Invalid tracking ID format.' } };
-      }
-
-      const { data, error } = await supabase.rpc('get_application_status', { app_id: trackingId });
-
-      if (error) return handleError(error, 'trackApplication');
-      if (!data) return { success: false, error: { message: 'Application not found.' } };
-
-      // Attach active resubmit token info (token string + expiry only — no pin_hash)
-      const appId = (data as any).id;
-      if (appId) {
-        const { data: rtRow } = await supabase
-          .from('application_share_tokens')
-          .select('token, expires_at')
-          .eq('application_id', appId)
-          .eq('token_type', 'resubmit')
-          .eq('is_revoked', false)
-          .gt('expires_at', new Date().toISOString())
-          .is('resubmitted_at', null)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (rtRow) {
-          (data as any).resubmit_token = rtRow.token;
-          (data as any).resubmit_expires_at = rtRow.expires_at;
-        }
-      }
-
-      return { success: true, data };
+      const response = await fetch('/api/tracking', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'tracking-id', value: trackingId }),
+      });
+      const result = await response.json();
+      return response.ok ? result : { success: false, error: { message: result.error || 'Application not found.' } };
     } catch (error) {
       return handleError(error, 'trackApplication');
     }
@@ -328,53 +303,12 @@ export const api = {
    */
   trackByIdOrPassport: async (searchValue: string): Promise<ApiResponse<any[]>> => {
     try {
-      const trimmed = searchValue.trim();
-      if (!trimmed) {
-        return { success: false, error: { message: 'Please enter a National ID or Passport number.' } };
-      }
-
-      // Search by nationalId OR passportNo in form_data
-      const { data: byNationalId } = await supabase
-        .from('applications')
-        .select('id, full_name, position, department, status, created_at, updated_at')
-        .eq('form_data->>nationalId', trimmed)
-        .order('created_at', { ascending: false });
-
-      const { data: byPassport } = await supabase
-        .from('applications')
-        .select('id, full_name, position, department, status, created_at, updated_at')
-        .eq('form_data->>passportNo', trimmed)
-        .order('created_at', { ascending: false });
-
-      // Merge and deduplicate by id
-      const all = [...(byNationalId || []), ...(byPassport || [])];
-      const unique = Array.from(new Map(all.map(item => [item.id, item])).values());
-
-      if (unique.length === 0) {
-        return { success: false, error: { message: 'No applications found.' } };
-      }
-
-      // Attach active resubmit token info for each application
-      const withTokens = await Promise.all(unique.map(async (app) => {
-        const { data: rtRow } = await supabase
-          .from('application_share_tokens')
-          .select('token, expires_at')
-          .eq('application_id', app.id)
-          .eq('token_type', 'resubmit')
-          .eq('is_revoked', false)
-          .gt('expires_at', new Date().toISOString())
-          .is('resubmitted_at', null)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        return {
-          ...app,
-          resubmit_token: rtRow?.token || null,
-          resubmit_expires_at: rtRow?.expires_at || null,
-        };
-      }));
-
-      return { success: true, data: withTokens };
+      const response = await fetch('/api/tracking', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'identity', value: searchValue.trim() }),
+      });
+      const result = await response.json();
+      return response.ok ? result : { success: false, error: { message: result.error || 'No applications found.' } };
     } catch (error) {
       return handleError(error, 'trackByIdOrPassport');
     }
@@ -388,8 +322,7 @@ export const api = {
       // Check for session validity before fetching
       const sessionResult = await api.auth.verifySession();
       if (!sessionResult.success) {
-        console.warn("Session invalid, clearing localStorage");
-        localStorage.removeItem('currentUser');
+        console.warn("Session invalid");
         return [];
       }
 
@@ -821,88 +754,44 @@ export const api = {
     }
   },
 
+  updateApplicationDetails: async (
+    id: string,
+    update: Record<string, any>,
+    changedFields: string[] = []
+  ): Promise<ApiResponse<any>> => {
+    try {
+      const response = await fetch('/api/application-edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ id, update, changedFields }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.success) {
+        return { success: false, error: { message: result.error || 'Application update failed' } };
+      }
+      return { success: true, data: result.data };
+    } catch (error) {
+      return handleError(error, 'updateApplicationDetails');
+    }
+  },
+
   /**
    * Delete application and associated files in storage
    */
   deleteApplication: async (id: string): Promise<ApiResponse<any>> => {
     try {
-      const { data: appData, error: fetchError } = await supabase
-        .from('applications')
-        .select('form_data')
-        .eq('id', id)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      const supabaseFilesToDelete: string[] = [];
-      const r2UrlsToDelete: string[] = [];
-      const formData = appData?.form_data;
-
-      if (formData) {
-        const detectProvider = (url: string | undefined | null) => {
-          if (!url) return null;
-          if (url.includes('supabase.co') || url.includes('/storage/v1/object/public/')) {
-            return 'supabase';
-          }
-          return 'r2';
-        };
-
-        const extractSupabasePath = (url: string) => {
-          const matches = url.match(/\/public\/applicants\/(.+)$/);
-          return matches ? matches[1] : null;
-        };
-
-        const urls = [
-          formData.photoUrl,
-          formData.originalPhotoUrl,
-          formData.resumeUrl,
-          formData.certificateUrl,
-          formData.transcriptUrl,
-          formData.otherDocsUrl
-        ];
-
-        for (const url of urls) {
-          if (!url) continue;
-          const provider = detectProvider(url);
-          if (provider === 'supabase') {
-            const path = extractSupabasePath(url);
-            if (path) supabaseFilesToDelete.push(path);
-          } else if (provider === 'r2') {
-            r2UrlsToDelete.push(url);
-          }
-        }
+      const response = await fetch('/api/application-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ id }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.success) {
+        return { success: false, error: { message: result.error || 'Application delete failed' } };
       }
-
-      // 1. Delete Supabase files if any
-      if (supabaseFilesToDelete.length > 0) {
-        const { error: storageError } = await supabase.storage
-          .from('applicants')
-          .remove(supabaseFilesToDelete);
-
-        if (storageError) {
-          console.error("Warning: Failed to delete some Supabase storage files:", storageError);
-        }
-      }
-
-      // 2. Delete R2 files if any
-      if (r2UrlsToDelete.length > 0) {
-        for (const url of r2UrlsToDelete) {
-          console.log('[Delete] Triggering R2 deletion for:', url);
-          const success = await deleteFromR2(url);
-          if (!success) {
-            console.warn('[Delete] Failed to delete file from R2:', url);
-          }
-        }
-      }
-
-      const { error: deleteError } = await supabase
-        .from('applications')
-        .delete()
-        .eq('id', id);
-
-      if (deleteError) return handleError(deleteError, 'deleteApplication');
-
-      return { success: true };
+      return { success: true, data: result };
     } catch (error: any) {
       return handleError(error, 'deleteApplication');
     }
@@ -1145,42 +1034,13 @@ export const api = {
    */
   generateShareToken: async (applicationId: string, createdBy: string): Promise<ApiResponse<{ token: string; url: string; expires_at: string }>> => {
     try {
-      // Check for existing non-expired, non-revoked token
-      const { data: existing } = await supabase
-        .from('application_share_tokens')
-        .select('token, expires_at')
-        .eq('application_id', applicationId)
-        .eq('is_revoked', false)
-        .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (existing) {
-        const url = `https://realestate.mygreentownhousing.com/processmygreen/career/share/?t=${existing.token}`;
-        return { success: true, data: { token: existing.token, url, expires_at: existing.expires_at } };
-      }
-
-      // Generate new token: crypto-safe 32-byte hex
-      const token = Array.from(crypto.getRandomValues(new Uint8Array(32)))
-        .map(b => b.toString(16).padStart(2, '0')).join('');
-      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-
-      const { data, error } = await supabase
-        .from('application_share_tokens')
-        .insert([{
-          application_id: applicationId,
-          token,
-          created_by: createdBy,
-          expires_at: expiresAt,
-        }])
-        .select('token, expires_at')
-        .single();
-
-      if (error) return handleError(error, 'generateShareToken');
-
-      const url = `https://realestate.mygreentownhousing.com/processmygreen/career/share/?t=${data.token}`;
-      return { success: true, data: { token: data.token, url, expires_at: data.expires_at } };
+      void createdBy;
+      const response = await fetch('/api/share-tokens', {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'generate-share', applicationId }),
+      });
+      const result = await response.json();
+      return response.ok ? result : { success: false, error: { message: result.error || 'สร้างลิงก์ไม่สำเร็จ' } };
     } catch (error) {
       return handleError(error, 'generateShareToken');
     }
@@ -1191,21 +1051,9 @@ export const api = {
    */
   getExistingShareToken: async (applicationId: string): Promise<ApiResponse<{ token: string; url: string; expires_at: string } | null>> => {
     try {
-      const { data, error } = await supabase
-        .from('application_share_tokens')
-        .select('token, expires_at')
-        .eq('application_id', applicationId)
-        .eq('is_revoked', false)
-        .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) return handleError(error, 'getExistingShareToken');
-      if (!data) return { success: true, data: null };
-
-      const url = `https://realestate.mygreentownhousing.com/processmygreen/career/share/?t=${data.token}`;
-      return { success: true, data: { token: data.token, url, expires_at: data.expires_at } };
+      const response = await fetch(`/api/share-tokens?applicationId=${encodeURIComponent(applicationId)}&type=share`, { credentials: 'same-origin' });
+      const result = await response.json();
+      return response.ok ? result : { success: false, error: { message: result.error || 'โหลดลิงก์ไม่สำเร็จ' } };
     } catch (error) {
       return handleError(error, 'getExistingShareToken');
     }
@@ -1215,37 +1063,9 @@ export const api = {
    */
   getApplicationByShareToken: async (token: string): Promise<ApiResponse<any>> => {
     try {
-      // Validate token and get application_id
-      const { data: tokenRow, error: tokenError } = await supabase
-        .from('application_share_tokens')
-        .select('id, application_id, expires_at, is_revoked')
-        .eq('token', token)
-        .eq('is_revoked', false)
-        .gt('expires_at', new Date().toISOString())
-        .maybeSingle();
-
-      if (tokenError || !tokenRow) {
-        return { success: false, error: { message: 'ลิงก์ไม่ถูกต้องหรือหมดอายุแล้ว' } };
-      }
-
-      // Fetch application
-      const { data: app, error: appError } = await supabase
-        .from('applications')
-        .select('id, full_name, position, department, form_data, created_at, status, photo_url')
-        .eq('id', tokenRow.application_id)
-        .single();
-
-      if (appError || !app) {
-        return { success: false, error: { message: 'ไม่พบข้อมูลผู้สมัคร' } };
-      }
-
-      // Update access stats (fire-and-forget)
-      supabase.from('application_share_tokens').update({
-        last_accessed_at: new Date().toISOString(),
-        access_count: (tokenRow as any).access_count + 1,
-      }).eq('id', tokenRow.id).then(() => {});
-
-      return { success: true, data: app };
+      const response = await fetch(`/api/share-tokens?token=${encodeURIComponent(token)}`, { credentials: 'same-origin' });
+      const result = await response.json();
+      return response.ok ? result : { success: false, error: { message: result.error || 'ลิงก์ไม่ถูกต้องหรือหมดอายุแล้ว' } };
     } catch (error) {
       return handleError(error, 'getApplicationByShareToken');
     }
@@ -1256,13 +1076,12 @@ export const api = {
    */
   revokeShareToken: async (token: string): Promise<ApiResponse<void>> => {
     try {
-      const { error } = await supabase
-        .from('application_share_tokens')
-        .update({ is_revoked: true })
-        .eq('token', token);
-
-      if (error) return handleError(error, 'revokeShareToken');
-      return { success: true };
+      const response = await fetch('/api/share-tokens', {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'revoke', token }),
+      });
+      const result = await response.json();
+      return response.ok ? result : { success: false, error: { message: result.error || 'ยกเลิกลิงก์ไม่สำเร็จ' } };
     } catch (error) {
       return handleError(error, 'revokeShareToken');
     }
@@ -1283,101 +1102,13 @@ export const api = {
     createdBy: string
   ): Promise<ApiResponse<{ token: string; url: string; expires_at: string }>> => {
     try {
-      // 1. Fetch the applicant's identifying data to build the PIN hash
-      const { data: app, error: appError } = await supabase
-        .from('applications')
-        .select('form_data')
-        .eq('id', applicationId)
-        .single();
-
-      if (appError || !app) {
-        return { success: false, error: { message: 'ไม่พบข้อมูลใบสมัคร' } };
-      }
-
-      const fd = app.form_data || {};
-      const isForeigner = fd.isThaiNational === false;
-      const idValue: string = isForeigner ? (fd.passportNo || '') : (fd.nationalId || '');
-      const phoneValue: string = fd.phone || '';
-
-      if (!idValue || !phoneValue) {
-        return {
-          success: false,
-          error: { message: 'ผู้สมัครไม่มีข้อมูลบัตรประชาชน/Passport หรือเบอร์โทร — ไม่สามารถสร้าง PIN ได้' }
-        };
-      }
-
-      const last4Id = idValue.slice(-4).toLowerCase();
-      const last4Phone = phoneValue.replace(/[^0-9]/g, '').slice(-4);
-
-      if (last4Id.length < 4 || last4Phone.length < 4) {
-        return {
-          success: false,
-          error: { message: 'ข้อมูลบัตรประชาชน/Passport หรือเบอร์โทรไม่ครบ 4 หลัก' }
-        };
-      }
-
-      // 2. Compute PIN hash using SubtleCrypto (browser native, no libraries needed)
-      const pinStr = `${last4Id}:${last4Phone}`;
-      const encoder = new TextEncoder();
-      const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(pinStr));
-      const pinHash = Array.from(new Uint8Array(hashBuffer))
-        .map(b => b.toString(16).padStart(2, '0')).join('');
-
-      // 3. Revoke any existing active resubmit token for this application
-      await supabase
-        .from('application_share_tokens')
-        .update({ is_revoked: true })
-        .eq('application_id', applicationId)
-        .eq('token_type', 'resubmit')
-        .eq('is_revoked', false);
-
-      // 4. Generate new crypto-safe token
-      const token = Array.from(crypto.getRandomValues(new Uint8Array(32)))
-        .map(b => b.toString(16).padStart(2, '0')).join('');
-      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-
-      const { data: tokenData, error: insertError } = await supabase
-        .from('application_share_tokens')
-        .insert([{
-          application_id: applicationId,
-          token,
-          token_type: 'resubmit',
-          created_by: createdBy,
-          expires_at: expiresAt,
-          allowed_fields: allowedFields,
-          pin_hash: pinHash,
-          pin_attempts: 0,
-        }])
-        .select('token, expires_at')
-        .single();
-
-      if (insertError) return handleError(insertError, 'generateResubmitToken');
-
-      // 5. Log the action for HR audit trail
-      const fieldLabelMap: Record<string, string> = {
-        resumeUrl: 'Resume',
-        transcriptUrl: 'Transcript',
-        certificateUrl: 'Certificate / เอกสารเพิ่มเติม',
-        photoUrl: 'รูปถ่าย',
-        idCardUrl: 'สำเนาบัตรประชาชน',
-        houseRegUrl: 'สำเนาทะเบียนบ้าน',
-        eduCertificateUrl: 'ใบรับรองวุฒิการศึกษา',
-        militaryCertUrl: 'ใบผ่านการเกณฑ์ทหาร',
-        toeicCertUrl: 'ผลสอบ TOEIC',
-        bankBookUrl_scb: 'สำเนาบัญชีธนาคารไทยพาณิชย์',
-        bankBookUrl_ktb: 'สำเนาบัญชีธนาคารกรุงไทย',
-      };
-      const fieldLabels = allowedFields.map(f => fieldLabelMap[f] || f).join(', ');
-
-      await api.addApplicationLog({
-        application_id: applicationId,
-        action: 'resubmit_token_created',
-        note: `HR ขอเอกสารใหม่: ${fieldLabels} (token หมดอายุใน 7 วัน)`,
-        performed_by: createdBy,
+      void createdBy;
+      const response = await fetch('/api/share-tokens', {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'generate-resubmit', applicationId, allowedFields }),
       });
-
-      const url = `${window.location.origin}/resubmit/${tokenData.token}`;
-      return { success: true, data: { token: tokenData.token, url, expires_at: tokenData.expires_at } };
+      const result = await response.json();
+      return response.ok ? result : { success: false, error: { message: result.error || 'สร้างลิงก์อัปโหลดใหม่ไม่สำเร็จ' } };
     } catch (error) {
       return handleError(error, 'generateResubmitToken');
     }
@@ -1390,23 +1121,9 @@ export const api = {
     applicationId: string
   ): Promise<ApiResponse<{ token: string; url: string; expires_at: string; allowed_fields: string[] } | null>> => {
     try {
-      const { data, error } = await supabase
-        .from('application_share_tokens')
-        .select('token, expires_at, allowed_fields')
-        .eq('application_id', applicationId)
-        .eq('token_type', 'resubmit')
-        .eq('is_revoked', false)
-        .gt('expires_at', new Date().toISOString())
-        .is('resubmitted_at', null)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) return handleError(error, 'getExistingResubmitToken');
-      if (!data) return { success: true, data: null };
-
-      const url = `${window.location.origin}/resubmit/${data.token}`;
-      return { success: true, data: { token: data.token, url, expires_at: data.expires_at, allowed_fields: data.allowed_fields || [] } };
+      const response = await fetch(`/api/share-tokens?applicationId=${encodeURIComponent(applicationId)}&type=resubmit`, { credentials: 'same-origin' });
+      const result = await response.json();
+      return response.ok ? result : { success: false, error: { message: result.error || 'โหลดลิงก์อัปโหลดใหม่ไม่สำเร็จ' } };
     } catch (error) {
       return handleError(error, 'getExistingResubmitToken');
     }
@@ -1421,24 +1138,12 @@ export const api = {
      */
     verifySession: async (): Promise<ApiResponse<AuthUser>> => {
       try {
-        const storedUser = localStorage.getItem('currentUser');
-        if (!storedUser) return { success: false, error: { message: 'No session' } };
-
-        const user = JSON.parse(storedUser);
-        if (!user || !user.id) return { success: false, error: { message: 'Invalid session data' } };
-
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', user.id)
-          .eq('status', 'Active')
-          .single();
-
-        if (error || !data) {
+        const response = await fetch('/api/session', { credentials: 'same-origin' });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !result.user) {
           return { success: false, error: { message: 'Session expired or user inactive' } };
         }
-
-        return { success: true, data };
+        return { success: true, data: result.user };
       } catch (err) {
         return { success: false, error: { message: 'Session verification failed' } };
       }
@@ -1465,13 +1170,13 @@ export const api = {
         }
 
         // 1. Call IDMS API via server-side proxy (avoids CORS issues)
-        const proxyUrl = `/api/idms-auth?account=${encodeURIComponent(normalizedUsername)}&password=${encodeURIComponent(passwordMd5)}`;
-        
         let response: Response;
         try {
-          response = await fetch(proxyUrl, {
-            method: 'GET',
-            headers: { 'Accept': 'application/json' },
+          response = await fetch('/api/idms-auth', {
+            method: 'POST',
+            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ account: normalizedUsername, password: passwordMd5 }),
           });
         } catch (fetchErr: any) {
           console.error('IDMS proxy fetch failed:', fetchErr);
@@ -1487,113 +1192,25 @@ export const api = {
           return { user: null, error: { message: 'ระบบ IDMS ตอบกลับข้อมูลผิดรูปแบบ กรุณาลองใหม่' } };
         }
 
-        if (!data || data.Result !== 'OK') {
-            const msg = data?.Result?.replace('Error : ', '') || 'Invalid HRMS credentials';
-            return { user: null, error: { message: msg } };
+        if (!response.ok || !data || data.Result !== 'OK') {
+          return { user: null, error: { message: getIdmsErrorMessage(response.ok, response.status, data) } };
         }
 
         const empId = data.EmpId;
-
-        // 2. Check in our Supabase users table
-        const { data: profile, error: dbError } = await supabase
-          .from('users')
-          .select('*')
-          .or(`hrms_username.eq.${normalizedUsername},emp_id.eq.${empId}`)
-          .single();
-
-        if (profile) {
-          if (profile.status !== 'Active') {
-            return { user: null, error: { message: 'Account is pending approval. Please contact the administrator.' } };
-          }
-
-          // Update last_login_at timestamp & sync latest org details from Worklog API
-          const nowIso = new Date().toISOString();
-          let orgDetails: any = {
-            position_name: profile.position_name || 'เจ้าหน้าที่สรรหาบุคลากร (Recruiter)',
-            department_name: profile.department_name || 'ฝ่ายทรัพยากรบุคคล (HRBP)',
-            company_name: profile.company_name || 'Double A (1991) PLC',
-            is_hr_team: profile.is_hr_team ?? true
-          };
-
-          try {
-            const res = await fetch(`/api/worklog-emp-info?emp_id=${encodeURIComponent(empId || profile.emp_id || '')}`);
-            if (res.ok) {
-              const resData = await res.json();
-              if (resData.success) {
-                orgDetails = {
-                  full_name: resData.full_name,
-                  name_th: resData.name_th,
-                  name_en: resData.name_en,
-                  position_name: resData.position_name,
-                  department_name: resData.department_name,
-                  company_name: resData.company_name,
-                  is_hr_team: resData.is_hr_team
-                };
-              }
-            }
-          } catch (fetchErr) {
-            console.warn('Worklog detail sync warning:', fetchErr);
-          }
-
-          // Security Audit: Demote if no longer in HR team, EXCEPT:
-          // 1. System admin role
-          // 2. Admin explicitly granted Audit / Non-HR exception AND current department matches approved_department_name
-          const isApprovedAuditDept = Boolean(
-            profile.allow_non_hr_access &&
-            profile.approved_department_name &&
-            orgDetails.department_name &&
-            orgDetails.department_name.trim().toLowerCase() === profile.approved_department_name.trim().toLowerCase()
-          );
-
-          if (orgDetails.is_hr_team === false && profile.role !== 'admin' && !isApprovedAuditDept) {
-            await supabase
-              .from('users')
-              .update({
-                status: 'Pending',
-                is_hr_team: false,
-                last_synced_at: nowIso
-              })
-              .eq('id', profile.id);
-
-            return {
-              user: null,
-              error: {
-                message: '⚠️ ตรวจพบการย้ายสายงานไปอยู่นอกทีมสรรหา บัญชีของคุณถูกระงับชั่วคราวเพื่อรอ Admin ตรวจสอบสิทธิ์'
-              }
-            };
-          }
-
-          const updatePayload: any = {
-            last_login_at: nowIso,
-            last_active_at: nowIso,
-            last_synced_at: nowIso,
-            position_name: orgDetails.position_name,
-            company_name: orgDetails.company_name,
-            department_name: orgDetails.department_name,
-            is_hr_team: orgDetails.is_hr_team
-          };
-
-          if (orgDetails.full_name) updatePayload.full_name = orgDetails.full_name;
-          if (orgDetails.name_th) updatePayload.name_th = orgDetails.name_th;
-          if (orgDetails.name_en) updatePayload.name_en = orgDetails.name_en;
-
-          const { data: updatedProfile } = await supabase
-            .from('users')
-            .update(updatePayload)
-            .eq('id', profile.id)
-            .select()
-            .single();
-
-          return { user: updatedProfile || { ...profile, ...updatePayload }, error: null };
+        const activation = await fetch('/api/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({}),
+        });
+        const activationResult = await activation.json().catch(() => ({}));
+        if (activation.status === 404 && activationResult.needsRegistration) {
+          return { user: null, error: { message: 'Not registered' }, needsRegistration: true, empId };
         }
-
-        // 3. Not found - needs registration
-        return { 
-          user: null, 
-          error: { message: 'Not registered' }, 
-          needsRegistration: true, 
-          empId 
-        };
+        if (!activation.ok || !activationResult.user) {
+          return { user: null, error: { message: activationResult.error || 'Account is pending approval. Please contact the administrator.' } };
+        }
+        return { user: activationResult.user, error: null };
       } catch (error: any) {
         console.error('Login error:', error);
         return { user: null, error: { message: `Login failed: ${error.message || 'Unknown error'}` } };
@@ -1605,78 +1222,15 @@ export const api = {
      */
     registerHrmsUser: async (userData: { email: string; full_name: string; phone?: string; role?: string; emp_id: string; hrms_username: string }): Promise<ApiResponse<AuthUser>> => {
       try {
-        // Validate inputs
-        if (!userData.email || !userData.full_name || !userData.emp_id || !userData.hrms_username) {
+        if (!userData.email || !userData.full_name) {
           return { success: false, error: { message: 'All fields are required.' } };
         }
-
-        const normalizedEmail = userData.email.toLowerCase().trim();
-
-        // Check if email already exists
-        const { data: existingUser } = await supabase
-           .from('users')
-           .select('id')
-           .eq('email', normalizedEmail)
-           .maybeSingle();
-
-        if (existingUser) {
-           return { success: false, error: { message: 'This email is already in use.' } };
-        }
-
-        // Fetch position & department details from Worklog API during registration
-        let orgDetails = {
-          position_name: 'เจ้าหน้าที่สรรหาบุคลากร (Recruiter)',
-          department_name: 'ฝ่ายทรัพยากรบุคคล (HRBP)',
-          company_name: 'Double A (1991) PLC',
-          is_hr_team: true
-        };
-
-        try {
-          const res = await fetch(`/api/worklog-emp-info?emp_id=${encodeURIComponent(userData.emp_id)}`);
-          if (res.ok) {
-            const resData = await res.json();
-            if (resData.success) {
-              orgDetails = {
-                position_name: resData.position_name,
-                department_name: resData.department_name,
-                company_name: resData.company_name,
-                is_hr_team: resData.is_hr_team
-              };
-            }
-          }
-        } catch (fetchErr) {
-          console.warn('Worklog initial fetch warning:', fetchErr);
-        }
-
-        const nowIso = new Date().toISOString();
-
-        // Create profile in users table (No passwords needed anymore)
-        const { data: profile, error: profileError } = await supabase
-          .from('users')
-          .insert([{
-            email: normalizedEmail,
-            full_name: userData.full_name,
-            phone: userData.phone || '',
-            role: userData.role || 'mod',
-            status: 'Pending',
-            emp_id: userData.emp_id,
-            hrms_username: userData.hrms_username,
-            position_name: orgDetails.position_name,
-            department_name: orgDetails.department_name,
-            company_name: orgDetails.company_name,
-            is_hr_team: orgDetails.is_hr_team,
-            last_synced_at: nowIso,
-            created_at: nowIso
-          }])
-          .select()
-          .single();
-
-        if (profileError) return handleError(profileError, 'registerHrmsUser');
-
-        return {
-          success: true,
-          data: profile
-        };
+        const response = await fetch('/api/register-hrms-user', {
+          method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: userData.email, full_name: userData.full_name, phone: userData.phone || '' }),
+        });
+        const result = await response.json();
+        return response.ok ? result : { success: false, error: { message: result.error || 'Registration failed' } };
       } catch (error) {
         return handleError(error, 'registerHrmsUser');
       }
@@ -1687,12 +1241,7 @@ export const api = {
      */
     syncUserWorklogDetails: async (userId: string, empId: string): Promise<ApiResponse<AuthUser>> => {
       try {
-        let orgDetails: any = {
-          position_name: 'เจ้าหน้าที่สรรหาบุคลากร (Recruiter)',
-          department_name: 'ฝ่ายทรัพยากรบุคคล (HRBP)',
-          company_name: 'Double A (1991) PLC',
-          is_hr_team: true
-        };
+        let orgDetails: any = null;
 
         try {
           const res = await fetch(`/api/worklog-emp-info?emp_id=${encodeURIComponent(empId)}`);
@@ -1712,6 +1261,10 @@ export const api = {
           }
         } catch (fetchErr) {
           console.warn('Worklog resync fetch warning:', fetchErr);
+        }
+
+        if (!orgDetails) {
+          return { success: false, error: { message: 'Unable to verify current employee organization from HRMS/Worklog.' } };
         }
 
         const nowIso = new Date().toISOString();
@@ -1786,13 +1339,8 @@ export const api = {
       overrideOptions?: { allow_non_hr_access?: boolean; approved_department_name?: string; approved_position_name?: string }
     ): Promise<ApiResponse<AuthUser>> => {
       try {
-        // Get the logged-in admin's ID from localStorage
-        const currentUserRaw = localStorage.getItem('currentUser');
-        if (!currentUserRaw) {
-          return { success: false, error: { message: 'Not authenticated. Please log in again.' } };
-        }
-        const currentUser = JSON.parse(currentUserRaw);
-        const callerUserId = currentUser?.id;
+        const sessionResult = await api.auth.verifySession();
+        const callerUserId = sessionResult.data?.id;
         if (!callerUserId) {
           return { success: false, error: { message: 'Invalid session. Please log in again.' } };
         }
@@ -1849,15 +1397,15 @@ export const api = {
      * Sign out current user
      */
     signOut: async (): Promise<void> => {
-      await supabase.auth.signOut();
+      await fetch('/api/session', { method: 'DELETE', credentials: 'same-origin' });
     },
 
     /**
      * Get current session
      */
     getSession: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      return session;
+      const result = await api.auth.verifySession();
+      return result.success ? result.data : null;
     },
 
     /**
@@ -2048,12 +1596,9 @@ export const api = {
   blacklist: {
     getEntries: async (): Promise<ApiResponse<BlacklistEntry[]>> => {
       try {
-        const { data, error } = await supabase
-          .from('blacklist')
-          .select('*')
-          .order('created_at', { ascending: false });
-        if (error) return handleError(error, 'blacklist.getEntries');
-        return { success: true, data: data || [] };
+        const response = await fetch('/api/blacklist?action=entries');
+        const result = await response.json();
+        return response.ok ? result : handleError(result, 'blacklist.getEntries');
       } catch (error) {
         return handleError(error, 'blacklist.getEntries');
       }
@@ -2061,13 +1606,9 @@ export const api = {
 
     addEntry: async (entry: Omit<BlacklistEntry, 'id' | 'created_at' | 'updated_at'>): Promise<ApiResponse<BlacklistEntry>> => {
       try {
-        const { data, error } = await supabase
-          .from('blacklist')
-          .insert([entry])
-          .select()
-          .single();
-        if (error) return handleError(error, 'blacklist.addEntry');
-        return { success: true, data };
+        const response = await fetch('/api/blacklist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'add', entry }) });
+        const result = await response.json();
+        return response.ok ? result : handleError(result, 'blacklist.addEntry');
       } catch (error) {
         return handleError(error, 'blacklist.addEntry');
       }
@@ -2075,14 +1616,9 @@ export const api = {
 
     updateEntry: async (id: string, entry: Partial<BlacklistEntry>): Promise<ApiResponse<BlacklistEntry>> => {
       try {
-        const { data, error } = await supabase
-          .from('blacklist')
-          .update(entry)
-          .eq('id', id)
-          .select()
-          .single();
-        if (error) return handleError(error, 'blacklist.updateEntry');
-        return { success: true, data };
+        const response = await fetch('/api/blacklist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'update', id, entry }) });
+        const result = await response.json();
+        return response.ok ? result : handleError(result, 'blacklist.updateEntry');
       } catch (error) {
         return handleError(error, 'blacklist.updateEntry');
       }
@@ -2090,12 +1626,9 @@ export const api = {
 
     deleteEntry: async (id: string): Promise<ApiResponse<any>> => {
       try {
-        const { error } = await supabase
-          .from('blacklist')
-          .delete()
-          .eq('id', id);
-        if (error) return handleError(error, 'blacklist.deleteEntry');
-        return { success: true };
+        const response = await fetch('/api/blacklist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete', id }) });
+        const result = await response.json();
+        return response.ok ? result : handleError(result, 'blacklist.deleteEntry');
       } catch (error) {
         return handleError(error, 'blacklist.deleteEntry');
       }
@@ -2103,12 +1636,9 @@ export const api = {
 
     getAuditLogs: async (): Promise<ApiResponse<BlacklistAuditLog[]>> => {
       try {
-        const { data, error } = await supabase
-          .from('blacklist_audit_logs')
-          .select('*')
-          .order('created_at', { ascending: false });
-        if (error) return handleError(error, 'blacklist.getAuditLogs');
-        return { success: true, data: data || [] };
+        const response = await fetch('/api/blacklist?action=audit');
+        const result = await response.json();
+        return response.ok ? result : handleError(result, 'blacklist.getAuditLogs');
       } catch (error) {
         return handleError(error, 'blacklist.getAuditLogs');
       }
@@ -2116,13 +1646,9 @@ export const api = {
 
     addAuditLog: async (log: Omit<BlacklistAuditLog, 'id' | 'created_at'>): Promise<ApiResponse<BlacklistAuditLog>> => {
       try {
-        const { data, error } = await supabase
-          .from('blacklist_audit_logs')
-          .insert([log])
-          .select()
-          .single();
-        if (error) return handleError(error, 'blacklist.addAuditLog');
-        return { success: true, data };
+        const response = await fetch('/api/blacklist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'addAudit', log }) });
+        const result = await response.json();
+        return response.ok ? result : handleError(result, 'blacklist.addAuditLog');
       } catch (error) {
         return handleError(error, 'blacklist.addAuditLog');
       }
@@ -2133,12 +1659,8 @@ export const api = {
       passportNo?: string;
     }): Promise<BlacklistEntry[]> => {
       try {
-        const { data, error } = await supabase
-          .from('blacklist')
-          .select('*')
-          .eq('status', 'active');
-        
-        if (error || !data) return [];
+        const result = await api.blacklist.getEntries();
+        const data = result.success && result.data ? result.data.filter(entry => entry.status === 'active') : [];
 
         const matches: BlacklistEntry[] = [];
 

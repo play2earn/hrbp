@@ -2,13 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { MOCK_BU } from '../constants';
 import { Card, Button, Input, Select, Modal } from './UIComponents';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { LucideIcon, Home, FileText, QrCode, Settings, LogOut, CheckCircle, XCircle, Search, Filter, Download, ExternalLink, Calendar, Menu, X, ChevronRight, ChevronLeft, ChevronDown, User, Shield, Users, Copy, Check, Database, Plus, Edit, Trash2, Building2, Tag, GraduationCap, MapPin, Phone, UserPlus, UserCheck, History, Clock, ArrowRightLeft, BarChart2, ShieldAlert, Save, Sparkles, ArrowRight } from 'lucide-react';
 import { api } from '../services/api';
 import { supabase } from '../supabaseClient';
 import { Role, BlacklistEntry } from '../types';
 import type { ApplicationStatus, AuthUser } from '../services/api';
-import { ReportsTab } from './ReportsTab';
 
 import type { DashboardProps } from './dashboard/dashboardTypes';
 import {
@@ -17,20 +15,40 @@ import {
   getBuChartColor, getBuColor, getStatusLabel, getStatusBadgeClass,
   isInterviewScheduledStatus, isClosedStatus, getMilitaryStatusLabel
 } from './dashboard/dashboardConstants';
-import { ApplicationDetailModal } from './dashboard/ApplicationDetailModal';
-import { ApplicationEditModal } from './dashboard/ApplicationEditModal';
 import { ApplicationActionModals } from './dashboard/ApplicationActionModals';
 import { OverviewTab } from './dashboard/OverviewTab';
-import { QRGeneratorTab } from './dashboard/QRGeneratorTab';
-import { UserManagementTab } from './dashboard/UserManagementTab';
-import { BlacklistTab } from './dashboard/BlacklistTab';
-import { CalendarTab } from './dashboard/CalendarTab';
-import { SystemLogsTab } from './dashboard/SystemLogsTab';
-import { S3StorageTab } from './dashboard/S3StorageTab';
 import { HardDrive } from 'lucide-react';
 
+const ApplicationDetailModal = React.lazy(() => import('./dashboard/ApplicationDetailModal').then(m => ({ default: m.ApplicationDetailModal })));
+const ApplicationEditModal = React.lazy(() => import('./dashboard/ApplicationEditModal').then(m => ({ default: m.ApplicationEditModal })));
+const ReportsTab = React.lazy(() => import('./ReportsTab').then(m => ({ default: m.ReportsTab })));
+const QRGeneratorTab = React.lazy(() => import('./dashboard/QRGeneratorTab').then(m => ({ default: m.QRGeneratorTab })));
+const UserManagementTab = React.lazy(() => import('./dashboard/UserManagementTab').then(m => ({ default: m.UserManagementTab })));
+const BlacklistTab = React.lazy(() => import('./dashboard/BlacklistTab').then(m => ({ default: m.BlacklistTab })));
+const CalendarTab = React.lazy(() => import('./dashboard/CalendarTab').then(m => ({ default: m.CalendarTab })));
+const SystemLogsTab = React.lazy(() => import('./dashboard/SystemLogsTab').then(m => ({ default: m.SystemLogsTab })));
+const S3StorageTab = React.lazy(() => import('./dashboard/S3StorageTab').then(m => ({ default: m.S3StorageTab })));
 
-export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
+const TabLoading = () => (
+  <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-slate-200 bg-white">
+    <div className="flex flex-col items-center gap-3 text-slate-500">
+      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-indigo-600"></div>
+      <span className="text-sm font-medium">Loading dashboard section...</span>
+    </div>
+  </div>
+);
+
+const ModalLoadingOverlay = () => (
+  <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/20 backdrop-blur-sm">
+    <div className="flex items-center gap-3 rounded-2xl bg-white px-5 py-4 text-sm font-medium text-slate-600 shadow-2xl">
+      <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-indigo-600"></div>
+      Loading details...
+    </div>
+  </div>
+);
+
+
+export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUser: initialUser }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'reports' | 'qr' | 'settings' | 'config' | 'profile' | 'blacklist' | 'calendar' | 'logs' | 'hr-drive'>('overview');
   const [hrDrivePrefix, setHrDrivePrefix] = useState<string>('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -59,7 +77,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
   }, [dontShowReleaseAgain]);
 
   // Current User Info
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [currentUser, setCurrentUser] = useState<AuthUser>(initialUser);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
   const [profileEmpId, setProfileEmpId] = useState<string | null>(null);
 
@@ -205,12 +223,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
 
   // Helper: current user display name & ID
   const currentUserName = currentUser?.full_name || 'Unknown';
-  const currentUserId = currentUser?.id || (() => {
-    try {
-      const stored = localStorage.getItem('currentUser');
-      return stored ? JSON.parse(stored).id : null;
-    } catch { return null; }
-  })();
+  const currentUserId = currentUser?.id || null;
 
   // Profile photo fallback chain: IDMS API → Intranet empimages → WMS Face API → Initials
   const handleProfilePhotoError = () => {
@@ -644,47 +657,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
 
 
   useEffect(() => {
-    // Load current user from localStorage
-    const storedUser = localStorage.getItem('currentUser');
     let defaultFilter = 'all';
-    if (storedUser) {
-      try {
-        const user = JSON.parse(storedUser);
-        setCurrentUser(user);
-        if (user.full_name && user.email) {
-          defaultFilter = `${user.full_name} (${user.email})`;
-          setQrLogCreatorFilter(defaultFilter);
-        }
-        if (user.id) {
-          api.auth.touchUserActivity(user.id);
-          
-          // Check 30-Day Security Governance last_login_at timestamp in Supabase
-          supabase
-            .from('users')
-            .select('id, last_login_at, status, hrms_username, email, emp_id')
-            .eq('id', user.id)
-            .maybeSingle()
-            .then(({ data: dbUser }) => {
-              if (dbUser) {
-                if (dbUser.status !== 'Active') {
-                  onLogout();
-                  return;
-                }
-                const lastLogin = dbUser.last_login_at ? new Date(dbUser.last_login_at).getTime() : 0;
-                const now = Date.now();
-                const diffDays = (now - lastLogin) / (1000 * 60 * 60 * 24);
-
-                if (!dbUser.last_login_at || diffDays > 30) {
-                  setReAuthReason(!dbUser.last_login_at
-                    ? 'ระบบเริ่มใช้นโยบายยืนยันตัวตนรหัสผ่าน กรุณากรอกรหัสผ่าน HRMS 1 ครั้งเพื่อยืนยันสิทธิ์และเริ่มนับ 30 วัน'
-                    : 'คุณไม่ได้ยืนยันรหัสผ่านเกิน 30 วันตามนโยบาย PDPA กรุณากรอกรหัสผ่าน HRMS อีกครั้งเพื่อต่ออายุสิทธิ์เข้าใช้งาน');
-                  setIsReAuthModalOpen(true);
-                }
-              }
-            });
-        }
-      } catch (e) {
-        console.error('Failed to parse stored user', e);
+    const user = initialUser;
+    if (user.full_name && user.email) {
+      defaultFilter = `${user.full_name} (${user.email})`;
+      setQrLogCreatorFilter(defaultFilter);
+    }
+    if (user.id) {
+      api.auth.touchUserActivity(user.id);
+      const lastLogin = user.last_login_at ? new Date(user.last_login_at).getTime() : 0;
+      const diffDays = (Date.now() - lastLogin) / (1000 * 60 * 60 * 24);
+      if (!user.last_login_at || diffDays > 30) {
+        setReAuthReason(!user.last_login_at
+          ? 'ระบบเริ่มใช้นโยบายยืนยันตัวตนรหัสผ่าน กรุณากรอกรหัสผ่าน HRMS 1 ครั้งเพื่อยืนยันสิทธิ์และเริ่มนับ 30 วัน'
+          : 'คุณไม่ได้ยืนยันรหัสผ่านเกิน 30 วันตามนโยบาย PDPA กรุณากรอกรหัสผ่าน HRMS อีกครั้งเพื่อต่ออายุสิทธิ์เข้าใช้งาน');
+        setIsReAuthModalOpen(true);
       }
     }
 
@@ -693,7 +680,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
     api.reports.getCloseReasons().then(setCloseReasons);
 
     // Fetch profile photo from IDMS, fallback to intranet empimages
-    const empId = storedUser ? (() => { try { return JSON.parse(storedUser).emp_id; } catch { return null; } })() : null;
+    const empId = user.emp_id || null;
     if (empId) {
       setProfileEmpId(empId);
       fetch(`https://api-idms.advanceagro.net/hrms/employee/${empId}/photocard/?size=120`)
@@ -995,146 +982,148 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
             </div>
           )}
 
-          {activeTab === 'reports' && (
-            <ReportsTab
-              setViewingApp={setViewingApp}
-              currentUserId={currentUserId}
-              activeUsers={activeUsers}
-              businessUnits={businessUnits}
-              departments={departments}
-            />
-          )}
+          <React.Suspense fallback={<TabLoading />}>
+            {activeTab === 'reports' && (
+              <ReportsTab
+                setViewingApp={setViewingApp}
+                currentUserId={currentUserId}
+                activeUsers={activeUsers}
+                businessUnits={businessUnits}
+                departments={departments}
+              />
+            )}
 
-          {activeTab === 'calendar' && (
-            <CalendarTab
-              applications={calendarApplications}
-              activeUsers={activeUsers}
-              businessUnits={businessUnits}
-              setViewingApp={setViewingApp}
-              currentUser={currentUser}
-            />
-          )}
+            {activeTab === 'calendar' && (
+              <CalendarTab
+                applications={calendarApplications}
+                activeUsers={activeUsers}
+                businessUnits={businessUnits}
+                setViewingApp={setViewingApp}
+                currentUser={currentUser}
+              />
+            )}
 
-          {activeTab === 'overview' && (
-            <OverviewTab
-              stats={stats}
-              fetchData={fetchData}
-              applications={applications}
-              positions={positions}
-              departments={departments}
-              businessUnits={businessUnits}
-              channels={channels}
-              appFilters={appFilters}
-              setAppFilters={setAppFilters}
-              appPage={appPage}
-              setAppPage={setAppPage}
-              appPerPage={appPerPage}
-              setAppPerPage={setAppPerPage}
-              actionMenu={actionMenu}
-              setActionMenu={setActionMenu}
-              openActionMenu={openActionMenu}
-              setViewingApp={setViewingApp}
-              setEditingApp={setEditingApp}
-              setClaimingApp={setClaimingApp}
-              setTransferringApp={setTransferringApp}
-              setUnassigningApp={setUnassigningApp}
-              setInterviewingApp={setInterviewingApp}
-              setRejectingApp={setRejectingApp}
-              setApprovingApp={setApprovingApp}
-              currentUserId={currentUserId}
-              blacklistEntries={blacklistEntries}
-              onViewBlacklistDetail={setViewingBlacklistDetail}
-              loading={loading}
-              totalCount={totalCount}
-              statsApplications={statsApplications}
-            />
-          )}
+            {activeTab === 'overview' && (
+              <OverviewTab
+                stats={stats}
+                fetchData={fetchData}
+                applications={applications}
+                positions={positions}
+                departments={departments}
+                businessUnits={businessUnits}
+                channels={channels}
+                appFilters={appFilters}
+                setAppFilters={setAppFilters}
+                appPage={appPage}
+                setAppPage={setAppPage}
+                appPerPage={appPerPage}
+                setAppPerPage={setAppPerPage}
+                actionMenu={actionMenu}
+                setActionMenu={setActionMenu}
+                openActionMenu={openActionMenu}
+                setViewingApp={setViewingApp}
+                setEditingApp={setEditingApp}
+                setClaimingApp={setClaimingApp}
+                setTransferringApp={setTransferringApp}
+                setUnassigningApp={setUnassigningApp}
+                setInterviewingApp={setInterviewingApp}
+                setRejectingApp={setRejectingApp}
+                setApprovingApp={setApprovingApp}
+                currentUserId={currentUserId}
+                blacklistEntries={blacklistEntries}
+                onViewBlacklistDetail={setViewingBlacklistDetail}
+                loading={loading}
+                totalCount={totalCount}
+                statsApplications={statsApplications}
+              />
+            )}
 
-          {activeTab === 'hr-drive' && (
-            <S3StorageTab
-              showToast={showToast}
-              currentUser={currentUser}
-              initialPrefix={hrDrivePrefix}
-            />
-          )}
+            {activeTab === 'hr-drive' && (
+              <S3StorageTab
+                showToast={showToast}
+                currentUser={currentUser}
+                initialPrefix={hrDrivePrefix}
+              />
+            )}
 
-          {activeTab === 'qr' && (
-            <QRGeneratorTab
-              qrParams={qrParams}
-              setQrParams={setQrParams}
-              businessUnits={businessUnits}
-              channels={channels}
-              generateLink={generateLink}
-              generatedLink={generatedLink}
-              isCopied={isCopied}
-              handleCopy={handleCopy}
-              qrLogs={qrLogs}
-              filteredQrLogs={filteredQrLogs}
-              qrLogCreatorFilter={qrLogCreatorFilter}
-              setQrLogCreatorFilter={(val) => {
-                setQrLogCreatorFilter(val);
-                fetchQrLogs(1, val);
-              }}
-              qrLogCreators={qrLogCreators}
-              fetchQrLogs={fetchQrLogs}
-              showToast={showToast}
-              qrPage={qrPage}
-              setQrPage={setQrPage}
-              qrTotalCount={qrTotalCount}
-              qrPerPage={30}
-            />
-          )}
+            {activeTab === 'qr' && (
+              <QRGeneratorTab
+                qrParams={qrParams}
+                setQrParams={setQrParams}
+                businessUnits={businessUnits}
+                channels={channels}
+                generateLink={generateLink}
+                generatedLink={generatedLink}
+                isCopied={isCopied}
+                handleCopy={handleCopy}
+                qrLogs={qrLogs}
+                filteredQrLogs={filteredQrLogs}
+                qrLogCreatorFilter={qrLogCreatorFilter}
+                setQrLogCreatorFilter={(val) => {
+                  setQrLogCreatorFilter(val);
+                  fetchQrLogs(1, val);
+                }}
+                qrLogCreators={qrLogCreators}
+                fetchQrLogs={fetchQrLogs}
+                showToast={showToast}
+                qrPage={qrPage}
+                setQrPage={setQrPage}
+                qrTotalCount={qrTotalCount}
+                qrPerPage={30}
+              />
+            )}
 
-          {activeTab === 'settings' && role === 'admin' && (
-            <UserManagementTab
-              pendingUsers={pendingUsers}
-              activeUsers={activeUsers}
-              fetchPendingUsers={fetchPendingUsers}
-              fetchActiveUsers={fetchActiveUsers}
-              showToast={showToast}
-              editingUser={editingUser}
-              setEditingUser={setEditingUser}
-              isConfirmingDisable={isConfirmingDisable}
-              setIsConfirmingDisable={setIsConfirmingDisable}
-            />
-          )}
+            {activeTab === 'settings' && role === 'admin' && (
+              <UserManagementTab
+                pendingUsers={pendingUsers}
+                activeUsers={activeUsers}
+                fetchPendingUsers={fetchPendingUsers}
+                fetchActiveUsers={fetchActiveUsers}
+                showToast={showToast}
+                editingUser={editingUser}
+                setEditingUser={setEditingUser}
+                isConfirmingDisable={isConfirmingDisable}
+                setIsConfirmingDisable={setIsConfirmingDisable}
+              />
+            )}
 
-          {activeTab === 'logs' && role === 'admin' && (
-            <SystemLogsTab
-              showToast={showToast}
-              currentUser={currentUser}
-              onViewCandidate={async (appId) => {
-                const found = applications.find(a => a.id === appId);
-                if (found) {
-                  setViewingApp(found);
-                  return;
-                }
-                // Fallback to fetch from database if not in memory
-                try {
-                  const { data, error } = await supabase
-                    .from('applications')
-                    .select('*')
-                    .eq('id', appId)
-                    .maybeSingle();
-                  if (error || !data) {
-                    showToast('ไม่พบข้อมูลผู้สมัครรายนี้แล้ว (อาจถูกลบหรือไม่มีในระบบ)', 'error');
-                  } else {
-                    setViewingApp(data);
+            {activeTab === 'logs' && role === 'admin' && (
+              <SystemLogsTab
+                showToast={showToast}
+                currentUser={currentUser}
+                onViewCandidate={async (appId) => {
+                  const found = applications.find(a => a.id === appId);
+                  if (found) {
+                    setViewingApp(found);
+                    return;
                   }
-                } catch (err) {
-                  showToast('เกิดข้อผิดพลาดในการดึงข้อมูลผู้สมัคร', 'error');
-                }
-              }}
-            />
-          )}
+                  // Fallback to fetch from database if not in memory
+                  try {
+                    const { data, error } = await supabase
+                      .from('applications')
+                      .select('*')
+                      .eq('id', appId)
+                      .maybeSingle();
+                    if (error || !data) {
+                      showToast('ไม่พบข้อมูลผู้สมัครรายนี้แล้ว (อาจถูกลบหรือไม่มีในระบบ)', 'error');
+                    } else {
+                      setViewingApp(data);
+                    }
+                  } catch (err) {
+                    showToast('เกิดข้อผิดพลาดในการดึงข้อมูลผู้สมัคร', 'error');
+                  }
+                }}
+              />
+            )}
 
-          {activeTab === 'config' && (
-            <MasterDataConfig showToast={showToast} currentUser={currentUser} />
-          )}
+            {activeTab === 'config' && (
+              <MasterDataConfig showToast={showToast} currentUser={currentUser} />
+            )}
 
-          {activeTab === 'blacklist' && (
-            <BlacklistTab showToast={showToast} currentUser={currentUser} />
-          )}
+            {activeTab === 'blacklist' && (
+              <BlacklistTab showToast={showToast} currentUser={currentUser} />
+            )}
+          </React.Suspense>
 
           {activeTab === 'profile' && (
             <div className="form-step-enter">
@@ -1204,33 +1193,38 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
       </main>
 
       {/* Application Detail Modal */}
-      <ApplicationDetailModal
-        viewingApp={viewingApp}
-        setViewingApp={setViewingApp}
-        appLogs={appLogs}
-        isLoadingLogs={isLoadingLogs}
-        setEditingApp={setEditingApp}
-        setClaimingApp={setClaimingApp}
-        setTransferringApp={setTransferringApp}
-        setUnassigningApp={setUnassigningApp}
-        setInterviewingApp={setInterviewingApp}
-        setInterviewDate={setInterviewDate}
-        setRejectingApp={setRejectingApp}
-        setRejectComment={setRejectComment}
-        setRejectionReason={setRejectionReason}
-        setApprovingApp={setApprovingApp}
-        onApplicationUpdated={(updatedApp) => {
-          setApplications(prev => prev.map(app => app.id === updatedApp.id ? updatedApp : app));
-        }}
-        blacklistEntries={blacklistEntries}
-        onViewBlacklistDetail={setViewingBlacklistDetail}
-        setEvaluatingApp={setEvaluatingApp}
-        onOpenHrDrive={(prefix: string) => {
-          setHrDrivePrefix(prefix);
-          setActiveTab('hr-drive');
-          setViewingApp(null);
-        }}
-      />
+      {viewingApp && (
+        <React.Suspense fallback={<ModalLoadingOverlay />}>
+          <ApplicationDetailModal
+            viewingApp={viewingApp}
+            setViewingApp={setViewingApp}
+            appLogs={appLogs}
+            isLoadingLogs={isLoadingLogs}
+            setEditingApp={setEditingApp}
+            setClaimingApp={setClaimingApp}
+            setTransferringApp={setTransferringApp}
+            setUnassigningApp={setUnassigningApp}
+            setInterviewingApp={setInterviewingApp}
+            setInterviewDate={setInterviewDate}
+            setRejectingApp={setRejectingApp}
+            setRejectComment={setRejectComment}
+            setRejectionReason={setRejectionReason}
+            setApprovingApp={setApprovingApp}
+            onApplicationUpdated={(updatedApp) => {
+              setApplications(prev => prev.map(app => app.id === updatedApp.id ? updatedApp : app));
+            }}
+            blacklistEntries={blacklistEntries}
+            onViewBlacklistDetail={setViewingBlacklistDetail}
+            setEvaluatingApp={setEvaluatingApp}
+            currentUser={currentUser}
+            onOpenHrDrive={(prefix: string) => {
+              setHrDrivePrefix(prefix);
+              setActiveTab('hr-drive');
+              setViewingApp(null);
+            }}
+          />
+        </React.Suspense>
+      )}
 
       {/* Blacklist Details Modal */}
       <Modal
@@ -1686,20 +1680,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
       </Modal>
 
       {/* Edit Application Modal */}
-      <ApplicationEditModal
-        editingApp={editingApp}
-        setEditingApp={setEditingApp}
-        editForm={editForm}
-        setEditForm={setEditForm}
-        departments={departments}
-        positions={positions}
-        businessUnits={businessUnits}
-        channels={channels}
-        currentUserId={currentUserId}
-        currentUserName={currentUserName}
-        showToast={showToast}
-        fetchData={fetchData}
-      />
+      {editingApp && (
+        <React.Suspense fallback={<ModalLoadingOverlay />}>
+          <ApplicationEditModal
+            editingApp={editingApp}
+            setEditingApp={setEditingApp}
+            editForm={editForm}
+            setEditForm={setEditForm}
+            departments={departments}
+            positions={positions}
+            businessUnits={businessUnits}
+            channels={channels}
+            currentUserId={currentUserId}
+            currentUserName={currentUserName}
+            showToast={showToast}
+            fetchData={fetchData}
+          />
+        </React.Suspense>
+      )}
 
       {/* Application Actions Modals (Approve, Reject, Interview, Claim, Transfer, Unassign, Delete, QR) */}
       <ApplicationActionModals
@@ -1897,7 +1895,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout }) => {
                   showToast('✨ ยืนยันรหัสผ่านและอัปเดตสิทธิ์ทีมสรรหาสำเร็จ!');
                   setIsReAuthModalOpen(false);
                   setReAuthPassword('');
-                  localStorage.setItem('currentUser', JSON.stringify(res.user));
                   setCurrentUser(res.user);
                 }
               } catch (err: any) {

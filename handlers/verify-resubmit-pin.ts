@@ -1,16 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createClient } from '@supabase/supabase-js';
 import { createHash } from 'crypto';
+import { configureSameOrigin, getAdminSupabase, setSignedSession } from '../server/security.js';
 
 const MAX_ATTEMPTS = 5;
 const LOCK_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (!configureSameOrigin(req, res, 'POST')) return;
+  if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
@@ -25,17 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ success: false, error: 'รูปแบบ PIN ไม่ถูกต้อง' });
     }
 
-    const cleanEnvVar = (val?: string) => val ? val.replace(/^["']|["']$/g, '').trim() : '';
-    const supabaseUrl = cleanEnvVar(process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL);
-    const supabaseAnonKey = cleanEnvVar(process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY);
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error('Supabase environment variables are missing');
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { 'x-admin-key': 'vibe-recruit-admin-secret-2026' } }
-    });
+    const supabase = getAdminSupabase();
 
     // 1. Fetch the resubmit token row
     const { data: tokenRow, error: tokenError } = await supabase
@@ -119,6 +106,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const militaryStatus = fd.militaryStatus || '';
     const isThaiNational = fd.isThaiNational !== false;
     const gender = (fd.titleEn === 'Mrs.' || fd.titleEn === 'Miss.' || fd.title === 'นาง' || fd.title === 'นางสาว') ? 'female' : 'male';
+
+    const remainingSeconds = Math.max(60, Math.min(30 * 60, Math.floor((new Date(tokenRow.expires_at).getTime() - Date.now()) / 1000)));
+    setSignedSession(res, 'resubmit', {
+      token,
+      applicationId: tokenRow.application_id,
+      allowedFields: tokenRow.allowed_fields || [],
+    }, remainingSeconds);
 
     // Return only what applicant needs (no sensitive data)
     return res.status(200).json({

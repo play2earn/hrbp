@@ -1203,8 +1203,6 @@
     }
 
     let currentCandidateData = null;
-    const SUPABASE_URL = 'https://safrgojiehjwtftaiqog.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_UVTVR5A02GdAb_11zbgfbQ_j-uhMeGX';
 
     async function handleShareProfile() {
       const btn = document.getElementById('btn-share-profile');
@@ -1223,77 +1221,15 @@
 
         if (!shareUrl) {
           const appId = currentCandidateData.id;
-          const nowIso = new Date().toISOString();
-          
-          // Check Supabase for existing active share token
-          try {
-            const getRes = await fetch(
-              `${SUPABASE_URL}/rest/v1/application_share_tokens?application_id=eq.${appId}&is_revoked=eq.false&expires_at=gt.${nowIso}&order=created_at.desc&limit=1`,
-              {
-                headers: {
-                  'apikey': SUPABASE_ANON_KEY,
-                  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-                }
-              }
-            );
-
-            if (getRes.ok) {
-              const rows = await getRes.json();
-              if (rows && rows.length > 0) {
-                const token = rows[0].token;
-                shareUrl = `https://realestate.mygreentownhousing.com/processmygreen/career/share/?t=${token}`;
-              }
-            }
-          } catch (e) {
-            console.error('Failed to check existing token:', e);
-          }
-
-          // If still no token, create a new one via REST POST
-          if (!shareUrl) {
-            try {
-              const tokenBytes = new Uint8Array(32);
-              crypto.getRandomValues(tokenBytes);
-              const token = Array.from(tokenBytes).map(b => b.toString(16).padStart(2, '0')).join('');
-              const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-
-              const currentUserStr = localStorage.getItem('currentUser');
-              let createdBy = 'ระบบ';
-              if (currentUserStr) {
-                try {
-                  const u = JSON.parse(currentUserStr);
-                  createdBy = u.full_name || u.email || 'ระบบ';
-                } catch (e) {}
-              }
-
-              const postRes = await fetch(`${SUPABASE_URL}/rest/v1/application_share_tokens`, {
-                method: 'POST',
-                headers: {
-                  'apikey': SUPABASE_ANON_KEY,
-                  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                  'Content-Type': 'application/json',
-                  'Prefer': 'return=representation'
-                },
-                body: JSON.stringify({
-                  application_id: appId,
-                  token: token,
-                  created_by: createdBy,
-                  expires_at: expiresAt
-                })
-              });
-
-              if (postRes.ok) {
-                const postData = await postRes.json();
-                const createdToken = postData[0]?.token || token;
-                shareUrl = `https://realestate.mygreentownhousing.com/processmygreen/career/share/?t=${createdToken}`;
-              }
-            } catch (e) {
-              console.error('Failed to create share token:', e);
-            }
-          }
-
-          if (!shareUrl) {
-            shareUrl = `${window.location.origin}/dashboard?appId=${appId}`;
-          }
+          const response = await fetch('/api/share-tokens', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'generate-share', applicationId: appId })
+          });
+          const result = await response.json();
+          if (!response.ok || !result.data?.url) throw new Error(result.error || 'Unable to create share link');
+          shareUrl = result.data.url;
 
           currentCandidateData.shareUrl = shareUrl;
         }
@@ -1352,7 +1288,7 @@
       if (modal) modal.classList.add('hidden');
     }
 
-    const dataStr = localStorage.getItem('printPreviewData');
+    const dataStr = sessionStorage.getItem('printPreviewData');
     if (dataStr) {
       try {
         const d = JSON.parse(dataStr);

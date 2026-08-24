@@ -156,6 +156,17 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
   }
 
   const fd = app.form_data || {};
+  const withShareToken = (fileUrl: string): string => {
+    if (!fileUrl) return fileUrl;
+    if (fileUrl.startsWith('/api/files?')) {
+      return `${fileUrl}&shareToken=${encodeURIComponent(token)}`;
+    }
+    return `/api/files?url=${encodeURIComponent(fileUrl)}&shareToken=${encodeURIComponent(token)}`;
+  };
+  const sharedImageUrl = (fileUrl: string): string => {
+    if (fileUrl.startsWith('/api/files?')) return withShareToken(fileUrl);
+    return `/api/proxy-image?url=${encodeURIComponent(fileUrl)}&shareToken=${encodeURIComponent(token)}`;
+  };
   const isForeigner = fd.isThaiNational === false;
   const lang = isForeigner ? 'en' : 'th';
 
@@ -330,7 +341,7 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
                 }
                 if (photo.toLowerCase().endsWith('.pdf')) {
                   return (
-                    <a href={photo} target="_blank" rel="noopener noreferrer" className="w-full h-full flex flex-col items-center justify-center bg-indigo-50/10 hover:bg-indigo-50/20 transition-colors">
+                    <a href={withShareToken(photo)} target="_blank" rel="noopener noreferrer" className="w-full h-full flex flex-col items-center justify-center bg-indigo-50/10 hover:bg-indigo-50/20 transition-colors">
                       <FileText className="w-8 h-8 text-white/80" />
                       <span className="text-[10px] text-white/60 mt-1">View PDF</span>
                     </a>
@@ -338,15 +349,10 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
                 }
                 return (
                   <img 
-                    src={photo.startsWith('http') ? `/api/proxy-image?url=${encodeURIComponent(photo)}` : photo} 
+                    src={sharedImageUrl(photo)}
                     alt="Photo" 
                     className="w-full h-full object-cover" 
-                    onError={(e) => {
-                      const img = e.currentTarget;
-                      if (img.src.includes('/api/proxy-image')) {
-                        img.src = photo;
-                      }
-                    }}
+                    onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
                   />
                 );
               })()}
@@ -405,19 +411,19 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
               )}
               {/* เอกสารแนบ inline ใต้ tags */}
               {fd.resumeUrl && (
-                <a href={fd.resumeUrl} target="_blank" rel="noopener noreferrer"
+                <a href={withShareToken(fd.resumeUrl)} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium transition">
                   📄 {t.resume}
                 </a>
               )}
               {fd.certificateUrl && (
-                <a href={fd.certificateUrl} target="_blank" rel="noopener noreferrer"
+                <a href={withShareToken(fd.certificateUrl)} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-full bg-purple-50 hover:bg-purple-100 text-purple-700 font-medium transition">
                   📋 {t.certificate}
                 </a>
               )}
               {fd.transcriptUrl && (
-                <a href={fd.transcriptUrl} target="_blank" rel="noopener noreferrer"
+                <a href={withShareToken(fd.transcriptUrl)} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium transition">
                   🎓 {t.transcript}
                 </a>

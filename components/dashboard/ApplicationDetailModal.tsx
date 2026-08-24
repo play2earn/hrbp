@@ -17,6 +17,7 @@ import {
 import { TRANSLATIONS } from '../../constants';
 import { ImageCropperModal } from './ImageCropperModal';
 import { deleteFromR2 } from '../../utils/r2-upload';
+import type { AuthUser } from '../../services/api';
 
 const fmtYearMonth = (dateStr: string | undefined | null): string => {
   if (!dateStr) return '';
@@ -68,6 +69,31 @@ const getOverallRecLabel = (rec: string) => {
   return rec;
 };
 
+const getPreviewPath = (url: string): string => {
+  try {
+    const parsed = new URL(url, window.location.origin);
+    const key = parsed.searchParams.get('key');
+    const proxiedUrl = parsed.searchParams.get('url');
+    return decodeURIComponent(key || proxiedUrl || parsed.pathname);
+  } catch {
+    const keyMatch = url.match(/[?&]key=([^&]+)/);
+    const urlMatch = url.match(/[?&]url=([^&]+)/);
+    const rawPath = keyMatch?.[1] || urlMatch?.[1] || url.split('?')[0];
+    try {
+      return decodeURIComponent(rawPath);
+    } catch {
+      return rawPath;
+    }
+  }
+};
+
+const getPreviewKind = (url: string): 'pdf' | 'image' | 'other' => {
+  const path = getPreviewPath(url).toLowerCase();
+  if (path.endsWith('.pdf')) return 'pdf';
+  if (/\.(png|jpe?g|webp|gif|svg)$/.test(path)) return 'image';
+  return 'other';
+};
+
 const StarRating = ({ val }: { val: number }) => (
   <div className="flex gap-0.5">
     {[1, 2, 3, 4, 5].map((s) => (
@@ -101,6 +127,7 @@ interface ApplicationDetailModalProps {
   onViewBlacklistDetail: (entry: any) => void;
   setEvaluatingApp: (app: any | null) => void;
   onOpenHrDrive?: (prefix: string) => void;
+  currentUser: AuthUser;
 }
 
 export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = memo(({
@@ -112,6 +139,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
   onViewBlacklistDetail,
   setEvaluatingApp,
   onOpenHrDrive,
+  currentUser,
 }) => {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
@@ -252,6 +280,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
   // ── Document Previewer State ─────────────────────────────────
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState<string>('');
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
   const [autoSelectOnLoad, setAutoSelectOnLoad] = useState(false);
   const [showMoreActions, setShowMoreActions] = useState(false);
@@ -434,8 +463,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
       let finalShareUrl = calendarShareLinkUrl;
 
       if (!finalShareUrl && calendarCreateShareLink) {
-        const currentUserData = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        const createdBy = currentUserData?.full_name || currentUserData?.email || 'ระบบ';
+        const createdBy = currentUser?.full_name || currentUser?.email || 'ระบบ';
         const res = await api.generateShareToken(calendarTargetApp.id, createdBy);
         if (res.success && res.data?.url) {
           finalShareUrl = res.data.url;
@@ -587,6 +615,14 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
     }
   }, [viewingApp?.id, viewingApp?.form_data, showPreview, previewUrl, autoSelectOnLoad]);
 
+  useEffect(() => {
+    if (!previewUrl) {
+      setIsPreviewLoading(false);
+      return;
+    }
+    setIsPreviewLoading(true);
+  }, [previewUrl]);
+
   // ── Resubmit Handlers ────────────────────────────────────────
   const RESUBMIT_FIELD_OPTIONS = [
     { key: 'resumeUrl',         label: 'Resume / CV' },
@@ -606,7 +642,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
     if (!viewingApp || resubmitAllowedFields.length === 0) return;
     setIsGeneratingResubmit(true);
     try {
-      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
       const createdBy = currentUser?.full_name || currentUser?.email || 'HR';
       const result = await api.generateResubmitToken(
         viewingApp.id,
@@ -671,7 +706,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
     setShowShareConfirm(false);
     setIsGeneratingLink(true);
     try {
-      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
       const createdBy = currentUser?.full_name || currentUser?.email || 'ระบบ';
       const result = await api.generateShareToken(viewingApp.id, createdBy);
       if (result.success && result.data) {
@@ -728,6 +762,8 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
   };
 
   const fd = viewingApp?.form_data || {};
+  const previewKind = previewUrl ? getPreviewKind(previewUrl) : null;
+  const previewFrameKey = previewUrl ? `${previewTitle}:${previewUrl}` : 'empty-preview';
   const hasAnyDocuments = !!(fd.resumeUrl || fd.transcriptUrl || fd.idCardUrl || fd.houseRegUrl || fd.eduCertificateUrl || fd.bankBookUrl || fd.militaryCertUrl || fd.toeicCertUrl || fd.certificateUrl);
   const isDetailLoaded = !!(viewingApp?.form_data && 'resumeUrl' in viewingApp.form_data);
   const isForeigner = fd.isThaiNational === false;
@@ -791,7 +827,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
           onApplicationUpdated?.(updatedApp);
           
           // Log the action
-          const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
           await api.addApplicationLog({
             application_id: viewingApp.id,
             action: 'updated',
@@ -840,7 +875,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
         onApplicationUpdated?.(updatedApp);
         
         // Log the action
-        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
         await api.addApplicationLog({
           application_id: viewingApp.id,
           action: 'updated',
@@ -886,7 +920,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
     
     const logBlacklistView = async () => {
       try {
-        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
         await api.blacklist.addAuditLog({
           performed_by: currentUser?.id || null,
           performed_by_name: currentUser?.full_name || currentUser?.email || 'HR Recruiter',
@@ -901,7 +934,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
     };
     
     logBlacklistView();
-  }, [viewingApp?.id, isBlacklisted?.id]);
+  }, [viewingApp?.id, isBlacklisted?.id, currentUser]);
 
   return (
     <>
@@ -2187,7 +2220,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                           if (shareLink) fd.shareUrl = shareLink;
                           if (shareToken) fd.shareToken = shareToken;
                           if (shareLinkExpiry) fd.shareLinkExpiry = shareLinkExpiry;
-                          localStorage.setItem('printPreviewData', JSON.stringify(fd));
+                          sessionStorage.setItem('printPreviewData', JSON.stringify({ ...fd, id: viewingApp.id }));
                           window.open('/print.html', '_blank');
                         }}
                         className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
@@ -2565,21 +2598,52 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
               {/* View Box Container */}
               <div className="flex-1 min-h-0 w-full mt-3 bg-white border border-slate-200 rounded-xl overflow-hidden relative shadow-inner">
                 {previewUrl ? (
-                  previewUrl.toLowerCase().endsWith('.pdf') || previewUrl.includes('/pdf') ? (
-                    <iframe
-                      src={previewUrl}
-                      title={previewTitle}
-                      className="w-full h-full border-none"
-                    />
-                  ) : (
-                    <div className="w-full h-full overflow-auto flex items-center justify-center p-4 bg-slate-900/90 relative group">
-                      <img
+                  <>
+                    {isPreviewLoading && (
+                      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-slate-900/80 text-white">
+                        <div className="w-8 h-8 border-2 border-white/80 border-t-transparent rounded-full animate-spin" />
+                        <p className="text-xs font-semibold">กำลังโหลดตัวอย่างเอกสาร...</p>
+                      </div>
+                    )}
+                    {previewKind === 'pdf' ? (
+                      <iframe
+                        key={previewFrameKey}
                         src={previewUrl}
-                        alt={previewTitle}
-                        className="max-w-full max-h-full object-contain select-none shadow-lg transition-transform duration-300"
+                        title={previewTitle}
+                        className="w-full h-full border-none bg-white"
+                        onLoad={() => setIsPreviewLoading(false)}
                       />
-                    </div>
-                  )
+                    ) : previewKind === 'image' ? (
+                      <div className="w-full h-full overflow-auto flex items-center justify-center p-4 bg-slate-900/90 relative group">
+                        <img
+                          key={previewFrameKey}
+                          src={previewUrl}
+                          alt={previewTitle}
+                          className="max-w-full max-h-full object-contain select-none shadow-lg transition-transform duration-300"
+                          onLoad={() => setIsPreviewLoading(false)}
+                          onError={() => setIsPreviewLoading(false)}
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center text-slate-500 bg-white">
+                        <FileText className="w-14 h-14 text-slate-300 mb-3" />
+                        <h5 className="text-sm font-bold text-slate-700">ไม่สามารถแสดงตัวอย่างไฟล์ชนิดนี้ในหน้านี้ได้</h5>
+                        <p className="text-xs text-slate-400 mt-1 max-w-[320px]">
+                          กรุณาเปิดในแท็บใหม่ หรือดาวน์โหลดไฟล์เพื่อตรวจสอบเอกสาร
+                        </p>
+                        <a
+                          href={previewUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-4 inline-flex items-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-xs transition"
+                          onClick={() => setIsPreviewLoading(false)}
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          เปิดแท็บใหม่
+                        </a>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center text-slate-400 bg-white">
                     <FileText className="w-14 h-14 text-slate-300 mb-3 animate-pulse" />

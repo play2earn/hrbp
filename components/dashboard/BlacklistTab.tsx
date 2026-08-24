@@ -572,7 +572,7 @@ export const BlacklistTab: React.FC<BlacklistTabProps> = ({ showToast, currentUs
       metadata: {
         format: 'csv',
         totalRows: filteredEntries.length,
-        filters: { search: searchQuery, filterType }
+        filters: { search: searchTerm, severity: severityFilter, category: categoryFilter }
       }
     }).catch(err => console.warn('System log export error:', err));
 

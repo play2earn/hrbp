@@ -1,16 +1,8 @@
 {
     "rewrites": [
         {
-            "source": "/api/upload-r2",
-            "destination": "/api/upload-s3"
-        },
-        {
-            "source": "/api/migrate-s3",
-            "destination": "/api/s3-explorer"
-        },
-        {
             "source": "/api/(.*)",
-            "destination": "/api/$1"
+            "destination": "/api?route=$1"
         },
         {
             "source": "/(.*)",

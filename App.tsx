@@ -38,6 +38,15 @@ import { api, AuthUser } from './services/api';
 import TrackingSystem from './components/TrackingSystem';
 import { CookieConsent } from './components/CookieConsent';
 
+const FullPageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-slate-50">
+    <div className="flex flex-col items-center gap-4">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+      <div className="text-sm font-medium text-slate-500">Loading secure session...</div>
+    </div>
+  </div>
+);
+
 export default function App() {
   // Check for /share/:token path first
   const shareMatch = window.location.pathname.match(/^\/share\/([a-f0-9]{64})$/i);
@@ -60,46 +69,47 @@ export default function App() {
   }
 
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
-  const [role, setRole] = useState<Role>(() => {
-    try {
-      const stored = localStorage.getItem('currentUser');
-      if (stored) {
-        const user = JSON.parse(stored);
-        if (user.role === 'admin' || user.role === 'mod') return user.role;
-      }
-    } catch {}
-    return 'guest';
-  });
+  const [role, setRole] = useState<Role>('guest');
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
   
   useEffect(() => {
-    const checkSession = async () => {
-      const storedUser = localStorage.getItem('currentUser');
-      if (storedUser) {
-        // Verify with server
-        try {
-          const result = await api.auth.verifySession();
-          if (result.success && result.data) {
-            setRole(result.data.role);
-            setCurrentUser(result.data);
-            localStorage.setItem('currentUser', JSON.stringify(result.data));
-          } else {
-            setRole('guest');
-            setCurrentUser(null);
-            localStorage.removeItem('currentUser');
-          }
-        } catch {
+    let isMounted = true;
+
+    const checkSession = async (isInitialCheck = false) => {
+      try {
+        const result = await api.auth.verifySession();
+        if (!isMounted) return;
+
+        if (result.success && result.data) {
+          setRole(result.data.role);
+          setCurrentUser(result.data);
+        } else {
           setRole('guest');
           setCurrentUser(null);
-          localStorage.removeItem('currentUser');
+        }
+      } catch {
+        if (!isMounted) return;
+
+        setRole('guest');
+        setCurrentUser(null);
+      } finally {
+        if (isInitialCheck && isMounted) {
+          setIsCheckingSession(false);
         }
       }
     };
 
-    checkSession();
+    void checkSession(true);
 
     // Re-verify periodically (every 15 minutes)
-    const interval = setInterval(checkSession, 15 * 60 * 1000);
-    return () => clearInterval(interval);
+    const interval = setInterval(() => {
+      void checkSession();
+    }, 15 * 60 * 1000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   const [lang, setLang] = useState<Language>('en');
@@ -123,16 +133,18 @@ export default function App() {
   const t = TRANSLATIONS[lang];
   const landingText = LANDING_CONTENT[lang];
 
-  const handleLogin = (selectedRole: Role) => {
-    setRole(selectedRole);
+  const handleLogin = (user: AuthUser) => {
+    setCurrentUser(user);
+    setRole(user.role);
     setShowLogin(false);
   };
 
   const handleLogout = () => {
+    void api.auth.signOut();
     setRole('guest');
+    setCurrentUser(null);
     setPdpaAccepted(false);
     setSelectedJob(undefined);
-    localStorage.removeItem('currentUser');
   };
 
   const toggleLang = () => {
@@ -161,6 +173,12 @@ export default function App() {
 
   // --- RENDER VIEWS ---
 
+  // Wait for the first session restore before rendering any guest-only page.
+  // This prevents a logged-in user from seeing the public landing page flash on refresh.
+  if (isCheckingSession) {
+    return <FullPageLoader />;
+  }
+
   // 1. Login Page
   if (showLogin) {
     return (
@@ -176,10 +194,10 @@ export default function App() {
   }
 
   // 2. Moderator / Admin Dashboard
-  if (role === 'mod' || role === 'admin') {
+  if ((role === 'mod' || role === 'admin') && currentUser) {
     return (
       <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div></div>}>
-        <Dashboard role={role} onLogout={handleLogout} />
+        <Dashboard role={role} currentUser={currentUser} onLogout={handleLogout} />
       </React.Suspense>
     );
   }

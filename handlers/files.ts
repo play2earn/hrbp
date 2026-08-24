@@ -1,6 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { Readable } from 'stream';
+import { authorizeFileAccess, isAllowedStorageUrl } from '../server/file-access.js';
+import { configureSameOrigin } from '../server/security.js';
 
 const getS3Client = () => {
   const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
@@ -45,23 +47,9 @@ const getContentType = (fileNameOrKey: string): string => {
   }
 };
 
-async function streamToBuffer(stream: Readable): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
-    stream.on('error', (err) => reject(err));
-    stream.on('end', () => resolve(Buffer.concat(chunks)));
-  });
-}
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  if (!configureSameOrigin(req, res, 'GET')) return;
+  if (req.method === 'OPTIONS') return res.status(204).end();
 
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -76,6 +64,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     // Mode A: Direct S3 Key Fetch (Highly Recommended)
     if (key && typeof key === 'string') {
+      if (!await authorizeFileAccess(req, res, { key })) return;
       const s3 = getS3Client();
       const bucketName = process.env.AWS_S3_BUCKET || 'hr-recruitment-01';
 
@@ -91,8 +80,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const contentType = response.ContentType || getContentType(key);
-      const buffer = await streamToBuffer(response.Body as Readable);
-
       const fileName = key.split('/').pop() || 'file';
       const dispositionType = download === 'true' ? 'attachment' : 'inline';
 
@@ -100,12 +87,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.setHeader('Content-Disposition', `${dispositionType}; filename="${encodeURIComponent(fileName)}"`);
       res.setHeader('Cache-Control', 'private, max-age=3600'); // Private browser cache for 1 hour
 
-      return res.send(buffer);
+      return (response.Body as Readable).pipe(res);
     }
 
     // Mode B: External URL Proxy Fallback (Cloudflare R2 or Supabase URL)
     if (url && typeof url === 'string') {
       const targetUrl = decodeURIComponent(url);
+      if (!isAllowedStorageUrl(targetUrl)) return res.status(403).json({ error: 'Storage URL is not allowed' });
+      if (!await authorizeFileAccess(req, res, { url: targetUrl })) return;
 
       const response = await fetch(targetUrl);
       if (!response.ok) {
@@ -114,6 +103,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const contentType = response.headers.get('content-type') || getContentType(targetUrl);
       const arrayBuffer = await response.arrayBuffer();
+      if (arrayBuffer.byteLength > 20 * 1024 * 1024) return res.status(413).json({ error: 'File exceeds proxy size limit' });
       const buffer = Buffer.from(arrayBuffer);
 
       const fileName = targetUrl.split('/').pop()?.split('?')[0] || 'file';

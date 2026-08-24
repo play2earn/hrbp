@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { S3Client, CopyObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
-import { createClient } from '@supabase/supabase-js';
+import { configureSameOrigin, requireStaff } from '../server/security.js';
 
 const getS3Client = () => {
   const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
@@ -17,20 +17,11 @@ const getS3Client = () => {
   });
 };
 
-const getSupabaseClient = () => {
-  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !serviceKey) return null;
-  return createClient(supabaseUrl, serviceKey);
-};
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (!configureSameOrigin(req, res, 'GET, POST')) return;
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  const user = await requireStaff(req, res, ['admin']);
+  if (!user) return;
 
   const s3 = getS3Client();
   const bucketName = process.env.AWS_S3_BUCKET || 'hr-recruitment-01';

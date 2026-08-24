@@ -1,8 +1,11 @@
 // Dashboard shared type definitions
 
+import type { AuthUser } from '../../services/api';
+
 export interface DashboardProps {
     role: 'admin' | 'mod';
     onLogout: () => void;
+    currentUser: AuthUser;
 }
 
 export interface AppFilters {

@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Modal, Button, FileUpload } from '../UIComponents';
 import { CheckCircle } from 'lucide-react';
-import { supabase } from '../../supabaseClient';
 import { api } from '../../services/api';
 import type { ApplicationStatus } from '../../services/api';
 import { sanitizeUnicode } from '../../services/utils';
@@ -469,43 +468,30 @@ export const ApplicationEditModal: React.FC<ApplicationEditModalProps> = ({
 
                     const cleanFormData = sanitizeUnicode(updatedFormData);
 
-                    // Only update columns that definitely exist in the database
-                    const { error } = await supabase
-                      .from('applications')
-                      .update(sanitizeUnicode({
-                        position: editForm.position,
-                        department: editForm.department,
-                        phone: editForm.phone,
-                        email: editForm.email,
-                        business_unit: editForm.businessUnit,
-                        source_channel: editForm.sourceChannel,
-                        campaign_tag: editForm.campaignTag,
-                        expected_salary: editForm.expectedSalary,
-                        height: editForm.height,
-                        weight: editForm.weight,
-                        date_of_birth: editForm.dateOfBirth,
-                        age: editForm.age,
-                        photo_url: editForm.photoUrl,
-                        full_name: fullName,
-                        first_name: editForm.firstName,
-                        last_name: editForm.lastName,
-                        title: editForm.title,
-                        form_data: cleanFormData,
-                      }))
-                      .eq('id', editingApp.id);
-
-
-                    if (error) throw error;
-
-                    // Add log for manual edit
                     const changedFields = getChangedFields();
-                    if (changedFields.length > 0) {
-                      await api.addApplicationLog({
-                        application_id: editingApp.id,
-                        action: 'edited',
-                        note: `แก้ไขข้อมูล: ${changedFields.join(', ')}`,
-                        performed_by: currentUserName,
-                      });
+                    const updateResult = await api.updateApplicationDetails(editingApp.id, sanitizeUnicode({
+                      position: editForm.position,
+                      department: editForm.department,
+                      phone: editForm.phone,
+                      email: editForm.email,
+                      business_unit: editForm.businessUnit,
+                      source_channel: editForm.sourceChannel,
+                      campaign_tag: editForm.campaignTag,
+                      expected_salary: editForm.expectedSalary,
+                      height: editForm.height,
+                      weight: editForm.weight,
+                      date_of_birth: editForm.dateOfBirth,
+                      age: editForm.age,
+                      photo_url: editForm.photoUrl,
+                      full_name: fullName,
+                      first_name: editForm.firstName,
+                      last_name: editForm.lastName,
+                      title: editForm.title,
+                      form_data: cleanFormData,
+                    }), changedFields);
+
+                    if (!updateResult.success) {
+                      throw new Error(updateResult.error?.message || 'Application update failed');
                     }
 
                     if (editForm.status !== editingApp.status && currentUserId) {

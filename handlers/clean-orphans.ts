@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { createClient } from '@supabase/supabase-js';
+import { configureSameOrigin, getAdminSupabase, requireStaff, safeEqual } from '../server/security.js';
+import { collectReferencedR2Keys } from '../server/orphan-cleanup.js';
 
 const getR2Client = () => {
   const accountId = process.env.R2_ACCOUNT_ID;
@@ -23,53 +24,28 @@ const getR2Client = () => {
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS configuration
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (!configureSameOrigin(req, res, 'GET, POST')) return;
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  // Authorize: accept either Vercel Cron authentication header or the admin key
-  const authHeader = req.headers.authorization;
-  const adminKey = req.query.key || req.headers['x-admin-key'];
-  const expectedAdminKey = 'vibe-recruit-admin-secret-2026';
-  
-  const isCron = authHeader?.startsWith('Bearer ');
-  const isAdmin = adminKey === expectedAdminKey;
-
-  if (!isCron && !isAdmin && process.env.NODE_ENV === 'production') {
-    return res.status(401).json({ error: 'Unauthorized access to orphan cleanup api' });
+  const authHeader = Array.isArray(req.headers.authorization) ? req.headers.authorization[0] : req.headers.authorization || '';
+  const cronSecret = process.env.CRON_SECRET || '';
+  const isCron = Boolean(cronSecret && safeEqual(authHeader, `Bearer ${cronSecret}`));
+  let allowDeletion = false;
+  if (!isCron) {
+    const admin = await requireStaff(req, res, ['admin']);
+    if (!admin) return;
+    allowDeletion = req.method === 'POST' && req.body?.action === 'delete-confirmed';
   }
 
   try {
     const bucketName = process.env.R2_BUCKET_NAME || 'hrbp-applicants';
     const publicDomain = process.env.R2_PUBLIC_DOMAIN;
 
-    if (!publicDomain) {
-      throw new Error('R2_PUBLIC_DOMAIN is not defined in the environment.');
-    }
-
     const r2 = getR2Client();
 
     // 1. Fetch all active files/URLs from Supabase
-    const cleanEnvVar = (val?: string) => val ? val.replace(/^["']|["']$/g, '').trim() : '';
-    const supabaseUrl = cleanEnvVar(process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL);
-    const supabaseAnonKey = cleanEnvVar(process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY);
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error('Supabase environment variables are missing');
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: {
-          'x-admin-key': expectedAdminKey
-        }
-      }
-    });
+    const supabase = getAdminSupabase();
 
     let applications: any[] = [];
     let page = 0;
@@ -90,50 +66,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // 2. Build a Set of all active R2 keys referenced in the database
-    const activeKeys = new Set<string>();
-    const domainPattern = publicDomain.endsWith('/') ? publicDomain : `${publicDomain}/`;
-
-    const extractKeyFromUrl = (url: string | undefined | null): string | null => {
-      if (!url || !url.startsWith(domainPattern)) return null;
-      return url.slice(domainPattern.length);
-    };
-
-    if (applications) {
-      for (const app of applications) {
-        // Direct columns
-        const photoKey = extractKeyFromUrl(app.photo_url);
-        if (photoKey) activeKeys.add(photoKey);
-
-        const resumeKey = extractKeyFromUrl(app.resume_url);
-        if (resumeKey) activeKeys.add(resumeKey);
-
-        // Nested form_data URLs
-        const fd = app.form_data;
-        if (fd) {
-          const urls = [
-            fd.photoUrl,
-            fd.originalPhotoUrl,
-            fd.resumeUrl,
-            fd.certificateUrl,
-            fd.transcriptUrl,
-            fd.otherDocsUrl
-          ];
-          for (const url of urls) {
-            const key = extractKeyFromUrl(url);
-            if (key) activeKeys.add(key);
-          }
-        }
-      }
-    }
+    const activeKeys = collectReferencedR2Keys(applications, publicDomain);
 
     // 3. Scan the R2 bucket for files in target prefixes: 'applicants/', 'photos/', and legacy 'applications/'
     const prefixes = ['applicants/', 'photos/', 'applications/'];
     const orphanedKeys: string[] = [];
     let totalScanned = 0;
 
-    // Safety margin: only delete files older than 1 hour (3600 seconds)
+    // Safety margin: only consider files older than 24 hours.
     const now = Date.now();
-    const oneHourMs = 60 * 60 * 1000;
+    const minimumAgeMs = 24 * 60 * 60 * 1000;
 
     for (const prefix of prefixes) {
       let isTruncated = true;
@@ -158,7 +100,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             const lastModified = obj.LastModified ? new Date(obj.LastModified).getTime() : now;
             const ageMs = now - lastModified;
 
-            if (ageMs > oneHourMs) {
+            if (ageMs > minimumAgeMs) {
               orphanedKeys.push(obj.Key);
             }
           }
@@ -169,25 +111,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // 4. Batch delete the identified orphaned files
+    // Scheduled runs are report-only. Deletion requires an authenticated admin
+    // to POST the explicit action so a cron/config mistake cannot remove files.
     const deletedKeys: string[] = [];
-    const deletePromises = orphanedKeys.map(async (key) => {
-      try {
-        await r2.send(new DeleteObjectCommand({
-          Bucket: bucketName,
-          Key: key
-        }));
-        deletedKeys.push(key);
-        console.log(`[Orphan Cleanup] Successfully deleted orphaned R2 object: ${key}`);
-      } catch (err) {
-        console.error(`[Orphan Cleanup] Failed to delete key: ${key}`, err);
+    if (allowDeletion) {
+      for (const key of orphanedKeys) {
+        try {
+          await r2.send(new DeleteObjectCommand({ Bucket: bucketName, Key: key }));
+          deletedKeys.push(key);
+          console.log(`[Orphan Cleanup] Successfully deleted orphaned R2 object: ${key}`);
+        } catch (err) {
+          console.error(`[Orphan Cleanup] Failed to delete key: ${key}`, err);
+        }
       }
-    });
-
-    await Promise.all(deletePromises);
+    }
 
     return res.status(200).json({
       success: true,
+      dryRun: !allowDeletion,
       summary: {
         totalActiveKeysInDb: activeKeys.size,
         totalFilesScannedInR2: totalScanned,
