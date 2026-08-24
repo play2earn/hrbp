@@ -754,6 +754,28 @@ export const api = {
     }
   },
 
+  updateApplicationDetails: async (
+    id: string,
+    update: Record<string, any>,
+    changedFields: string[] = []
+  ): Promise<ApiResponse<any>> => {
+    try {
+      const response = await fetch('/api/application-edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ id, update, changedFields }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.success) {
+        return { success: false, error: { message: result.error || 'Application update failed' } };
+      }
+      return { success: true, data: result.data };
+    } catch (error) {
+      return handleError(error, 'updateApplicationDetails');
+    }
+  },
+
   /**
    * Delete application and associated files in storage
    */

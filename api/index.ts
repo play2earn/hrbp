@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { dispatchApiRoute, type ApiHandlerLoader } from '../server/api-router.js';
 
 const handlers: Record<string, ApiHandlerLoader> = {
+  'application-edit': () => import('../handlers/application-edit.js'),
   blacklist: () => import('../handlers/blacklist.js'),
   'clean-orphans': () => import('../handlers/clean-orphans.js'),
   'complete-resubmit': () => import('../handlers/complete-resubmit.js'),
