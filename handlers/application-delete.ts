@@ -83,6 +83,21 @@ function collectStorageRefs(value: unknown, refs = new Map<string, StorageRef>()
   return refs;
 }
 
+async function deleteDependentRows(supabase: ReturnType<typeof getAdminSupabase>, applicationId: string): Promise<string[]> {
+  const warnings: string[] = [];
+  const tables = [
+    'application_share_tokens',
+    'interview_evaluations',
+    'application_logs',
+  ];
+
+  for (const table of tables) {
+    const { error } = await supabase.from(table).delete().eq('application_id', applicationId);
+    if (error) warnings.push(`${table}:${error.message}`);
+  }
+  return warnings;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!configureSameOrigin(req, res, 'POST')) return;
   if (req.method === 'OPTIONS') return res.status(204).end();
@@ -137,13 +152,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.warn('[application-delete] storage cleanup warnings', storageErrors.slice(0, 10));
     }
 
-    await supabase.from('application_logs').insert([{
-      application_id: id,
-      action: 'deleted',
-      note: `ลบใบสมัครและไฟล์แนบ (${refs.length} references)`,
-      performed_by: user.full_name || user.emp_id || 'HRBP Admin',
-      created_at: new Date().toISOString(),
-    }]);
+    const dependencyWarnings = await deleteDependentRows(supabase, id);
+    if (dependencyWarnings.length) {
+      console.warn('[application-delete] dependency cleanup warnings', dependencyWarnings);
+    }
 
     const { error: deleteError } = await supabase.from('applications').delete().eq('id', id);
     if (deleteError) throw new Error(deleteError.message);
@@ -152,6 +164,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       success: true,
       deletedStorageRefs: refs.length,
       storageWarnings: storageErrors.length,
+      dependencyWarnings: dependencyWarnings.length,
     });
   } catch (error: any) {
     console.error('[application-delete]', error?.message || error);
