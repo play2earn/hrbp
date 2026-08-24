@@ -15,12 +15,12 @@ import {
   getBuChartColor, getBuColor, getStatusLabel, getStatusBadgeClass,
   isInterviewScheduledStatus, isClosedStatus, getMilitaryStatusLabel
 } from './dashboard/dashboardConstants';
-import { ApplicationDetailModal } from './dashboard/ApplicationDetailModal';
-import { ApplicationEditModal } from './dashboard/ApplicationEditModal';
 import { ApplicationActionModals } from './dashboard/ApplicationActionModals';
 import { OverviewTab } from './dashboard/OverviewTab';
 import { HardDrive } from 'lucide-react';
 
+const ApplicationDetailModal = React.lazy(() => import('./dashboard/ApplicationDetailModal').then(m => ({ default: m.ApplicationDetailModal })));
+const ApplicationEditModal = React.lazy(() => import('./dashboard/ApplicationEditModal').then(m => ({ default: m.ApplicationEditModal })));
 const ReportsTab = React.lazy(() => import('./ReportsTab').then(m => ({ default: m.ReportsTab })));
 const QRGeneratorTab = React.lazy(() => import('./dashboard/QRGeneratorTab').then(m => ({ default: m.QRGeneratorTab })));
 const UserManagementTab = React.lazy(() => import('./dashboard/UserManagementTab').then(m => ({ default: m.UserManagementTab })));
@@ -34,6 +34,15 @@ const TabLoading = () => (
     <div className="flex flex-col items-center gap-3 text-slate-500">
       <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-indigo-600"></div>
       <span className="text-sm font-medium">Loading dashboard section...</span>
+    </div>
+  </div>
+);
+
+const ModalLoadingOverlay = () => (
+  <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/20 backdrop-blur-sm">
+    <div className="flex items-center gap-3 rounded-2xl bg-white px-5 py-4 text-sm font-medium text-slate-600 shadow-2xl">
+      <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-indigo-600"></div>
+      Loading details...
     </div>
   </div>
 );
@@ -1184,34 +1193,38 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
       </main>
 
       {/* Application Detail Modal */}
-      <ApplicationDetailModal
-        viewingApp={viewingApp}
-        setViewingApp={setViewingApp}
-        appLogs={appLogs}
-        isLoadingLogs={isLoadingLogs}
-        setEditingApp={setEditingApp}
-        setClaimingApp={setClaimingApp}
-        setTransferringApp={setTransferringApp}
-        setUnassigningApp={setUnassigningApp}
-        setInterviewingApp={setInterviewingApp}
-        setInterviewDate={setInterviewDate}
-        setRejectingApp={setRejectingApp}
-        setRejectComment={setRejectComment}
-        setRejectionReason={setRejectionReason}
-        setApprovingApp={setApprovingApp}
-        onApplicationUpdated={(updatedApp) => {
-          setApplications(prev => prev.map(app => app.id === updatedApp.id ? updatedApp : app));
-        }}
-        blacklistEntries={blacklistEntries}
-        onViewBlacklistDetail={setViewingBlacklistDetail}
-        setEvaluatingApp={setEvaluatingApp}
-        currentUser={currentUser}
-        onOpenHrDrive={(prefix: string) => {
-          setHrDrivePrefix(prefix);
-          setActiveTab('hr-drive');
-          setViewingApp(null);
-        }}
-      />
+      {viewingApp && (
+        <React.Suspense fallback={<ModalLoadingOverlay />}>
+          <ApplicationDetailModal
+            viewingApp={viewingApp}
+            setViewingApp={setViewingApp}
+            appLogs={appLogs}
+            isLoadingLogs={isLoadingLogs}
+            setEditingApp={setEditingApp}
+            setClaimingApp={setClaimingApp}
+            setTransferringApp={setTransferringApp}
+            setUnassigningApp={setUnassigningApp}
+            setInterviewingApp={setInterviewingApp}
+            setInterviewDate={setInterviewDate}
+            setRejectingApp={setRejectingApp}
+            setRejectComment={setRejectComment}
+            setRejectionReason={setRejectionReason}
+            setApprovingApp={setApprovingApp}
+            onApplicationUpdated={(updatedApp) => {
+              setApplications(prev => prev.map(app => app.id === updatedApp.id ? updatedApp : app));
+            }}
+            blacklistEntries={blacklistEntries}
+            onViewBlacklistDetail={setViewingBlacklistDetail}
+            setEvaluatingApp={setEvaluatingApp}
+            currentUser={currentUser}
+            onOpenHrDrive={(prefix: string) => {
+              setHrDrivePrefix(prefix);
+              setActiveTab('hr-drive');
+              setViewingApp(null);
+            }}
+          />
+        </React.Suspense>
+      )}
 
       {/* Blacklist Details Modal */}
       <Modal
@@ -1667,20 +1680,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
       </Modal>
 
       {/* Edit Application Modal */}
-      <ApplicationEditModal
-        editingApp={editingApp}
-        setEditingApp={setEditingApp}
-        editForm={editForm}
-        setEditForm={setEditForm}
-        departments={departments}
-        positions={positions}
-        businessUnits={businessUnits}
-        channels={channels}
-        currentUserId={currentUserId}
-        currentUserName={currentUserName}
-        showToast={showToast}
-        fetchData={fetchData}
-      />
+      {editingApp && (
+        <React.Suspense fallback={<ModalLoadingOverlay />}>
+          <ApplicationEditModal
+            editingApp={editingApp}
+            setEditingApp={setEditingApp}
+            editForm={editForm}
+            setEditForm={setEditForm}
+            departments={departments}
+            positions={positions}
+            businessUnits={businessUnits}
+            channels={channels}
+            currentUserId={currentUserId}
+            currentUserName={currentUserName}
+            showToast={showToast}
+            fetchData={fetchData}
+          />
+        </React.Suspense>
+      )}
 
       {/* Application Actions Modals (Approve, Reject, Interview, Claim, Transfer, Unassign, Delete, QR) */}
       <ApplicationActionModals
