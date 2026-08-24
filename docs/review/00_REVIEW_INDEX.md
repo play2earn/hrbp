@@ -9,6 +9,7 @@
 3. `03_STORAGE_CUTOVER.md` — R2 draft → private S3 และจุด rollback
 4. `04_SUPABASE_RLS_APPROVAL.md` — direct browser access และ SQL ที่ยังห้าม apply
 5. `05_PRODUCTION_CUTOVER.md` — production change window และ rollback
+6. `06_STORAGE_MIGRATION_PLAN.md` — HR Drive migration center และ batch ย้าย legacy R2/Supabase ไป AWS S3
 
 ## Automated gates
 
@@ -28,6 +29,6 @@ npm run smoke:security -- --base-url https://staging.example.com
 - Security code gate: ผ่านแล้ว (`16/16` security/router/IDMS error tests, Vercel Functions `1/12`, Vercel ESM runtime import simulation, typecheck และ production build); ต้องรันซ้ำก่อน push ทุกครั้ง
 - Environment gate: local `.env.local` ผ่าน preflight แล้ว และ Vercel แยก `HRBP_SESSION_SECRET`/`CRON_SECRET` ระหว่าง Preview กับ Production แล้ว
 - Production secret rotation: `IDMS_AGENT_CODE` ยังตรงกับค่าที่เคยอยู่ใน source เดิม; อนุญาตให้ใช้ทดสอบ Preview ได้ แต่ต้องออกค่าใหม่ก่อน Production cutover
-- Storage cutover: code เตรียมหลัง feature flag; ห้ามเปิดจนกว่า staging acceptance ผ่าน
+- Storage cutover: production เปิด S3 primary แล้วสำหรับ upload ใหม่; Migration Center แบบ read-only เพิ่มแล้ว งานถัดไปคือ manifest + batch migrate legacy R2/Supabase refs
 - Supabase revoke/RLS: review-only; strict audit ยังพบ protected direct browser calls 45 จุด จึงห้าม apply broad revoke
 - Cloudflare production cutover: ยังไม่อยู่ใน change set นี้

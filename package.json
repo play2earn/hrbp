@@ -16,6 +16,8 @@
     "audit:supabase-client:strict": "node scripts/audit-direct-supabase.mjs --strict --summary",
     "bundle:scan": "node scripts/scan-bundle-secrets.mjs --env .env.local --dir dist",
     "check:function-count": "node scripts/check-vercel-functions.mjs",
+    "storage:migrate:dry-run": "node ops/storage/migrate-legacy-to-s3.mjs --dry-run=true",
+    "storage:migrate:live": "node ops/storage/migrate-legacy-to-s3.mjs --dry-run=false --confirm-live-migration",
     "smoke:security": "node scripts/smoke-security.mjs",
     "check": "npm run check:function-count && npm run build:api:vercel-sim && npm run test:security && npm run typecheck && npm run build && npm run bundle:scan",
     "preview": "vite preview"

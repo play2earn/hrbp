@@ -17,6 +17,7 @@ const handlers: Record<string, ApiHandlerLoader> = {
   's3-explorer': () => import('../handlers/s3-explorer.js'),
   session: () => import('../handlers/session.js'),
   'share-tokens': () => import('../handlers/share-tokens.js'),
+  'storage-migration-audit': () => import('../handlers/storage-migration-audit.js'),
   tracking: () => import('../handlers/tracking.js'),
   trash: () => import('../handlers/trash.js'),
   'upload-s3': () => import('../handlers/upload-s3.js'),

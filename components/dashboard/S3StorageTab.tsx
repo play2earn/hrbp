@@ -23,6 +23,7 @@ import {
   ArrowRight,
   Eye,
   Trash2,
+  AlertTriangle,
   Layers,
   X
 } from 'lucide-react';
@@ -65,6 +66,67 @@ interface BucketStats {
   quotaCapBytes: number;
   usagePercent: number;
 }
+
+interface MigrationAuditRef {
+  applicationId: string;
+  applicantName: string;
+  field: string;
+  provider: 's3' | 'r2' | 'supabase' | 'external' | 'unknown';
+  statusBucket: 'already_s3' | 'ready_to_migrate' | 'broken_reference' | 'needs_review';
+  value: string;
+  key?: string;
+  bucket?: string;
+  path?: string;
+  reason: string;
+}
+
+interface BrokenApplicationReport {
+  applicationId: string;
+  applicantName: string;
+  status?: string;
+  createdAt?: string;
+  brokenRefs: number;
+  draftRefs: number;
+  uniqueMissingFiles: number;
+  fields: string[];
+  refs: MigrationAuditRef[];
+  recommendation: 'request_reupload' | 'review_draft_reference' | 'review_legacy_reference';
+}
+
+interface MigrationAuditResult {
+  generatedAt: string;
+  mode: 'read-only';
+  summary: {
+    applicationsScanned: number;
+    referencesScanned: number;
+    affectedApplications: number;
+    draftReferenceApplications: number;
+    brokenReferenceApplications: number;
+    uniqueReadySourceFiles?: number;
+    uniqueBrokenSourceFiles?: number;
+    uniqueAlreadyS3Files?: number;
+    byProvider: Record<string, number>;
+    byStatus: Record<string, number>;
+  };
+  inventories: {
+    s3: { bucket: string; totalObjects: number; formattedTotalSize: string };
+    r2: { bucket: string; configured: boolean; totalObjects: number; formattedTotalSize: string };
+  };
+  samples: {
+    readyToMigrate: MigrationAuditRef[];
+    brokenReferences: MigrationAuditRef[];
+    draftReferences: MigrationAuditRef[];
+    supabaseLegacy: MigrationAuditRef[];
+    needsReview: MigrationAuditRef[];
+  };
+  reports?: {
+    brokenApplications: BrokenApplicationReport[];
+  };
+  nextRecommendedBatch: 'draftReferences' | 'readyToMigrate' | 'none';
+}
+
+const READY_MIGRATION_BATCH_LIMIT = 5;
+type ReadyMigrateStatus = 'idle' | 'running' | 'success' | 'error';
 
 export interface DocCategorySetting {
   id: string;
@@ -112,6 +174,13 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
   const [migratingKey, setMigratingKey] = useState<string | null>(null);
   const [isUploadingFile, setIsUploadingFile] = useState<boolean>(false);
   const [bucketStats, setBucketStats] = useState<BucketStats | null>(null);
+  const [migrationAudit, setMigrationAudit] = useState<MigrationAuditResult | null>(null);
+  const [loadingMigrationAudit, setLoadingMigrationAudit] = useState<boolean>(false);
+  const [migratingReadyBatch, setMigratingReadyBatch] = useState<boolean>(false);
+  const [readyMigrateStep, setReadyMigrateStep] = useState<string>('');
+  const [readyMigratePercent, setReadyMigratePercent] = useState<number>(0);
+  const [readyMigrateStatus, setReadyMigrateStatus] = useState<ReadyMigrateStatus>('idle');
+  const [showReadyMigrateConfirm, setShowReadyMigrateConfirm] = useState<boolean>(false);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -302,6 +371,91 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
     }
   };
 
+  const readApiJson = async (res: Response) => {
+    const raw = await res.text();
+    let data: any = null;
+    try {
+      data = raw ? JSON.parse(raw) : {};
+    } catch {
+      const preview = raw.replace(/\s+/g, ' ').slice(0, 120) || 'empty response';
+      throw new Error(`Server returned HTTP ${res.status}: ${preview}`);
+    }
+    if (!res.ok) {
+      throw new Error(data.error || `Server returned HTTP ${res.status}`);
+    }
+    return data;
+  };
+
+  const resetReadyMigrateProgress = () => {
+    setMigratingReadyBatch(false);
+    setReadyMigrateStep('');
+    setReadyMigratePercent(0);
+    setReadyMigrateStatus('idle');
+  };
+
+  const fetchMigrationAudit = async (options?: { silent?: boolean }) => {
+    setLoadingMigrationAudit(true);
+    try {
+      const res = await fetch('/api/storage-migration-audit');
+      const data = await readApiJson(res);
+      if (data.success) {
+        setMigrationAudit(data);
+        if (!options?.silent) {
+          showToast('สแกน Migration Center สำเร็จ — ยังไม่มีการย้ายหรือลบไฟล์', 'success');
+        }
+      } else {
+        showToast(data.error || 'Migration audit failed', 'error');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Migration audit network error', 'error');
+    } finally {
+      setLoadingMigrationAudit(false);
+    }
+  };
+
+  const executeMigrateReadyBatch = async () => {
+    if (!migrationAudit) return;
+    setShowReadyMigrateConfirm(false);
+    setMigratingReadyBatch(true);
+    setReadyMigrateStatus('running');
+    setReadyMigratePercent(12);
+    setReadyMigrateStep('เตรียมรายการ ready และข้าม broken/draft applications...');
+    try {
+      setReadyMigratePercent(35);
+      setReadyMigrateStep('กำลัง copy ไฟล์จาก R2 ไป AWS S3 และ verify ขนาดไฟล์...');
+      const res = await fetch('/api/storage-migration-audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'migrate-ready-batch', limit: READY_MIGRATION_BATCH_LIMIT }),
+      });
+      const data = await readApiJson(res);
+      if (data.success) {
+        setReadyMigrateStatus('success');
+        setReadyMigratePercent(100);
+        setReadyMigrateStep(`Migrate เสร็จ ${data.migratedApplications || 0} applications / ${data.migratedRefs || 0} refs — กำลัง refresh ข้อมูลเบื้องหลัง`);
+        showToast(`Migrate เสร็จ ${data.migratedApplications || 0} apps / fail ${data.failedApplications || 0} apps — ไม่ลบ R2 source`, data.failedApplications ? 'error' : 'success');
+        window.setTimeout(resetReadyMigrateProgress, 900);
+        void Promise.allSettled([
+          fetchMigrationAudit({ silent: true }),
+          fetchS3Objects(currentPrefix),
+        ]);
+      } else {
+        setReadyMigrateStatus('error');
+        setReadyMigratePercent(35);
+        setReadyMigrateStep(data.error || 'Batch migration failed');
+        showToast(data.error || 'Batch migration failed', 'error');
+        window.setTimeout(resetReadyMigrateProgress, 3000);
+      }
+    } catch (err: any) {
+      const message = err.message || 'Batch migration network error';
+      setReadyMigrateStatus('error');
+      setReadyMigratePercent(35);
+      setReadyMigrateStep(message.includes('504') ? 'Server timeout 504 — batch นี้ใหญ่/ช้าเกินไปสำหรับรอบนี้ ยังไม่ลบ R2 source' : message);
+      showToast(err.message || 'Batch migration network error', 'error');
+      window.setTimeout(resetReadyMigrateProgress, 3000);
+    }
+  };
+
   // Preview State
   const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
   const [previewPdfTitle, setPreviewPdfTitle] = useState<string>('');
@@ -483,6 +637,37 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+  };
+
+  const formatCount = (value?: number) => Number(value || 0).toLocaleString('th-TH');
+
+  const renderAuditSample = (items: MigrationAuditRef[], emptyText: string) => {
+    if (items.length === 0) {
+      return <p className="text-[11px] text-slate-400">{emptyText}</p>;
+    }
+    return (
+      <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+        {items.slice(0, 6).map((item, idx) => (
+          <div key={`${item.applicationId}-${item.field}-${idx}`} className="rounded-lg border border-slate-100 bg-white/80 px-2.5 py-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-semibold text-[11px] text-slate-800 truncate" title={item.applicantName}>
+                {item.applicantName}
+              </span>
+              <span className="font-mono text-[10px] text-slate-400 shrink-0">{item.applicationId.slice(0, 8)}</span>
+            </div>
+            <div className="mt-0.5 text-[10px] text-slate-500 truncate" title={item.key || item.path || item.reason}>
+              {item.field} • {item.key || `${item.bucket || item.provider}/${item.path || ''}` || item.reason}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const recommendationLabel = (value: BrokenApplicationReport['recommendation']) => {
+    if (value === 'review_draft_reference') return 'ตรวจ draft / ขออัปโหลดใหม่';
+    if (value === 'request_reupload') return 'ขอเอกสารใหม่';
+    return 'ตรวจ legacy ref';
   };
 
   // Open Preview
@@ -708,6 +893,395 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Migration Center — monitor + small rescue migration */}
+      <div className="bg-white border border-indigo-100 rounded-2xl p-5 shadow-sm space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Layers className="w-5 h-5 text-indigo-500" />
+              <h3 className="text-base font-bold text-slate-900">Migration Monitor</h3>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-200 bg-indigo-50 text-indigo-700">
+                Audit + Rescue
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 max-w-3xl">
+              ใช้ดูสถานะ legacy R2/Supabase หลังย้ายเข้า AWS S3 เป็นหลัก — งาน bulk รอบแรกให้รัน offline runner, ส่วนปุ่ม manual ใช้เฉพาะเคส fallback เล็ก ๆ
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <button
+              onClick={() => fetchMigrationAudit()}
+              disabled={loadingMigrationAudit || migratingReadyBatch}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs font-bold shadow-sm transition-colors"
+            >
+              <RefreshCw className={`w-4 h-4 ${loadingMigrationAudit ? 'animate-spin' : ''}`} />
+              {loadingMigrationAudit ? 'กำลังสแกน...' : 'สแกนสถานะ Migration'}
+            </button>
+            <button
+              onClick={() => setShowReadyMigrateConfirm(true)}
+              disabled={!migrationAudit || migratingReadyBatch || loadingMigrationAudit}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 disabled:opacity-50 text-amber-800 text-xs font-bold shadow-sm transition-colors"
+              title={`Manual rescue เท่านั้น: ย้าย ready refs ครั้งละ ${READY_MIGRATION_BATCH_LIMIT} applications; ข้าม broken/draft และไม่ลบ R2 source`}
+            >
+              <Upload className={`w-4 h-4 ${migratingReadyBatch ? 'animate-bounce' : ''}`} />
+              {migratingReadyBatch ? 'กำลัง migrate...' : `Manual rescue ${READY_MIGRATION_BATCH_LIMIT} apps`}
+            </button>
+          </div>
+        </div>
+
+        {migrationAudit ? (
+          <>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-[11px] text-slate-600 flex flex-col lg:flex-row lg:items-center justify-between gap-2">
+              <div>
+                <span className="font-bold text-slate-800">Bulk migration:</span>{' '}
+                ใช้ offline runner เพื่อเลี่ยง Vercel timeout และทำครั้งใหญ่รอบแรกให้จบเป็นชุด
+              </div>
+              <code className="rounded-lg bg-white border border-slate-200 px-2 py-1 font-mono text-[10px] text-slate-600">
+                npm run storage:migrate:dry-run -- --limit=50
+              </code>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <p className="text-[11px] text-slate-500">Applications scanned</p>
+                <p className="mt-1 text-xl font-black text-slate-900">{formatCount(migrationAudit.summary.applicationsScanned)}</p>
+                <p className="text-[10px] text-slate-400">refs: {formatCount(migrationAudit.summary.referencesScanned)}</p>
+              </div>
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                <p className="text-[11px] text-amber-700">Ready to migrate</p>
+                <p className="mt-1 text-xl font-black text-amber-700">{formatCount(migrationAudit.summary.byStatus.ready_to_migrate)}</p>
+                <p className="text-[10px] text-amber-600">
+                  refs • {formatCount(migrationAudit.summary.uniqueReadySourceFiles)} unique files
+                </p>
+              </div>
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+                <p className="text-[11px] text-red-700">Broken refs</p>
+                <p className="mt-1 text-xl font-black text-red-700">{formatCount(migrationAudit.summary.byStatus.broken_reference)}</p>
+                <p className="text-[10px] text-red-600">
+                  {formatCount(migrationAudit.summary.brokenReferenceApplications)} apps • {formatCount(migrationAudit.summary.uniqueBrokenSourceFiles)} files
+                </p>
+              </div>
+              <div className="rounded-xl border border-blue-200 bg-blue-50 p-3">
+                <p className="text-[11px] text-blue-700">Draft refs</p>
+                <p className="mt-1 text-xl font-black text-blue-700">{formatCount(migrationAudit.summary.draftReferenceApplications)}</p>
+                <p className="text-[10px] text-blue-600">ควรจัดการก่อน</p>
+              </div>
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                <p className="text-[11px] text-emerald-700">Already S3</p>
+                <p className="mt-1 text-xl font-black text-emerald-700">{formatCount(migrationAudit.summary.byStatus.already_s3)}</p>
+                <p className="text-[10px] text-emerald-600">
+                  refs • {formatCount(migrationAudit.summary.uniqueAlreadyS3Files)} unique files
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+              <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <ArrowRight className="w-4 h-4 text-amber-600" />
+                  <h4 className="text-xs font-bold text-amber-900">ตัวอย่างที่พร้อมย้าย</h4>
+                </div>
+                {renderAuditSample(migrationAudit.samples.readyToMigrate, 'ยังไม่พบ R2 refs ที่พร้อมย้าย')}
+              </div>
+              <div className="rounded-xl border border-red-100 bg-red-50/40 p-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <AlertTriangle className="w-4 h-4 text-red-600" />
+                  <h4 className="text-xs font-bold text-red-900">ตัวอย่าง broken refs</h4>
+                </div>
+                {renderAuditSample(migrationAudit.samples.brokenReferences, 'ยังไม่พบ broken refs จาก R2 listing')}
+              </div>
+              <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Database className="w-4 h-4 text-blue-600" />
+                  <h4 className="text-xs font-bold text-blue-900">Supabase / needs review</h4>
+                </div>
+                {renderAuditSample(
+                  migrationAudit.samples.supabaseLegacy.length > 0
+                    ? migrationAudit.samples.supabaseLegacy
+                    : migrationAudit.samples.needsReview,
+                  'ยังไม่พบ Supabase legacy refs ใน sample'
+                )}
+              </div>
+            </div>
+
+            {(migrationAudit.reports?.brokenApplications?.length || 0) > 0 && (
+              <div className="rounded-xl border border-red-100 bg-white overflow-hidden">
+                <div className="px-3.5 py-3 bg-red-50/70 border-b border-red-100 flex flex-col md:flex-row md:items-center justify-between gap-2">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
+                    <div>
+                      <h4 className="text-xs font-bold text-red-900">Broken / Draft Detail Report</h4>
+                      <p className="text-[11px] text-red-700">
+                        รายการนี้ไม่ควร migrate อัตโนมัติ ให้ HR ขอเอกสารใหม่ตาม flow เมื่อจำเป็น
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono text-red-500 bg-white border border-red-100 rounded-lg px-2 py-1">
+                    {formatCount(migrationAudit.reports?.brokenApplications?.length)} applications
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 border-b border-slate-100 text-[10px] uppercase tracking-wide text-slate-500">
+                      <tr>
+                        <th className="px-3 py-2.5">ผู้สมัคร</th>
+                        <th className="px-3 py-2.5">Broken</th>
+                        <th className="px-3 py-2.5">Draft</th>
+                        <th className="px-3 py-2.5">Fields</th>
+                        <th className="px-3 py-2.5">ตัวอย่าง path ที่หาย</th>
+                        <th className="px-3 py-2.5">แนะนำ</th>
+                        <th className="px-3 py-2.5 text-right">คำสั่ง</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {migrationAudit.reports?.brokenApplications.slice(0, 30).map((item) => {
+                        const firstRef = item.refs[0];
+                        return (
+                          <tr key={item.applicationId} className="hover:bg-red-50/30">
+                            <td className="px-3 py-2.5 align-top min-w-[220px]">
+                              <div className="font-bold text-slate-900">{item.applicantName}</div>
+                              <div className="font-mono text-[10px] text-slate-400">{item.applicationId}</div>
+                              {item.status && (
+                                <div className="mt-1 inline-flex px-1.5 py-0.5 rounded bg-slate-100 text-[10px] text-slate-600">
+                                  {item.status}
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-3 py-2.5 align-top">
+                              <span className="font-black text-red-700">{formatCount(item.brokenRefs)}</span>
+                              <span className="block text-[10px] text-slate-400">{formatCount(item.uniqueMissingFiles)} files</span>
+                            </td>
+                            <td className="px-3 py-2.5 align-top">
+                              <span className={`font-black ${item.draftRefs > 0 ? 'text-blue-700' : 'text-slate-400'}`}>
+                                {formatCount(item.draftRefs)}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2.5 align-top min-w-[180px]">
+                              <div className="flex flex-wrap gap-1">
+                                {item.fields.slice(0, 5).map((field) => (
+                                  <span key={field} className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-mono text-[10px]">
+                                    {field.replace(/^form_data\./, '')}
+                                  </span>
+                                ))}
+                                {item.fields.length > 5 && (
+                                  <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-400 text-[10px]">
+                                    +{item.fields.length - 5}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-3 py-2.5 align-top min-w-[260px] max-w-[360px]">
+                              <div className="font-mono text-[10px] text-slate-500 truncate" title={firstRef?.key || firstRef?.path || firstRef?.value || ''}>
+                                {firstRef?.key || firstRef?.path || firstRef?.value || '—'}
+                              </div>
+                              <div className="text-[10px] text-slate-400 truncate" title={firstRef?.reason || ''}>
+                                {firstRef?.reason || '—'}
+                              </div>
+                            </td>
+                            <td className="px-3 py-2.5 align-top min-w-[150px]">
+                              <span className={`inline-flex px-2 py-1 rounded-lg border text-[10px] font-semibold ${
+                                item.recommendation === 'request_reupload'
+                                  ? 'bg-red-50 border-red-200 text-red-700'
+                                  : item.recommendation === 'review_draft_reference'
+                                    ? 'bg-blue-50 border-blue-200 text-blue-700'
+                                    : 'bg-slate-50 border-slate-200 text-slate-600'
+                              }`}>
+                                {recommendationLabel(item.recommendation)}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2.5 align-top text-right">
+                              <button
+                                onClick={() => {
+                                  setCurrentPrefix(`applicants/${item.applicationId}/`);
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[10px] font-semibold"
+                                title="เปิด folder ผู้สมัครใน HR Drive"
+                              >
+                                <FolderOpen className="w-3 h-3" />
+                                เปิด HR Drive
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {(migrationAudit.reports?.brokenApplications?.length || 0) > 30 && (
+                  <div className="px-3.5 py-2 bg-slate-50 border-t border-slate-100 text-[11px] text-slate-500">
+                    แสดง 30 รายการแรกจากทั้งหมด {formatCount(migrationAudit.reports?.brokenApplications?.length)} applications
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-[11px] text-slate-600">
+              <div>
+                <span className="font-semibold text-slate-800">Inventory:</span>{' '}
+                S3 {formatCount(migrationAudit.inventories.s3.totalObjects)} objects / {migrationAudit.inventories.s3.formattedTotalSize}
+                {' • '}
+                R2 {migrationAudit.inventories.r2.configured ? `${formatCount(migrationAudit.inventories.r2.totalObjects)} objects / ${migrationAudit.inventories.r2.formattedTotalSize}` : 'not configured'}
+              </div>
+              <div className="font-mono text-slate-400">
+                Last audit: {new Date(migrationAudit.generatedAt).toLocaleString('th-TH')}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-4 text-xs text-slate-500">
+            กด “สแกนสถานะ Migration” เพื่อดู backlog ปัจจุบัน งานย้ายก้อนใหญ่ให้ใช้ offline runner; หน้านี้ใช้ monitor และ manual rescue เท่านั้น
+          </div>
+        )}
+      </div>
+
+      {/* Ready Batch Migration Confirm Modal */}
+      {showReadyMigrateConfirm && migrationAudit && (
+        <div
+          className="fixed inset-0 z-[120000] bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={() => setShowReadyMigrateConfirm(false)}
+        >
+          <div
+            className="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5 bg-gradient-to-r from-amber-50 to-white border-b border-amber-100">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center shrink-0">
+                  <Upload className="w-5 h-5 text-amber-700" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">ยืนยัน Manual Rescue Migration</h3>
+                  <p className="mt-1 text-xs text-slate-600">
+                    ใช้เฉพาะเคส fallback เล็ก ๆ; งานย้ายก้อนใหญ่ให้รัน offline runner
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-xl bg-amber-50 border border-amber-100 p-3">
+                  <p className="text-[10px] text-amber-700">Ready refs</p>
+                  <p className="text-lg font-black text-amber-700">{formatCount(migrationAudit.summary.byStatus.ready_to_migrate)}</p>
+                </div>
+                <div className="rounded-xl bg-red-50 border border-red-100 p-3">
+                  <p className="text-[10px] text-red-700">Excluded</p>
+                  <p className="text-lg font-black text-red-700">{formatCount(migrationAudit.summary.brokenReferenceApplications)}</p>
+                </div>
+                <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3">
+                  <p className="text-[10px] text-emerald-700">Source delete</p>
+                  <p className="text-lg font-black text-emerald-700">No</p>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 space-y-1.5">
+                <p>• Manual rescue จะ migrate สูงสุด <strong>{READY_MIGRATION_BATCH_LIMIT} applications</strong> ต่อรอบเท่านั้น</p>
+                <p>• ระบบจะข้าม broken/draft applications อัตโนมัติ</p>
+                <p>• ระบบจะ copy R2 → S3, verify size แล้วจึง update DB</p>
+                <p>• ระบบจะ <strong>ไม่ลบไฟล์ R2 ต้นทาง</strong> ในรอบนี้</p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  onClick={() => setShowReadyMigrateConfirm(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-colors"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={executeMigrateReadyBatch}
+                  className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-sm transition-colors inline-flex items-center gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  ยืนยัน manual rescue
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Ready Batch Migration Progress Modal */}
+      {migratingReadyBatch && (
+        <div className="fixed inset-0 z-[120000] bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+            <div className="p-5 border-b border-slate-100">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center shrink-0">
+                  {readyMigrateStatus === 'success' ? (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  ) : readyMigrateStatus === 'error' ? (
+                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                  ) : (
+                    <RefreshCw className="w-5 h-5 text-amber-700 animate-spin" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">
+                    {readyMigrateStatus === 'success'
+                      ? 'Migrate สำเร็จ กำลังรีเฟรชด้านหลัง'
+                      : readyMigrateStatus === 'error'
+                        ? 'Migrate รอบนี้ไม่สำเร็จ'
+                        : 'กำลัง migrate เข้า AWS S3'}
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-600">
+                    {readyMigrateStatus === 'success'
+                      ? 'ปิดหน้าต่างนี้ให้อัตโนมัติ แล้วอัปเดตตัวเลข Migration Center ต่อ'
+                      : readyMigrateStatus === 'error'
+                        ? 'ระบบจะปิดหน้าต่างนี้เอง ข้อมูลต้นทาง R2 ยังไม่ถูกลบ'
+                        : 'กรุณารอสักครู่ อย่าปิดหน้านี้ระหว่างทำงาน'}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-[10px] font-bold text-slate-500">
+                  <span>{readyMigrateStatus === 'success' ? 'เสร็จแล้ว' : readyMigrateStatus === 'error' ? 'หยุดที่ error' : 'กำลังทำงาน'}</span>
+                  <span>{Math.round(readyMigratePercent)}%</span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      readyMigrateStatus === 'success'
+                        ? 'bg-emerald-500'
+                        : readyMigrateStatus === 'error'
+                          ? 'bg-red-500'
+                          : 'bg-gradient-to-r from-amber-500 to-orange-500'
+                    }`}
+                    style={{ width: `${Math.max(readyMigratePercent, 8)}%` }}
+                  />
+                </div>
+              </div>
+              <div className={`rounded-xl border p-3 text-xs ${
+                readyMigrateStatus === 'error'
+                  ? 'border-red-100 bg-red-50 text-red-800'
+                  : 'border-amber-100 bg-amber-50 text-amber-800'
+              }`}>
+                {readyMigrateStep || 'กำลังดำเนินการ...'}
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-lg bg-slate-50 border border-slate-100 p-2">
+                  <p className="text-[10px] text-slate-500">Batch</p>
+                  <p className="font-black text-slate-900">{READY_MIGRATION_BATCH_LIMIT} apps</p>
+                </div>
+                <div className="rounded-lg bg-slate-50 border border-slate-100 p-2">
+                  <p className="text-[10px] text-slate-500">Broken/Draft</p>
+                  <p className="font-black text-slate-900">Skip</p>
+                </div>
+                <div className="rounded-lg bg-slate-50 border border-slate-100 p-2">
+                  <p className="text-[10px] text-slate-500">R2 source</p>
+                  <p className="font-black text-slate-900">Keep</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Explorer Card */}
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-5">
@@ -1434,4 +2008,3 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
     </div>
   );
 };
-

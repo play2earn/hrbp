@@ -158,7 +158,7 @@ Cloudflare DNS + TLS + DDoS + WAF + Rate Limiting
 
 #### 3) ยังไม่เสร็จ — ทำต่อเป็นลำดับถัดไป
 
-- [ ] **P0-A: Private storage จริง** — code สำหรับ private R2 draft proxy และ R2→S3 verified finalize เตรียมแล้วหลัง feature flags; ยังต้องตั้ง S3 Block Public Access/lifecycle, ทดสอบ staging และจึงค่อยปิด public R2 domain
+- [ ] **P0-A: Private storage จริง + legacy migration** — production upload ใหม่เข้า AWS S3 แล้ว และ HR Drive Migration Center แบบ read-only ถูกเพิ่มแล้ว; งานถัดไปคือทำ manifest + batch migrate legacy R2/Supabase refs ตาม `docs/review/06_STORAGE_MIGRATION_PLAN.md` ก่อนปิด public R2 domain
 - [ ] **P0-B: Supabase RLS/GRANT audit** — เตรียม read-only audit และ review-only revoke SQL แล้วใน `supabase/review/`; ยังห้าม apply จนทดสอบ staging และ direct protected browser calls เป็นศูนย์
 - [ ] **P0-C: ย้าย protected Supabase calls ที่เหลือเข้า BFF** — audit ล่าสุดยังพบ 45 จุด; auth, token, blacklist และ storage ที่เสี่ยงที่สุดถูกย้ายแล้ว แต่ applications/users/logs/report calls ยังต้องทยอยย้าย
 - [ ] **P0-D: Abuse controls** — Turnstile + rate limit ที่ login, PIN verify, applicant submit/upload และ tracking
