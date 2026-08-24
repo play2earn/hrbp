@@ -894,19 +894,19 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
         </div>
       </div>
 
-      {/* Migration Center — read-only legacy storage audit */}
+      {/* Migration Center — monitor + small rescue migration */}
       <div className="bg-white border border-indigo-100 rounded-2xl p-5 shadow-sm space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <Layers className="w-5 h-5 text-indigo-500" />
-              <h3 className="text-base font-bold text-slate-900">Migration Center</h3>
+              <h3 className="text-base font-bold text-slate-900">Migration Monitor</h3>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-200 bg-indigo-50 text-indigo-700">
-                Audit-only
+                Audit + Rescue
               </span>
             </div>
             <p className="text-xs text-slate-500 max-w-3xl">
-              ตรวจไฟล์ legacy ที่ยังชี้ Cloudflare R2 / Supabase Storage ก่อนทยอยย้ายเข้า AWS S3 — ปุ่มนี้ไม่ย้ายไฟล์ ไม่แก้ DB และไม่ลบ source
+              ใช้ดูสถานะ legacy R2/Supabase หลังย้ายเข้า AWS S3 เป็นหลัก — งาน bulk รอบแรกให้รัน offline runner, ส่วนปุ่ม manual ใช้เฉพาะเคส fallback เล็ก ๆ
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
@@ -921,17 +921,27 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
             <button
               onClick={() => setShowReadyMigrateConfirm(true)}
               disabled={!migrationAudit || migratingReadyBatch || loadingMigrationAudit}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm transition-colors"
-              title={`ย้ายเฉพาะ ready refs ครั้งละ ${READY_MIGRATION_BATCH_LIMIT} applications; ข้าม broken/draft และไม่ลบ R2 source`}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 disabled:opacity-50 text-amber-800 text-xs font-bold shadow-sm transition-colors"
+              title={`Manual rescue เท่านั้น: ย้าย ready refs ครั้งละ ${READY_MIGRATION_BATCH_LIMIT} applications; ข้าม broken/draft และไม่ลบ R2 source`}
             >
               <Upload className={`w-4 h-4 ${migratingReadyBatch ? 'animate-bounce' : ''}`} />
-              {migratingReadyBatch ? 'กำลัง migrate...' : `Migrate ready ${READY_MIGRATION_BATCH_LIMIT} apps`}
+              {migratingReadyBatch ? 'กำลัง migrate...' : `Manual rescue ${READY_MIGRATION_BATCH_LIMIT} apps`}
             </button>
           </div>
         </div>
 
         {migrationAudit ? (
           <>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-[11px] text-slate-600 flex flex-col lg:flex-row lg:items-center justify-between gap-2">
+              <div>
+                <span className="font-bold text-slate-800">Bulk migration:</span>{' '}
+                ใช้ offline runner เพื่อเลี่ยง Vercel timeout และทำครั้งใหญ่รอบแรกให้จบเป็นชุด
+              </div>
+              <code className="rounded-lg bg-white border border-slate-200 px-2 py-1 font-mono text-[10px] text-slate-600">
+                npm run storage:migrate:dry-run -- --limit=50
+              </code>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                 <p className="text-[11px] text-slate-500">Applications scanned</p>
@@ -1003,7 +1013,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
                     <div>
                       <h4 className="text-xs font-bold text-red-900">Broken / Draft Detail Report</h4>
                       <p className="text-[11px] text-red-700">
-                        รายการนี้ควรเคลียร์ก่อนเริ่ม batch migrate จริง เพราะ source หายหรือยังชี้ draft เก่า
+                        รายการนี้ไม่ควร migrate อัตโนมัติ ให้ HR ขอเอกสารใหม่ตาม flow เมื่อจำเป็น
                       </p>
                     </div>
                   </div>
@@ -1123,7 +1133,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
           </>
         ) : (
           <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-4 text-xs text-slate-500">
-            กด “สแกนสถานะ Migration” เพื่อดู backlog ก่อนย้ายจริง แนะนำให้เริ่มจาก draft refs และ broken refs ก่อนเสมอ
+            กด “สแกนสถานะ Migration” เพื่อดู backlog ปัจจุบัน งานย้ายก้อนใหญ่ให้ใช้ offline runner; หน้านี้ใช้ monitor และ manual rescue เท่านั้น
           </div>
         )}
       </div>
@@ -1144,9 +1154,9 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
                   <Upload className="w-5 h-5 text-amber-700" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-slate-900">ยืนยัน Batch Migration</h3>
+                  <h3 className="text-base font-black text-slate-900">ยืนยัน Manual Rescue Migration</h3>
                   <p className="mt-1 text-xs text-slate-600">
-                    ย้ายเฉพาะกลุ่ม ready เข้า AWS S3 ครั้งละ {READY_MIGRATION_BATCH_LIMIT} applications แบบปลอดภัย
+                    ใช้เฉพาะเคส fallback เล็ก ๆ; งานย้ายก้อนใหญ่ให้รัน offline runner
                   </p>
                 </div>
               </div>
@@ -1169,7 +1179,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
               </div>
 
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 space-y-1.5">
-                <p>• ระบบจะ migrate สูงสุด <strong>{READY_MIGRATION_BATCH_LIMIT} applications</strong> ต่อรอบ</p>
+                <p>• Manual rescue จะ migrate สูงสุด <strong>{READY_MIGRATION_BATCH_LIMIT} applications</strong> ต่อรอบเท่านั้น</p>
                 <p>• ระบบจะข้าม broken/draft applications อัตโนมัติ</p>
                 <p>• ระบบจะ copy R2 → S3, verify size แล้วจึง update DB</p>
                 <p>• ระบบจะ <strong>ไม่ลบไฟล์ R2 ต้นทาง</strong> ในรอบนี้</p>
@@ -1187,7 +1197,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
                   className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-sm transition-colors inline-flex items-center gap-2"
                 >
                   <Upload className="w-4 h-4" />
-                  ยืนยัน migrate {READY_MIGRATION_BATCH_LIMIT} apps
+                  ยืนยัน manual rescue
                 </button>
               </div>
             </div>
