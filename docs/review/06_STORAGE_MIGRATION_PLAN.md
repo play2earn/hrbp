@@ -52,10 +52,11 @@ R2 และ Supabase Storage ไม่ควรเป็น active write fallba
   - `already_s3`: DB ชี้ `/api/files?key=...` หรือ S3 แล้ว
 - [ ] เพิ่มกลุ่ม `orphan_object`: object อยู่ใน R2/Supabase แต่ DB ไม่อ้างถึง
 - [x] เพิ่มหน้า HR Drive “Migration Center” แบบ read-only ก่อน ให้เห็นตัวเลขและรายการตัวอย่าง
+- [x] เพิ่ม Broken/Draft Detail Report ราย application เพื่อให้ HR เห็นว่าใบไหน/field ไหนต้องขอเอกสารใหม่หรือ review draft reference
 - [ ] ทำ migration manifest ต่อ application/file พร้อม checksum/size/content-type/source/destination
 - [ ] ห้ามลบไฟล์ legacy ระหว่าง phase นี้
 
-Implementation note: รอบแรกเพิ่ม `/api/storage-migration-audit` และ card “Migration Center” ใน HR Drive แล้ว โดยยังไม่ migrate, ไม่ update DB และไม่ cleanup source ใด ๆ ตัวเลขหลักแสดงจำนวน references และมี unique file counts ประกอบเพื่อลดความสับสนจาก field alias ที่ชี้ไฟล์เดียวกัน
+Implementation note: รอบแรกเพิ่ม `/api/storage-migration-audit`, card “Migration Center” และ Broken/Draft Detail Report ใน HR Drive แล้ว โดยยังไม่ migrate, ไม่ update DB และไม่ cleanup source ใด ๆ ตัวเลขหลักแสดงจำนวน references และมี unique file counts ประกอบเพื่อลดความสับสนจาก field alias ที่ชี้ไฟล์เดียวกัน
 
 ผลลัพธ์: รู้ก่อนว่าไฟล์ไหนย้ายได้ ไฟล์ไหนเสีย และไม่ซ้ำรอยเคส DB ชี้ draft object ที่ถูกลบไปแล้ว
 
@@ -109,6 +110,7 @@ HR manual migrate ควรเป็นเครื่องมือ rescue/exc
 - [ ] HR viewer เปิด PDF/JPG/PNG จาก S3 ผ่าน `/api/files` ได้
 - [ ] Legacy R2/Supabase file เปิดได้ผ่าน proxy หรือถูก migrate แล้ว
 - [x] Migration dry-run แสดงจำนวน ready/broken/needs-review ได้ใน HR Drive
+- [x] Migration dry-run แสดง broken/draft applications ที่ควรแก้ก่อน batch migrate
 - [ ] Migration dry-run เพิ่ม orphan object report ที่เทียบ object exists แต่ DB ไม่อ้างถึง
 - [ ] Batch test 10–20 applications ผ่านโดย:
   - destination S3 exists

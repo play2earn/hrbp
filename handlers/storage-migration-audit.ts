@@ -20,6 +20,19 @@ interface StorageRef {
   reason: string;
 }
 
+interface BrokenApplicationReport {
+  applicationId: string;
+  applicantName: string;
+  status?: string;
+  createdAt?: string;
+  brokenRefs: number;
+  draftRefs: number;
+  uniqueMissingFiles: number;
+  fields: string[];
+  refs: StorageRef[];
+  recommendation: 'request_reupload' | 'review_draft_reference' | 'review_legacy_reference';
+}
+
 const FILE_FIELD_HINTS = [
   'url',
   'photo',
@@ -203,6 +216,59 @@ function classifyRef(parsed: Pick<StorageRef, 'provider' | 'key' | 'bucket' | 'p
   return { statusBucket: 'needs_review', reason: parsed.reason };
 }
 
+function buildBrokenApplicationReport(refs: StorageRef[]): BrokenApplicationReport[] {
+  const grouped = new Map<string, BrokenApplicationReport>();
+  const brokenRefs = refs.filter((ref) => ref.statusBucket === 'broken_reference' || ref.key?.startsWith('drafts/') || ref.value.includes('draftId='));
+
+  for (const ref of brokenRefs) {
+    const existing = grouped.get(ref.applicationId) || {
+      applicationId: ref.applicationId,
+      applicantName: ref.applicantName,
+      status: ref.status,
+      createdAt: ref.createdAt,
+      brokenRefs: 0,
+      draftRefs: 0,
+      uniqueMissingFiles: 0,
+      fields: [],
+      refs: [],
+      recommendation: 'review_legacy_reference' as const,
+    };
+
+    if (ref.statusBucket === 'broken_reference') existing.brokenRefs += 1;
+    if (ref.key?.startsWith('drafts/') || ref.value.includes('draftId=')) existing.draftRefs += 1;
+    if (!existing.fields.includes(ref.field)) existing.fields.push(ref.field);
+    existing.refs.push(ref);
+    grouped.set(ref.applicationId, existing);
+  }
+
+  return Array.from(grouped.values())
+    .map((item) => {
+      const uniqueMissing = new Set(
+        item.refs
+          .filter((ref) => ref.statusBucket === 'broken_reference')
+          .map((ref) => ref.key || ref.path || ref.value)
+      );
+      const hasDraft = item.draftRefs > 0;
+      const recommendation: BrokenApplicationReport['recommendation'] = hasDraft
+        ? 'review_draft_reference'
+        : item.brokenRefs > 0
+          ? 'request_reupload'
+          : 'review_legacy_reference';
+      return {
+        ...item,
+        uniqueMissingFiles: uniqueMissing.size,
+        fields: item.fields.sort(),
+        refs: item.refs.slice(0, 12),
+        recommendation,
+      };
+    })
+    .sort((a, b) => {
+      if (b.draftRefs !== a.draftRefs) return b.draftRefs - a.draftRefs;
+      if (b.brokenRefs !== a.brokenRefs) return b.brokenRefs - a.brokenRefs;
+      return a.applicantName.localeCompare(b.applicantName, 'th');
+    });
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!configureSameOrigin(req, res, 'GET')) return;
   if (req.method === 'OPTIONS') return res.status(204).end();
@@ -308,6 +374,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const uniqueReadySourceKeys = new Set(refs.filter((ref) => ref.statusBucket === 'ready_to_migrate' && ref.key).map((ref) => `${ref.provider}:${ref.key}`));
     const uniqueBrokenSourceKeys = new Set(refs.filter((ref) => ref.statusBucket === 'broken_reference' && ref.key).map((ref) => `${ref.provider}:${ref.key}`));
     const uniqueAlreadyS3Keys = new Set(refs.filter((ref) => ref.statusBucket === 'already_s3' && ref.key).map((ref) => ref.key));
+    const brokenApplicationReport = buildBrokenApplicationReport(refs);
 
     return res.status(200).json({
       success: true,
@@ -342,6 +409,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         },
       },
       samples,
+      reports: {
+        brokenApplications: brokenApplicationReport,
+      },
       nextRecommendedBatch: samples.draftReferences.length > 0
         ? 'draftReferences'
         : samples.readyToMigrate.length > 0

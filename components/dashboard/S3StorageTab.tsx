@@ -73,10 +73,24 @@ interface MigrationAuditRef {
   field: string;
   provider: 's3' | 'r2' | 'supabase' | 'external' | 'unknown';
   statusBucket: 'already_s3' | 'ready_to_migrate' | 'broken_reference' | 'needs_review';
+  value: string;
   key?: string;
   bucket?: string;
   path?: string;
   reason: string;
+}
+
+interface BrokenApplicationReport {
+  applicationId: string;
+  applicantName: string;
+  status?: string;
+  createdAt?: string;
+  brokenRefs: number;
+  draftRefs: number;
+  uniqueMissingFiles: number;
+  fields: string[];
+  refs: MigrationAuditRef[];
+  recommendation: 'request_reupload' | 'review_draft_reference' | 'review_legacy_reference';
 }
 
 interface MigrationAuditResult {
@@ -104,6 +118,9 @@ interface MigrationAuditResult {
     draftReferences: MigrationAuditRef[];
     supabaseLegacy: MigrationAuditRef[];
     needsReview: MigrationAuditRef[];
+  };
+  reports?: {
+    brokenApplications: BrokenApplicationReport[];
   };
   nextRecommendedBatch: 'draftReferences' | 'readyToMigrate' | 'none';
 }
@@ -572,6 +589,12 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
     );
   };
 
+  const recommendationLabel = (value: BrokenApplicationReport['recommendation']) => {
+    if (value === 'review_draft_reference') return 'ตรวจ draft / ขออัปโหลดใหม่';
+    if (value === 'request_reupload') return 'ขอเอกสารใหม่';
+    return 'ตรวจ legacy ref';
+  };
+
   // Open Preview
   const handlePreview = (file: S3FileItem) => {
     if (file.extension === 'pdf') {
@@ -885,6 +908,120 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
                 )}
               </div>
             </div>
+
+            {(migrationAudit.reports?.brokenApplications?.length || 0) > 0 && (
+              <div className="rounded-xl border border-red-100 bg-white overflow-hidden">
+                <div className="px-3.5 py-3 bg-red-50/70 border-b border-red-100 flex flex-col md:flex-row md:items-center justify-between gap-2">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
+                    <div>
+                      <h4 className="text-xs font-bold text-red-900">Broken / Draft Detail Report</h4>
+                      <p className="text-[11px] text-red-700">
+                        รายการนี้ควรเคลียร์ก่อนเริ่ม batch migrate จริง เพราะ source หายหรือยังชี้ draft เก่า
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono text-red-500 bg-white border border-red-100 rounded-lg px-2 py-1">
+                    {formatCount(migrationAudit.reports?.brokenApplications?.length)} applications
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 border-b border-slate-100 text-[10px] uppercase tracking-wide text-slate-500">
+                      <tr>
+                        <th className="px-3 py-2.5">ผู้สมัคร</th>
+                        <th className="px-3 py-2.5">Broken</th>
+                        <th className="px-3 py-2.5">Draft</th>
+                        <th className="px-3 py-2.5">Fields</th>
+                        <th className="px-3 py-2.5">ตัวอย่าง path ที่หาย</th>
+                        <th className="px-3 py-2.5">แนะนำ</th>
+                        <th className="px-3 py-2.5 text-right">คำสั่ง</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {migrationAudit.reports?.brokenApplications.slice(0, 30).map((item) => {
+                        const firstRef = item.refs[0];
+                        return (
+                          <tr key={item.applicationId} className="hover:bg-red-50/30">
+                            <td className="px-3 py-2.5 align-top min-w-[220px]">
+                              <div className="font-bold text-slate-900">{item.applicantName}</div>
+                              <div className="font-mono text-[10px] text-slate-400">{item.applicationId}</div>
+                              {item.status && (
+                                <div className="mt-1 inline-flex px-1.5 py-0.5 rounded bg-slate-100 text-[10px] text-slate-600">
+                                  {item.status}
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-3 py-2.5 align-top">
+                              <span className="font-black text-red-700">{formatCount(item.brokenRefs)}</span>
+                              <span className="block text-[10px] text-slate-400">{formatCount(item.uniqueMissingFiles)} files</span>
+                            </td>
+                            <td className="px-3 py-2.5 align-top">
+                              <span className={`font-black ${item.draftRefs > 0 ? 'text-blue-700' : 'text-slate-400'}`}>
+                                {formatCount(item.draftRefs)}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2.5 align-top min-w-[180px]">
+                              <div className="flex flex-wrap gap-1">
+                                {item.fields.slice(0, 5).map((field) => (
+                                  <span key={field} className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-mono text-[10px]">
+                                    {field.replace(/^form_data\./, '')}
+                                  </span>
+                                ))}
+                                {item.fields.length > 5 && (
+                                  <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-400 text-[10px]">
+                                    +{item.fields.length - 5}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-3 py-2.5 align-top min-w-[260px] max-w-[360px]">
+                              <div className="font-mono text-[10px] text-slate-500 truncate" title={firstRef?.key || firstRef?.path || firstRef?.value || ''}>
+                                {firstRef?.key || firstRef?.path || firstRef?.value || '—'}
+                              </div>
+                              <div className="text-[10px] text-slate-400 truncate" title={firstRef?.reason || ''}>
+                                {firstRef?.reason || '—'}
+                              </div>
+                            </td>
+                            <td className="px-3 py-2.5 align-top min-w-[150px]">
+                              <span className={`inline-flex px-2 py-1 rounded-lg border text-[10px] font-semibold ${
+                                item.recommendation === 'request_reupload'
+                                  ? 'bg-red-50 border-red-200 text-red-700'
+                                  : item.recommendation === 'review_draft_reference'
+                                    ? 'bg-blue-50 border-blue-200 text-blue-700'
+                                    : 'bg-slate-50 border-slate-200 text-slate-600'
+                              }`}>
+                                {recommendationLabel(item.recommendation)}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2.5 align-top text-right">
+                              <button
+                                onClick={() => {
+                                  setCurrentPrefix(`applicants/${item.applicationId}/`);
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[10px] font-semibold"
+                                title="เปิด folder ผู้สมัครใน HR Drive"
+                              >
+                                <FolderOpen className="w-3 h-3" />
+                                เปิด HR Drive
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {(migrationAudit.reports?.brokenApplications?.length || 0) > 30 && (
+                  <div className="px-3.5 py-2 bg-slate-50 border-t border-slate-100 text-[11px] text-slate-500">
+                    แสดง 30 รายการแรกจากทั้งหมด {formatCount(migrationAudit.reports?.brokenApplications?.length)} applications
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-[11px] text-slate-600">
               <div>
