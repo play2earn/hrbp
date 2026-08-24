@@ -361,7 +361,7 @@ function buildRefs(applications: any[], r2Keys: Set<string>) {
 
 async function migrateReadyBatch(req: VercelRequest, res: VercelResponse) {
   const requestedIds = Array.isArray(req.body?.applicationIds) ? req.body.applicationIds.map(String).slice(0, 20) : [];
-  const limit = Math.min(Math.max(Number(req.body?.limit || 10), 1), 20);
+  const limit = Math.min(Math.max(Number(req.body?.limit || 3), 1), 10);
   const supabase = getAdminSupabase();
   const s3 = getS3Client();
   const r2 = getR2Client();
@@ -388,42 +388,48 @@ async function migrateReadyBatch(req: VercelRequest, res: VercelResponse) {
   const selectedAppIds = Array.from(byApp.keys()).slice(0, limit);
   const results: any[] = [];
   for (const applicationId of selectedAppIds) {
-    const app = applications.find((item) => String(item.id) === applicationId);
-    if (!app) continue;
-    const updatePayload: Record<string, any> = {};
-    const updatedFormData = { ...(app.form_data || {}) };
-    const migratedRefs: any[] = [];
+    try {
+      const app = applications.find((item) => String(item.id) === applicationId);
+      if (!app) continue;
+      const updatePayload: Record<string, any> = {};
+      const updatedFormData = { ...(app.form_data || {}) };
+      const migratedRefs: any[] = [];
 
-    for (const ref of byApp.get(applicationId) || []) {
-      if (!ref.key) continue;
-      const source = await r2.send(new GetObjectCommand({ Bucket: r2Bucket, Key: ref.key }));
-      const sourceBytes = await source.Body?.transformToByteArray();
-      if (!sourceBytes) throw new Error(`R2 object has no body: ${ref.key}`);
-      const body = Buffer.from(sourceBytes);
-      const s3Key = s3KeyForMigratedRef(applicationId, ref.key, ref.field);
-      await s3.send(new PutObjectCommand({
-        Bucket: s3Bucket,
-        Key: s3Key,
-        Body: body,
-        ContentType: source.ContentType || 'application/octet-stream',
-      }));
-      const head = await s3.send(new HeadObjectCommand({ Bucket: s3Bucket, Key: s3Key }));
-      if (head.ContentLength !== body.length) throw new Error(`S3 size mismatch for ${s3Key}`);
-      const proxyUrl = `/api/files?key=${encodeURIComponent(s3Key)}`;
-      const field = topLevelField(ref.field);
-      for (const alias of FIELD_ALIASES[field] || [field]) updatedFormData[alias] = proxyUrl;
-      if (field === 'photo_url' || field === 'photoUrl') updatePayload.photo_url = proxyUrl;
-      if (field === 'resume_url' || field === 'resumeUrl') updatePayload.resume_url = proxyUrl;
-      migratedRefs.push({ field, oldKey: ref.key, newKey: s3Key, bytes: body.length });
-    }
+      for (const ref of byApp.get(applicationId) || []) {
+        if (!ref.key) continue;
+        const source = await r2.send(new GetObjectCommand({ Bucket: r2Bucket, Key: ref.key }));
+        const sourceBytes = await source.Body?.transformToByteArray();
+        if (!sourceBytes) throw new Error(`R2 object has no body: ${ref.key}`);
+        const body = Buffer.from(sourceBytes);
+        const s3Key = s3KeyForMigratedRef(applicationId, ref.key, ref.field);
+        await s3.send(new PutObjectCommand({
+          Bucket: s3Bucket,
+          Key: s3Key,
+          Body: body,
+          ContentType: source.ContentType || 'application/octet-stream',
+        }));
+        const head = await s3.send(new HeadObjectCommand({ Bucket: s3Bucket, Key: s3Key }));
+        if (head.ContentLength !== body.length) throw new Error(`S3 size mismatch for ${s3Key}`);
+        const proxyUrl = `/api/files?key=${encodeURIComponent(s3Key)}`;
+        const field = topLevelField(ref.field);
+        for (const alias of FIELD_ALIASES[field] || [field]) updatedFormData[alias] = proxyUrl;
+        if (field === 'photo_url' || field === 'photoUrl') updatePayload.photo_url = proxyUrl;
+        if (field === 'resume_url' || field === 'resumeUrl') updatePayload.resume_url = proxyUrl;
+        migratedRefs.push({ field, oldKey: ref.key, newKey: s3Key, bytes: body.length });
+      }
 
-    if (migratedRefs.length > 0) {
-      updatePayload.form_data = updatedFormData;
-      const { error } = await supabase.from('applications').update(updatePayload).eq('id', applicationId);
-      if (error) throw error;
+      if (migratedRefs.length > 0) {
+        updatePayload.form_data = updatedFormData;
+        const { error } = await supabase.from('applications').update(updatePayload).eq('id', applicationId);
+        if (error) throw error;
+      }
+      results.push({ applicationId, migratedRefs, error: null });
+    } catch (error: any) {
+      console.error('[Ready Batch Migration Item Error]', { applicationId, message: error?.message });
+      results.push({ applicationId, migratedRefs: [], error: error?.message || 'Migration failed for this application' });
     }
-    results.push({ applicationId, migratedRefs });
   }
+  const failedApplications = results.filter((item) => item.error).length;
 
   return res.status(200).json({
     success: true,
@@ -432,6 +438,7 @@ async function migrateReadyBatch(req: VercelRequest, res: VercelResponse) {
     selectedApplications: selectedAppIds.length,
     migratedApplications: results.filter((item) => item.migratedRefs.length > 0).length,
     migratedRefs: results.reduce((sum, item) => sum + item.migratedRefs.length, 0),
+    failedApplications,
     excludedBrokenDraftApplications: excludedApps.size,
     sourceDeleted: false,
     results,

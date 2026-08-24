@@ -394,12 +394,12 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
       const res = await fetch('/api/storage-migration-audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'migrate-ready-batch', limit: 10 }),
+        body: JSON.stringify({ action: 'migrate-ready-batch', limit: 3 }),
       });
       const data = await res.json();
       if (data.success) {
         setReadyMigrateStep(`อัปเดต DB สำเร็จ ${data.migratedApplications || 0} applications / ${data.migratedRefs || 0} refs กำลังสแกนซ้ำ...`);
-        showToast(`Migrate สำเร็จ ${data.migratedApplications || 0} applications / ${data.migratedRefs || 0} refs — ไม่ลบ R2 source`, 'success');
+        showToast(`Migrate เสร็จ ${data.migratedApplications || 0} apps / fail ${data.failedApplications || 0} apps — ไม่ลบ R2 source`, data.failedApplications ? 'error' : 'success');
         await fetchMigrationAudit();
         setReadyMigrateStep('รีเฟรช HR Drive...');
         fetchS3Objects(currentPrefix);
@@ -883,7 +883,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
               title="ย้ายเฉพาะ ready refs ครั้งละ 10 applications; ข้าม broken/draft และไม่ลบ R2 source"
             >
               <Upload className={`w-4 h-4 ${migratingReadyBatch ? 'animate-bounce' : ''}`} />
-              {migratingReadyBatch ? 'กำลัง migrate...' : 'Migrate ready 10 apps'}
+              {migratingReadyBatch ? 'กำลัง migrate...' : 'Migrate ready 3 apps'}
             </button>
           </div>
         </div>
@@ -1104,7 +1104,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
                 <div>
                   <h3 className="text-base font-black text-slate-900">ยืนยัน Batch Migration</h3>
                   <p className="mt-1 text-xs text-slate-600">
-                    ย้ายเฉพาะกลุ่ม ready เข้า AWS S3 ครั้งละ 10 applications แบบปลอดภัย
+                    ย้ายเฉพาะกลุ่ม ready เข้า AWS S3 ครั้งละ 3 applications แบบปลอดภัย
                   </p>
                 </div>
               </div>
@@ -1127,7 +1127,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
               </div>
 
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 space-y-1.5">
-                <p>• ระบบจะ migrate สูงสุด <strong>10 applications</strong> ต่อรอบ</p>
+                <p>• ระบบจะ migrate สูงสุด <strong>3 applications</strong> ต่อรอบ</p>
                 <p>• ระบบจะข้าม broken/draft applications อัตโนมัติ</p>
                 <p>• ระบบจะ copy R2 → S3, verify size แล้วจึง update DB</p>
                 <p>• ระบบจะ <strong>ไม่ลบไฟล์ R2 ต้นทาง</strong> ในรอบนี้</p>
@@ -1145,7 +1145,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
                   className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-sm transition-colors inline-flex items-center gap-2"
                 >
                   <Upload className="w-4 h-4" />
-                  ยืนยัน migrate 10 apps
+                  ยืนยัน migrate 3 apps
                 </button>
               </div>
             </div>
@@ -1178,7 +1178,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-lg bg-slate-50 border border-slate-100 p-2">
                   <p className="text-[10px] text-slate-500">Batch</p>
-                  <p className="font-black text-slate-900">10 apps</p>
+                  <p className="font-black text-slate-900">3 apps</p>
                 </div>
                 <div className="rounded-lg bg-slate-50 border border-slate-100 p-2">
                   <p className="text-[10px] text-slate-500">Broken/Draft</p>
