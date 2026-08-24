@@ -360,8 +360,11 @@ function buildRefs(applications: any[], r2Keys: Set<string>) {
 }
 
 async function migrateReadyBatch(req: VercelRequest, res: VercelResponse) {
+  if (req.body?.action !== 'migrate-ready-batch') {
+    return res.status(400).json({ error: 'Unsupported migration action' });
+  }
   const requestedIds = Array.isArray(req.body?.applicationIds) ? req.body.applicationIds.map(String).slice(0, 20) : [];
-  const limit = Math.min(Math.max(Number(req.body?.limit || 3), 1), 10);
+  const limit = Math.min(Math.max(Number(req.body?.limit || 10), 1), 10);
   const supabase = getAdminSupabase();
   const s3 = getS3Client();
   const r2 = getR2Client();

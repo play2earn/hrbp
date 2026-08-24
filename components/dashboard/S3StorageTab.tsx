@@ -125,6 +125,8 @@ interface MigrationAuditResult {
   nextRecommendedBatch: 'draftReferences' | 'readyToMigrate' | 'none';
 }
 
+const READY_MIGRATION_BATCH_LIMIT = 10;
+
 export interface DocCategorySetting {
   id: string;
   field: string;
@@ -175,6 +177,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
   const [loadingMigrationAudit, setLoadingMigrationAudit] = useState<boolean>(false);
   const [migratingReadyBatch, setMigratingReadyBatch] = useState<boolean>(false);
   const [readyMigrateStep, setReadyMigrateStep] = useState<string>('');
+  const [readyMigratePercent, setReadyMigratePercent] = useState<number>(0);
   const [showReadyMigrateConfirm, setShowReadyMigrateConfirm] = useState<boolean>(false);
 
   // Pagination State
@@ -366,14 +369,16 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
     }
   };
 
-  const fetchMigrationAudit = async () => {
+  const fetchMigrationAudit = async (options?: { silent?: boolean }) => {
     setLoadingMigrationAudit(true);
     try {
       const res = await fetch('/api/storage-migration-audit');
       const data = await res.json();
       if (data.success) {
         setMigrationAudit(data);
-        showToast('สแกน Migration Center สำเร็จ — ยังไม่มีการย้ายหรือลบไฟล์', 'success');
+        if (!options?.silent) {
+          showToast('สแกน Migration Center สำเร็จ — ยังไม่มีการย้ายหรือลบไฟล์', 'success');
+        }
       } else {
         showToast(data.error || 'Migration audit failed', 'error');
       }
@@ -388,29 +393,47 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
     if (!migrationAudit) return;
     setShowReadyMigrateConfirm(false);
     setMigratingReadyBatch(true);
+    setReadyMigratePercent(12);
     setReadyMigrateStep('เตรียมรายการ ready และข้าม broken/draft applications...');
     try {
+      setReadyMigratePercent(35);
       setReadyMigrateStep('กำลัง copy ไฟล์จาก R2 ไป AWS S3 และ verify ขนาดไฟล์...');
       const res = await fetch('/api/storage-migration-audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'migrate-ready-batch', limit: 3 }),
+        body: JSON.stringify({ action: 'migrate-ready-batch', limit: READY_MIGRATION_BATCH_LIMIT }),
       });
       const data = await res.json();
       if (data.success) {
-        setReadyMigrateStep(`อัปเดต DB สำเร็จ ${data.migratedApplications || 0} applications / ${data.migratedRefs || 0} refs กำลังสแกนซ้ำ...`);
+        setReadyMigratePercent(100);
+        setReadyMigrateStep(`Migrate เสร็จ ${data.migratedApplications || 0} applications / ${data.migratedRefs || 0} refs — กำลัง refresh ข้อมูลเบื้องหลัง`);
         showToast(`Migrate เสร็จ ${data.migratedApplications || 0} apps / fail ${data.failedApplications || 0} apps — ไม่ลบ R2 source`, data.failedApplications ? 'error' : 'success');
-        await fetchMigrationAudit();
-        setReadyMigrateStep('รีเฟรช HR Drive...');
-        fetchS3Objects(currentPrefix);
+        window.setTimeout(() => {
+          setMigratingReadyBatch(false);
+          setReadyMigrateStep('');
+          setReadyMigratePercent(0);
+        }, 900);
+        void Promise.allSettled([
+          fetchMigrationAudit({ silent: true }),
+          fetchS3Objects(currentPrefix),
+        ]);
       } else {
+        setReadyMigratePercent(100);
         showToast(data.error || 'Batch migration failed', 'error');
+        window.setTimeout(() => {
+          setMigratingReadyBatch(false);
+          setReadyMigrateStep('');
+          setReadyMigratePercent(0);
+        }, 1200);
       }
     } catch (err: any) {
+      setReadyMigratePercent(100);
       showToast(err.message || 'Batch migration network error', 'error');
-    } finally {
-      setMigratingReadyBatch(false);
-      setReadyMigrateStep('');
+      window.setTimeout(() => {
+        setMigratingReadyBatch(false);
+        setReadyMigrateStep('');
+        setReadyMigratePercent(0);
+      }, 1200);
     }
   };
 
@@ -869,7 +892,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
             <button
-              onClick={fetchMigrationAudit}
+              onClick={() => fetchMigrationAudit()}
               disabled={loadingMigrationAudit || migratingReadyBatch}
               className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs font-bold shadow-sm transition-colors"
             >
@@ -880,10 +903,10 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
               onClick={() => setShowReadyMigrateConfirm(true)}
               disabled={!migrationAudit || migratingReadyBatch || loadingMigrationAudit}
               className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm transition-colors"
-              title="ย้ายเฉพาะ ready refs ครั้งละ 10 applications; ข้าม broken/draft และไม่ลบ R2 source"
+              title={`ย้ายเฉพาะ ready refs ครั้งละ ${READY_MIGRATION_BATCH_LIMIT} applications; ข้าม broken/draft และไม่ลบ R2 source`}
             >
               <Upload className={`w-4 h-4 ${migratingReadyBatch ? 'animate-bounce' : ''}`} />
-              {migratingReadyBatch ? 'กำลัง migrate...' : 'Migrate ready 3 apps'}
+              {migratingReadyBatch ? 'กำลัง migrate...' : `Migrate ready ${READY_MIGRATION_BATCH_LIMIT} apps`}
             </button>
           </div>
         </div>
@@ -1104,7 +1127,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
                 <div>
                   <h3 className="text-base font-black text-slate-900">ยืนยัน Batch Migration</h3>
                   <p className="mt-1 text-xs text-slate-600">
-                    ย้ายเฉพาะกลุ่ม ready เข้า AWS S3 ครั้งละ 3 applications แบบปลอดภัย
+                    ย้ายเฉพาะกลุ่ม ready เข้า AWS S3 ครั้งละ {READY_MIGRATION_BATCH_LIMIT} applications แบบปลอดภัย
                   </p>
                 </div>
               </div>
@@ -1127,7 +1150,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
               </div>
 
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 space-y-1.5">
-                <p>• ระบบจะ migrate สูงสุด <strong>3 applications</strong> ต่อรอบ</p>
+                <p>• ระบบจะ migrate สูงสุด <strong>{READY_MIGRATION_BATCH_LIMIT} applications</strong> ต่อรอบ</p>
                 <p>• ระบบจะข้าม broken/draft applications อัตโนมัติ</p>
                 <p>• ระบบจะ copy R2 → S3, verify size แล้วจึง update DB</p>
                 <p>• ระบบจะ <strong>ไม่ลบไฟล์ R2 ต้นทาง</strong> ในรอบนี้</p>
@@ -1145,7 +1168,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
                   className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-sm transition-colors inline-flex items-center gap-2"
                 >
                   <Upload className="w-4 h-4" />
-                  ยืนยัน migrate 3 apps
+                  ยืนยัน migrate {READY_MIGRATION_BATCH_LIMIT} apps
                 </button>
               </div>
             </div>
@@ -1160,17 +1183,34 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
             <div className="p-5 border-b border-slate-100">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center shrink-0">
-                  <RefreshCw className="w-5 h-5 text-amber-700 animate-spin" />
+                  {readyMigratePercent >= 100 ? (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  ) : (
+                    <RefreshCw className="w-5 h-5 text-amber-700 animate-spin" />
+                  )}
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-slate-900">กำลัง migrate เข้า AWS S3</h3>
-                  <p className="mt-1 text-xs text-slate-600">กรุณารอสักครู่ อย่าปิดหน้านี้ระหว่างทำงาน</p>
+                  <h3 className="text-base font-black text-slate-900">
+                    {readyMigratePercent >= 100 ? 'Migrate สำเร็จ กำลังรีเฟรชด้านหลัง' : 'กำลัง migrate เข้า AWS S3'}
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-600">
+                    {readyMigratePercent >= 100 ? 'ปิดหน้าต่างนี้ให้อัตโนมัติ แล้วอัปเดตตัวเลข Migration Center ต่อ' : 'กรุณารอสักครู่ อย่าปิดหน้านี้ระหว่างทำงาน'}
+                  </p>
                 </div>
               </div>
             </div>
             <div className="p-5 space-y-4">
-              <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
-                <div className="h-full w-1/2 rounded-full bg-gradient-to-r from-amber-500 via-orange-400 to-amber-500 animate-pulse" />
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-[10px] font-bold text-slate-500">
+                  <span>{readyMigratePercent >= 100 ? 'เสร็จแล้ว' : 'กำลังทำงาน'}</span>
+                  <span>{Math.round(readyMigratePercent)}%</span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${readyMigratePercent >= 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-amber-500 to-orange-500'}`}
+                    style={{ width: `${Math.max(readyMigratePercent, 8)}%` }}
+                  />
+                </div>
               </div>
               <div className="rounded-xl border border-amber-100 bg-amber-50 p-3 text-xs text-amber-800">
                 {readyMigrateStep || 'กำลังดำเนินการ...'}
@@ -1178,7 +1218,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-lg bg-slate-50 border border-slate-100 p-2">
                   <p className="text-[10px] text-slate-500">Batch</p>
-                  <p className="font-black text-slate-900">3 apps</p>
+                  <p className="font-black text-slate-900">{READY_MIGRATION_BATCH_LIMIT} apps</p>
                 </div>
                 <div className="rounded-lg bg-slate-50 border border-slate-100 p-2">
                   <p className="text-[10px] text-slate-500">Broken/Draft</p>
