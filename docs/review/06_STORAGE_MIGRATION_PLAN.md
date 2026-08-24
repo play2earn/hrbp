@@ -62,9 +62,10 @@ Implementation note: รอบแรกเพิ่ม `/api/storage-migration-a
 
 ### P1 — Batch migrate แบบปลอดภัย
 
-- [ ] เพิ่ม server endpoint สำหรับ migrate ทีละ application หรือทีละ batch ขนาดเล็ก
-- [ ] Copy source → S3 แล้ว verify ด้วย `HeadObject`/size/content-type ก่อน update DB
-- [ ] Update DB เฉพาะ field ที่ migration นั้นรับผิดชอบ และเก็บ old URL ไว้ใน migration log
+- [x] เพิ่ม server endpoint สำหรับ migrate ทีละ application หรือทีละ batch ขนาดเล็ก เพื่อใช้เฉพาะ rescue/exception จากหน้า HR Drive
+- [x] เพิ่ม offline/background runner สำหรับ bulk migration รอบแรก: `ops/storage/migrate-legacy-to-s3.mjs`
+- [x] Copy source → S3 แล้ว verify ด้วย `HeadObject`/size/content-type ก่อน update DB
+- [x] Update DB เฉพาะ field ที่ migration นั้นรับผิดชอบ และสร้าง report ต่อรอบไว้ที่ `ops/storage/reports/`
 - [ ] ถ้า copy สำเร็จแต่ DB update fail ให้คง S3 object ไว้เป็น `pending_reconcile` ไม่ลบ source
 - [ ] ถ้า source หาย ให้ mark `broken_reference` และส่งเป็น task ให้ HR ขอเอกสารใหม่
 
@@ -75,6 +76,18 @@ Implementation note: รอบแรกเพิ่ม `/api/storage-migration-a
 3. applications ที่ HR เปิดใช้งานบ่อยหรืออยู่ระหว่าง process
 4. historical archive ที่เหลือ
 
+แนวทางที่เลือก: bulk migration ครั้งแรกให้รันนอก Vercel ด้วย offline runner เพราะ Vercel Hobby/serverless มี timeout และเหมาะกับงาน request/response สั้น ๆ เท่านั้น ส่วน HR Drive ใช้ดู audit/result และกด manual migrate เฉพาะเคส fallback ที่หลุดมาในอนาคต ซึ่งคาดว่าไม่เยอะหลัง flow ใหม่เขียน S3 100%
+
+คำสั่งใช้งาน:
+
+```bash
+npm run storage:migrate:dry-run -- --limit=50
+npm run storage:migrate:live -- --limit=50
+npm run storage:migrate:dry-run -- --ids=<application-id-1>,<application-id-2>
+```
+
+หมายเหตุ: live mode ต้องใช้ `--confirm-live-migration` ซึ่งถูกใส่ใน npm script `storage:migrate:live` แล้ว และ script จะไม่ลบไฟล์ R2/Supabase source ในรอบ migration
+
 ### P2 — HR Drive UX
 
 - [ ] เพิ่ม card สรุป migration:
@@ -83,12 +96,12 @@ Implementation note: รอบแรกเพิ่ม `/api/storage-migration-a
   - Orphans
   - Migrated today
   - Pending reconcile
-- [ ] ปุ่ม “Migrate selected to S3” ใช้เฉพาะ admin/authorized role
+- [x] ปุ่ม “Migrate ready” ใช้เฉพาะ admin/authorized role และจำกัด batch เล็กเพื่อไม่ชน Vercel timeout
 - [ ] ปุ่ม “Open legacy source” แสดงเฉพาะ staff ที่มีสิทธิ์ เพื่อช่วยสอบสวน
 - [ ] ปุ่ม “Request re-upload” สำหรับ broken refs
 - [ ] แยกปุ่ม cleanup/trash ออกจาก migration ชัดเจน และต้อง confirm อีกชั้น
 
-HR manual migrate ควรเป็นเครื่องมือ rescue/exception ไม่ใช่ flow หลักของการย้ายทั้งหมด
+HR manual migrate ควรเป็นเครื่องมือ rescue/exception ไม่ใช่ flow หลักของการย้ายทั้งหมด; งานก้อนใหญ่ให้ใช้ offline/background runner แล้วกลับมาดูผล audit ที่ HR Drive
 
 ### P3 — Cleanup and retention
 
@@ -112,7 +125,7 @@ HR manual migrate ควรเป็นเครื่องมือ rescue/exc
 - [x] Migration dry-run แสดงจำนวน ready/broken/needs-review ได้ใน HR Drive
 - [x] Migration dry-run แสดง broken/draft applications ที่ควรแก้ก่อน batch migrate
 - [ ] Migration dry-run เพิ่ม orphan object report ที่เทียบ object exists แต่ DB ไม่อ้างถึง
-- [ ] Batch test 10–20 applications ผ่านโดย:
+- [ ] Offline batch test 10–50 applications ผ่านโดย:
   - destination S3 exists
   - DB URL เปลี่ยนเป็น `/api/files?key=...`
   - old source ยังอยู่

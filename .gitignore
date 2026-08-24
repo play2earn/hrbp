@@ -55,3 +55,4 @@ scratch/*
 dist-api/
 .tmp-test/
 .tmp-vercel/
+ops/storage/reports/
