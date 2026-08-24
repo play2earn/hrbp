@@ -269,6 +269,7 @@ interface FileUploadProps {
   accept?: string;
   maxSizeMB?: number;
   value?: string | null;
+  displayName?: string | null;
   onChange: (value: string | null) => void;
   onFileSelect?: (file: File | null) => void; // New prop to handle raw file
   error?: string;
@@ -277,7 +278,7 @@ interface FileUploadProps {
 }
 
 export const FileUpload: React.FC<FileUploadProps> = ({
-  label, description, accept, maxSizeMB = 5, value, onChange, onFileSelect, error, className = '', uploading = false
+  label, description, accept, maxSizeMB = 5, value, displayName, onChange, onFileSelect, error, className = '', uploading = false
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -286,6 +287,20 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isBusy = uploading || isInternalUploading;
+
+  const getFriendlyFileName = (rawValue?: string | null) => {
+    if (displayName) return displayName;
+    if (!rawValue) return 'Uploading...';
+    try {
+      const parsed = new URL(rawValue, window.location.origin);
+      const key = parsed.searchParams.get('key');
+      const url = parsed.searchParams.get('url');
+      const path = decodeURIComponent(key || url || parsed.pathname);
+      return path.split('/').pop() || 'Uploaded file';
+    } catch {
+      return rawValue.split('/').pop()?.split('?')[0] || 'Uploaded file';
+    }
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -433,7 +448,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
-              {value ? (value.split('/').pop()?.split('_').slice(1).join('_') || value) : "Uploading..."}
+              {getFriendlyFileName(value)}
             </p>
 
             {isBusy ? (

@@ -155,6 +155,12 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
     transcript: false,
     certificate: false
   });
+  const [uploadedFileNames, setUploadedFileNames] = useState<Record<'photo' | 'resume' | 'transcript' | 'certificate', string>>({
+    photo: '',
+    resume: '',
+    transcript: '',
+    certificate: '',
+  });
 
   // Master Data State
   const [departments, setDepartments] = useState<any[]>([]);
@@ -374,10 +380,12 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
   const handleFileUpload = async (file: File | null, fieldName: 'photoUrl' | 'resumeUrl' | 'transcriptUrl' | 'certificateUrl', stateKey: 'photo' | 'resume' | 'transcript' | 'certificate') => {
     if (!file) {
       updateField(fieldName, '');
+      setUploadedFileNames(prev => ({ ...prev, [stateKey]: '' }));
       return;
     }
 
     setUploadingState(prev => ({ ...prev, [stateKey]: true }));
+    setUploadedFileNames(prev => ({ ...prev, [stateKey]: file.name }));
 
     try {
       // Use API service with draftId
@@ -1727,6 +1735,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                   label={<>{t.labels.photo} <span className="text-red-500">*</span></>}
                   description={lang === 'th' ? "อัปโหลดรูปถ่าย (JPG/PNG จะถูกบีบอัดอัตโนมัติ)" : "Upload photo (JPG/PNG will be auto-compressed)"}
                   value={formData.photoUrl}
+                  displayName={uploadedFileNames.photo}
                   error={validationErrors.photoUrl}
                   onChange={() => { }} // Controlled via onFileSelect
                   onFileSelect={(file) => handleFileUpload(file, 'photoUrl', 'photo')}
@@ -1737,6 +1746,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                   label={t.labels.resume}
                   description={lang === 'th' ? "อัปโหลด Resume (PDF หรือรูปภาพ, ไม่เกิน 10MB)" : "Upload resume (PDF or Image, max 10MB)"}
                   value={formData.resumeUrl}
+                  displayName={uploadedFileNames.resume}
                   error={validationErrors.resumeUrl}
                   onChange={() => { }}
                   onFileSelect={(file) => handleFileUpload(file, 'resumeUrl', 'resume')}
@@ -1748,6 +1758,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                   label={<>{t.labels.transcript} <span className="text-red-500">*</span></>}
                   description={lang === 'th' ? "แนบ Transcript / ใบรับรองผลการศึกษา (PDF หรือรูปภาพ, ไม่เกิน 10MB)" : "Upload Academic Transcript (PDF or Image, max 10MB)"}
                   value={formData.transcriptUrl}
+                  displayName={uploadedFileNames.transcript}
                   error={validationErrors.transcriptUrl}
                   onChange={() => { }}
                   onFileSelect={(file) => handleFileUpload(file, 'transcriptUrl', 'transcript')}
@@ -1759,6 +1770,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                   label={t.labels.otherDocs}
                   description={lang === 'th' ? "เอกสารสำคัญอื่นๆ เช่น ใบอนุญาตขับขี่, TOEIC, ใบเซอร์ (PDF หรือรูปภาพ, ไม่เกิน 10MB)" : "Other important documents like Driving License, TOEIC, Cert. (PDF or Image, max 10MB)"}
                   value={formData.certificateUrl}
+                  displayName={uploadedFileNames.certificate}
                   error={validationErrors.certificateUrl}
                   onChange={() => { }}
                   onFileSelect={(file) => handleFileUpload(file, 'certificateUrl', 'certificate')}
