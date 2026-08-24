@@ -174,6 +174,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
   const [migrationAudit, setMigrationAudit] = useState<MigrationAuditResult | null>(null);
   const [loadingMigrationAudit, setLoadingMigrationAudit] = useState<boolean>(false);
   const [migratingReadyBatch, setMigratingReadyBatch] = useState<boolean>(false);
+  const [showReadyMigrateConfirm, setShowReadyMigrateConfirm] = useState<boolean>(false);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -382,10 +383,9 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
     }
   };
 
-  const handleMigrateReadyBatch = async () => {
+  const executeMigrateReadyBatch = async () => {
     if (!migrationAudit) return;
-    const ok = confirm('ยืนยัน migrate กลุ่ม ready 10 applications แรกเข้า AWS S3?\n\nระบบจะข้าม broken/draft apps และจะไม่ลบไฟล์ R2 ต้นทาง');
-    if (!ok) return;
+    setShowReadyMigrateConfirm(false);
     setMigratingReadyBatch(true);
     try {
       const res = await fetch('/api/storage-migration-audit', {
@@ -871,7 +871,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
               {loadingMigrationAudit ? 'กำลังสแกน...' : 'สแกนสถานะ Migration'}
             </button>
             <button
-              onClick={handleMigrateReadyBatch}
+              onClick={() => setShowReadyMigrateConfirm(true)}
               disabled={!migrationAudit || migratingReadyBatch || loadingMigrationAudit}
               className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm transition-colors"
               title="ย้ายเฉพาะ ready refs ครั้งละ 10 applications; ข้าม broken/draft และไม่ลบ R2 source"
@@ -1079,6 +1079,73 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
           </div>
         )}
       </div>
+
+      {/* Ready Batch Migration Confirm Modal */}
+      {showReadyMigrateConfirm && migrationAudit && (
+        <div
+          className="fixed inset-0 z-[120000] bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={() => setShowReadyMigrateConfirm(false)}
+        >
+          <div
+            className="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5 bg-gradient-to-r from-amber-50 to-white border-b border-amber-100">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center shrink-0">
+                  <Upload className="w-5 h-5 text-amber-700" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">ยืนยัน Batch Migration</h3>
+                  <p className="mt-1 text-xs text-slate-600">
+                    ย้ายเฉพาะกลุ่ม ready เข้า AWS S3 ครั้งละ 10 applications แบบปลอดภัย
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-xl bg-amber-50 border border-amber-100 p-3">
+                  <p className="text-[10px] text-amber-700">Ready refs</p>
+                  <p className="text-lg font-black text-amber-700">{formatCount(migrationAudit.summary.byStatus.ready_to_migrate)}</p>
+                </div>
+                <div className="rounded-xl bg-red-50 border border-red-100 p-3">
+                  <p className="text-[10px] text-red-700">Excluded</p>
+                  <p className="text-lg font-black text-red-700">{formatCount(migrationAudit.summary.brokenReferenceApplications)}</p>
+                </div>
+                <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3">
+                  <p className="text-[10px] text-emerald-700">Source delete</p>
+                  <p className="text-lg font-black text-emerald-700">No</p>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 space-y-1.5">
+                <p>• ระบบจะ migrate สูงสุด <strong>10 applications</strong> ต่อรอบ</p>
+                <p>• ระบบจะข้าม broken/draft applications อัตโนมัติ</p>
+                <p>• ระบบจะ copy R2 → S3, verify size แล้วจึง update DB</p>
+                <p>• ระบบจะ <strong>ไม่ลบไฟล์ R2 ต้นทาง</strong> ในรอบนี้</p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  onClick={() => setShowReadyMigrateConfirm(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-colors"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={executeMigrateReadyBatch}
+                  className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-sm transition-colors inline-flex items-center gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  ยืนยัน migrate 10 apps
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Explorer Card */}
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-5">
