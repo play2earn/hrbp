@@ -2,7 +2,7 @@
 import { supabase } from '../supabaseClient';
 import { ApplicationForm, BlacklistEntry, BlacklistAuditLog } from '../types';
 import md5 from 'js-md5';
-import { uploadToR2, deleteFromR2, getStorageProvider } from '../utils/r2-upload';
+import { uploadToR2, getStorageProvider } from '../utils/r2-upload';
 import { getIdmsErrorMessage } from '../utils/idms-response';
 import { sanitizeUnicode } from './utils';
 
@@ -781,83 +781,17 @@ export const api = {
    */
   deleteApplication: async (id: string): Promise<ApiResponse<any>> => {
     try {
-      const { data: appData, error: fetchError } = await supabase
-        .from('applications')
-        .select('form_data')
-        .eq('id', id)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      const supabaseFilesToDelete: string[] = [];
-      const r2UrlsToDelete: string[] = [];
-      const formData = appData?.form_data;
-
-      if (formData) {
-        const detectProvider = (url: string | undefined | null) => {
-          if (!url) return null;
-          if (url.includes('supabase.co') || url.includes('/storage/v1/object/public/')) {
-            return 'supabase';
-          }
-          return 'r2';
-        };
-
-        const extractSupabasePath = (url: string) => {
-          const matches = url.match(/\/public\/applicants\/(.+)$/);
-          return matches ? matches[1] : null;
-        };
-
-        const urls = [
-          formData.photoUrl,
-          formData.originalPhotoUrl,
-          formData.resumeUrl,
-          formData.certificateUrl,
-          formData.transcriptUrl,
-          formData.otherDocsUrl
-        ];
-
-        for (const url of urls) {
-          if (!url) continue;
-          const provider = detectProvider(url);
-          if (provider === 'supabase') {
-            const path = extractSupabasePath(url);
-            if (path) supabaseFilesToDelete.push(path);
-          } else if (provider === 'r2') {
-            r2UrlsToDelete.push(url);
-          }
-        }
+      const response = await fetch('/api/application-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ id }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.success) {
+        return { success: false, error: { message: result.error || 'Application delete failed' } };
       }
-
-      // 1. Delete Supabase files if any
-      if (supabaseFilesToDelete.length > 0) {
-        const { error: storageError } = await supabase.storage
-          .from('applicants')
-          .remove(supabaseFilesToDelete);
-
-        if (storageError) {
-          console.error("Warning: Failed to delete some Supabase storage files:", storageError);
-        }
-      }
-
-      // 2. Delete R2 files if any
-      if (r2UrlsToDelete.length > 0) {
-        for (const url of r2UrlsToDelete) {
-          console.log('[Delete] Triggering R2 deletion for:', url);
-          const success = await deleteFromR2(url);
-          if (!success) {
-            console.warn('[Delete] Failed to delete file from R2:', url);
-          }
-        }
-      }
-
-      const { error: deleteError } = await supabase
-        .from('applications')
-        .delete()
-        .eq('id', id);
-
-      if (deleteError) return handleError(deleteError, 'deleteApplication');
-
-      return { success: true };
+      return { success: true, data: result };
     } catch (error: any) {
       return handleError(error, 'deleteApplication');
     }
