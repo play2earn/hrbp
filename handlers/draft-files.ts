@@ -2,6 +2,17 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { Readable } from 'node:stream';
 import { configureSameOrigin, getActiveStaff, readSignedSession } from '../server/security.js';
+import { getAttachmentStorageMode } from '../server/storage.js';
+
+function getS3Client() {
+  const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+  if (!accessKeyId || !secretAccessKey) throw new Error('AWS S3 credentials are not fully configured');
+  return new S3Client({
+    region: process.env.AWS_REGION || 'ap-southeast-1',
+    credentials: { accessKeyId, secretAccessKey },
+  });
+}
 
 function getR2Client() {
   const accountId = process.env.R2_ACCOUNT_ID;
@@ -31,10 +42,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const response = await getR2Client().send(new GetObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME || 'hrbp-applicants',
-      Key: key,
-    }));
+    const isS3Primary = getAttachmentStorageMode() === 's3-primary';
+    let response;
+    try {
+      const client = isS3Primary ? getS3Client() : getR2Client();
+      response = await client.send(new GetObjectCommand({
+        Bucket: isS3Primary ? (process.env.AWS_S3_BUCKET || 'hr-recruitment-01') : (process.env.R2_BUCKET_NAME || 'hrbp-applicants'),
+        Key: key,
+      }));
+    } catch (error) {
+      if (!isS3Primary) throw error;
+      response = await getR2Client().send(new GetObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME || 'hrbp-applicants',
+        Key: key,
+      }));
+    }
     if (!response.Body) return res.status(404).json({ error: 'Draft file not found' });
     res.setHeader('Content-Type', response.ContentType || 'application/octet-stream');
     res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(key.split('/').pop() || 'draft-file')}"`);

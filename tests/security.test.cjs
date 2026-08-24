@@ -58,6 +58,11 @@ test('storage feature flags default to legacy and private modes produce API URLs
   const env = { R2_DRAFT_ACCESS_MODE: 'private-proxy', ATTACHMENT_STORAGE_MODE: 's3-primary' };
   assert.equal(storage.draftObjectUrl('draft-12345678901234567890', 'drafts/draft-12345678901234567890/file.pdf', env),
     '/api/draft-files?draftId=draft-12345678901234567890&key=drafts%2Fdraft-12345678901234567890%2Ffile.pdf');
+  assert.equal(storage.draftObjectUrl(
+    'draft-12345678901234567890',
+    'drafts/draft-12345678901234567890/file.pdf',
+    { R2_PUBLIC_DOMAIN: 'https://files.example.com/hrbp', R2_DRAFT_ACCESS_MODE: 'legacy-public', ATTACHMENT_STORAGE_MODE: 's3-primary' },
+  ), '/api/draft-files?draftId=draft-12345678901234567890&key=drafts%2Fdraft-12345678901234567890%2Ffile.pdf');
   assert.equal(storage.permanentObjectUrl('applicants/app-1/file.pdf', env), '/api/files?key=applicants%2Fapp-1%2Ffile.pdf');
   assert.throws(() => storage.getAttachmentStorageMode({ ATTACHMENT_STORAGE_MODE: 'invalid' }));
 });

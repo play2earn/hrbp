@@ -85,17 +85,17 @@ Official references: [Supabase API keys](https://supabase.com/docs/guides/gettin
 - `VITE_SUPABASE_ANON_KEY`
 - `VITE_STORAGE_PROVIDER`
 
-## Feature flags — ค่าเริ่มต้นที่ไม่เปลี่ยน production behavior
-
-```dotenv
-ATTACHMENT_STORAGE_MODE=r2-legacy
-R2_DRAFT_ACCESS_MODE=legacy-public
-```
-
-ค่า cutover หลัง staging ผ่าน:
+## Feature flags — ค่าเป้าหมายสำหรับ AWS S3 primary
 
 ```dotenv
 ATTACHMENT_STORAGE_MODE=s3-primary
+R2_DRAFT_ACCESS_MODE=private-proxy
+```
+
+ค่า legacy rollback ก่อนปิด public R2:
+
+```dotenv
+ATTACHMENT_STORAGE_MODE=r2-legacy
 R2_DRAFT_ACCESS_MODE=private-proxy
 ```
 
@@ -105,7 +105,7 @@ R2_DRAFT_ACCESS_MODE=private-proxy
 - [x] Secret ใหม่ถูกสร้างสำหรับ session และ cron
 - [x] Preview และ Production ใช้ `HRBP_SESSION_SECRET`/`CRON_SECRET` คนละค่า
 - [x] `APP_ORIGIN` ตรงกับ `https://hrbp-three.vercel.app`
-- [ ] IDMS ออก AgentCode ใหม่หรือยืนยันว่าเดิมยังใช้ได้
+- [x] IDMS ยืนยันให้ใช้ AgentCode เดิมชั่วคราวได้; ต้องอยู่ใน environment variable เท่านั้น ห้ามฝังใน source/frontend
 - [ ] AWS/R2 IAM จำกัดเฉพาะ bucket/prefix ที่ระบบใช้
 - [ ] ผู้อนุมัติยืนยันเวลาที่จะ revoke key เก่า
 - [x] `npm run env:check:production` ผ่านโดยไม่พิมพ์ค่า secret

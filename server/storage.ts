@@ -20,7 +20,7 @@ function normalizedPublicDomain(env: NodeJS.ProcessEnv): string {
 }
 
 export function draftObjectUrl(draftId: string, key: string, env: NodeJS.ProcessEnv = process.env): string {
-  if (getDraftAccessMode(env) === 'private-proxy') {
+  if (getAttachmentStorageMode(env) === 's3-primary' || getDraftAccessMode(env) === 'private-proxy') {
     return `/api/draft-files?draftId=${encodeURIComponent(draftId)}&key=${encodeURIComponent(key)}`;
   }
   return `${normalizedPublicDomain(env)}/${key}`;

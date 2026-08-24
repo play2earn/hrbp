@@ -3,7 +3,7 @@ import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'crypto';
 import { configureSameOrigin, requireDraftSession, requireResubmitSession, requireStaff } from '../server/security.js';
-import { draftObjectUrl, getDraftAccessMode } from '../server/storage.js';
+import { draftObjectUrl, getAttachmentStorageMode, getDraftAccessMode } from '../server/storage.js';
 
 const getS3Client = () => {
   const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
@@ -126,16 +126,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     };
     const safeExt = extensionByType[fileType] || 'bin';
 
-    // If draftId is present, handle via R2 draft storage
+    // If draftId is present, handle via the active draft storage.
+    // s3-primary stores draft uploads in AWS S3 from the first applicant upload.
     if (draftId && draftId.startsWith('draft-')) {
-      const r2 = getR2Client();
       const uniqueName = `${randomUUID()}-${Date.now()}.${safeExt}`;
-      const r2Key = `drafts/${draftId}/${uniqueName}`;
-      const bucketName = process.env.R2_BUCKET_NAME || 'hrbp-applicants';
-      await r2.send(
+      const draftKey = `drafts/${draftId}/${uniqueName}`;
+      const attachmentMode = getAttachmentStorageMode();
+      const draftClient = attachmentMode === 's3-primary' ? getS3Client() : getR2Client();
+      const bucketName = attachmentMode === 's3-primary'
+        ? (process.env.AWS_S3_BUCKET || 'hr-recruitment-01')
+        : (process.env.R2_BUCKET_NAME || 'hrbp-applicants');
+
+      await draftClient.send(
         new PutObjectCommand({
           Bucket: bucketName,
-          Key: r2Key,
+          Key: draftKey,
           Body: fileBuffer,
           ContentType: fileType,
         })
@@ -143,9 +148,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       return res.status(200).json({
         success: true,
-        url: draftObjectUrl(String(draftId), r2Key),
-        key: r2Key,
-        provider: 'r2',
+        url: draftObjectUrl(String(draftId), draftKey),
+        key: draftKey,
+        provider: attachmentMode === 's3-primary' ? 's3' : 'r2',
         accessMode: getDraftAccessMode(),
       });
     }

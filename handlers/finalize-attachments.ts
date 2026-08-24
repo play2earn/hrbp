@@ -80,8 +80,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const r2 = getR2Client();
     const s3 = attachmentMode === 's3-primary' ? getS3Client() : null;
-    const listResult = await r2.send(new ListObjectsV2Command({ Bucket: r2Bucket, Prefix: rawDraftPrefix }));
-    const objects = (listResult.Contents || []).filter(object => Boolean(object.Key));
+    let sourceStore: 's3' | 'r2' = attachmentMode === 's3-primary' ? 's3' : 'r2';
+    let sourceBucket = sourceStore === 's3' ? s3Bucket : r2Bucket;
+    let listResult = await (sourceStore === 's3' ? s3! : r2).send(new ListObjectsV2Command({ Bucket: sourceBucket, Prefix: rawDraftPrefix }));
+    let objects = (listResult.Contents || []).filter(object => Boolean(object.Key));
+    if (attachmentMode === 's3-primary' && !objects.length) {
+      sourceStore = 'r2';
+      sourceBucket = r2Bucket;
+      listResult = await r2.send(new ListObjectsV2Command({ Bucket: sourceBucket, Prefix: rawDraftPrefix }));
+      objects = (listResult.Contents || []).filter(object => Boolean(object.Key));
+    }
     if (!objects.length) return res.status(200).json({ success: true, provider: attachmentMode, finalizedCount: 0 });
 
     const finalizedKeys: string[] = [];
@@ -96,15 +104,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const targetKey = `applicants/${applicationId}/${fileName}`;
 
         if (attachmentMode === 's3-primary') {
-          const source = await r2.send(new GetObjectCommand({ Bucket: r2Bucket, Key: sourceKey }));
-          if (!source.Body) throw new Error(`R2 draft object has no body: ${sourceKey}`);
-          await s3!.send(new PutObjectCommand({
-            Bucket: s3Bucket,
-            Key: targetKey,
-            Body: source.Body as any,
-            ContentType: source.ContentType || 'application/octet-stream',
-            Metadata: { source: 'hrbp-r2-draft' },
-          }));
+          if (sourceStore === 's3') {
+            await s3!.send(new CopyObjectCommand({
+              Bucket: s3Bucket,
+              CopySource: encodeURIComponent(`${s3Bucket}/${sourceKey}`),
+              Key: targetKey,
+            }));
+          } else {
+            const source = await r2.send(new GetObjectCommand({ Bucket: r2Bucket, Key: sourceKey }));
+            if (!source.Body) throw new Error(`R2 draft object has no body: ${sourceKey}`);
+            await s3!.send(new PutObjectCommand({
+              Bucket: s3Bucket,
+              Key: targetKey,
+              Body: source.Body as any,
+              ContentType: source.ContentType || 'application/octet-stream',
+              Metadata: { source: 'hrbp-r2-draft' },
+            }));
+          }
           finalizedKeys.push(targetKey);
           const verified = await s3!.send(new HeadObjectCommand({ Bucket: s3Bucket, Key: targetKey }));
           if (object.Size !== undefined && verified.ContentLength !== object.Size) {
@@ -143,11 +159,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       databaseCommitted = true;
 
       const cleanupResults = await Promise.allSettled(objects.map(object =>
-        r2.send(new DeleteObjectCommand({ Bucket: r2Bucket, Key: String(object.Key) }))
+        (sourceStore === 's3' ? s3! : r2).send(new DeleteObjectCommand({ Bucket: sourceBucket, Key: String(object.Key) }))
       ));
       const cleanupFailures = cleanupResults.filter(result => result.status === 'rejected').length;
       if (cleanupFailures) {
-        console.warn(`[finalize-attachments] ${cleanupFailures} R2 draft object(s) remain for lifecycle cleanup`);
+        console.warn(`[finalize-attachments] ${cleanupFailures} ${sourceStore.toUpperCase()} draft object(s) remain for lifecycle cleanup`);
       }
       console.log(`[finalize-attachments] application=${applicationId} provider=${attachmentMode} count=${finalizedKeys.length}`);
       return res.status(200).json({

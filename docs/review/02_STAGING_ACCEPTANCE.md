@@ -48,6 +48,6 @@ Preview ยังใช้ Supabase/AWS/R2 ชุดเดียวกับ Pro
 |---|---|---|
 | `r2-legacy` | `legacy-public` | behavior เดิมสำหรับ baseline |
 | `r2-legacy` | `private-proxy` | draft preview ผ่าน API, permanent ยัง R2 |
-| `s3-primary` | `private-proxy` | เป้าหมาย: draft R2, final private S3 |
+| `s3-primary` | `private-proxy` | เป้าหมาย: draft และ final private AWS S3; R2 เป็น fallback/legacy only |
 
 ห้ามทดสอบ `s3-primary` กับ production bucket โดยตรง ให้ใช้ staging bucket แยก
