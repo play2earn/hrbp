@@ -125,7 +125,8 @@ interface MigrationAuditResult {
   nextRecommendedBatch: 'draftReferences' | 'readyToMigrate' | 'none';
 }
 
-const READY_MIGRATION_BATCH_LIMIT = 10;
+const READY_MIGRATION_BATCH_LIMIT = 5;
+type ReadyMigrateStatus = 'idle' | 'running' | 'success' | 'error';
 
 export interface DocCategorySetting {
   id: string;
@@ -178,6 +179,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
   const [migratingReadyBatch, setMigratingReadyBatch] = useState<boolean>(false);
   const [readyMigrateStep, setReadyMigrateStep] = useState<string>('');
   const [readyMigratePercent, setReadyMigratePercent] = useState<number>(0);
+  const [readyMigrateStatus, setReadyMigrateStatus] = useState<ReadyMigrateStatus>('idle');
   const [showReadyMigrateConfirm, setShowReadyMigrateConfirm] = useState<boolean>(false);
 
   // Pagination State
@@ -369,11 +371,33 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
     }
   };
 
+  const readApiJson = async (res: Response) => {
+    const raw = await res.text();
+    let data: any = null;
+    try {
+      data = raw ? JSON.parse(raw) : {};
+    } catch {
+      const preview = raw.replace(/\s+/g, ' ').slice(0, 120) || 'empty response';
+      throw new Error(`Server returned HTTP ${res.status}: ${preview}`);
+    }
+    if (!res.ok) {
+      throw new Error(data.error || `Server returned HTTP ${res.status}`);
+    }
+    return data;
+  };
+
+  const resetReadyMigrateProgress = () => {
+    setMigratingReadyBatch(false);
+    setReadyMigrateStep('');
+    setReadyMigratePercent(0);
+    setReadyMigrateStatus('idle');
+  };
+
   const fetchMigrationAudit = async (options?: { silent?: boolean }) => {
     setLoadingMigrationAudit(true);
     try {
       const res = await fetch('/api/storage-migration-audit');
-      const data = await res.json();
+      const data = await readApiJson(res);
       if (data.success) {
         setMigrationAudit(data);
         if (!options?.silent) {
@@ -393,6 +417,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
     if (!migrationAudit) return;
     setShowReadyMigrateConfirm(false);
     setMigratingReadyBatch(true);
+    setReadyMigrateStatus('running');
     setReadyMigratePercent(12);
     setReadyMigrateStep('เตรียมรายการ ready และข้าม broken/draft applications...');
     try {
@@ -403,37 +428,31 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'migrate-ready-batch', limit: READY_MIGRATION_BATCH_LIMIT }),
       });
-      const data = await res.json();
+      const data = await readApiJson(res);
       if (data.success) {
+        setReadyMigrateStatus('success');
         setReadyMigratePercent(100);
         setReadyMigrateStep(`Migrate เสร็จ ${data.migratedApplications || 0} applications / ${data.migratedRefs || 0} refs — กำลัง refresh ข้อมูลเบื้องหลัง`);
         showToast(`Migrate เสร็จ ${data.migratedApplications || 0} apps / fail ${data.failedApplications || 0} apps — ไม่ลบ R2 source`, data.failedApplications ? 'error' : 'success');
-        window.setTimeout(() => {
-          setMigratingReadyBatch(false);
-          setReadyMigrateStep('');
-          setReadyMigratePercent(0);
-        }, 900);
+        window.setTimeout(resetReadyMigrateProgress, 900);
         void Promise.allSettled([
           fetchMigrationAudit({ silent: true }),
           fetchS3Objects(currentPrefix),
         ]);
       } else {
-        setReadyMigratePercent(100);
+        setReadyMigrateStatus('error');
+        setReadyMigratePercent(35);
+        setReadyMigrateStep(data.error || 'Batch migration failed');
         showToast(data.error || 'Batch migration failed', 'error');
-        window.setTimeout(() => {
-          setMigratingReadyBatch(false);
-          setReadyMigrateStep('');
-          setReadyMigratePercent(0);
-        }, 1200);
+        window.setTimeout(resetReadyMigrateProgress, 3000);
       }
     } catch (err: any) {
-      setReadyMigratePercent(100);
+      const message = err.message || 'Batch migration network error';
+      setReadyMigrateStatus('error');
+      setReadyMigratePercent(35);
+      setReadyMigrateStep(message.includes('504') ? 'Server timeout 504 — batch นี้ใหญ่/ช้าเกินไปสำหรับรอบนี้ ยังไม่ลบ R2 source' : message);
       showToast(err.message || 'Batch migration network error', 'error');
-      window.setTimeout(() => {
-        setMigratingReadyBatch(false);
-        setReadyMigrateStep('');
-        setReadyMigratePercent(0);
-      }, 1200);
+      window.setTimeout(resetReadyMigrateProgress, 3000);
     }
   };
 
@@ -1183,18 +1202,28 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
             <div className="p-5 border-b border-slate-100">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center shrink-0">
-                  {readyMigratePercent >= 100 ? (
+                  {readyMigrateStatus === 'success' ? (
                     <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  ) : readyMigrateStatus === 'error' ? (
+                    <AlertTriangle className="w-5 h-5 text-red-600" />
                   ) : (
                     <RefreshCw className="w-5 h-5 text-amber-700 animate-spin" />
                   )}
                 </div>
                 <div>
                   <h3 className="text-base font-black text-slate-900">
-                    {readyMigratePercent >= 100 ? 'Migrate สำเร็จ กำลังรีเฟรชด้านหลัง' : 'กำลัง migrate เข้า AWS S3'}
+                    {readyMigrateStatus === 'success'
+                      ? 'Migrate สำเร็จ กำลังรีเฟรชด้านหลัง'
+                      : readyMigrateStatus === 'error'
+                        ? 'Migrate รอบนี้ไม่สำเร็จ'
+                        : 'กำลัง migrate เข้า AWS S3'}
                   </h3>
                   <p className="mt-1 text-xs text-slate-600">
-                    {readyMigratePercent >= 100 ? 'ปิดหน้าต่างนี้ให้อัตโนมัติ แล้วอัปเดตตัวเลข Migration Center ต่อ' : 'กรุณารอสักครู่ อย่าปิดหน้านี้ระหว่างทำงาน'}
+                    {readyMigrateStatus === 'success'
+                      ? 'ปิดหน้าต่างนี้ให้อัตโนมัติ แล้วอัปเดตตัวเลข Migration Center ต่อ'
+                      : readyMigrateStatus === 'error'
+                        ? 'ระบบจะปิดหน้าต่างนี้เอง ข้อมูลต้นทาง R2 ยังไม่ถูกลบ'
+                        : 'กรุณารอสักครู่ อย่าปิดหน้านี้ระหว่างทำงาน'}
                   </p>
                 </div>
               </div>
@@ -1202,17 +1231,27 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
             <div className="p-5 space-y-4">
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-[10px] font-bold text-slate-500">
-                  <span>{readyMigratePercent >= 100 ? 'เสร็จแล้ว' : 'กำลังทำงาน'}</span>
+                  <span>{readyMigrateStatus === 'success' ? 'เสร็จแล้ว' : readyMigrateStatus === 'error' ? 'หยุดที่ error' : 'กำลังทำงาน'}</span>
                   <span>{Math.round(readyMigratePercent)}%</span>
                 </div>
                 <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
                   <div
-                    className={`h-full rounded-full transition-all duration-500 ${readyMigratePercent >= 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-amber-500 to-orange-500'}`}
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      readyMigrateStatus === 'success'
+                        ? 'bg-emerald-500'
+                        : readyMigrateStatus === 'error'
+                          ? 'bg-red-500'
+                          : 'bg-gradient-to-r from-amber-500 to-orange-500'
+                    }`}
                     style={{ width: `${Math.max(readyMigratePercent, 8)}%` }}
                   />
                 </div>
               </div>
-              <div className="rounded-xl border border-amber-100 bg-amber-50 p-3 text-xs text-amber-800">
+              <div className={`rounded-xl border p-3 text-xs ${
+                readyMigrateStatus === 'error'
+                  ? 'border-red-100 bg-red-50 text-red-800'
+                  : 'border-amber-100 bg-amber-50 text-amber-800'
+              }`}>
                 {readyMigrateStep || 'กำลังดำเนินการ...'}
               </div>
               <div className="grid grid-cols-3 gap-2 text-center">
