@@ -23,6 +23,7 @@ import {
   ArrowRight,
   Eye,
   Trash2,
+  AlertTriangle,
   Layers,
   X
 } from 'lucide-react';
@@ -64,6 +65,44 @@ interface BucketStats {
   quotaCapGB: number;
   quotaCapBytes: number;
   usagePercent: number;
+}
+
+interface MigrationAuditRef {
+  applicationId: string;
+  applicantName: string;
+  field: string;
+  provider: 's3' | 'r2' | 'supabase' | 'external' | 'unknown';
+  statusBucket: 'already_s3' | 'ready_to_migrate' | 'broken_reference' | 'needs_review';
+  key?: string;
+  bucket?: string;
+  path?: string;
+  reason: string;
+}
+
+interface MigrationAuditResult {
+  generatedAt: string;
+  mode: 'read-only';
+  summary: {
+    applicationsScanned: number;
+    referencesScanned: number;
+    affectedApplications: number;
+    draftReferenceApplications: number;
+    brokenReferenceApplications: number;
+    byProvider: Record<string, number>;
+    byStatus: Record<string, number>;
+  };
+  inventories: {
+    s3: { bucket: string; totalObjects: number; formattedTotalSize: string };
+    r2: { bucket: string; configured: boolean; totalObjects: number; formattedTotalSize: string };
+  };
+  samples: {
+    readyToMigrate: MigrationAuditRef[];
+    brokenReferences: MigrationAuditRef[];
+    draftReferences: MigrationAuditRef[];
+    supabaseLegacy: MigrationAuditRef[];
+    needsReview: MigrationAuditRef[];
+  };
+  nextRecommendedBatch: 'draftReferences' | 'readyToMigrate' | 'none';
 }
 
 export interface DocCategorySetting {
@@ -112,6 +151,8 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
   const [migratingKey, setMigratingKey] = useState<string | null>(null);
   const [isUploadingFile, setIsUploadingFile] = useState<boolean>(false);
   const [bucketStats, setBucketStats] = useState<BucketStats | null>(null);
+  const [migrationAudit, setMigrationAudit] = useState<MigrationAuditResult | null>(null);
+  const [loadingMigrationAudit, setLoadingMigrationAudit] = useState<boolean>(false);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -302,6 +343,24 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
     }
   };
 
+  const fetchMigrationAudit = async () => {
+    setLoadingMigrationAudit(true);
+    try {
+      const res = await fetch('/api/storage-migration-audit');
+      const data = await res.json();
+      if (data.success) {
+        setMigrationAudit(data);
+        showToast('สแกน Migration Center สำเร็จ — ยังไม่มีการย้ายหรือลบไฟล์', 'success');
+      } else {
+        showToast(data.error || 'Migration audit failed', 'error');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Migration audit network error', 'error');
+    } finally {
+      setLoadingMigrationAudit(false);
+    }
+  };
+
   // Preview State
   const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
   const [previewPdfTitle, setPreviewPdfTitle] = useState<string>('');
@@ -483,6 +542,31 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+  };
+
+  const formatCount = (value?: number) => Number(value || 0).toLocaleString('th-TH');
+
+  const renderAuditSample = (items: MigrationAuditRef[], emptyText: string) => {
+    if (items.length === 0) {
+      return <p className="text-[11px] text-slate-400">{emptyText}</p>;
+    }
+    return (
+      <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+        {items.slice(0, 6).map((item, idx) => (
+          <div key={`${item.applicationId}-${item.field}-${idx}`} className="rounded-lg border border-slate-100 bg-white/80 px-2.5 py-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-semibold text-[11px] text-slate-800 truncate" title={item.applicantName}>
+                {item.applicantName}
+              </span>
+              <span className="font-mono text-[10px] text-slate-400 shrink-0">{item.applicationId.slice(0, 8)}</span>
+            </div>
+            <div className="mt-0.5 text-[10px] text-slate-500 truncate" title={item.key || item.path || item.reason}>
+              {item.field} • {item.key || `${item.bucket || item.provider}/${item.path || ''}` || item.reason}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   // Open Preview
@@ -707,6 +791,109 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
             📁 drafts/ (ไฟล์ร่างค้าง)
           </button>
         </div>
+      </div>
+
+      {/* Migration Center — read-only legacy storage audit */}
+      <div className="bg-white border border-indigo-100 rounded-2xl p-5 shadow-sm space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Layers className="w-5 h-5 text-indigo-500" />
+              <h3 className="text-base font-bold text-slate-900">Migration Center</h3>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-200 bg-indigo-50 text-indigo-700">
+                Audit-only
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 max-w-3xl">
+              ตรวจไฟล์ legacy ที่ยังชี้ Cloudflare R2 / Supabase Storage ก่อนทยอยย้ายเข้า AWS S3 — ปุ่มนี้ไม่ย้ายไฟล์ ไม่แก้ DB และไม่ลบ source
+            </p>
+          </div>
+          <button
+            onClick={fetchMigrationAudit}
+            disabled={loadingMigrationAudit}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs font-bold shadow-sm transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${loadingMigrationAudit ? 'animate-spin' : ''}`} />
+            {loadingMigrationAudit ? 'กำลังสแกน...' : 'สแกนสถานะ Migration'}
+          </button>
+        </div>
+
+        {migrationAudit ? (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <p className="text-[11px] text-slate-500">Applications scanned</p>
+                <p className="mt-1 text-xl font-black text-slate-900">{formatCount(migrationAudit.summary.applicationsScanned)}</p>
+                <p className="text-[10px] text-slate-400">refs: {formatCount(migrationAudit.summary.referencesScanned)}</p>
+              </div>
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                <p className="text-[11px] text-amber-700">Ready to migrate</p>
+                <p className="mt-1 text-xl font-black text-amber-700">{formatCount(migrationAudit.summary.byStatus.ready_to_migrate)}</p>
+                <p className="text-[10px] text-amber-600">R2 source exists</p>
+              </div>
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+                <p className="text-[11px] text-red-700">Broken refs</p>
+                <p className="mt-1 text-xl font-black text-red-700">{formatCount(migrationAudit.summary.byStatus.broken_reference)}</p>
+                <p className="text-[10px] text-red-600">{formatCount(migrationAudit.summary.brokenReferenceApplications)} applications</p>
+              </div>
+              <div className="rounded-xl border border-blue-200 bg-blue-50 p-3">
+                <p className="text-[11px] text-blue-700">Draft refs</p>
+                <p className="mt-1 text-xl font-black text-blue-700">{formatCount(migrationAudit.summary.draftReferenceApplications)}</p>
+                <p className="text-[10px] text-blue-600">ควรจัดการก่อน</p>
+              </div>
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                <p className="text-[11px] text-emerald-700">Already S3</p>
+                <p className="mt-1 text-xl font-black text-emerald-700">{formatCount(migrationAudit.summary.byStatus.already_s3)}</p>
+                <p className="text-[10px] text-emerald-600">ไม่ต้องย้าย</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+              <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <ArrowRight className="w-4 h-4 text-amber-600" />
+                  <h4 className="text-xs font-bold text-amber-900">ตัวอย่างที่พร้อมย้าย</h4>
+                </div>
+                {renderAuditSample(migrationAudit.samples.readyToMigrate, 'ยังไม่พบ R2 refs ที่พร้อมย้าย')}
+              </div>
+              <div className="rounded-xl border border-red-100 bg-red-50/40 p-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <AlertTriangle className="w-4 h-4 text-red-600" />
+                  <h4 className="text-xs font-bold text-red-900">ตัวอย่าง broken refs</h4>
+                </div>
+                {renderAuditSample(migrationAudit.samples.brokenReferences, 'ยังไม่พบ broken refs จาก R2 listing')}
+              </div>
+              <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Database className="w-4 h-4 text-blue-600" />
+                  <h4 className="text-xs font-bold text-blue-900">Supabase / needs review</h4>
+                </div>
+                {renderAuditSample(
+                  migrationAudit.samples.supabaseLegacy.length > 0
+                    ? migrationAudit.samples.supabaseLegacy
+                    : migrationAudit.samples.needsReview,
+                  'ยังไม่พบ Supabase legacy refs ใน sample'
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-[11px] text-slate-600">
+              <div>
+                <span className="font-semibold text-slate-800">Inventory:</span>{' '}
+                S3 {formatCount(migrationAudit.inventories.s3.totalObjects)} objects / {migrationAudit.inventories.s3.formattedTotalSize}
+                {' • '}
+                R2 {migrationAudit.inventories.r2.configured ? `${formatCount(migrationAudit.inventories.r2.totalObjects)} objects / ${migrationAudit.inventories.r2.formattedTotalSize}` : 'not configured'}
+              </div>
+              <div className="font-mono text-slate-400">
+                Last audit: {new Date(migrationAudit.generatedAt).toLocaleString('th-TH')}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-4 text-xs text-slate-500">
+            กด “สแกนสถานะ Migration” เพื่อดู backlog ก่อนย้ายจริง แนะนำให้เริ่มจาก draft refs และ broken refs ก่อนเสมอ
+          </div>
+        )}
       </div>
 
       {/* Main Explorer Card */}
@@ -1434,4 +1621,3 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
     </div>
   );
 };
-

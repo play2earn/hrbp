@@ -14,6 +14,8 @@ Applicant browser
 
 R2 remains configured only as fallback/legacy storage for existing draft objects and old public references during transition. New applicant uploads, edit/crop uploads, resubmit uploads and requested-document uploads must write to AWS S3 when `ATTACHMENT_STORAGE_MODE=s3-primary`.
 
+หลัง production cutover ผ่านแล้ว ให้ใช้ `06_STORAGE_MIGRATION_PLAN.md` เป็นแผนหลักสำหรับย้าย legacy R2/Supabase refs ที่ยังค้างไป AWS S3 แบบ batch และมี audit/rollback log
+
 ## Infrastructure approval
 
 - [ ] S3 Block Public Access เปิดครบ
@@ -53,3 +55,10 @@ R2 remains configured only as fallback/legacy storage for existing draft objects
 - [ ] Security reviewed public-access shutdown
 - [ ] HR verified sample documents
 - [ ] Rollback owner and change window confirmed
+
+## Post-cutover migration gate
+
+- [ ] Run read-only migration audit ก่อนย้ายไฟล์จริง
+- [ ] Migration Center แสดง ready/broken/orphan/migrated counts ได้
+- [ ] Batch test 10–20 applications สำเร็จและ HR เปิดไฟล์ได้
+- [ ] Legacy source ยังไม่ถูกลบจนกว่า retention window และ cleanup approval ผ่าน
