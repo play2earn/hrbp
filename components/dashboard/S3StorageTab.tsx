@@ -88,6 +88,9 @@ interface MigrationAuditResult {
     affectedApplications: number;
     draftReferenceApplications: number;
     brokenReferenceApplications: number;
+    uniqueReadySourceFiles?: number;
+    uniqueBrokenSourceFiles?: number;
+    uniqueAlreadyS3Files?: number;
     byProvider: Record<string, number>;
     byStatus: Record<string, number>;
   };
@@ -829,12 +832,16 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
                 <p className="text-[11px] text-amber-700">Ready to migrate</p>
                 <p className="mt-1 text-xl font-black text-amber-700">{formatCount(migrationAudit.summary.byStatus.ready_to_migrate)}</p>
-                <p className="text-[10px] text-amber-600">R2 source exists</p>
+                <p className="text-[10px] text-amber-600">
+                  refs • {formatCount(migrationAudit.summary.uniqueReadySourceFiles)} unique files
+                </p>
               </div>
               <div className="rounded-xl border border-red-200 bg-red-50 p-3">
                 <p className="text-[11px] text-red-700">Broken refs</p>
                 <p className="mt-1 text-xl font-black text-red-700">{formatCount(migrationAudit.summary.byStatus.broken_reference)}</p>
-                <p className="text-[10px] text-red-600">{formatCount(migrationAudit.summary.brokenReferenceApplications)} applications</p>
+                <p className="text-[10px] text-red-600">
+                  {formatCount(migrationAudit.summary.brokenReferenceApplications)} apps • {formatCount(migrationAudit.summary.uniqueBrokenSourceFiles)} files
+                </p>
               </div>
               <div className="rounded-xl border border-blue-200 bg-blue-50 p-3">
                 <p className="text-[11px] text-blue-700">Draft refs</p>
@@ -844,7 +851,9 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
                 <p className="text-[11px] text-emerald-700">Already S3</p>
                 <p className="mt-1 text-xl font-black text-emerald-700">{formatCount(migrationAudit.summary.byStatus.already_s3)}</p>
-                <p className="text-[10px] text-emerald-600">ไม่ต้องย้าย</p>
+                <p className="text-[10px] text-emerald-600">
+                  refs • {formatCount(migrationAudit.summary.uniqueAlreadyS3Files)} unique files
+                </p>
               </div>
             </div>
 

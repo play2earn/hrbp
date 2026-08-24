@@ -37,7 +37,16 @@ const FILE_FIELD_HINTS = [
   'file',
 ];
 
-const R2_SCAN_PREFIXES = ['applicants/', 'drafts/', 'photos/', 'applications/'] as const;
+const R2_SCAN_PREFIXES = [
+  'applicants/',
+  'drafts/',
+  'photos/',
+  'photo/',
+  'resume/',
+  'transcript/',
+  'certificate/',
+  'applications/',
+] as const;
 const MAX_SAMPLE_ITEMS = 25;
 
 function cleanEnv(value?: string): string {
@@ -296,6 +305,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const affectedApplications = new Set(refs.filter((ref) => ref.statusBucket !== 'already_s3').map((ref) => ref.applicationId));
     const draftApplications = new Set(refs.filter((ref) => ref.key?.startsWith('drafts/') || ref.value.includes('draftId=')).map((ref) => ref.applicationId));
     const brokenApplications = new Set(refs.filter((ref) => ref.statusBucket === 'broken_reference').map((ref) => ref.applicationId));
+    const uniqueReadySourceKeys = new Set(refs.filter((ref) => ref.statusBucket === 'ready_to_migrate' && ref.key).map((ref) => `${ref.provider}:${ref.key}`));
+    const uniqueBrokenSourceKeys = new Set(refs.filter((ref) => ref.statusBucket === 'broken_reference' && ref.key).map((ref) => `${ref.provider}:${ref.key}`));
+    const uniqueAlreadyS3Keys = new Set(refs.filter((ref) => ref.statusBucket === 'already_s3' && ref.key).map((ref) => ref.key));
 
     return res.status(200).json({
       success: true,
@@ -307,6 +319,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         affectedApplications: affectedApplications.size,
         draftReferenceApplications: draftApplications.size,
         brokenReferenceApplications: brokenApplications.size,
+        uniqueReadySourceFiles: uniqueReadySourceKeys.size,
+        uniqueBrokenSourceFiles: uniqueBrokenSourceKeys.size,
+        uniqueAlreadyS3Files: uniqueAlreadyS3Keys.size,
         byProvider,
         byStatus,
       },

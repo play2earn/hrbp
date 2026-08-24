@@ -55,7 +55,7 @@ R2 และ Supabase Storage ไม่ควรเป็น active write fallba
 - [ ] ทำ migration manifest ต่อ application/file พร้อม checksum/size/content-type/source/destination
 - [ ] ห้ามลบไฟล์ legacy ระหว่าง phase นี้
 
-Implementation note: รอบแรกเพิ่ม `/api/storage-migration-audit` และ card “Migration Center” ใน HR Drive แล้ว โดยยังไม่ migrate, ไม่ update DB และไม่ cleanup source ใด ๆ
+Implementation note: รอบแรกเพิ่ม `/api/storage-migration-audit` และ card “Migration Center” ใน HR Drive แล้ว โดยยังไม่ migrate, ไม่ update DB และไม่ cleanup source ใด ๆ ตัวเลขหลักแสดงจำนวน references และมี unique file counts ประกอบเพื่อลดความสับสนจาก field alias ที่ชี้ไฟล์เดียวกัน
 
 ผลลัพธ์: รู้ก่อนว่าไฟล์ไหนย้ายได้ ไฟล์ไหนเสีย และไม่ซ้ำรอยเคส DB ชี้ draft object ที่ถูกลบไปแล้ว
 
