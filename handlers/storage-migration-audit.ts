@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { S3Client, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, PutObjectCommand } from '@aws-sdk/client-s3';
 import { configureSameOrigin, getAdminSupabase, requireStaff } from '../server/security.js';
 
 type Provider = 's3' | 'r2' | 'supabase' | 'external' | 'unknown';
@@ -32,6 +32,32 @@ interface BrokenApplicationReport {
   refs: StorageRef[];
   recommendation: 'request_reupload' | 'review_draft_reference' | 'review_legacy_reference';
 }
+
+const FIELD_ALIASES: Record<string, string[]> = {
+  photo_url: ['photo_url', 'photoUrl'],
+  photoUrl: ['photo_url', 'photoUrl'],
+  resume_url: ['resume_url', 'resumeUrl'],
+  resumeUrl: ['resume_url', 'resumeUrl'],
+  transcriptUrl: ['transcriptUrl', 'transcript_url'],
+  transcript_url: ['transcriptUrl', 'transcript_url'],
+  idCardUrl: ['idCardUrl', 'id_card_url'],
+  id_card_url: ['idCardUrl', 'id_card_url'],
+  houseRegUrl: ['houseRegUrl', 'house_reg_url'],
+  house_reg_url: ['houseRegUrl', 'house_reg_url'],
+  eduCertificateUrl: ['eduCertificateUrl', 'edu_certificate_url'],
+  edu_certificate_url: ['eduCertificateUrl', 'edu_certificate_url'],
+  militaryCertUrl: ['militaryCertUrl', 'military_cert_url'],
+  military_cert_url: ['militaryCertUrl', 'military_cert_url'],
+  toeicCertUrl: ['toeicCertUrl', 'toeic_cert_url'],
+  toeic_cert_url: ['toeicCertUrl', 'toeic_cert_url'],
+  bankBookUrl: ['bankBookUrl', 'bank_book_url'],
+  bank_book_url: ['bankBookUrl', 'bank_book_url'],
+  certificateUrl: ['certificateUrl', 'certificate_url'],
+  certificate_url: ['certificateUrl', 'certificate_url'],
+  originalPhotoUrl: ['originalPhotoUrl'],
+  otherDocsUrl: ['otherDocsUrl', 'other_docs_url'],
+  other_docs_url: ['otherDocsUrl', 'other_docs_url'],
+};
 
 const FILE_FIELD_HINTS = [
   'url',
@@ -216,6 +242,16 @@ function classifyRef(parsed: Pick<StorageRef, 'provider' | 'key' | 'bucket' | 'p
   return { statusBucket: 'needs_review', reason: parsed.reason };
 }
 
+function topLevelField(fieldPath: string): string {
+  return fieldPath.replace(/^form_data\./, '').replace(/\[.*$/, '').split('.')[0] || fieldPath;
+}
+
+function s3KeyForMigratedRef(applicationId: string, sourceKey: string, field: string): string {
+  const ext = sourceKey.split('/').pop()?.split('?')[0]?.split('.').pop()?.toLowerCase()?.replace(/[^a-z0-9]/g, '') || 'bin';
+  const safeField = topLevelField(field).replace(/[^a-zA-Z0-9_-]/g, '_') || 'document';
+  return `applicants/${applicationId}/${safeField}.${ext}`;
+}
+
 function buildBrokenApplicationReport(refs: StorageRef[]): BrokenApplicationReport[] {
   const grouped = new Map<string, BrokenApplicationReport>();
   const brokenRefs = refs.filter((ref) => ref.statusBucket === 'broken_reference' || ref.key?.startsWith('drafts/') || ref.value.includes('draftId='));
@@ -269,13 +305,147 @@ function buildBrokenApplicationReport(refs: StorageRef[]): BrokenApplicationRepo
     });
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (!configureSameOrigin(req, res, 'GET')) return;
-  if (req.method === 'OPTIONS') return res.status(204).end();
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+async function loadApplications(supabase: ReturnType<typeof getAdminSupabase>) {
+  const applications: any[] = [];
+  let page = 0;
+  const pageSize = 1000;
+  while (true) {
+    const { data, error } = await supabase
+      .from('applications')
+      .select('id, full_name, first_name, last_name, status, created_at, photo_url, resume_url, form_data')
+      .range(page * pageSize, (page + 1) * pageSize - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    applications.push(...data);
+    if (data.length < pageSize) break;
+    page += 1;
+  }
+  return applications;
+}
 
+function buildRefs(applications: any[], r2Keys: Set<string>) {
+  const refs: StorageRef[] = [];
+  const uniqueValues = new Set<string>();
+  for (const app of applications) {
+    const values: Array<{ field: string; value: string }> = [];
+    pushStringRefs(values, app.photo_url, 'photo_url');
+    pushStringRefs(values, app.resume_url, 'resume_url');
+    pushStringRefs(values, app.form_data || {}, 'form_data');
+    const applicantName = app.full_name
+      || [app.form_data?.prefix || app.form_data?.title, app.first_name || app.form_data?.firstName, app.last_name || app.form_data?.lastName].filter(Boolean).join(' ').trim()
+      || 'ไม่ระบุชื่อ';
+    for (const item of values) {
+      const dedupeKey = `${app.id}:${item.field}:${item.value}`;
+      if (uniqueValues.has(dedupeKey)) continue;
+      uniqueValues.add(dedupeKey);
+      const parsed = parseStorageRef(item.value);
+      const classification = classifyRef(parsed, r2Keys);
+      refs.push({
+        applicationId: String(app.id),
+        applicantName,
+        status: app.status,
+        createdAt: app.created_at,
+        field: item.field,
+        provider: parsed.provider,
+        statusBucket: classification.statusBucket,
+        value: item.value,
+        key: parsed.key,
+        bucket: parsed.bucket,
+        path: parsed.path,
+        reason: classification.reason,
+      });
+    }
+  }
+  return refs;
+}
+
+async function migrateReadyBatch(req: VercelRequest, res: VercelResponse) {
+  const requestedIds = Array.isArray(req.body?.applicationIds) ? req.body.applicationIds.map(String).slice(0, 20) : [];
+  const limit = Math.min(Math.max(Number(req.body?.limit || 10), 1), 20);
+  const supabase = getAdminSupabase();
+  const s3 = getS3Client();
+  const r2 = getR2Client();
+  if (!r2) return res.status(500).json({ error: 'R2 credentials are not configured' });
+  const s3Bucket = cleanEnv(process.env.AWS_S3_BUCKET) || 'hr-recruitment-01';
+  const r2Bucket = cleanEnv(process.env.R2_BUCKET_NAME) || 'hrbp-applicants';
+  const r2Inventory = await listObjectKeys(r2, r2Bucket, R2_SCAN_PREFIXES);
+  const applications = await loadApplications(supabase);
+  const refs = buildRefs(applications, r2Inventory.keys);
+  const excludedApps = new Set(buildBrokenApplicationReport(refs).map((item) => item.applicationId));
+  const candidates = refs
+    .filter((ref) => ref.statusBucket === 'ready_to_migrate' && ref.provider === 'r2' && ref.key && !ref.key.startsWith('drafts/') && !excludedApps.has(ref.applicationId))
+    .filter((ref) => requestedIds.length === 0 || requestedIds.includes(ref.applicationId));
+
+  const byApp = new Map<string, StorageRef[]>();
+  for (const ref of candidates) {
+    if (!byApp.has(ref.applicationId)) byApp.set(ref.applicationId, []);
+    const appRefs = byApp.get(ref.applicationId)!;
+    if (!appRefs.some((existing) => existing.key === ref.key && topLevelField(existing.field) === topLevelField(ref.field))) {
+      appRefs.push(ref);
+    }
+  }
+
+  const selectedAppIds = Array.from(byApp.keys()).slice(0, limit);
+  const results: any[] = [];
+  for (const applicationId of selectedAppIds) {
+    const app = applications.find((item) => String(item.id) === applicationId);
+    if (!app) continue;
+    const updatePayload: Record<string, any> = {};
+    const updatedFormData = { ...(app.form_data || {}) };
+    const migratedRefs: any[] = [];
+
+    for (const ref of byApp.get(applicationId) || []) {
+      if (!ref.key) continue;
+      const source = await r2.send(new GetObjectCommand({ Bucket: r2Bucket, Key: ref.key }));
+      const sourceBytes = await source.Body?.transformToByteArray();
+      if (!sourceBytes) throw new Error(`R2 object has no body: ${ref.key}`);
+      const body = Buffer.from(sourceBytes);
+      const s3Key = s3KeyForMigratedRef(applicationId, ref.key, ref.field);
+      await s3.send(new PutObjectCommand({
+        Bucket: s3Bucket,
+        Key: s3Key,
+        Body: body,
+        ContentType: source.ContentType || 'application/octet-stream',
+      }));
+      const head = await s3.send(new HeadObjectCommand({ Bucket: s3Bucket, Key: s3Key }));
+      if (head.ContentLength !== body.length) throw new Error(`S3 size mismatch for ${s3Key}`);
+      const proxyUrl = `/api/files?key=${encodeURIComponent(s3Key)}`;
+      const field = topLevelField(ref.field);
+      for (const alias of FIELD_ALIASES[field] || [field]) updatedFormData[alias] = proxyUrl;
+      if (field === 'photo_url' || field === 'photoUrl') updatePayload.photo_url = proxyUrl;
+      if (field === 'resume_url' || field === 'resumeUrl') updatePayload.resume_url = proxyUrl;
+      migratedRefs.push({ field, oldKey: ref.key, newKey: s3Key, bytes: body.length });
+    }
+
+    if (migratedRefs.length > 0) {
+      updatePayload.form_data = updatedFormData;
+      const { error } = await supabase.from('applications').update(updatePayload).eq('id', applicationId);
+      if (error) throw error;
+    }
+    results.push({ applicationId, migratedRefs });
+  }
+
+  return res.status(200).json({
+    success: true,
+    mode: 'migrate-ready-batch',
+    limit,
+    selectedApplications: selectedAppIds.length,
+    migratedApplications: results.filter((item) => item.migratedRefs.length > 0).length,
+    migratedRefs: results.reduce((sum, item) => sum + item.migratedRefs.length, 0),
+    excludedBrokenDraftApplications: excludedApps.size,
+    sourceDeleted: false,
+    results,
+  });
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (!configureSameOrigin(req, res, 'GET, POST')) return;
+  if (req.method === 'OPTIONS') return res.status(204).end();
   const user = await requireStaff(req, res, ['admin']);
   if (!user) return;
+
+  if (req.method === 'POST') return migrateReadyBatch(req, res);
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
     const supabase = getAdminSupabase();
@@ -292,24 +462,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })(),
     ]);
 
-    let applications: any[] = [];
-    let page = 0;
-    const pageSize = 1000;
-    while (true) {
-      const { data, error } = await supabase
-        .from('applications')
-        .select('id, full_name, first_name, last_name, status, created_at, photo_url, resume_url, form_data')
-        .range(page * pageSize, (page + 1) * pageSize - 1);
-
-      if (error) throw error;
-      if (!data || data.length === 0) break;
-      applications.push(...data);
-      if (data.length < pageSize) break;
-      page += 1;
-    }
-
-    const refs: StorageRef[] = [];
-    const uniqueValues = new Set<string>();
+    const applications = await loadApplications(supabase);
     const samples = {
       readyToMigrate: [] as StorageRef[],
       brokenReferences: [] as StorageRef[],
@@ -318,45 +471,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       needsReview: [] as StorageRef[],
     };
 
-    for (const app of applications) {
-      const values: Array<{ field: string; value: string }> = [];
-      pushStringRefs(values, app.photo_url, 'photo_url');
-      pushStringRefs(values, app.resume_url, 'resume_url');
-      pushStringRefs(values, app.form_data || {}, 'form_data');
-
-      const applicantName = app.full_name
-        || [app.form_data?.prefix || app.form_data?.title, app.first_name || app.form_data?.firstName, app.last_name || app.form_data?.lastName].filter(Boolean).join(' ').trim()
-        || 'ไม่ระบุชื่อ';
-
-      for (const item of values) {
-        const dedupeKey = `${app.id}:${item.field}:${item.value}`;
-        if (uniqueValues.has(dedupeKey)) continue;
-        uniqueValues.add(dedupeKey);
-
-        const parsed = parseStorageRef(item.value);
-        const classification = classifyRef(parsed, r2Inventory.keys);
-        const ref: StorageRef = {
-          applicationId: String(app.id),
-          applicantName,
-          status: app.status,
-          createdAt: app.created_at,
-          field: item.field,
-          provider: parsed.provider,
-          statusBucket: classification.statusBucket,
-          value: item.value,
-          key: parsed.key,
-          bucket: parsed.bucket,
-          path: parsed.path,
-          reason: classification.reason,
-        };
-        refs.push(ref);
-
-        if (ref.statusBucket === 'ready_to_migrate') addSample(samples.readyToMigrate, ref);
-        if (ref.statusBucket === 'broken_reference') addSample(samples.brokenReferences, ref);
-        if (ref.key?.startsWith('drafts/') || ref.value.includes('draftId=')) addSample(samples.draftReferences, ref);
-        if (ref.provider === 'supabase') addSample(samples.supabaseLegacy, ref);
-        if (ref.statusBucket === 'needs_review') addSample(samples.needsReview, ref);
-      }
+    const refs = buildRefs(applications, r2Inventory.keys);
+    for (const ref of refs) {
+      if (ref.statusBucket === 'ready_to_migrate') addSample(samples.readyToMigrate, ref);
+      if (ref.statusBucket === 'broken_reference') addSample(samples.brokenReferences, ref);
+      if (ref.key?.startsWith('drafts/') || ref.value.includes('draftId=')) addSample(samples.draftReferences, ref);
+      if (ref.provider === 'supabase') addSample(samples.supabaseLegacy, ref);
+      if (ref.statusBucket === 'needs_review') addSample(samples.needsReview, ref);
     }
 
     const byProvider = refs.reduce<Record<string, number>>((acc, ref) => {

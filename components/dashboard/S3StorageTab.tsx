@@ -173,6 +173,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
   const [bucketStats, setBucketStats] = useState<BucketStats | null>(null);
   const [migrationAudit, setMigrationAudit] = useState<MigrationAuditResult | null>(null);
   const [loadingMigrationAudit, setLoadingMigrationAudit] = useState<boolean>(false);
+  const [migratingReadyBatch, setMigratingReadyBatch] = useState<boolean>(false);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -378,6 +379,32 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
       showToast(err.message || 'Migration audit network error', 'error');
     } finally {
       setLoadingMigrationAudit(false);
+    }
+  };
+
+  const handleMigrateReadyBatch = async () => {
+    if (!migrationAudit) return;
+    const ok = confirm('ยืนยัน migrate กลุ่ม ready 10 applications แรกเข้า AWS S3?\n\nระบบจะข้าม broken/draft apps และจะไม่ลบไฟล์ R2 ต้นทาง');
+    if (!ok) return;
+    setMigratingReadyBatch(true);
+    try {
+      const res = await fetch('/api/storage-migration-audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'migrate-ready-batch', limit: 10 }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`Migrate สำเร็จ ${data.migratedApplications || 0} applications / ${data.migratedRefs || 0} refs — ไม่ลบ R2 source`, 'success');
+        await fetchMigrationAudit();
+        fetchS3Objects(currentPrefix);
+      } else {
+        showToast(data.error || 'Batch migration failed', 'error');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Batch migration network error', 'error');
+    } finally {
+      setMigratingReadyBatch(false);
     }
   };
 
@@ -834,14 +861,25 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
               ตรวจไฟล์ legacy ที่ยังชี้ Cloudflare R2 / Supabase Storage ก่อนทยอยย้ายเข้า AWS S3 — ปุ่มนี้ไม่ย้ายไฟล์ ไม่แก้ DB และไม่ลบ source
             </p>
           </div>
-          <button
-            onClick={fetchMigrationAudit}
-            disabled={loadingMigrationAudit}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs font-bold shadow-sm transition-colors"
-          >
-            <RefreshCw className={`w-4 h-4 ${loadingMigrationAudit ? 'animate-spin' : ''}`} />
-            {loadingMigrationAudit ? 'กำลังสแกน...' : 'สแกนสถานะ Migration'}
-          </button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <button
+              onClick={fetchMigrationAudit}
+              disabled={loadingMigrationAudit || migratingReadyBatch}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs font-bold shadow-sm transition-colors"
+            >
+              <RefreshCw className={`w-4 h-4 ${loadingMigrationAudit ? 'animate-spin' : ''}`} />
+              {loadingMigrationAudit ? 'กำลังสแกน...' : 'สแกนสถานะ Migration'}
+            </button>
+            <button
+              onClick={handleMigrateReadyBatch}
+              disabled={!migrationAudit || migratingReadyBatch || loadingMigrationAudit}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm transition-colors"
+              title="ย้ายเฉพาะ ready refs ครั้งละ 10 applications; ข้าม broken/draft และไม่ลบ R2 source"
+            >
+              <Upload className={`w-4 h-4 ${migratingReadyBatch ? 'animate-bounce' : ''}`} />
+              {migratingReadyBatch ? 'กำลัง migrate...' : 'Migrate ready 10 apps'}
+            </button>
+          </div>
         </div>
 
         {migrationAudit ? (
