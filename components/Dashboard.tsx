@@ -2,13 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { MOCK_BU } from '../constants';
 import { Card, Button, Input, Select, Modal } from './UIComponents';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { LucideIcon, Home, FileText, QrCode, Settings, LogOut, CheckCircle, XCircle, Search, Filter, Download, ExternalLink, Calendar, Menu, X, ChevronRight, ChevronLeft, ChevronDown, User, Shield, Users, Copy, Check, Database, Plus, Edit, Trash2, Building2, Tag, GraduationCap, MapPin, Phone, UserPlus, UserCheck, History, Clock, ArrowRightLeft, BarChart2, ShieldAlert, Save, Sparkles, ArrowRight } from 'lucide-react';
 import { api } from '../services/api';
 import { supabase } from '../supabaseClient';
 import { Role, BlacklistEntry } from '../types';
 import type { ApplicationStatus, AuthUser } from '../services/api';
-import { ReportsTab } from './ReportsTab';
 
 import type { DashboardProps } from './dashboard/dashboardTypes';
 import {
@@ -21,13 +19,24 @@ import { ApplicationDetailModal } from './dashboard/ApplicationDetailModal';
 import { ApplicationEditModal } from './dashboard/ApplicationEditModal';
 import { ApplicationActionModals } from './dashboard/ApplicationActionModals';
 import { OverviewTab } from './dashboard/OverviewTab';
-import { QRGeneratorTab } from './dashboard/QRGeneratorTab';
-import { UserManagementTab } from './dashboard/UserManagementTab';
-import { BlacklistTab } from './dashboard/BlacklistTab';
-import { CalendarTab } from './dashboard/CalendarTab';
-import { SystemLogsTab } from './dashboard/SystemLogsTab';
-import { S3StorageTab } from './dashboard/S3StorageTab';
 import { HardDrive } from 'lucide-react';
+
+const ReportsTab = React.lazy(() => import('./ReportsTab').then(m => ({ default: m.ReportsTab })));
+const QRGeneratorTab = React.lazy(() => import('./dashboard/QRGeneratorTab').then(m => ({ default: m.QRGeneratorTab })));
+const UserManagementTab = React.lazy(() => import('./dashboard/UserManagementTab').then(m => ({ default: m.UserManagementTab })));
+const BlacklistTab = React.lazy(() => import('./dashboard/BlacklistTab').then(m => ({ default: m.BlacklistTab })));
+const CalendarTab = React.lazy(() => import('./dashboard/CalendarTab').then(m => ({ default: m.CalendarTab })));
+const SystemLogsTab = React.lazy(() => import('./dashboard/SystemLogsTab').then(m => ({ default: m.SystemLogsTab })));
+const S3StorageTab = React.lazy(() => import('./dashboard/S3StorageTab').then(m => ({ default: m.S3StorageTab })));
+
+const TabLoading = () => (
+  <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-slate-200 bg-white">
+    <div className="flex flex-col items-center gap-3 text-slate-500">
+      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-indigo-600"></div>
+      <span className="text-sm font-medium">Loading dashboard section...</span>
+    </div>
+  </div>
+);
 
 
 export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUser: initialUser }) => {
@@ -964,146 +973,148 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
             </div>
           )}
 
-          {activeTab === 'reports' && (
-            <ReportsTab
-              setViewingApp={setViewingApp}
-              currentUserId={currentUserId}
-              activeUsers={activeUsers}
-              businessUnits={businessUnits}
-              departments={departments}
-            />
-          )}
+          <React.Suspense fallback={<TabLoading />}>
+            {activeTab === 'reports' && (
+              <ReportsTab
+                setViewingApp={setViewingApp}
+                currentUserId={currentUserId}
+                activeUsers={activeUsers}
+                businessUnits={businessUnits}
+                departments={departments}
+              />
+            )}
 
-          {activeTab === 'calendar' && (
-            <CalendarTab
-              applications={calendarApplications}
-              activeUsers={activeUsers}
-              businessUnits={businessUnits}
-              setViewingApp={setViewingApp}
-              currentUser={currentUser}
-            />
-          )}
+            {activeTab === 'calendar' && (
+              <CalendarTab
+                applications={calendarApplications}
+                activeUsers={activeUsers}
+                businessUnits={businessUnits}
+                setViewingApp={setViewingApp}
+                currentUser={currentUser}
+              />
+            )}
 
-          {activeTab === 'overview' && (
-            <OverviewTab
-              stats={stats}
-              fetchData={fetchData}
-              applications={applications}
-              positions={positions}
-              departments={departments}
-              businessUnits={businessUnits}
-              channels={channels}
-              appFilters={appFilters}
-              setAppFilters={setAppFilters}
-              appPage={appPage}
-              setAppPage={setAppPage}
-              appPerPage={appPerPage}
-              setAppPerPage={setAppPerPage}
-              actionMenu={actionMenu}
-              setActionMenu={setActionMenu}
-              openActionMenu={openActionMenu}
-              setViewingApp={setViewingApp}
-              setEditingApp={setEditingApp}
-              setClaimingApp={setClaimingApp}
-              setTransferringApp={setTransferringApp}
-              setUnassigningApp={setUnassigningApp}
-              setInterviewingApp={setInterviewingApp}
-              setRejectingApp={setRejectingApp}
-              setApprovingApp={setApprovingApp}
-              currentUserId={currentUserId}
-              blacklistEntries={blacklistEntries}
-              onViewBlacklistDetail={setViewingBlacklistDetail}
-              loading={loading}
-              totalCount={totalCount}
-              statsApplications={statsApplications}
-            />
-          )}
+            {activeTab === 'overview' && (
+              <OverviewTab
+                stats={stats}
+                fetchData={fetchData}
+                applications={applications}
+                positions={positions}
+                departments={departments}
+                businessUnits={businessUnits}
+                channels={channels}
+                appFilters={appFilters}
+                setAppFilters={setAppFilters}
+                appPage={appPage}
+                setAppPage={setAppPage}
+                appPerPage={appPerPage}
+                setAppPerPage={setAppPerPage}
+                actionMenu={actionMenu}
+                setActionMenu={setActionMenu}
+                openActionMenu={openActionMenu}
+                setViewingApp={setViewingApp}
+                setEditingApp={setEditingApp}
+                setClaimingApp={setClaimingApp}
+                setTransferringApp={setTransferringApp}
+                setUnassigningApp={setUnassigningApp}
+                setInterviewingApp={setInterviewingApp}
+                setRejectingApp={setRejectingApp}
+                setApprovingApp={setApprovingApp}
+                currentUserId={currentUserId}
+                blacklistEntries={blacklistEntries}
+                onViewBlacklistDetail={setViewingBlacklistDetail}
+                loading={loading}
+                totalCount={totalCount}
+                statsApplications={statsApplications}
+              />
+            )}
 
-          {activeTab === 'hr-drive' && (
-            <S3StorageTab
-              showToast={showToast}
-              currentUser={currentUser}
-              initialPrefix={hrDrivePrefix}
-            />
-          )}
+            {activeTab === 'hr-drive' && (
+              <S3StorageTab
+                showToast={showToast}
+                currentUser={currentUser}
+                initialPrefix={hrDrivePrefix}
+              />
+            )}
 
-          {activeTab === 'qr' && (
-            <QRGeneratorTab
-              qrParams={qrParams}
-              setQrParams={setQrParams}
-              businessUnits={businessUnits}
-              channels={channels}
-              generateLink={generateLink}
-              generatedLink={generatedLink}
-              isCopied={isCopied}
-              handleCopy={handleCopy}
-              qrLogs={qrLogs}
-              filteredQrLogs={filteredQrLogs}
-              qrLogCreatorFilter={qrLogCreatorFilter}
-              setQrLogCreatorFilter={(val) => {
-                setQrLogCreatorFilter(val);
-                fetchQrLogs(1, val);
-              }}
-              qrLogCreators={qrLogCreators}
-              fetchQrLogs={fetchQrLogs}
-              showToast={showToast}
-              qrPage={qrPage}
-              setQrPage={setQrPage}
-              qrTotalCount={qrTotalCount}
-              qrPerPage={30}
-            />
-          )}
+            {activeTab === 'qr' && (
+              <QRGeneratorTab
+                qrParams={qrParams}
+                setQrParams={setQrParams}
+                businessUnits={businessUnits}
+                channels={channels}
+                generateLink={generateLink}
+                generatedLink={generatedLink}
+                isCopied={isCopied}
+                handleCopy={handleCopy}
+                qrLogs={qrLogs}
+                filteredQrLogs={filteredQrLogs}
+                qrLogCreatorFilter={qrLogCreatorFilter}
+                setQrLogCreatorFilter={(val) => {
+                  setQrLogCreatorFilter(val);
+                  fetchQrLogs(1, val);
+                }}
+                qrLogCreators={qrLogCreators}
+                fetchQrLogs={fetchQrLogs}
+                showToast={showToast}
+                qrPage={qrPage}
+                setQrPage={setQrPage}
+                qrTotalCount={qrTotalCount}
+                qrPerPage={30}
+              />
+            )}
 
-          {activeTab === 'settings' && role === 'admin' && (
-            <UserManagementTab
-              pendingUsers={pendingUsers}
-              activeUsers={activeUsers}
-              fetchPendingUsers={fetchPendingUsers}
-              fetchActiveUsers={fetchActiveUsers}
-              showToast={showToast}
-              editingUser={editingUser}
-              setEditingUser={setEditingUser}
-              isConfirmingDisable={isConfirmingDisable}
-              setIsConfirmingDisable={setIsConfirmingDisable}
-            />
-          )}
+            {activeTab === 'settings' && role === 'admin' && (
+              <UserManagementTab
+                pendingUsers={pendingUsers}
+                activeUsers={activeUsers}
+                fetchPendingUsers={fetchPendingUsers}
+                fetchActiveUsers={fetchActiveUsers}
+                showToast={showToast}
+                editingUser={editingUser}
+                setEditingUser={setEditingUser}
+                isConfirmingDisable={isConfirmingDisable}
+                setIsConfirmingDisable={setIsConfirmingDisable}
+              />
+            )}
 
-          {activeTab === 'logs' && role === 'admin' && (
-            <SystemLogsTab
-              showToast={showToast}
-              currentUser={currentUser}
-              onViewCandidate={async (appId) => {
-                const found = applications.find(a => a.id === appId);
-                if (found) {
-                  setViewingApp(found);
-                  return;
-                }
-                // Fallback to fetch from database if not in memory
-                try {
-                  const { data, error } = await supabase
-                    .from('applications')
-                    .select('*')
-                    .eq('id', appId)
-                    .maybeSingle();
-                  if (error || !data) {
-                    showToast('ไม่พบข้อมูลผู้สมัครรายนี้แล้ว (อาจถูกลบหรือไม่มีในระบบ)', 'error');
-                  } else {
-                    setViewingApp(data);
+            {activeTab === 'logs' && role === 'admin' && (
+              <SystemLogsTab
+                showToast={showToast}
+                currentUser={currentUser}
+                onViewCandidate={async (appId) => {
+                  const found = applications.find(a => a.id === appId);
+                  if (found) {
+                    setViewingApp(found);
+                    return;
                   }
-                } catch (err) {
-                  showToast('เกิดข้อผิดพลาดในการดึงข้อมูลผู้สมัคร', 'error');
-                }
-              }}
-            />
-          )}
+                  // Fallback to fetch from database if not in memory
+                  try {
+                    const { data, error } = await supabase
+                      .from('applications')
+                      .select('*')
+                      .eq('id', appId)
+                      .maybeSingle();
+                    if (error || !data) {
+                      showToast('ไม่พบข้อมูลผู้สมัครรายนี้แล้ว (อาจถูกลบหรือไม่มีในระบบ)', 'error');
+                    } else {
+                      setViewingApp(data);
+                    }
+                  } catch (err) {
+                    showToast('เกิดข้อผิดพลาดในการดึงข้อมูลผู้สมัคร', 'error');
+                  }
+                }}
+              />
+            )}
 
-          {activeTab === 'config' && (
-            <MasterDataConfig showToast={showToast} currentUser={currentUser} />
-          )}
+            {activeTab === 'config' && (
+              <MasterDataConfig showToast={showToast} currentUser={currentUser} />
+            )}
 
-          {activeTab === 'blacklist' && (
-            <BlacklistTab showToast={showToast} currentUser={currentUser} />
-          )}
+            {activeTab === 'blacklist' && (
+              <BlacklistTab showToast={showToast} currentUser={currentUser} />
+            )}
+          </React.Suspense>
 
           {activeTab === 'profile' && (
             <div className="form-step-enter">
