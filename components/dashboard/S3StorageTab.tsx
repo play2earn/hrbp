@@ -174,6 +174,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
   const [migrationAudit, setMigrationAudit] = useState<MigrationAuditResult | null>(null);
   const [loadingMigrationAudit, setLoadingMigrationAudit] = useState<boolean>(false);
   const [migratingReadyBatch, setMigratingReadyBatch] = useState<boolean>(false);
+  const [readyMigrateStep, setReadyMigrateStep] = useState<string>('');
   const [showReadyMigrateConfirm, setShowReadyMigrateConfirm] = useState<boolean>(false);
 
   // Pagination State
@@ -387,7 +388,9 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
     if (!migrationAudit) return;
     setShowReadyMigrateConfirm(false);
     setMigratingReadyBatch(true);
+    setReadyMigrateStep('เตรียมรายการ ready และข้าม broken/draft applications...');
     try {
+      setReadyMigrateStep('กำลัง copy ไฟล์จาก R2 ไป AWS S3 และ verify ขนาดไฟล์...');
       const res = await fetch('/api/storage-migration-audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -395,8 +398,10 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
       });
       const data = await res.json();
       if (data.success) {
+        setReadyMigrateStep(`อัปเดต DB สำเร็จ ${data.migratedApplications || 0} applications / ${data.migratedRefs || 0} refs กำลังสแกนซ้ำ...`);
         showToast(`Migrate สำเร็จ ${data.migratedApplications || 0} applications / ${data.migratedRefs || 0} refs — ไม่ลบ R2 source`, 'success');
         await fetchMigrationAudit();
+        setReadyMigrateStep('รีเฟรช HR Drive...');
         fetchS3Objects(currentPrefix);
       } else {
         showToast(data.error || 'Batch migration failed', 'error');
@@ -405,6 +410,7 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
       showToast(err.message || 'Batch migration network error', 'error');
     } finally {
       setMigratingReadyBatch(false);
+      setReadyMigrateStep('');
     }
   };
 
@@ -1141,6 +1147,47 @@ export const S3StorageTab: React.FC<S3StorageTabProps> = ({
                   <Upload className="w-4 h-4" />
                   ยืนยัน migrate 10 apps
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Ready Batch Migration Progress Modal */}
+      {migratingReadyBatch && (
+        <div className="fixed inset-0 z-[120000] bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+            <div className="p-5 border-b border-slate-100">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center shrink-0">
+                  <RefreshCw className="w-5 h-5 text-amber-700 animate-spin" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">กำลัง migrate เข้า AWS S3</h3>
+                  <p className="mt-1 text-xs text-slate-600">กรุณารอสักครู่ อย่าปิดหน้านี้ระหว่างทำงาน</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
+                <div className="h-full w-1/2 rounded-full bg-gradient-to-r from-amber-500 via-orange-400 to-amber-500 animate-pulse" />
+              </div>
+              <div className="rounded-xl border border-amber-100 bg-amber-50 p-3 text-xs text-amber-800">
+                {readyMigrateStep || 'กำลังดำเนินการ...'}
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-lg bg-slate-50 border border-slate-100 p-2">
+                  <p className="text-[10px] text-slate-500">Batch</p>
+                  <p className="font-black text-slate-900">10 apps</p>
+                </div>
+                <div className="rounded-lg bg-slate-50 border border-slate-100 p-2">
+                  <p className="text-[10px] text-slate-500">Broken/Draft</p>
+                  <p className="font-black text-slate-900">Skip</p>
+                </div>
+                <div className="rounded-lg bg-slate-50 border border-slate-100 p-2">
+                  <p className="text-[10px] text-slate-500">R2 source</p>
+                  <p className="font-black text-slate-900">Keep</p>
+                </div>
               </div>
             </div>
           </div>
