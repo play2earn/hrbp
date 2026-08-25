@@ -88,6 +88,18 @@ test('production share links retain the configured canonical origin', () => {
   assert.equal(origin.publicAppOrigin(req, env), 'https://hrbp-three.vercel.app');
 });
 
+test('corporate share links use realestate portal base URL', () => {
+  const token = '0042b18c314177f7eb45c5c108ad286644e583f60d0a24d27a221e7776a5925e';
+  const url = origin.formatShareUrl(token, {});
+  assert.equal(url, `https://realestate.mygreentownhousing.com/processmygreen/career/share/?t=${token}`);
+});
+
+test('corporate resubmit links use realestate portal base URL', () => {
+  const token = '0042b18c314177f7eb45c5c108ad286644e583f60d0a24d27a221e7776a5925e';
+  const url = origin.formatResubmitUrl(token, {});
+  assert.equal(url, `https://realestate.mygreentownhousing.com/processmygreen/career/resubmit/?t=${token}`);
+});
+
 test('orphan reference scan finds every nested R2 URL', () => {
   const domain = 'https://files.example.com';
   const value = {

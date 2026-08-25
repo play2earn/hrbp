@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createHash, randomBytes } from 'crypto';
 import { configureSameOrigin, getAdminSupabase, requireStaff } from '../server/security.js';
-import { publicAppOrigin } from '../server/origin.js';
+import { publicAppOrigin, formatShareUrl, formatResubmitUrl } from '../server/origin.js';
 
 const RESUBMIT_FIELDS = new Set([
   'resumeUrl', 'transcriptUrl', 'certificateUrl', 'photoUrl', 'idCardUrl',
@@ -75,8 +75,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { data, error } = await query.maybeSingle();
       if (error) throw error;
       if (!data) return res.status(200).json({ success: true, data: null });
-      const path = tokenType === 'share' ? `/share/${data.token}` : `/resubmit/${data.token}`;
-      return res.status(200).json({ success: true, data: { ...data, url: `${publicAppOrigin(req)}${path}` } });
+      const url = tokenType === 'share' ? formatShareUrl(data.token) : formatResubmitUrl(data.token);
+      return res.status(200).json({ success: true, data: { ...data, url } });
     }
 
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -87,7 +87,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .select('token, expires_at').eq('application_id', applicationId).eq('token_type', 'share')
         .eq('is_revoked', false).gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false }).limit(1).maybeSingle();
-      if (existing) return res.status(200).json({ success: true, data: { ...existing, url: `${publicAppOrigin(req)}/share/${existing.token}` } });
+      if (existing) return res.status(200).json({ success: true, data: { ...existing, url: formatShareUrl(existing.token) } });
     }
 
     const token = randomBytes(32).toString('hex');
@@ -118,7 +118,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const { data, error } = await supabase.from('application_share_tokens').insert([payload]).select('token, expires_at, allowed_fields').single();
     if (error) throw error;
-    const path = tokenType === 'share' ? `/share/${data.token}` : `/resubmit/${data.token}`;
+    const url = tokenType === 'share' ? formatShareUrl(data.token) : formatResubmitUrl(data.token);
     if (tokenType === 'resubmit') {
       await supabase.from('application_logs').insert([{
         application_id: applicationId, action: 'resubmit_token_created',
@@ -126,7 +126,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         performed_by: payload.created_by,
       }]);
     }
-    return res.status(200).json({ success: true, data: { ...data, url: `${publicAppOrigin(req)}${path}` } });
+    return res.status(200).json({ success: true, data: { ...data, url } });
   } catch (error: any) {
     console.error('[share-tokens]', error);
     return res.status(500).json({ error: error.message || 'Share token operation failed' });

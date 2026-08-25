@@ -22,12 +22,30 @@ export function publicAppOrigin(req: VercelRequest, env: NodeJS.ProcessEnv = pro
   }
 
   const parsedUrl = new URL(configuredValue);
-  const configuredOrigin = parsedUrl.origin;
   if (env.VERCEL_ENV === 'production') return configuredValue;
   const currentHost = new URL(currentOrigin).hostname;
   const configuredHost = parsedUrl.hostname;
-
   if (currentHost === configuredHost) return configuredValue;
   if (currentHost.endsWith('.vercel.app')) return currentOrigin;
   return configuredValue;
+}
+
+export const DEFAULT_CORPORATE_SHARE_BASE = 'https://realestate.mygreentownhousing.com/processmygreen/career';
+
+export function getShareBaseUrl(env: NodeJS.ProcessEnv = process.env): string {
+  const configuredValue = String(env.APP_ORIGIN || '').replace(/^['"]|['"]$/g, '').replace(/\/$/, '').trim();
+  if (configuredValue && !configuredValue.includes('.vercel.app')) {
+    return configuredValue;
+  }
+  return DEFAULT_CORPORATE_SHARE_BASE;
+}
+
+export function formatShareUrl(token: string, env: NodeJS.ProcessEnv = process.env): string {
+  const base = getShareBaseUrl(env);
+  return `${base}/share/?t=${token}`;
+}
+
+export function formatResubmitUrl(token: string, env: NodeJS.ProcessEnv = process.env): string {
+  const base = getShareBaseUrl(env);
+  return `${base}/resubmit/?t=${token}`;
 }
