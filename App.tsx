@@ -48,22 +48,66 @@ const FullPageLoader = () => (
 );
 
 export default function App() {
-  // Check for /share/:token path first
-  const shareMatch = window.location.pathname.match(/^\/share\/([a-f0-9]{64})$/i);
-  if (shareMatch) {
+  // Helper to extract share token from search params or pathname (supports subpaths and ?t= / ?token= / ?shareToken=)
+  const getShareToken = (): string | null => {
+    try {
+      const url = new URL(window.location.href);
+      // 1. Query parameter check: ?t=... | ?token=... | ?shareToken=... | ?share=...
+      const qToken = url.searchParams.get('t') ||
+                     url.searchParams.get('token') ||
+                     url.searchParams.get('shareToken') ||
+                     url.searchParams.get('share');
+      if (qToken && /^[a-f0-9]{64}$/i.test(qToken)) {
+        return qToken;
+      }
+      // 2. Pathname check: /share/:token or .../processmygreen/career/share/:token
+      const pathMatch = url.pathname.match(/(?:^|\/)share\/([a-f0-9]{64})(?:\/|$)/i);
+      if (pathMatch && pathMatch[1]) {
+        return pathMatch[1];
+      }
+    } catch (e) {
+      console.error('Error parsing share token:', e);
+    }
+    return null;
+  };
+
+  // Helper to extract resubmit token from search params or pathname
+  const getResubmitToken = (): string | null => {
+    try {
+      const url = new URL(window.location.href);
+      // 1. Query parameter check: ?resubmit=... | ?resubmitToken=...
+      const qToken = url.searchParams.get('resubmit') ||
+                     url.searchParams.get('resubmitToken');
+      if (qToken && /^[a-f0-9]{64}$/i.test(qToken)) {
+        return qToken;
+      }
+      // 2. Pathname check: /resubmit/:token or .../resubmit/:token
+      const pathMatch = url.pathname.match(/(?:^|\/)resubmit\/([a-f0-9]{64})(?:\/|$)/i);
+      if (pathMatch && pathMatch[1]) {
+        return pathMatch[1];
+      }
+    } catch (e) {
+      console.error('Error parsing resubmit token:', e);
+    }
+    return null;
+  };
+
+  // Check for share token first
+  const shareTokenFound = getShareToken();
+  if (shareTokenFound) {
     return (
       <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div></div>}>
-        <SharedProfileView token={shareMatch[1]} />
+        <SharedProfileView token={shareTokenFound} />
       </React.Suspense>
     );
   }
 
-  // Check for /resubmit/:token path (applicant self-service document resubmission)
-  const resubmitMatch = window.location.pathname.match(/^\/resubmit\/([a-f0-9]{64})$/i);
-  if (resubmitMatch) {
+  // Check for resubmit token (applicant self-service document resubmission)
+  const resubmitTokenFound = getResubmitToken();
+  if (resubmitTokenFound) {
     return (
       <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div></div>}>
-        <ResubmitView token={resubmitMatch[1]} />
+        <ResubmitView token={resubmitTokenFound} />
       </React.Suspense>
     );
   }

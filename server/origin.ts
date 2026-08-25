@@ -21,12 +21,13 @@ export function publicAppOrigin(req: VercelRequest, env: NodeJS.ProcessEnv = pro
     return currentOrigin;
   }
 
-  const configuredOrigin = new URL(configuredValue).origin;
-  if (env.VERCEL_ENV === 'production') return configuredOrigin;
+  const parsedUrl = new URL(configuredValue);
+  const configuredOrigin = parsedUrl.origin;
+  if (env.VERCEL_ENV === 'production') return configuredValue;
   const currentHost = new URL(currentOrigin).hostname;
-  const configuredHost = new URL(configuredOrigin).hostname;
+  const configuredHost = parsedUrl.hostname;
 
-  if (currentHost === configuredHost) return configuredOrigin;
+  if (currentHost === configuredHost) return configuredValue;
   if (currentHost.endsWith('.vercel.app')) return currentOrigin;
-  return configuredOrigin;
+  return configuredValue;
 }

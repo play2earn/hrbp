@@ -131,7 +131,30 @@ function sleep(ms) {
 
 function isLikelyFileRef(fieldPath, value) {
   const lowerField = fieldPath.toLowerCase();
+  if (
+    lowerField.includes('profilelink') ||
+    lowerField.includes('portfoliolink') ||
+    lowerField.includes('linkedin') ||
+    lowerField.includes('github') ||
+    lowerField.includes('website')
+  ) {
+    return false;
+  }
   const lowerValue = value.toLowerCase();
+  if (
+    lowerValue.includes('linkedin.com') ||
+    lowerValue.includes('github.com') ||
+    lowerValue.includes('notion.site') ||
+    lowerValue.includes('notion.so') ||
+    lowerValue.includes('canva.com') ||
+    lowerValue.includes('figma.com') ||
+    lowerValue.includes('facebook.com') ||
+    lowerValue.includes('instagram.com') ||
+    lowerValue.includes('youtube.com') ||
+    lowerValue.includes('medium.com')
+  ) {
+    return false;
+  }
   if (lowerValue.startsWith('/api/files?')) return true;
   if (lowerValue.includes('/storage/v1/object/')) return true;
   if (lowerValue.includes('r2.dev') || lowerValue.includes('r2.cloudflarestorage.com')) return true;

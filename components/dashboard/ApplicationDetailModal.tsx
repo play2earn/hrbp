@@ -3034,11 +3034,43 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                   }
                 };
 
+                const isExternalWebProfileUrl = (field: string, val: string): boolean => {
+                  const lowerField = field.toLowerCase();
+                  if (
+                    lowerField.includes('profilelink') ||
+                    lowerField.includes('portfoliolink') ||
+                    lowerField.includes('linkedin') ||
+                    lowerField.includes('github') ||
+                    lowerField.includes('website')
+                  ) {
+                    return true;
+                  }
+                  const lowerVal = val.toLowerCase();
+                  if (
+                    lowerVal.includes('linkedin.com') ||
+                    lowerVal.includes('github.com') ||
+                    lowerVal.includes('notion.site') ||
+                    lowerVal.includes('notion.so') ||
+                    lowerVal.includes('canva.com') ||
+                    lowerVal.includes('figma.com') ||
+                    lowerVal.includes('facebook.com') ||
+                    lowerVal.includes('instagram.com') ||
+                    lowerVal.includes('youtube.com') ||
+                    lowerVal.includes('medium.com') ||
+                    lowerVal.includes('behance.net') ||
+                    lowerVal.includes('dribbble.com')
+                  ) {
+                    return true;
+                  }
+                  return false;
+                };
+
                 if (viewingApp.photo_url) addOrUpdateFile('รูปถ่ายหน้าตรง', viewingApp.photo_url, 'photo_url');
                 if (viewingApp.resume_url) addOrUpdateFile('เรซูเม่ (Resume / CV)', viewingApp.resume_url, 'resume_url');
 
                 Object.entries(fd).forEach(([key, val]) => {
                   if (typeof val === 'string' && val.trim() !== '') {
+                    if (isExternalWebProfileUrl(key, val)) return;
                     if (key.toLowerCase().endsWith('url') || val.startsWith('http') || val.startsWith('/api/files')) {
                       const label = knownLabels[key] || `เอกสารแนบ (${key})`;
                       addOrUpdateFile(label, val, key);
@@ -3271,8 +3303,24 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                     { label: 'เอกสารประกอบอื่นๆ', url: fd.otherDocsUrl, field: 'otherDocsUrl' },
                   ].filter(f => !!f.url);
 
+                  const isExternalWeb = (val: string) => {
+                    const lower = (val || '').toLowerCase();
+                    return (
+                      lower.includes('linkedin.com') ||
+                      lower.includes('github.com') ||
+                      lower.includes('notion.site') ||
+                      lower.includes('notion.so') ||
+                      lower.includes('canva.com') ||
+                      lower.includes('figma.com') ||
+                      lower.includes('facebook.com') ||
+                      lower.includes('instagram.com') ||
+                      lower.includes('youtube.com')
+                    );
+                  };
+
                   const pending = candidateFiles.filter(f => {
                     const urlStr = f.url || '';
+                    if (!urlStr || isExternalWeb(urlStr)) return false;
                     return !(urlStr.includes('amazonaws.com') || urlStr.startsWith('/api/files?key='));
                   });
 
