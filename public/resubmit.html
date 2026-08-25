@@ -1,62 +1,544 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบส่งเอกสารเพิ่มเติม - Double A Alliance</title>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Inter', 'Sarabun', sans-serif; background-color: #f8fafc; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบส่งเอกสารเพิ่มเติม | Double A Alliance</title>
+    <!-- Google Fonts: Inter & Sarabun -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #4338ca;
+            --primary-light: #6366f1;
+            --primary-gradient: linear-gradient(135deg, #4338ca 0%, #6366f1 100%);
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --bg-page: #f8fafc;
+            --bg-card: #ffffff;
+            --border-color: #e2e8f0;
+            --shadow-premium: 0 10px 25px -5px rgba(30, 41, 59, 0.05), 0 8px 16px -6px rgba(30, 41, 59, 0.05);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Sarabun', 'Inter', sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        /* Subtle animated background grid */
+        .bg-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.06) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(79, 70, 229, 0.06) 0px, transparent 50%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 540px;
+            margin: auto;
+            position: relative;
+        }
+
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: var(--shadow-premium);
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            box-shadow: 0 20px 35px -10px rgba(30, 41, 59, 0.08);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .logo {
+            width: 38px;
+            height: 38px;
+            object-fit: contain;
+        }
+
+        .brand-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .brand-name span {
+            color: #4338ca;
+            font-style: italic;
+        }
+
+        .system-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            background-color: #eef2ff;
+            border: 1px solid #e0e7ff;
+            color: #4338ca;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 9999px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }
+
+        h1 {
+            font-size: 20px;
+            font-weight: 700;
+            line-height: 1.4;
+            color: var(--text-dark);
+        }
+
+        .loading-shimmer {
+            height: 20px;
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .info-panel {
+            background-color: #f8fafc;
+            border: 1px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .info-panel strong {
+            color: var(--text-dark);
+        }
+
+        .content {
+            margin-bottom: 30px;
+        }
+
+        .policy-card {
+            background-color: #fdfdfd;
+            border: 1px solid #f1f5f9;
+            border-left: 4px solid var(--primary-light);
+            border-radius: 10px;
+            padding: 18px;
+            margin-bottom: 24px;
+            font-size: 13.5px;
+            line-height: 1.6;
+            color: #334155;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.01);
+        }
+
+        .policy-card p {
+            margin-bottom: 10px;
+        }
+        .policy-card p:last-child {
+            margin-bottom: 0;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            cursor: pointer;
+            user-select: none;
+            padding: 6px 4px;
+        }
+
+        .checkbox-input {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+            height: 0;
+            width: 0;
+        }
+
+        .custom-checkbox {
+            width: 22px;
+            height: 22px;
+            background-color: #f1f5f9;
+            border: 2px solid #cbd5e1;
+            border-radius: 6px;
+            flex-shrink: 0;
+            position: relative;
+            transition: var(--transition);
+        }
+
+        .checkbox-container:hover .custom-checkbox {
+            border-color: var(--primary-light);
+            background-color: #f8fafc;
+        }
+
+        .checkbox-input:checked ~ .custom-checkbox {
+            background-color: #4338ca;
+            border-color: #4338ca;
+        }
+
+        .custom-checkbox::after {
+            content: "";
+            position: absolute;
+            display: none;
+            left: 6.5px;
+            top: 2px;
+            width: 5px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 2.5px 2.5px 0;
+            transform: rotate(45deg);
+        }
+
+        .checkbox-input:checked ~ .custom-checkbox::after {
+            display: block;
+        }
+
+        .checkbox-label {
+            font-size: 14px;
+            line-height: 1.5;
+            color: #475569;
+            font-weight: 500;
+        }
+
+        .actions {
+            margin-top: 30px;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 16px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #ffffff;
+            background: var(--primary-gradient);
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(67, 56, 202, 0.25);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(67, 56, 202, 0.35);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            background: #cbd5e1;
+            color: #94a3b8;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Loading spinner inside button */
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .footer-note {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .footer-note svg {
+            width: 14px;
+            height: 14px;
+            color: #10b981;
+        }
+
+        /* Expired/Error view styling */
+        .error-state {
+            text-align: center;
+            display: none;
+        }
+
+        .error-icon {
+            width: 56px;
+            height: 56px;
+            background-color: #fef2f2;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            color: #ef4444;
+        }
+
+        .error-state h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 10px;
+        }
+
+        .error-state p {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                padding: 24px;
+                border-radius: 16px;
+            }
+            h1 {
+                font-size: 18px;
+            }
+        }
+    </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/40 to-slate-100 flex items-center justify-center p-4">
-  <div id="app" class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-100 p-8 text-center animate-in fade-in zoom-in-95 duration-200">
-    <div class="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 text-white rounded-2xl shadow-md mb-4">
-      <svg class="w-8 h-8 animate-spin" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-      </svg>
+<body>
+    <div class="bg-overlay"></div>
+    
+    <div class="container">
+        <div class="card">
+            <!-- Normal Content View -->
+            <div id="content-view">
+                <div class="header">
+                    <div class="logo-container">
+                        <img src="https://hrbp-three.vercel.app/doublea_logo.png" alt="Double A Logo" class="logo">
+                        <span class="brand-name"><span>Double A</span> Alliance</span>
+                    </div>
+                    <span class="system-badge">Document Resubmission System</span>
+                    <h1 id="title-text">ส่งเอกสารเพิ่มเติมสำหรับการสมัครงาน</h1>
+                </div>
+
+                <!-- Info panel loading/resolved -->
+                <div id="info-panel" class="info-panel">
+                    <div class="loading-shimmer" style="width: 80%; margin: 0 auto;"></div>
+                </div>
+
+                <div class="content">
+                    <div class="policy-card">
+                        <p><strong>📋 คำชี้แจงการส่งเอกสารเพิ่มเติม:</strong></p>
+                        <p>เจ้าหน้าที่ฝ่ายบุคคล (HR) ได้ร้องขอเอกสารเพิ่มเติมเพื่อประกอบการพิจารณาใบสมัครของท่าน</p>
+                        <p>🔒 ในขั้นตอนถัดไป ท่านจะต้อง<strong>ยืนยันตัวตนด้วย PIN ความปลอดภัย</strong> (เลข 4 ตัวท้ายของบัตรประชาชน/Passport และ 4 ตัวท้ายของเบอร์โทรศัพท์ที่ใช้สมัครงาน) ก่อนทำการอัปโหลดเอกสาร</p>
+                    </div>
+
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="accept-check" class="checkbox-input">
+                        <div class="custom-checkbox"></div>
+                        <span class="checkbox-label">
+                            ข้าพเจ้ารับทราบและพร้อมส่งเอกสารเพิ่มเติมตามที่ได้รับแจ้ง
+                        </span>
+                    </label>
+                </div>
+
+                <div class="actions">
+                    <button id="submit-btn" class="btn" disabled>
+                        <div class="spinner" id="btn-spinner"></div>
+                        <span id="btn-text">ดำเนินการส่งเอกสาร / Proceed to Upload</span>
+                    </button>
+                </div>
+
+                <div class="footer-note">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
+                    </svg>
+                    <span>เชื่อมต่อปลอดภัย (SSL Encrypted Connection)</span>
+                </div>
+            </div>
+
+            <!-- Error/Expired View -->
+            <div id="error-view" class="error-state">
+                <div class="error-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 32px; height: 32px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                    </svg>
+                </div>
+                <h2 id="error-title">ไม่สามารถเปิดลิงก์ได้</h2>
+                <p id="error-desc">ลิงก์นี้ไม่มีอยู่จริง หมดอายุ หรืออาจถูกใช้งานไปแล้ว กรุณาติดต่อเจ้าหน้าที่ HR เพื่อขอลิงก์ใหม่อีกครั้ง</p>
+            </div>
+        </div>
     </div>
-    <h2 class="text-xl font-bold text-slate-800 mb-2">กำลังเชื่อมต่อไปยังระบบส่งเอกสาร</h2>
-    <p class="text-xs text-slate-500 mb-6">กำลังตรวจสอบความปลอดภัยและเตรียมหน้าต่างอัปโหลดเอกสาร...</p>
-    <div class="bg-indigo-50/80 rounded-xl p-3 text-xs text-indigo-900 border border-indigo-100 flex items-center justify-center gap-2">
-      <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-      <span class="font-mono text-[11px]" id="status-text">Connecting to Secure Gateway...</span>
-    </div>
-  </div>
 
-  <script>
-    (function () {
-      const urlParams = new URLSearchParams(window.location.search);
-      const token = urlParams.get('t') || urlParams.get('token') || urlParams.get('resubmit') || urlParams.get('resubmitToken');
+    <script>
+        const supabaseUrl = "https://safrgojiehjwtftaiqog.supabase.co";
+        const anonKey = "sb_publishable_qSFXqF7bGLlsnoIf7Vt5Ug_K_56wK7-";
 
-      // Canonical production target app
-      const targetBase = 'https://hrbp-three.vercel.app';
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('t') || urlParams.get('token') || urlParams.get('resubmit');
 
-      if (token && /^[a-f0-9]{64}$/i.test(token)) {
-        document.getElementById('status-text').textContent = 'Token verified. Redirecting...';
-        // Redirect to React SPA with resubmit token
-        const destination = `${targetBase}/resubmit/${encodeURIComponent(token)}`;
-        window.location.replace(destination);
-      } else {
-        document.getElementById('app').innerHTML = `
-          <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
-            ⚠️
-          </div>
-          <h2 class="text-lg font-bold text-slate-800 mb-2">ลิงก์ไม่ถูกต้องหรือหมดอายุ</h2>
-          <p class="text-xs text-slate-600 leading-relaxed mb-6">
-            ไม่พบรหัส Token สำหรับส่งเอกสารเพิ่มเติม หรือลิงก์นี้หมดอายุการใช้งานแล้ว (อายุการใช้งาน 7 วัน)
-          </p>
-          <div class="bg-slate-50 rounded-xl p-3 text-xs text-slate-500 border border-slate-200 text-left mb-4">
-            📌 หากคุณเป็นผู้สมัครงานที่ได้รับข้อความขอเอกสารเพิ่ม กรุณาติดต่อเจ้าหน้าที่ฝ่ายบุคคล (HR) เพื่อขอรับลิงก์ใหม่อีกครั้ง
-          </div>
-        `;
-      }
-    })();
-  </script>
+        const contentView = document.getElementById('content-view');
+        const errorView = document.getElementById('error-view');
+        const infoPanel = document.getElementById('info-panel');
+        const acceptCheck = document.getElementById('accept-check');
+        const submitBtn = document.getElementById('submit-btn');
+        const btnSpinner = document.getElementById('btn-spinner');
+        const btnText = document.getElementById('btn-text');
+
+        let targetUrl = "";
+
+        // Enable button only when check is checked
+        acceptCheck.addEventListener('change', (e) => {
+            submitBtn.disabled = !e.target.checked;
+        });
+
+        // Redirect flow on click
+        submitBtn.addEventListener('click', () => {
+            if (targetUrl) {
+                submitBtn.disabled = true;
+                btnSpinner.style.display = 'inline-block';
+                btnText.textContent = "กำลังเชื่อมต่อไปยังระบบอัปโหลด...";
+                setTimeout(() => {
+                    window.location.href = targetUrl;
+                }, 600);
+            }
+        });
+
+        // Initialize: Fetch data from Supabase REST API
+        async function init() {
+            if (!token || token.length !== 64) {
+                showError("ลิงก์ไม่ถูกต้อง", "ไม่พบรหัส Token หรือความยาว Token ไม่ถูกต้องสำหรับการตรวจสอบ");
+                return;
+            }
+
+            try {
+                // 1. Fetch token validation and expires_at
+                const tokenQueryUrl = `${supabaseUrl}/rest/v1/application_share_tokens?token=eq.${token}&token_type=eq.resubmit&is_revoked=eq.false&select=application_id,expires_at,resubmitted_at,allowed_fields`;
+                const tokenRes = await fetch(tokenQueryUrl, {
+                    headers: {
+                        "apikey": anonKey,
+                        "Authorization": `Bearer ${anonKey}`
+                    }
+                });
+
+                if (!tokenRes.ok) throw new Error("API Connection Error");
+                const tokenData = await tokenRes.json();
+
+                if (!tokenData || tokenData.length === 0) {
+                    showError("ลิงก์หมดอายุหรือถูกยกเลิกแล้ว", "ลิงก์ขอเอกสารนี้อาจจะหมดอายุ (ครบกำหนด 7 วัน) หรือถูกยกเลิกแล้ว");
+                    return;
+                }
+
+                const { application_id, expires_at, resubmitted_at, allowed_fields } = tokenData[0];
+
+                if (resubmitted_at) {
+                    showError("ลิงก์นี้ถูกส่งเอกสารเรียบร้อยแล้ว", "ท่านได้ทำการส่งเอกสารเพิ่มเติมผ่านลิงก์นี้ไปแล้ว หากต้องการส่งเอกสารเพิ่มอีก กรุณาติดต่อ HR");
+                    return;
+                }
+
+                // Check expiry date
+                if (new Date(expires_at) < new Date()) {
+                    showError("ลิงก์นี้หมดอายุการใช้งานแล้ว", "ลิงก์ขอเอกสารมีอายุการใช้งาน 7 วันและครบกำหนดอายุแล้ว กรุณาติดต่อ HR เพื่อขอรับลิงก์ใหม่");
+                    return;
+                }
+
+                // 2. Fetch application position / department (privacy-safe fields)
+                const appQueryUrl = `${supabaseUrl}/rest/v1/applications?id=eq.${application_id}&select=position,department`;
+                const appRes = await fetch(appQueryUrl, {
+                    headers: {
+                        "apikey": anonKey,
+                        "Authorization": `Bearer ${anonKey}`
+                    }
+                });
+
+                if (!appRes.ok) throw new Error("API Connection Error");
+                const appData = await appRes.json();
+
+                if (!appData || appData.length === 0) {
+                    showError("ไม่พบข้อมูลผู้สมัคร", "ข้อมูลประวัติผู้สมัครงานนี้อาจไม่มีอยู่ในระบบ หรือถูกลบออกแล้ว");
+                    return;
+                }
+
+                const app = appData[0];
+                const positionText = app.position || "ไม่ระบุตำแหน่ง";
+                const deptText = app.department ? ` (${app.department})` : "";
+                const countFields = Array.isArray(allowed_fields) ? allowed_fields.length : 0;
+
+                // Update UI with job position
+                infoPanel.innerHTML = `ท่านกำลังส่งเอกสารเพิ่มเติมสำหรับตำแหน่ง: <br><strong>${positionText}${deptText}</strong><br><span style="font-size: 12px; color: #4338ca;">(จำนวนเอกสารที่ร้องขอ: ${countFields} รายการ)</span>`;
+                
+                // Define final destination
+                targetUrl = "https://hrbp-three.vercel.app/resubmit/" + token;
+
+            } catch (err) {
+                console.error(err);
+                // Fallback to blind redirect if Supabase fetch fails
+                infoPanel.innerHTML = `ระบบการยืนยันข้อมูลพร้อมทำงาน <br>ท่านกำลังเปิดลิงก์ส่งเอกสารรหัส <strong>${token.substring(0, 8)}...</strong>`;
+                targetUrl = "https://hrbp-three.vercel.app/resubmit/" + token;
+            }
+        }
+
+        function showError(title, message) {
+            contentView.style.display = 'none';
+            errorView.style.display = 'block';
+            document.getElementById('error-title').textContent = title;
+            document.getElementById('error-desc').textContent = message;
+        }
+
+        // Run
+        init();
+    </script>
 </body>
 </html>
