@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { LucideIcon, Calendar as CalendarIcon, ChevronLeft, ChevronRight, X, Upload, File, CheckCircle, AlertCircle } from 'lucide-react';
+import { LucideIcon, Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronDown, Search, Check, X, Upload, File, CheckCircle, AlertCircle } from 'lucide-react';
 
 // --- Button ---
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -261,6 +261,203 @@ export const Select: React.FC<SelectProps> = ({ label, options, error, className
     </p>}
   </div>
 );
+
+// --- SearchableSelect ---
+export interface SearchableSelectOption {
+  value: string;
+  label: string;
+  sublabel?: string;
+  badge?: string;
+}
+
+export interface SearchableSelectProps {
+  label?: React.ReactNode;
+  value: string;
+  onChange: (value: string) => void;
+  options: SearchableSelectOption[];
+  placeholder?: string;
+  searchPlaceholder?: string;
+  error?: string;
+  className?: string;
+  disabled?: boolean;
+  clearable?: boolean;
+}
+
+export const SearchableSelect: React.FC<SearchableSelectProps> = ({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder = 'เลือกหรือพิมพ์ค้นหา...',
+  searchPlaceholder = 'พิมพ์คำค้นหา...',
+  error,
+  className = '',
+  disabled = false,
+  clearable = true,
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 50);
+    } else {
+      setSearch('');
+    }
+  }, [isOpen]);
+
+  const selectedOption = options.find(opt => opt.value === value);
+
+  const filteredOptions = React.useMemo(() => {
+    if (!search.trim()) return options;
+    const q = search.toLowerCase().trim();
+    return options.filter(opt =>
+      opt.label.toLowerCase().includes(q) ||
+      (opt.sublabel && opt.sublabel.toLowerCase().includes(q)) ||
+      opt.value.toLowerCase().includes(q)
+    );
+  }, [options, search]);
+
+  return (
+    <div className={`w-full relative ${className}`} ref={containerRef}>
+      {label && <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>}
+
+      {/* Trigger Button / Display */}
+      <div
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        className={`w-full flex items-center justify-between rounded-lg border bg-white px-3.5 py-2.5 text-sm shadow-xs transition cursor-pointer select-none ${
+          disabled ? 'opacity-60 cursor-not-allowed bg-gray-50' : 'hover:border-indigo-400'
+        } ${error ? 'border-red-500 focus:ring-red-500' : isOpen ? 'border-indigo-500 ring-2 ring-indigo-500/20' : 'border-gray-300'}`}
+      >
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <Search className="w-4 h-4 text-gray-400 shrink-0" />
+          {selectedOption ? (
+            <div className="truncate font-semibold text-gray-900">
+              {selectedOption.label}
+              {selectedOption.sublabel && (
+                <span className="ml-1.5 text-xs text-gray-400 font-normal">
+                  ({selectedOption.sublabel})
+                </span>
+              )}
+            </div>
+          ) : (
+            <span className="text-gray-400 truncate">{placeholder}</span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1 shrink-0 ml-2">
+          {clearable && selectedOption && !disabled && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange('');
+              }}
+              className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition"
+              title="ล้างค่า"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180 text-indigo-600' : ''}`} />
+        </div>
+      </div>
+
+      {error && (
+        <p className="mt-1.5 text-xs text-red-500 flex items-center">
+          <span className="w-1 h-1 rounded-full bg-red-500 mr-1.5"></span>
+          {error}
+        </p>
+      )}
+
+      {/* Dropdown Popover */}
+      {isOpen && (
+        <div className="absolute z-50 mt-1.5 w-full rounded-2xl bg-white border border-gray-200 shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+          {/* Search Header */}
+          <div className="p-2.5 border-b border-gray-100 bg-gray-50/80 flex items-center gap-2">
+            <Search className="w-4 h-4 text-indigo-500 shrink-0" />
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={searchPlaceholder}
+              className="w-full bg-transparent text-xs sm:text-sm text-gray-900 placeholder-gray-400 outline-none"
+              onClick={(e) => e.stopPropagation()}
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSearch('');
+                  searchInputRef.current?.focus();
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Options List */}
+          <div className="max-h-60 overflow-y-auto p-1.5 space-y-0.5 text-xs sm:text-sm divide-y divide-gray-50">
+            {filteredOptions.length === 0 ? (
+              <div className="py-6 text-center text-gray-400 text-xs">
+                ไม่พบข้อมูลที่ตรงกับ "{search}"
+              </div>
+            ) : (
+              filteredOptions.map((opt, index) => {
+                const isSelected = opt.value === value;
+                return (
+                  <button
+                    key={`${opt.value}-${index}`}
+                    type="button"
+                    onClick={() => {
+                      onChange(opt.value);
+                      setIsOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-2.5 rounded-xl transition flex items-center justify-between gap-2 ${
+                      isSelected
+                        ? 'bg-indigo-50 text-indigo-900 font-bold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate font-medium">{opt.label}</div>
+                      {opt.sublabel && (
+                        <div className="text-[11px] text-gray-400 font-normal truncate mt-0.5">
+                          {opt.sublabel}
+                        </div>
+                      )}
+                    </div>
+                    {isSelected && (
+                      <Check className="w-4 h-4 text-indigo-600 shrink-0" />
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // --- FileUpload ---
 interface FileUploadProps {

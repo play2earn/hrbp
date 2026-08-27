@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ApplicationForm, INITIAL_FORM_STATE, Language, SkillLevel, EducationEntry, WorkEntry } from '../types';
 import { TRANSLATIONS, MOCK_BU, MOCK_DEPARTMENTS, MOCK_POSITIONS, MILITARY_STATUS_OPTIONS, UPCOUNTRY_LOCATIONS, UPCOUNTRY_LOCATIONS_DATA, MOCK_APPLICATION_DATA } from '../constants';
-import { Button, Input, Select, TextArea, Card, DatePicker, FileUpload, Modal } from './UIComponents';
+import { Button, Input, Select, SearchableSelect, TextArea, Card, DatePicker, FileUpload, Modal } from './UIComponents';
 import { Check, ChevronRight, ChevronLeft, RotateCcw, X } from 'lucide-react';
 import { PDFPreview } from './PDFPreview';
 import { api } from '../services/api';
@@ -165,6 +165,8 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
   // Master Data State
   const [departments, setDepartments] = useState<any[]>([]);
   const [positions, setPositions] = useState<any[]>([]);
+  const [allPositions, setAllPositions] = useState<any[]>([]);
+  const [isCustomPosition, setIsCustomPosition] = useState(false);
   const [bus, setBus] = useState<any[]>([]);
   const [provinces, setProvinces] = useState<any[]>([]);
   const [districts, setDistricts] = useState<any[]>([]);
@@ -181,20 +183,23 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
   // Fetch Initial Master Data
   useEffect(() => {
     const fetchMasterData = async () => {
-      const [deptData, buData, provData, uniData, collegeData, facData] = await Promise.all([
+      const [deptData, buData, provData, uniData, collegeData, facData, allPosData] = await Promise.all([
         api.master.getDepartments(),
         api.master.getBusinessUnits(),
         api.master.getProvinces(),
         api.master.getUniversities(),
         api.master.getColleges(),
-        api.master.getFaculties()
+        api.master.getFaculties(),
+        api.master.getAllPositions(true),
       ]);
-      setDepartments(deptData);
-      setBus(buData);
-      setProvinces(provData);
-      setUniversities(uniData);
-      setColleges(collegeData);
-      setFaculties(facData);
+      setDepartments(deptData || []);
+      setBus(buData || []);
+      setProvinces(provData || []);
+      setUniversities(uniData || []);
+      setColleges(collegeData || []);
+      setFaculties(facData || []);
+      setAllPositions(allPosData || []);
+      setPositions(allPosData || []);
     };
     fetchMasterData();
   }, []);
@@ -202,28 +207,71 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
   // Fetch Positions when Department changes
   useEffect(() => {
     if (formData.department) {
-      // Find dept ID from name (assuming name is stored, but API needs ID to filter positions)
       const dept = departments.find(d => d.name_en === formData.department || d.name_th === formData.department);
       if (dept) {
-        api.master.getPositions(dept.id).then(newPositions => {
-          setPositions(newPositions);
-          
-          // Clear position if it's not valid for the current department
-          // We check both name_th and name_en just in case
-          const isValid = newPositions.some(p => p.name_th === formData.position || p.name_en === formData.position);
-          if (!isValid && formData.position) {
-            updateField('position', '');
-          }
-        });
+        const deptPositions = allPositions.filter(p => p.department_id === dept.id);
+        if (deptPositions.length > 0) {
+          setPositions(deptPositions);
+        } else {
+          api.master.getPositions(dept.id).then(newPositions => {
+            setPositions(newPositions || []);
+          });
+        }
       } else {
-        setPositions([]);
-        if (formData.position) updateField('position', '');
+        setPositions(allPositions);
       }
     } else {
-      setPositions([]);
-      if (formData.position) updateField('position', '');
+      setPositions(allPositions);
     }
-  }, [formData.department, departments]);
+  }, [formData.department, departments, allPositions]);
+
+  // Deduplicated positions list
+  const uniquePositions = React.useMemo(() => {
+    const seen = new Set<string>();
+    const result: any[] = [];
+    positions.forEach(p => {
+      const key = `${(p.name_th || p.name_en || '').trim()}-${p.department_id || ''}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        result.push(p);
+      }
+    });
+    return result;
+  }, [positions]);
+
+  // Position Options for SearchableSelect
+  const positionOptions = React.useMemo(() => {
+    const items = uniquePositions.map(p => {
+      const deptObj = p.departments || departments.find(d => d.id === p.department_id);
+      const deptName = lang === 'en'
+        ? (deptObj?.name_en || deptObj?.name_th)
+        : (deptObj?.name_th || deptObj?.name_en);
+      const posLabel = lang === 'en' ? (p.name_en || p.name_th) : (p.name_th || p.name_en);
+      const deptSublabel = deptName ? (lang === 'en' ? `Dept: ${deptName}` : `สังกัด: ${deptName}`) : undefined;
+      return {
+        label: posLabel,
+        sublabel: deptSublabel,
+        value: String(p.id),
+      };
+    });
+
+    items.push({
+      label: lang === 'en' ? '★ Other / Not Listed (Specify Below)' : '★ อื่นๆ / ตำแหน่งทั่วไป (ระบุเอง)',
+      sublabel: lang === 'en' ? 'Choose this if your desired position is not listed' : 'เลือกข้อนี้หากไม่พบตำแหน่งที่ต้องการในรายการ',
+      value: '__other__',
+    });
+
+    return items;
+  }, [uniquePositions, departments, lang]);
+
+  // Department Options for SearchableSelect
+  const departmentOptions = React.useMemo(() => {
+    return departments.map(d => ({
+      label: lang === 'en' ? (d.name_en || d.name_th) : (d.name_th || d.name_en),
+      sublabel: lang === 'en' ? (d.name_th !== d.name_en ? d.name_th : undefined) : (d.name_en !== d.name_th ? d.name_en : undefined),
+      value: d.name_th,
+    }));
+  }, [departments, lang]);
 
   // Load ALL subdistricts for postcode search
   const [allSubdistricts, setAllSubdistricts] = useState<any[]>([]);
@@ -838,34 +886,98 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
           {currentStep === 1 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* BU/Channel/Tag come from URL params only - not selectable by user */}
+              
+              {/* Position Selection (Smart Searchable Combobox) */}
               <div>
-                <Select
+                <SearchableSelect
+                  label={<>{t.labels.position} <span className="text-red-500">*</span></>}
+                  placeholder={lang === 'en' ? 'Type or select position...' : 'พิมพ์ค้นหาหรือเลือกตำแหน่งงาน...'}
+                  searchPlaceholder={lang === 'en' ? 'Type job title to search...' : 'พิมพ์ชื่อตำแหน่งเพื่อค้นหา...'}
+                  value={
+                    isCustomPosition
+                      ? '__other__'
+                      : (allPositions.find(p => p.name_th === formData.position || p.name_en === formData.position)?.id
+                          ? String(allPositions.find(p => p.name_th === formData.position || p.name_en === formData.position)?.id)
+                          : (formData.position || ''))
+                  }
+                  onChange={(selectedVal) => {
+                    if (!selectedVal) {
+                      setIsCustomPosition(false);
+                      updateField('position', '');
+                      updateField('positionEn', '');
+                      return;
+                    }
+
+                    if (selectedVal === '__other__') {
+                      setIsCustomPosition(true);
+                      updateField('position', '');
+                      updateField('positionEn', '');
+                      return;
+                    }
+
+                    setIsCustomPosition(false);
+                    const matchedPos = allPositions.find(p => String(p.id) === selectedVal || p.name_th === selectedVal || p.name_en === selectedVal);
+                    if (matchedPos) {
+                      updateField('position', matchedPos.name_th || selectedVal);
+                      updateField('positionEn', matchedPos.name_en || selectedVal);
+
+                      // Auto-fill Department if not yet set or mismatched
+                      const deptObj = matchedPos.departments || departments.find(d => d.id === matchedPos.department_id);
+                      if (deptObj) {
+                        updateField('department', deptObj.name_th || deptObj.name_en);
+                        updateField('departmentEn', deptObj.name_en || deptObj.name_th);
+                      }
+                    } else {
+                      updateField('position', selectedVal);
+                    }
+                  }}
+                  options={positionOptions}
+                />
+                {validationErrors.position && <p className="text-red-500 text-xs mt-1">{validationErrors.position}</p>}
+
+                {/* Custom Position Text Input */}
+                {isCustomPosition && (
+                  <div className="mt-3 animate-in fade-in slide-in-from-top-1 duration-150">
+                    <Input
+                      label={lang === 'en' ? 'Specify Desired Position *' : 'ระบุชื่อตำแหน่งที่ต้องการสมัคร *'}
+                      placeholder={lang === 'en' ? 'e.g. AI Prompt Engineer' : 'เช่น เจ้าหน้าที่พัฒนาธุรกิจสัมพันธ์'}
+                      value={formData.position}
+                      onChange={(e) => {
+                        updateField('position', e.target.value);
+                        updateField('positionEn', e.target.value);
+                      }}
+                      required
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Department Selection (Searchable Combobox) */}
+              <div>
+                <SearchableSelect
                   label={<>{t.labels.department} <span className="text-red-500">*</span></>}
-                  value={formData.department}
-                  onChange={(e) => {
-                    const selectedValue = e.target.value;
+                  placeholder={lang === 'en' ? 'Type or select department...' : 'พิมพ์ค้นหาหรือเลือกแผนก/ฝ่าย...'}
+                  searchPlaceholder={lang === 'en' ? 'Type department name...' : 'พิมพ์ชื่อแผนกเพื่อค้นหา...'}
+                  value={formData.department || ''}
+                  onChange={(selectedValue) => {
                     updateField('department', selectedValue);
                     const matchedDept = departments.find(d => d.name_th === selectedValue || d.name_en === selectedValue);
                     updateField('departmentEn', matchedDept?.name_en || selectedValue);
-                    updateField('position', ''); // Clear position immediately for UI responsiveness
+
+                    // If not custom and position doesn't belong to this department, clear position
+                    if (!isCustomPosition && formData.position && matchedDept) {
+                      const isValidInDept = allPositions.some(
+                        p => p.department_id === matchedDept.id && (p.name_th === formData.position || p.name_en === formData.position)
+                      );
+                      if (!isValidInDept) {
+                        updateField('position', '');
+                        updateField('positionEn', '');
+                      }
+                    }
                   }}
-                  options={departments.map(d => ({ label: lang === 'en' ? (d.name_en || d.name_th) : d.name_th, value: d.name_th }))}
+                  options={departmentOptions}
                 />
                 {validationErrors.department && <p className="text-red-500 text-xs mt-1">{validationErrors.department}</p>}
-              </div>
-              <div>
-                <Select
-                  label={<>{t.labels.position} <span className="text-red-500">*</span></>}
-                  value={formData.position}
-                  onChange={(e) => {
-                    const selectedTh = e.target.value;
-                    updateField('position', selectedTh);
-                    const matchedPos = positions.find(p => p.name_th === selectedTh);
-                    updateField('positionEn', matchedPos?.name_en || selectedTh);
-                  }}
-                  options={positions.map(p => ({ label: lang === 'en' ? (p.name_en || p.name_th) : p.name_th, value: p.name_th }))}
-                />
-                {validationErrors.position && <p className="text-red-500 text-xs mt-1">{validationErrors.position}</p>}
               </div>
               <div className="flex gap-4 items-end">
                 <Input

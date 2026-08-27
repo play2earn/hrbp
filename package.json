@@ -19,6 +19,7 @@
     "storage:migrate:dry-run": "node ops/storage/migrate-legacy-to-s3.mjs --dry-run=true",
     "storage:migrate:live": "node ops/storage/migrate-legacy-to-s3.mjs --dry-run=false --confirm-live-migration",
     "smoke:security": "node scripts/smoke-security.mjs",
+    "db:migrate": "node scripts/run-sql.mjs supabase/create_candidate_evaluations.sql",
     "check": "npm run check:function-count && npm run build:api:vercel-sim && npm run test:security && npm run typecheck && npm run build && npm run bundle:scan",
     "preview": "vite preview"
   },

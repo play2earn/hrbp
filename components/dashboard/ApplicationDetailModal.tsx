@@ -8,7 +8,7 @@ import {
   FileText, ExternalLink, Edit, Calendar, History, Clock,
   CheckCircle, XCircle, UserPlus, UserCheck, Link, Copy, Check,
   Crop, RotateCcw, Upload, ChevronDown, ChevronUp, AlertTriangle, Paperclip, ShieldAlert,
-  Eye, Download, X, Settings, Star, HardDrive, ShieldCheck, ArrowRight
+  Eye, Download, X, Settings, HardDrive, ShieldCheck, ArrowRight
 } from 'lucide-react';
 import {
   LOG_LABELS, getStatusBadgeClass, getStatusLabel,
@@ -18,6 +18,7 @@ import { TRANSLATIONS } from '../../constants';
 import { ImageCropperModal } from './ImageCropperModal';
 import { deleteFromR2 } from '../../utils/r2-upload';
 import type { AuthUser } from '../../services/api';
+import { CandidateEvaluationPanel } from './CandidateEvaluationPanel';
 
 const fmtYearMonth = (dateStr: string | undefined | null): string => {
   if (!dateStr) return '';
@@ -54,21 +55,6 @@ const InfoRow = memo(({ label, value, className = '' }: { label: string; value: 
   </div>
 ));
 
-const getOverallRecBadge = (rec: string) => {
-  if (rec === 'Hired') return 'bg-green-100 text-green-800 border-green-200';
-  if (rec === 'Rejected') return 'bg-red-100 text-red-800 border-red-200';
-  if (rec === 'Shortlisted' || rec === 'Hold') return 'bg-amber-100 text-amber-800 border-amber-200';
-  return 'bg-blue-100 text-blue-800 border-blue-200';
-};
-
-const getOverallRecLabel = (rec: string) => {
-  if (rec === 'Hired') return 'รับเข้าทำงาน (Hire)';
-  if (rec === 'Rejected') return 'ไม่ผ่าน (Not Pass)';
-  if (rec === 'Shortlisted') return 'Shortlist';
-  if (rec === 'Hold') return 'พิจารณาภายหลัง (Hold)';
-  return rec;
-};
-
 const getPreviewPath = (url: string): string => {
   try {
     const parsed = new URL(url, window.location.origin);
@@ -94,19 +80,6 @@ const getPreviewKind = (url: string): 'pdf' | 'image' | 'other' => {
   return 'other';
 };
 
-const StarRating = ({ val }: { val: number }) => (
-  <div className="flex gap-0.5">
-    {[1, 2, 3, 4, 5].map((s) => (
-      <Star
-        key={s}
-        className={`w-3 h-3 ${
-          s <= val ? 'text-yellow-400 fill-yellow-400' : 'text-slate-200'
-        }`}
-      />
-    ))}
-  </div>
-);
-
 interface ApplicationDetailModalProps {
   viewingApp: any;
   setViewingApp: (app: any | null) => void;
@@ -125,7 +98,6 @@ interface ApplicationDetailModalProps {
   onApplicationUpdated?: (app: any) => void;
   blacklistEntries: any[];
   onViewBlacklistDetail: (entry: any) => void;
-  setEvaluatingApp: (app: any | null) => void;
   onOpenHrDrive?: (prefix: string) => void;
   currentUser: AuthUser;
 }
@@ -137,7 +109,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
   setRejectingApp, setRejectComment, setRejectionReason,
   setApprovingApp, onApplicationUpdated, blacklistEntries,
   onViewBlacklistDetail,
-  setEvaluatingApp,
   onOpenHrDrive,
   currentUser,
 }) => {
@@ -151,8 +122,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
   const [showRevokeConfirm, setShowRevokeConfirm] = useState(false);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
-  const [evaluations, setEvaluations] = useState<any[]>([]);
-  const [isLoadingEvaluations, setIsLoadingEvaluations] = useState(false);
 
   // Calendar confirmation modal state
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
@@ -254,18 +223,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
       setMigrateProgress('');
     }
   };
-
-  useEffect(() => {
-    if (viewingApp?.id) {
-      setIsLoadingEvaluations(true);
-      api.evaluations.getByApplicationId(viewingApp.id).then(res => {
-        setEvaluations(res);
-        setIsLoadingEvaluations(false);
-      });
-    } else {
-      setEvaluations([]);
-    }
-  }, [viewingApp?.id]);
 
   // ── Resubmit Token State ──────────────────────────────────────
   const [showResubmitPanel, setShowResubmitPanel] = useState(false);
@@ -1237,118 +1194,51 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
               </div>
 
               {/* Interview Details Block */}
-              {(viewingApp.interview_date || viewingApp.interview_start_time || viewingApp.teams_meeting_url) && (() => {
-                const latestEval = evaluations.length > 0 ? evaluations[evaluations.length - 1] : null;
-                const gridColsClass = latestEval 
-                  ? (showPreview ? "grid grid-cols-1 xl:grid-cols-2 gap-5 divide-y xl:divide-y-0 xl:divide-x divide-amber-200" : "grid grid-cols-1 md:grid-cols-2 gap-6 divide-y md:divide-y-0 md:divide-x divide-amber-200")
-                  : "";
-
-                return (
-                  <div className="bg-amber-50/70 border border-amber-200 p-4 rounded-xl mb-4 text-sm shadow-sm animate-in fade-in duration-300">
-                    <div className={gridColsClass}>
-                      {/* Left Pane: Schedule Info */}
-                      <div className={latestEval ? "space-y-2.5 pb-4 md:pb-0 xl:pb-0" : ""}>
-                        <h4 className="font-bold text-amber-800 flex items-center gap-2 mb-2">
-                          <Calendar className="w-4 h-4 text-amber-600" /> รายละเอียดการนัดสัมภาษณ์ (Interview Details)
-                        </h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-                          <div>
-                            <span className="text-gray-500 text-xs block">วันที่สัมภาษณ์:</span>
-                            <span className="font-semibold text-gray-900">
-                              {viewingApp.interview_date ? new Date(viewingApp.interview_date).toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '-'}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-gray-500 text-xs block">เวลาสัมภาษณ์:</span>
-                            <span className="font-semibold text-gray-900">
-                              {viewingApp.interview_start_time ? (
-                                `${new Date(viewingApp.interview_start_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' })}` +
-                                (viewingApp.interview_end_time ? ` - ${new Date(viewingApp.interview_end_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' })}` : '')
-                              ) : '-'}
-                            </span>
-                          </div>
-                          <div className="col-span-2 border-t border-amber-200/50 pt-2.5 mt-1 flex flex-wrap gap-2">
-                            {viewingApp.teams_meeting_url && (
-                              <a
-                                href={viewingApp.teams_meeting_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 text-indigo-600 hover:text-indigo-800 font-semibold bg-white px-3 py-1.5 rounded-lg border border-indigo-150 shadow-sm transition-all text-xs"
-                              >
-                                <ExternalLink className="w-3.5 h-3.5" />
-                                เข้าร่วมประชุม MS Teams
-                              </a>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => handleCalendarClick(viewingApp)}
-                              className="inline-flex items-center gap-1.5 text-emerald-700 hover:text-emerald-900 font-semibold bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-200 shadow-sm transition-all text-xs cursor-pointer animate-in fade-in"
-                            >
-                              <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-                              เพิ่มนัดในปฏิทิน Outlook
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Right Pane: Latest Evaluation Results */}
-                      {latestEval && (
-                        <div className={`pt-4 md:pt-0 md:pl-5 ${showPreview ? 'xl:pt-0 xl:pl-5' : 'md:pt-0 md:pl-5'} flex flex-col justify-between`}>
-                          <div>
-                            <h4 className="font-bold text-indigo-800 flex items-center gap-1.5 mb-2.5">
-                              <Star className="w-4 h-4 text-indigo-500 fill-indigo-500" /> ผลการประเมินล่าสุด (Latest Evaluation)
-                            </h4>
-                            
-                            <div className="space-y-2">
-                              {/* Round & Recommendation */}
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="text-xs font-semibold text-slate-500">
-                                  สัมภาษณ์รอบที่ {latestEval.interview_round > 1 ? latestEval.interview_round : evaluations.length}
-                                </span>
-                                <span className={`px-2 py-0.5 text-xs font-bold rounded border ${getOverallRecBadge(latestEval.overall_recommendation)}`}>
-                                  {getOverallRecLabel(latestEval.overall_recommendation)}
-                                </span>
-                              </div>
-
-                              {/* Ratings */}
-                              <div className="grid grid-cols-3 gap-1.5 bg-white p-2 rounded-lg border border-slate-150 text-center shadow-sm">
-                                <div className="flex flex-col items-center">
-                                  <span className="text-[9px] text-gray-400 font-medium uppercase">ทักษะ</span>
-                                  <StarRating val={latestEval.rating_skills} />
-                                </div>
-                                <div className="flex flex-col items-center">
-                                  <span className="text-[9px] text-gray-400 font-medium uppercase">ทัศนคติ</span>
-                                  <StarRating val={latestEval.rating_attitude} />
-                                </div>
-                                <div className="flex flex-col items-center">
-                                  <span className="text-[9px] text-gray-400 font-medium uppercase">วัฒนธรรม</span>
-                                  <StarRating val={latestEval.rating_cultural_fit} />
-                                </div>
-                              </div>
-
-                              {/* Comments Snippet */}
-                              {latestEval.comments && (
-                                <div 
-                                  className="text-xs text-gray-600 bg-white/70 p-2 rounded border border-slate-100 leading-relaxed font-sans max-h-16 overflow-y-auto" 
-                                  title={latestEval.comments}
-                                >
-                                  "{latestEval.comments}"
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Interviewer & Date */}
-                          <div className="text-[10px] text-gray-400 flex items-center justify-between mt-3 pt-1.5 border-t border-slate-200/50">
-                            <span>ผู้ประเมิน: {latestEval.interviewer?.full_name || 'ไม่ระบุ'}</span>
-                            <span>{new Date(latestEval.created_at).toLocaleDateString('th-TH')}</span>
-                          </div>
-                        </div>
+              {(viewingApp.interview_date || viewingApp.interview_start_time || viewingApp.teams_meeting_url) && (
+                <div className="bg-amber-50/70 border border-amber-200 p-4 rounded-xl mb-4 text-sm shadow-sm animate-in fade-in duration-300">
+                  <h4 className="font-bold text-amber-800 flex items-center gap-2 mb-2">
+                    <Calendar className="w-4 h-4 text-amber-600" /> รายละเอียดการนัดสัมภาษณ์ (Interview Details)
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                    <div>
+                      <span className="text-gray-500 text-xs block">วันที่สัมภาษณ์:</span>
+                      <span className="font-semibold text-gray-900">
+                        {viewingApp.interview_date ? new Date(viewingApp.interview_date).toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '-'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 text-xs block">เวลาสัมภาษณ์:</span>
+                      <span className="font-semibold text-gray-900">
+                        {viewingApp.interview_start_time ? (
+                          `${new Date(viewingApp.interview_start_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' })}` +
+                          (viewingApp.interview_end_time ? ` - ${new Date(viewingApp.interview_end_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' })}` : '')
+                        ) : '-'}
+                      </span>
+                    </div>
+                    <div className="col-span-2 border-t border-amber-200/50 pt-2.5 mt-1 flex flex-wrap gap-2">
+                      {viewingApp.teams_meeting_url && (
+                        <a
+                          href={viewingApp.teams_meeting_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-indigo-600 hover:text-indigo-800 font-semibold bg-white px-3 py-1.5 rounded-lg border border-indigo-150 shadow-sm transition-all text-xs"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          เข้าร่วมประชุม MS Teams
+                        </a>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => handleCalendarClick(viewingApp)}
+                        className="inline-flex items-center gap-1.5 text-emerald-700 hover:text-emerald-900 font-semibold bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-200 shadow-sm transition-all text-xs cursor-pointer animate-in fade-in"
+                      >
+                        <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+                        เพิ่มนัดในปฏิทิน Outlook
+                      </button>
                     </div>
                   </div>
-                );
-              })()}
+                </div>
+              )}
 
               {/* 2. Personal Info */}
               <SectionHeader title={t.sections.personal} icon={User} />
@@ -1900,58 +1790,10 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                 </div>
               )}
 
-              {/* Evaluation scorecards section */}
-              <div className="mt-6 pt-4 border-t">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                  <Star className="w-4 h-4 text-indigo-500" /> ผลการประเมินสัมภาษณ์ (Interview Scorecard History)
-                </h4>
-                {isLoadingEvaluations ? (
-                  <div className="text-center py-4 text-sm text-gray-400">กำลังโหลดผลประเมิน...</div>
-                ) : evaluations.length === 0 ? (
-                  <div className="text-center py-4 text-sm text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">ยังไม่มีผลการประเมินสัมภาษณ์</div>
-                ) : (
-                  <div className="space-y-4 mb-4">
-                    {evaluations.map((ev: any, idx: number) => {
-                      return (
-                        <div key={ev.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 shadow-sm text-sm">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-semibold text-slate-800">สัมภาษณ์รอบที่ {ev.interview_round > 1 ? ev.interview_round : (idx + 1)}</span>
-                            <span className={`px-2 py-0.5 text-xs font-semibold rounded border ${getOverallRecBadge(ev.overall_recommendation)}`}>
-                              {getOverallRecLabel(ev.overall_recommendation)}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-3 gap-2 bg-white px-3 py-2 rounded-lg border border-slate-100 mb-2.5">
-                            <div className="flex flex-col items-center">
-                              <span className="text-[10px] text-gray-400 font-medium uppercase">ทักษะ (Skills)</span>
-                              <StarRating val={ev.rating_skills} />
-                            </div>
-                            <div className="flex flex-col items-center">
-                              <span className="text-[10px] text-gray-400 font-medium uppercase">ทัศนคติ (Attitude)</span>
-                              <StarRating val={ev.rating_attitude} />
-                            </div>
-                            <div className="flex flex-col items-center">
-                              <span className="text-[10px] text-gray-400 font-medium uppercase">วัฒนธรรม (Fit)</span>
-                              <StarRating val={ev.rating_cultural_fit} />
-                            </div>
-                          </div>
-
-                          {ev.comments && (
-                            <div className="text-xs text-gray-600 bg-white p-2.5 rounded-lg border border-slate-150 mb-2 leading-relaxed">
-                              {ev.comments}
-                            </div>
-                          )}
-
-                          <div className="text-[10px] text-gray-400 flex items-center justify-between pt-1 border-t border-slate-100">
-                            <span>ผู้ประเมิน: {ev.interviewer?.full_name || 'ไม่ระบุผู้ประเมิน'}</span>
-                            <span>{new Date(ev.created_at).toLocaleDateString('th-TH')}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+              <CandidateEvaluationPanel
+                application={viewingApp}
+                showToast={(message, type = 'success') => setToastNotification({ message, type })}
+              />
 
               {/* Activity Log Timeline */}
               <div className="mt-4 pt-3 border-t">
@@ -2361,19 +2203,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                 {isInterviewScheduledStatus(viewingApp.status) && (
                   <Button size={showPreview ? "sm" : "md"} className="bg-yellow-500 hover:bg-yellow-600 text-white" onClick={() => { setInterviewingApp(viewingApp); setInterviewDate(viewingApp.interview_date || ''); setViewingApp(null); }}>
                     <Calendar className="w-4 h-4 mr-2" /> {lang === 'en' ? 'Reschedule Interview' : 'เปลี่ยนวันสัมภาษณ์'}
-                  </Button>
-                )}
-                {/* Evaluate Candidate Button */}
-                {(isInterviewScheduledStatus(viewingApp.status) || viewingApp.status === 'Interviewed') && (
-                  <Button
-                    size={showPreview ? "sm" : "md"}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                    onClick={() => {
-                      setEvaluatingApp(viewingApp);
-                      setViewingApp(null);
-                    }}
-                  >
-                    <Star className="w-4 h-4 mr-2" /> {lang === 'en' ? 'Evaluate Candidate' : 'บันทึกการประเมิน'}
                   </Button>
                 )}
                 {(isInterviewScheduledStatus(viewingApp.status) || viewingApp.status === 'Interviewed' || viewingApp.status === 'Offer') && (

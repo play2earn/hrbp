@@ -204,21 +204,31 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
     if (selectedDeptObj) {
       filteredPositions = positions.filter(p => p.department_id === selectedDeptObj.id);
     }
-    return filteredPositions
+    const standard = filteredPositions
       .filter(p => p.is_active !== false)
       .map(p => ({
         value: p.name_th || p.name,
         label: p.name_th || p.name
       }));
+
+    return [
+      ...standard,
+      { value: '__unassigned__', label: '⚠️ ไม่ระบุตำแหน่ง (Unassigned)' }
+    ];
   }, [positions, selectedDeptObj]);
 
   const departmentOptions = useMemo(() => {
-    return departments
+    const standard = departments
       .filter(d => d.is_active !== false)
       .map(d => ({
         value: d.name_th || d.name,
         label: d.name_th || d.name
       }));
+
+    return [
+      ...standard,
+      { value: '__unassigned__', label: '⚠️ ไม่ระบุแผนก (Unassigned)' }
+    ];
   }, [departments]);
 
   const handleDepartmentChange = React.useCallback((deptName: string) => {

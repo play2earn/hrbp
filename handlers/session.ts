@@ -57,10 +57,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const supabase = getAdminSupabase();
     const [{ data: byEmp, error: empError }, { data: byAccount, error: accountError }] = await Promise.all([
-      supabase.from('users').select('*').eq('emp_id', pending.empId).limit(1).maybeSingle(),
-      supabase.from('users').select('*').eq('hrms_username', pending.account).limit(1).maybeSingle(),
+      supabase.from('users').select('*').eq('emp_id', String(pending.empId).trim()).limit(1).maybeSingle(),
+      supabase.from('users').select('*').eq('hrms_username', String(pending.account).trim()).limit(1).maybeSingle(),
     ]);
-    if (empError || accountError) return res.status(500).json({ error: 'Unable to verify portal account' });
+    if (empError || accountError) {
+      console.error('[session] Error verifying portal account:', { empError, accountError, pending });
+      return res.status(500).json({ error: 'Unable to verify portal account', details: empError?.message || accountError?.message });
+    }
     const user = byEmp || byAccount;
     if (!user) return res.status(404).json({ error: 'Portal account is not registered', needsRegistration: true, empId: pending.empId });
     if (user.status !== 'Active' || (user.role !== 'admin' && user.role !== 'mod')) {

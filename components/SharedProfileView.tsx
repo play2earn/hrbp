@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
-import { User, GraduationCap, Briefcase, MapPin, Phone, Mail, Shield, Clock, AlertTriangle, Heart, Users, Car, Monitor, Globe, FileText, Building2, MessageSquare } from 'lucide-react';
+import { User, GraduationCap, Briefcase, MapPin, Phone, Mail, Shield, Clock, AlertTriangle, Heart, Users, Car, Monitor, Globe, FileText, Building2, MessageSquare, CheckCircle, Send } from 'lucide-react';
 
 interface SharedProfileViewProps {
   token: string;
@@ -89,6 +89,215 @@ const getBuTagStyle = (bu: string): string => {
   if (v.includes('nps')) return 'bg-amber-100 text-amber-700';
   if (v.includes('double') || v === 'da') return 'bg-blue-100 text-blue-700';
   return 'bg-indigo-100 text-indigo-700';
+};
+
+const PublicCandidateEvaluationPanel = ({ token }: { token: string }) => {
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<any>(null);
+  const [selectedReviewerId, setSelectedReviewerId] = useState('');
+  const [phoneLast4, setPhoneLast4] = useState('');
+  const [scores, setScores] = useState<Record<string, { score?: number; comment?: string }>>({});
+  const [recommendation, setRecommendation] = useState('');
+  const [strengths, setStrengths] = useState('');
+  const [concerns, setConcerns] = useState('');
+  const [comments, setComments] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    const result = await api.candidateEvaluations.getPublic(token);
+    if (result.success) setData(result.data);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+  }, [token]);
+
+  const session = data?.session;
+  const reviewers = data?.reviewers || [];
+  if (loading || !session) return null;
+
+  const selectedReviewer = reviewers.find((reviewer: any) => reviewer.id === selectedReviewerId);
+  const snapshot = session.template_snapshot || {};
+  const items = Array.isArray(snapshot.items) ? snapshot.items : [];
+  const scaleValues = Array.from(
+    { length: Math.max(0, Number(snapshot.scale_max || 5) - Number(snapshot.scale_min || 1) + 1) },
+    (_, idx) => Number(snapshot.scale_min || 1) + idx,
+  );
+  const recOptions = Array.isArray(snapshot.recommendation_options) && snapshot.recommendation_options.length > 0
+    ? snapshot.recommendation_options
+    : [
+        { value: 'recommend', label: 'แนะนำให้รับ' },
+        { value: 'recommend_with_condition', label: 'แนะนำให้รับแบบมีเงื่อนไข' },
+        { value: 'hold', label: 'รอพิจารณาเพิ่มเติม' },
+        { value: 'not_recommend', label: 'ไม่แนะนำให้รับ' },
+      ];
+
+  const submit = async () => {
+    if (!selectedReviewerId) {
+      setMessage({ type: 'error', text: 'กรุณาเลือกชื่อกรรมการก่อนเริ่มประเมิน' });
+      return;
+    }
+    if (selectedReviewer?.has_phone_check && phoneLast4.replace(/\D/g, '').length !== 4) {
+      setMessage({ type: 'error', text: 'กรุณายืนยันเบอร์โทร 4 ตัวท้าย' });
+      return;
+    }
+    if (!recommendation) {
+      setMessage({ type: 'error', text: 'กรุณาเลือก Recommendation' });
+      return;
+    }
+    const missing = items.find((item: any) => item.is_required && !scores[item.id]?.score);
+    if (missing) {
+      setMessage({ type: 'error', text: `กรุณาให้คะแนน: ${missing.title}` });
+      return;
+    }
+    setSubmitting(true);
+    const result = await api.candidateEvaluations.submitPublic({
+      shareToken: token,
+      reviewerId: selectedReviewerId,
+      phoneLast4,
+      scores,
+      recommendation,
+      strengths,
+      concerns,
+      comments,
+    });
+    setSubmitting(false);
+    if (result.success) {
+      setMessage({ type: 'success', text: 'ส่งผลประเมินเรียบร้อยแล้ว ขอบคุณครับ' });
+      await load();
+    } else {
+      setMessage({ type: 'error', text: result.error?.message || 'ส่งผลประเมินไม่สำเร็จ' });
+    }
+  };
+
+  return (
+    <div className="mb-6 rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h3 className="text-sm font-bold text-indigo-900 flex items-center gap-2">
+            <MessageSquare className="w-4 h-4" /> เปิดให้ประเมินผู้สมัคร
+          </h3>
+          <p className="text-xs text-indigo-700/80 mt-1">กรุณาเลือกชื่อของคุณ แล้วให้คะแนนตามแบบประเมิน: {snapshot.name}</p>
+        </div>
+        <div className="text-xs font-bold text-indigo-700 bg-white border border-indigo-100 px-2.5 py-1 rounded-full w-fit">
+          ส่งแล้ว {data?.summary?.submitted_count || 0}/{data?.summary?.reviewer_count || reviewers.length}
+        </div>
+      </div>
+
+      {message && (
+        <div className={`mt-3 rounded-xl px-3 py-2 text-sm ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-rose-50 text-rose-700 border border-rose-100'}`}>
+          {message.text}
+        </div>
+      )}
+
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-bold text-gray-700 mb-1">ฉันคือ</label>
+          <select
+            value={selectedReviewerId}
+            onChange={e => {
+              setSelectedReviewerId(e.target.value);
+              setMessage(null);
+            }}
+            className="w-full border rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
+          >
+            <option value="">-- เลือกชื่อกรรมการ --</option>
+            {reviewers.map((reviewer: any) => {
+              const name = reviewer.full_name && reviewer.full_name !== reviewer.emp_id 
+                ? reviewer.full_name 
+                : `${reviewer.position || 'กรรมการ'} (${reviewer.emp_id})`;
+              const subtitle = reviewer.position && reviewer.full_name !== reviewer.position ? ` (${reviewer.position})` : '';
+              return (
+                <option key={reviewer.id} value={reviewer.id} disabled={reviewer.status === 'submitted'}>
+                  {name}{subtitle} {reviewer.status === 'submitted' ? '✓ (ส่งผลประเมินแล้ว)' : ''}
+                </option>
+              );
+            })}
+          </select>
+        </div>
+        {selectedReviewer?.has_phone_check && selectedReviewer?.status !== 'submitted' && (
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">เบอร์โทร 4 ตัวท้าย (เพื่อยืนยันตัวตน)</label>
+            <input
+              value={phoneLast4}
+              onChange={e => setPhoneLast4(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              maxLength={4}
+              className="w-full border rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
+              placeholder="1234"
+            />
+          </div>
+        )}
+      </div>
+
+      {selectedReviewer?.status === 'submitted' ? (
+        <div className="mt-4 bg-white border border-emerald-100 rounded-xl p-4 text-sm text-emerald-700 flex items-center gap-2">
+          <CheckCircle className="w-5 h-5" /> คุณส่งผลประเมินแล้ว
+        </div>
+      ) : selectedReviewerId ? (
+        <div className="mt-4 space-y-3">
+          {items.map((item: any, index: number) => (
+            <div key={item.id} className="bg-white border border-indigo-100 rounded-xl p-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="text-sm font-semibold text-gray-900">{index + 1}. {item.title}</div>
+                  {item.description && <div className="text-xs text-gray-500 mt-0.5">{item.description}</div>}
+                </div>
+                <div className="flex gap-1 shrink-0">
+                  {scaleValues.map(value => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setScores(prev => ({ ...prev, [item.id]: { ...(prev[item.id] || {}), score: value } }))}
+                      className={`w-9 h-8 rounded-lg text-sm font-bold border transition ${scores[item.id]?.score === value ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-indigo-50'}`}
+                    >
+                      {value}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {item.has_comment && (
+                <textarea
+                  value={scores[item.id]?.comment || ''}
+                  onChange={e => setScores(prev => ({ ...prev, [item.id]: { ...(prev[item.id] || {}), comment: e.target.value } }))}
+                  rows={2}
+                  className="mt-3 w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  placeholder="หมายเหตุรายหัวข้อ"
+                />
+              )}
+            </div>
+          ))}
+
+          <div className="bg-white border border-indigo-100 rounded-xl p-3 space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">Recommendation</label>
+              <select value={recommendation} onChange={e => setRecommendation(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                <option value="">เลือกผลเสนอแนะ</option>
+                {recOptions.map((option: any) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <textarea value={strengths} onChange={e => setStrengths(e.target.value)} rows={3} className="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="จุดแข็ง" />
+              <textarea value={concerns} onChange={e => setConcerns(e.target.value)} rows={3} className="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="ข้อกังวล" />
+            </div>
+            <textarea value={comments} onChange={e => setComments(e.target.value)} rows={3} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="ความคิดเห็นเพิ่มเติม" />
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={submit}
+                disabled={submitting}
+                className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-sm font-semibold transition"
+              >
+                <Send className="w-4 h-4" /> {submitting ? 'กำลังส่ง...' : 'ส่งผลประเมิน'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
 };
 
 
@@ -323,6 +532,11 @@ export const SharedProfileView: React.FC<SharedProfileViewProps> = ({ token }) =
             <span>Shared Profile (Read Only)</span>
           </div>
         </div>
+      </div>
+
+      {/* Candidate Evaluation Panel for Reviewers */}
+      <div className="max-w-4xl mx-auto mb-6">
+        <PublicCandidateEvaluationPanel token={token} />
       </div>
 
       <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">

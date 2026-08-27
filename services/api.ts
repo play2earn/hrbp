@@ -80,6 +80,56 @@ export interface GetApplicationsParams {
   blacklistEntries: any[];
 }
 
+export interface EvaluationTemplateItem {
+  id?: string;
+  template_id?: string;
+  sort_order: number;
+  title: string;
+  description?: string | null;
+  weight: number;
+  is_required: boolean;
+  has_comment: boolean;
+  is_active?: boolean;
+}
+
+export interface EvaluationTemplateUser {
+  name: string;
+  emp_id?: string | null;
+  email?: string | null;
+  avatar_url?: string | null;
+}
+
+export interface EvaluationTemplate {
+  id?: string;
+  name: string;
+  description?: string | null;
+  scale_min: number;
+  scale_max: number;
+  passing_score_percent: number;
+  recommendation_options?: Array<{ value: string; label: string }>;
+  is_active: boolean;
+  item_count?: number;
+  items?: EvaluationTemplateItem[];
+  created_by?: string;
+  updated_by?: string;
+  created_at?: string;
+  updated_at?: string;
+  creator?: EvaluationTemplateUser | null;
+  updater?: EvaluationTemplateUser | null;
+}
+
+export interface EvaluationReviewerProfile {
+  id?: string;
+  emp_id: string;
+  full_name: string;
+  email?: string | null;
+  phone?: string | null;
+  position?: string | null;
+  department?: string | null;
+  company_name?: string | null;
+  avatar_url?: string | null;
+}
+
 
 // ============================================================
 // Error Handler Utility
@@ -491,12 +541,20 @@ export const api = {
 
       // 3. Position Filter
       if (params.position) {
-        query = query.eq('position', params.position);
+        if (params.position === '__unassigned__') {
+          query = query.or('position.is.null,position.eq.');
+        } else {
+          query = query.eq('position', params.position);
+        }
       }
 
       // 4. Department Filter
       if (params.department) {
-        query = query.eq('department', params.department);
+        if (params.department === '__unassigned__') {
+          query = query.or('department.is.null,department.eq.');
+        } else {
+          query = query.eq('department', params.department);
+        }
       }
 
       // 5. Business Unit (BU) Filter
@@ -1457,6 +1515,15 @@ export const api = {
       return data || [];
     },
 
+    getAllPositions: async function (activeOnly = true) {
+      return this._getCached(`all_positions_${activeOnly}`, async () => {
+        let query = supabase.from('positions').select('*, departments(id, name_th, name_en)').order('name_th');
+        if (activeOnly) query = query.eq('is_active', true);
+        const { data } = await query;
+        return data || [];
+      });
+    },
+
     getBusinessUnits: async function () {
       return this._getCached('business_units', async () => {
         const { data } = await supabase.from('business_units').select('*').eq('is_active', true).order('name');
@@ -1725,7 +1792,199 @@ export const api = {
   },
 
   // ============================================================
-  // Interview Evaluation / Scorecard Services
+  // Candidate Evaluation Templates / Panel Review Services
+  // ============================================================
+  evaluationTemplates: {
+    list: async (activeOnly = false): Promise<ApiResponse<EvaluationTemplate[]>> => {
+      try {
+        const response = await fetch(`/api/evaluation-templates${activeOnly ? '?activeOnly=true' : ''}`, { credentials: 'same-origin' });
+        const result = await response.json();
+        return response.ok ? result : { success: false, error: { message: result.error || 'โหลดแบบประเมินไม่สำเร็จ' } };
+      } catch (error) {
+        return handleError(error, 'evaluationTemplates.list');
+      }
+    },
+
+    get: async (id: string): Promise<ApiResponse<EvaluationTemplate>> => {
+      try {
+        const response = await fetch(`/api/evaluation-templates?id=${encodeURIComponent(id)}`, { credentials: 'same-origin' });
+        const result = await response.json();
+        return response.ok ? result : { success: false, error: { message: result.error || 'โหลดแบบประเมินไม่สำเร็จ' } };
+      } catch (error) {
+        return handleError(error, 'evaluationTemplates.get');
+      }
+    },
+
+    save: async (template: EvaluationTemplate): Promise<ApiResponse<EvaluationTemplate>> => {
+      try {
+        const response = await fetch('/api/evaluation-templates', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save', template }),
+        });
+        const result = await response.json();
+        return response.ok ? result : { success: false, error: { message: result.error || 'บันทึกแบบประเมินไม่สำเร็จ' } };
+      } catch (error) {
+        return handleError(error, 'evaluationTemplates.save');
+      }
+    },
+
+    duplicate: async (id: string): Promise<ApiResponse<EvaluationTemplate>> => {
+      try {
+        const response = await fetch('/api/evaluation-templates', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'duplicate', id }),
+        });
+        const result = await response.json();
+        return response.ok ? result : { success: false, error: { message: result.error || 'คัดลอกแบบประเมินไม่สำเร็จ' } };
+      } catch (error) {
+        return handleError(error, 'evaluationTemplates.duplicate');
+      }
+    },
+
+    delete: async (id: string): Promise<ApiResponse<void>> => {
+      try {
+        const response = await fetch('/api/evaluation-templates', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'delete', id }),
+        });
+        const result = await response.json();
+        return response.ok ? result : { success: false, error: { message: result.error || 'ลบแบบประเมินไม่สำเร็จ' } };
+      } catch (error) {
+        return handleError(error, 'evaluationTemplates.delete');
+      }
+    },
+  },
+
+  candidateEvaluations: {
+    getBundle: async (applicationId: string): Promise<ApiResponse<any>> => {
+      try {
+        const response = await fetch(`/api/candidate-evaluations?applicationId=${encodeURIComponent(applicationId)}`, { credentials: 'same-origin' });
+        const result = await response.json();
+        return response.ok ? result : { success: false, error: { message: result.error || 'โหลดข้อมูลประเมินไม่สำเร็จ' } };
+      } catch (error) {
+        return handleError(error, 'candidateEvaluations.getBundle');
+      }
+    },
+
+    searchEmployee: async (query: string): Promise<ApiResponse<EvaluationReviewerProfile[]>> => {
+      try {
+        const response = await fetch(`/api/candidate-evaluations?action=search-employee&query=${encodeURIComponent(query)}`, { credentials: 'same-origin' });
+        const result = await response.json();
+        return response.ok ? result : { success: false, error: { message: result.error || 'ค้นหากรรมการไม่สำเร็จ' } };
+      } catch (error) {
+        return handleError(error, 'candidateEvaluations.searchEmployee');
+      }
+    },
+
+    createSession: async (applicationId: string, templateId: string, expiresAt?: string | null): Promise<ApiResponse<any>> => {
+      try {
+        const response = await fetch('/api/candidate-evaluations', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'create-session', applicationId, templateId, expiresAt }),
+        });
+        const result = await response.json();
+        return response.ok ? result : { success: false, error: { message: result.error || 'สร้างรอบประเมินไม่สำเร็จ' } };
+      } catch (error) {
+        return handleError(error, 'candidateEvaluations.createSession');
+      }
+    },
+
+    activate: async (applicationId: string, sessionId: string): Promise<ApiResponse<any>> => {
+      try {
+        const response = await fetch('/api/candidate-evaluations', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'activate', applicationId, sessionId }),
+        });
+        const result = await response.json();
+        return response.ok ? result : { success: false, error: { message: result.error || 'เปิดการประเมินไม่สำเร็จ' } };
+      } catch (error) {
+        return handleError(error, 'candidateEvaluations.activate');
+      }
+    },
+
+    close: async (applicationId: string, sessionId: string): Promise<ApiResponse<any>> => {
+      try {
+        const response = await fetch('/api/candidate-evaluations', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'close', applicationId, sessionId }),
+        });
+        const result = await response.json();
+        return response.ok ? result : { success: false, error: { message: result.error || 'ปิดการประเมินไม่สำเร็จ' } };
+      } catch (error) {
+        return handleError(error, 'candidateEvaluations.close');
+      }
+    },
+
+    addReviewer: async (applicationId: string, sessionId: string, profile: EvaluationReviewerProfile): Promise<ApiResponse<any>> => {
+      try {
+        const response = await fetch('/api/candidate-evaluations', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'add-reviewer', applicationId, sessionId, empId: profile.emp_id, profile }),
+        });
+        const result = await response.json();
+        return response.ok ? result : { success: false, error: { message: result.error || 'เพิ่มกรรมการไม่สำเร็จ' } };
+      } catch (error) {
+        return handleError(error, 'candidateEvaluations.addReviewer');
+      }
+    },
+
+    removeReviewer: async (applicationId: string, reviewerId: string): Promise<ApiResponse<any>> => {
+      try {
+        const response = await fetch('/api/candidate-evaluations', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'remove-reviewer', applicationId, reviewerId }),
+        });
+        const result = await response.json();
+        return response.ok ? result : { success: false, error: { message: result.error || 'ลบกรรมการไม่สำเร็จ' } };
+      } catch (error) {
+        return handleError(error, 'candidateEvaluations.removeReviewer');
+      }
+    },
+
+    getPublic: async (shareToken: string): Promise<ApiResponse<any>> => {
+      try {
+        const response = await fetch(`/api/candidate-evaluations?shareToken=${encodeURIComponent(shareToken)}`, { credentials: 'same-origin' });
+        const result = await response.json();
+        return response.ok ? result : { success: false, error: { message: result.error || 'โหลดแบบประเมินไม่สำเร็จ' } };
+      } catch (error) {
+        return handleError(error, 'candidateEvaluations.getPublic');
+      }
+    },
+
+    submitPublic: async (payload: Record<string, unknown>): Promise<ApiResponse<any>> => {
+      try {
+        const response = await fetch('/api/candidate-evaluations', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'submit-public', ...payload }),
+        });
+        const result = await response.json();
+        return response.ok ? result : { success: false, error: { message: result.error || 'ส่งผลประเมินไม่สำเร็จ' } };
+      } catch (error) {
+        return handleError(error, 'candidateEvaluations.submitPublic');
+      }
+    },
+  },
+
+  // ============================================================
+  // Legacy Interview Evaluation / Scorecard Services
   // ============================================================
   evaluations: {
     getByApplicationId: async (appId: string): Promise<any[]> => {
