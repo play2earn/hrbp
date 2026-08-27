@@ -1328,7 +1328,7 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
                   🎓 วุฒิการศึกษาที่เปิดรับ (Education Levels - เลือกได้มากกว่า 1 วุฒิ)
                 </label>
                 <div className="flex flex-wrap gap-2.5">
-                  {['ม.6 / ปวช.', 'ปวส. / อนุปริญญา', 'ปริญญาตรี', 'ปริญญาโท', 'ปริญญาเอก'].map(degree => {
+                  {['ป.6 / ประถมศึกษา', 'ม.3 / ม.ต้น', 'ม.6 / ปวช.', 'ปวส. / อนุปริญญา', 'ปริญญาตรี', 'ปริญญาโท', 'ปริญญาเอก'].map(degree => {
                     const selectedEduLevels: string[] = Array.isArray(formData.education_levels)
                       ? formData.education_levels
                       : (formData.min_education ? formData.min_education.split(',').map((s: string) => s.trim()).filter(Boolean) : []);
