@@ -1645,15 +1645,19 @@ export const api = {
       }
     },
 
-    toggleActive: async (table: string, id: number, currentState: boolean): Promise<ApiResponse<any>> => {
+    toggleItem: async (table: string, id: number, isActive: boolean): Promise<ApiResponse<any>> => {
       try {
-        const { data, error } = await supabase.from(table).update({ is_active: !currentState }).eq('id', id).select().single();
-        if (error) return handleError(error, `toggleActive:${table}`);
+        const { data, error } = await supabase.from(table).update({ is_active: isActive }).eq('id', id).select().single();
+        if (error) return handleError(error, `toggleItem:${table}`);
         api.master.clearCache();
         return { success: true, data };
       } catch (error) {
-        return handleError(error, `toggleActive:${table}`);
+        return handleError(error, `toggleItem:${table}`);
       }
+    },
+
+    toggleActive: async (table: string, id: number, currentState: boolean): Promise<ApiResponse<any>> => {
+      return api.master.toggleItem(table, id, !currentState);
     }
   },
 
