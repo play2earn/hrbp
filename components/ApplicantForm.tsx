@@ -179,11 +179,12 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
   const [universities, setUniversities] = useState<any[]>([]);
   const [colleges, setColleges] = useState<any[]>([]);
   const [faculties, setFaculties] = useState<any[]>([]);
+  const [workLocations, setWorkLocations] = useState<any[]>(UPCOUNTRY_LOCATIONS_DATA);
 
   // Fetch Initial Master Data
   useEffect(() => {
     const fetchMasterData = async () => {
-      const [deptData, buData, provData, uniData, collegeData, facData, allPosData] = await Promise.all([
+      const [deptData, buData, provData, uniData, collegeData, facData, allPosData, workLocData] = await Promise.all([
         api.master.getDepartments(),
         api.master.getBusinessUnits(),
         api.master.getProvinces(),
@@ -191,6 +192,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
         api.master.getColleges(),
         api.master.getFaculties(),
         api.master.getAllPositions(true),
+        api.master.getWorkLocations(true),
       ]);
       setDepartments(deptData || []);
       setBus(buData || []);
@@ -200,6 +202,19 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
       setFaculties(facData || []);
       setAllPositions(allPosData || []);
       setPositions(allPosData || []);
+      if (workLocData && workLocData.length > 0) {
+        const mapped = workLocData.map((l: any) => ({
+          key: l.code,
+          en: l.name_en,
+          th: l.name_th
+        }));
+        mapped.push({
+          key: 'unable',
+          en: "I'm unable to work in a different province",
+          th: 'ไม่สามารถไปทำงานต่างจังหวัดได้'
+        });
+        setWorkLocations(mapped);
+      }
     };
     fetchMasterData();
   }, []);
@@ -1748,7 +1763,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                   <span className="text-xs text-gray-500 font-normal ml-2">{lang === 'th' ? '(สามารถเลือกได้มากกว่า 1 รายการ)' : '(You can select multiple locations)'}</span>
                 </label>
                 <div className="space-y-3">
-                  {UPCOUNTRY_LOCATIONS_DATA.map(locData => {
+                  {workLocations.map(locData => {
                     const loc = locData.en;
                     const displayLabel = lang === 'th' ? locData.th : locData.en;
                     return (

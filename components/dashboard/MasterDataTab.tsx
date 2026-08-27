@@ -34,7 +34,8 @@ import {
   School,
   Navigation,
   Compass,
-  Download
+  Download,
+  Check
 } from 'lucide-react';
 import { Button, Card, Input, Modal, Select } from '../UIComponents';
 import { api, EvaluationTemplate } from '../../services/api';
@@ -94,6 +95,7 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
   const [deptList, setDeptList] = useState<any[]>([]);
   const [buList, setBuList] = useState<any[]>([]);
   const [provList, setProvList] = useState<any[]>([]);
+  const [locationList, setLocationList] = useState<any[]>([]);
 
   // Department Positions Preview Modal
   const [deptPositionsModal, setDeptPositionsModal] = useState<{ id: number; name: string } | null>(null);
@@ -113,12 +115,13 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
       id: 'recruitment',
       label: 'Recruitment & Positions',
       labelTh: 'ตำแหน่งและโครงสร้างรับสมัคร',
-      description: 'จัดการตำแหน่งงานที่เปิดรับ, แผนก, หน่วยธุรกิจ และช่องทางการสรรหา',
+      description: 'จัดการตำแหน่งงานที่เปิดรับ, แผนก, หน่วยธุรกิจ, สถานที่ทำงาน และช่องทางการสรรหา',
       colorTheme: 'from-blue-600 to-indigo-600',
       badgeBg: 'bg-indigo-50 text-indigo-700 border-indigo-200',
       tables: [
         { id: 'positions', label: 'Open Positions', labelTh: 'ตำแหน่งที่เปิดรับ', description: 'รายชื่อตำแหน่งงานทั้งหมดที่เปิดรับสมัคร', iconName: 'Briefcase', groupId: 'recruitment' },
         { id: 'departments', label: 'Departments', labelTh: 'แผนกและฝ่าย', description: 'โครงสร้างแผนกและสังกัดในองค์กร', iconName: 'Building2', groupId: 'recruitment' },
+        { id: 'work_locations', label: 'Work Locations', labelTh: 'สถานที่ปฏิบัติงาน / ไซต์งาน', description: 'รายชื่อสถานที่ทำงาน ไซต์งาน และศูนย์ปฏิบัติการ', iconName: 'MapPin', groupId: 'recruitment' },
         { id: 'business_units', label: 'Business Units', labelTh: 'หน่วยธุรกิจ (BU)', description: 'กลุ่มบริษัทและสายงานหลัก', iconName: 'Building', groupId: 'recruitment' },
         { id: 'channels', label: 'Channels', labelTh: 'ช่องทางรับสมัคร', description: 'ช่องทางและแหล่งที่มาของผู้สมัคร', iconName: 'Share2', groupId: 'recruitment' },
       ],
@@ -180,14 +183,16 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
   useEffect(() => {
     const loadLookups = async () => {
       try {
-        const [depts, bus, provs] = await Promise.all([
+        const [depts, bus, provs, locs] = await Promise.all([
           api.master.getDepartments(),
           api.master.getBusinessUnits(),
           api.master.getProvinces(),
+          api.master.getWorkLocations(false),
         ]);
         setDeptList(depts || []);
         setBuList(bus || []);
         setProvList(provs || []);
+        setLocationList(locs || []);
       } catch (err) {
         console.error('Failed to load master data lookups', err);
       }
@@ -268,7 +273,24 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
     setEditingItem(null);
     setDuplicateWarning(null);
     if (activeTable === 'positions') {
-      setFormData({ name_th: '', name_en: '', department_id: deptList[0]?.id || '', is_active: true });
+      setFormData({
+        name_th: '',
+        name_en: '',
+        department_id: deptList[0]?.id || '',
+        location_id: null,
+        location_ids: [],
+        job_level: '',
+        employment_type: 'full_time',
+        min_education: '',
+        education_levels: [],
+        is_urgent: false,
+        skills: '',
+        job_overview: '',
+        qualifications: '',
+        is_active: true
+      });
+    } else if (activeTable === 'work_locations') {
+      setFormData({ code: '', name_th: '', name_en: '', province: '', zone: '', is_active: true });
     } else if (activeTable === 'departments') {
       setFormData({ name_th: '', name_en: '', is_active: true });
     } else if (activeTable === 'business_units') {
@@ -289,7 +311,23 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
   const openEdit = (item: any) => {
     setEditingItem(item);
     setDuplicateWarning(null);
-    setFormData({ ...item });
+    const initialForm = { ...item };
+    if (activeTable === 'positions') {
+      if (Array.isArray(initialForm.skills)) {
+        initialForm.skills = initialForm.skills.join(', ');
+      }
+      if (!Array.isArray(initialForm.location_ids)) {
+        initialForm.location_ids = initialForm.location_id ? [initialForm.location_id] : [];
+      }
+      if (!Array.isArray(initialForm.education_levels)) {
+        if (initialForm.min_education) {
+          initialForm.education_levels = initialForm.min_education.split(',').map((s: string) => s.trim()).filter(Boolean);
+        } else {
+          initialForm.education_levels = [];
+        }
+      }
+    }
+    setFormData(initialForm);
     setIsModalOpen(true);
   };
 
@@ -297,21 +335,62 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      let payload = { ...formData };
+      delete payload.id;
+      delete payload.created_at;
+      delete payload.updated_at;
+      delete payload.departments;
+      delete payload.work_locations;
+      delete payload.business_units;
+
+      if (activeTable === 'positions') {
+        payload.department_id = Number(payload.department_id);
+
+        // Multi-location support
+        const locIds: number[] = Array.isArray(payload.location_ids)
+          ? payload.location_ids.map((id: any) => Number(id)).filter(Boolean)
+          : (payload.location_id ? [Number(payload.location_id)] : []);
+        payload.location_ids = locIds;
+        payload.location_id = locIds.length > 0 ? locIds[0] : null;
+
+        // Multi-education support
+        const eduLevels: string[] = Array.isArray(payload.education_levels)
+          ? payload.education_levels.map((s: any) => String(s).trim()).filter(Boolean)
+          : (payload.min_education ? payload.min_education.split(',').map((s: string) => s.trim()).filter(Boolean) : []);
+        payload.education_levels = eduLevels;
+        payload.min_education = eduLevels.length > 0 ? eduLevels.join(', ') : null;
+
+        payload.is_urgent = Boolean(payload.is_urgent);
+        if (typeof payload.skills === 'string') {
+          payload.skills = payload.skills.split(',').map((s: string) => s.trim()).filter(Boolean);
+        } else if (!Array.isArray(payload.skills)) {
+          payload.skills = [];
+        }
+        payload.job_level = payload.job_level || null;
+        payload.employment_type = payload.employment_type || 'full_time';
+        payload.job_overview = payload.job_overview || null;
+        payload.qualifications = payload.qualifications || null;
+      }
+
       if (editingItem) {
-        const res = await api.master.updateItem(activeTable, editingItem.id, formData);
+        const res = await api.master.updateItem(activeTable, editingItem.id, payload);
         if (res.success) {
           showToast('บันทึกการแก้ไขเรียบร้อย');
           setIsModalOpen(false);
           fetchTableData();
+          if (activeTable === 'work_locations') api.master.getWorkLocations(false).then(setLocationList);
+          if (activeTable === 'departments') api.master.getDepartments().then(setDeptList);
         } else {
           showToast(res.error?.message || 'แก้ไขไม่สำเร็จ', 'error');
         }
       } else {
-        const res = await api.master.addItem(activeTable, formData);
+        const res = await api.master.addItem(activeTable, payload);
         if (res.success) {
           showToast('เพิ่มข้อมูลใหม่เรียบร้อย');
           setIsModalOpen(false);
           fetchTableData();
+          if (activeTable === 'work_locations') api.master.getWorkLocations(false).then(setLocationList);
+          if (activeTable === 'departments') api.master.getDepartments().then(setDeptList);
         } else {
           showToast(res.error?.message || 'เพิ่มข้อมูลไม่สำเร็จ', 'error');
         }
@@ -818,9 +897,18 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
                   <th className="px-4 py-3 text-left w-16 uppercase tracking-wider">ID</th>
                   {activeTable === 'positions' && (
                     <>
-                      <th className="px-4 py-3 text-left">ชื่อตำแหน่ง (ไทย)</th>
-                      <th className="px-4 py-3 text-left">ชื่อตำแหน่ง (อังกฤษ)</th>
+                      <th className="px-4 py-3 text-left">ชื่อตำแหน่ง</th>
                       <th className="px-4 py-3 text-left">แผนก / สังกัด</th>
+                      <th className="px-4 py-3 text-left">สถานที่ปฏิบัติงาน</th>
+                      <th className="px-4 py-3 text-left">ระดับ / วุฒิ</th>
+                    </>
+                  )}
+                  {activeTable === 'work_locations' && (
+                    <>
+                      <th className="px-4 py-3 text-left">Code</th>
+                      <th className="px-4 py-3 text-left">ชื่อสถานที่ (ไทย)</th>
+                      <th className="px-4 py-3 text-left">ชื่อสถานที่ (อังกฤษ)</th>
+                      <th className="px-4 py-3 text-left">จังหวัด / โซน</th>
                     </>
                   )}
                   {activeTable === 'departments' && (
@@ -836,7 +924,7 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
                       <th className="px-4 py-3 text-left">Business Unit</th>
                     </>
                   )}
-                  {activeTable !== 'positions' && activeTable !== 'departments' && activeTable !== 'channels' && (
+                  {activeTable !== 'positions' && activeTable !== 'work_locations' && activeTable !== 'departments' && activeTable !== 'channels' && (
                     <>
                       <th className="px-4 py-3 text-left">ชื่อ / Title</th>
                       {data[0]?.code !== undefined && <th className="px-4 py-3 text-left">Code</th>}
@@ -858,14 +946,73 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
 
                       {activeTable === 'positions' && (
                         <>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-bold text-slate-900">{item.name_th || '-'}</span>
+                              {item.is_urgent && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-600 border border-rose-200">
+                                  🔥 ด่วน
+                                </span>
+                              )}
+                            </div>
+                            {item.name_en && (
+                              <div className="text-[11px] text-slate-500">{item.name_en}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-slate-700 font-medium">
+                            {dept?.name_th || dept?.name_en || <span className="text-slate-400 italic">ไม่ระบุ</span>}
+                          </td>
+                          <td className="px-4 py-3">
+                            {(() => {
+                              const locIds: number[] = Array.isArray(item.location_ids) && item.location_ids.length > 0
+                                ? item.location_ids
+                                : (item.location_id ? [item.location_id] : []);
+
+                              if (locIds.length > 0) {
+                                const matched = locationList.filter(l => locIds.includes(l.id));
+                                return (
+                                  <div className="flex flex-wrap gap-1">
+                                    {matched.map(l => (
+                                      <span key={l.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                                        <MapPin className="w-3 h-3 text-blue-500" /> {l.code ? l.code.toUpperCase() : l.name_th.split(':')[0]}
+                                      </span>
+                                    ))}
+                                  </div>
+                                );
+                              }
+                              return <span className="text-slate-400 text-[11px] italic">ทุกสาขา / ตามตกลง</span>;
+                            })()}
+                          </td>
+                          <td className="px-4 py-3 text-[11px] text-slate-600">
+                            <div className="flex flex-col gap-0.5">
+                              {item.min_education && (
+                                <span className="font-semibold text-slate-800">🎓 {item.min_education}</span>
+                              )}
+                              {item.job_level ? (
+                                <span className="text-slate-500">{item.job_level}</span>
+                              ) : (
+                                !item.min_education && <span className="text-slate-400 italic">ไม่จำกัด</span>
+                              )}
+                            </div>
+                          </td>
+                        </>
+                      )}
+
+                      {activeTable === 'work_locations' && (
+                        <>
+                          <td className="px-4 py-3 font-mono font-bold text-indigo-600">
+                            {item.code || '-'}
+                          </td>
                           <td className="px-4 py-3 font-bold text-slate-900">
                             {item.name_th || '-'}
                           </td>
                           <td className="px-4 py-3 text-slate-600">
                             {item.name_en || '-'}
                           </td>
-                          <td className="px-4 py-3 text-slate-700 font-medium">
-                            {dept?.name_th || dept?.name_en || <span className="text-slate-400 italic">ไม่ระบุ</span>}
+                          <td className="px-4 py-3 text-slate-600">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] bg-slate-100 text-slate-700">
+                              {item.province || '-'} {item.zone ? `(${item.zone})` : ''}
+                            </span>
                           </td>
                         </>
                       )}
@@ -893,7 +1040,7 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
                         </>
                       )}
 
-                      {activeTable !== 'positions' && activeTable !== 'departments' && activeTable !== 'channels' && (
+                      {activeTable !== 'positions' && activeTable !== 'work_locations' && activeTable !== 'departments' && activeTable !== 'channels' && (
                         <>
                           <td className="px-4 py-3 font-bold text-slate-900">
                             {item.name_th || item.name || item.title || '-'}
@@ -1038,19 +1185,265 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
                 </select>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Input
+                  label="ชื่อตำแหน่ง (ภาษาไทย) *"
+                  value={formData.name_th || ''}
+                  onChange={e => setFormData({ ...formData, name_th: e.target.value })}
+                  placeholder="เช่น เจ้าหน้าที่ปรับปรุงกระบวนการ"
+                  required
+                />
+
+                <Input
+                  label="ชื่อตำแหน่ง (ภาษาอังกฤษ)"
+                  value={formData.name_en || ''}
+                  onChange={e => setFormData({ ...formData, name_en: e.target.value })}
+                  placeholder="เช่น Process Improvement Officer"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">ระดับตำแหน่ง (Job Level)</label>
+                  <select
+                    value={formData.job_level || ''}
+                    onChange={e => setFormData({ ...formData, job_level: e.target.value })}
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none font-medium"
+                  >
+                    <option value="">-- ทุกระดับ / ไม่ระบุ --</option>
+                    <option value="จบใหม่ (Entry / Fresh Grad)">จบใหม่ (Entry / Fresh Grad)</option>
+                    <option value="1-3 ปี (Mid-Level)">1-3 ปี (Mid-Level)</option>
+                    <option value="3-5 ปี (Senior)">3-5 ปี (Senior)</option>
+                    <option value="หัวหน้างาน (Lead / Supervisor)">หัวหน้างาน (Lead / Supervisor)</option>
+                    <option value="ผู้จัดการ / บริหาร (Manager / Executive)">ผู้จัดการ / บริหาร (Manager / Executive)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">ประเภทการจ้าง (Type)</label>
+                  <select
+                    value={formData.employment_type || 'full_time'}
+                    onChange={e => setFormData({ ...formData, employment_type: e.target.value })}
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none font-medium"
+                  >
+                    <option value="full_time">งานประจำ (Full-time)</option>
+                    <option value="contract">สัญญาจ้าง (Contract)</option>
+                    <option value="internship">นักศึกษาฝึกงาน (Internship)</option>
+                    <option value="part_time">พาร์ทไทม์ (Part-time)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Multi-Select Work Locations */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700">
+                    สถานที่ปฏิบัติงาน (Work Locations - เลือกได้มากกว่า 1 แห่ง)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const allIds = locationList.map(l => l.id);
+                        setFormData({ ...formData, location_ids: allIds, location_id: allIds[0] || null });
+                      }}
+                      className="text-[10px] text-indigo-600 hover:underline font-bold"
+                    >
+                      เลือกทั้งหมด
+                    </button>
+                    <span className="text-slate-300">|</span>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, location_ids: [], location_id: null })}
+                      className="text-[10px] text-slate-500 hover:underline"
+                    >
+                      ล้าง
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl max-h-48 overflow-y-auto">
+                  {locationList.map(loc => {
+                    const selectedLocIds: number[] = Array.isArray(formData.location_ids)
+                      ? formData.location_ids
+                      : (formData.location_id ? [formData.location_id] : []);
+                    const isChecked = selectedLocIds.includes(loc.id);
+                    return (
+                      <label
+                        key={loc.id}
+                        className={`flex items-start gap-2 p-2 rounded-xl border text-xs cursor-pointer select-none transition ${
+                          isChecked
+                            ? 'bg-indigo-50 border-indigo-300 text-indigo-900 font-bold shadow-2xs ring-1 ring-indigo-200'
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100/80'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={e => {
+                            const current = selectedLocIds;
+                            const updated = e.target.checked
+                              ? [...current, loc.id]
+                              : current.filter(id => id !== loc.id);
+                            setFormData({
+                              ...formData,
+                              location_ids: updated,
+                              location_id: updated.length > 0 ? updated[0] : null
+                            });
+                          }}
+                          className="rounded text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5 mt-0.5"
+                        />
+                        <span className="truncate leading-tight">
+                          <span className="font-bold text-indigo-600 block text-[10px]">[{loc.code.toUpperCase()}]</span>
+                          {loc.name_th || loc.name_en}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  * หากไม่เลือกสถานที่ใดๆ ระบบจะถือว่าเป็น "ทุกสาขา / ตามตกลง"
+                </p>
+              </div>
+
+              {/* Multi-Select Education Levels */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  วุฒิการศึกษาที่เปิดรับ (Education Levels - เลือกได้มากกว่า 1 วุฒิ)
+                </label>
+                <div className="flex flex-wrap gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                  {['ม.6 / ปวช.', 'ปวส. / อนุปริญญา', 'ปริญญาตรี', 'ปริญญาโท', 'ปริญญาเอก'].map(degree => {
+                    const selectedEduLevels: string[] = Array.isArray(formData.education_levels)
+                      ? formData.education_levels
+                      : (formData.min_education ? formData.min_education.split(',').map((s: string) => s.trim()).filter(Boolean) : []);
+                    const isChecked = selectedEduLevels.includes(degree);
+                    return (
+                      <label
+                        key={degree}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs cursor-pointer select-none transition ${
+                          isChecked
+                            ? 'bg-indigo-600 border-indigo-600 text-white font-bold shadow-xs'
+                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={e => {
+                            const current = selectedEduLevels;
+                            const updated = e.target.checked
+                              ? [...current, degree]
+                              : current.filter(d => d !== degree);
+                            setFormData({
+                              ...formData,
+                              education_levels: updated,
+                              min_education: updated.join(', ')
+                            });
+                          }}
+                          className="sr-only"
+                        />
+                        <span>{degree}</span>
+                        {isChecked && <Check className="w-3.5 h-3.5 text-white ml-0.5" />}
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  * หากไม่เลือกวุฒิใดๆ ระบบจะถือว่าเป็น "ไม่จำกัดวุฒิ"
+                </p>
+              </div>
+
+              <div>
+                <Input
+                  label="ทักษะที่ต้องการ (Skills / Tags - คั่นด้วยเครื่องหมายจุลภาค)"
+                  value={formData.skills || ''}
+                  onChange={e => setFormData({ ...formData, skills: e.target.value })}
+                  placeholder="เช่น AutoCAD, PLC, Maintenance, ภาษาอังกฤษ"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">ภาพรวมหน้าที่ความรับผิดชอบ (Job Overview / Brief)</label>
+                <textarea
+                  value={formData.job_overview || ''}
+                  onChange={e => setFormData({ ...formData, job_overview: e.target.value })}
+                  rows={2}
+                  placeholder="สรุปขอบเขตงานสั้นๆ 2-3 บรรทัด สำหรับแสดงในการ์ดหรือหน้าแรก"
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">คุณสมบัติผู้สมัคร (Qualifications)</label>
+                <textarea
+                  value={formData.qualifications || ''}
+                  onChange={e => setFormData({ ...formData, qualifications: e.target.value })}
+                  rows={3}
+                  placeholder="เช่น จบสาขาวิศวกรรมเครื่องกล, สามารถทำงานเข้ากะได้, มีใบประกอบวิชาชีพ"
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 p-3 bg-amber-50/70 border border-amber-200/70 rounded-xl">
+                <input
+                  type="checkbox"
+                  id="pos_urgent"
+                  checked={Boolean(formData.is_urgent)}
+                  onChange={e => setFormData({ ...formData, is_urgent: e.target.checked })}
+                  className="rounded text-amber-600 focus:ring-amber-500 h-4 w-4"
+                />
+                <label htmlFor="pos_urgent" className="text-xs font-bold text-amber-900 select-none cursor-pointer">
+                  🔥 ตำแหน่งนี้เปิดรับสมัครด่วน (Urgent / Hot Job - แสดง Badge เด่นบนหน้าแรก)
+                </label>
+              </div>
+            </>
+          )}
+
+          {activeTable === 'work_locations' && (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Input
+                  label="รหัสสถานที่ (Code) *"
+                  value={formData.code || ''}
+                  onChange={e => setFormData({ ...formData, code: e.target.value })}
+                  placeholder="เช่น IP1, DAP, ONE_BKK"
+                  required
+                />
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">จังหวัด (Province)</label>
+                  <select
+                    value={formData.province || ''}
+                    onChange={e => setFormData({ ...formData, province: e.target.value })}
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                  >
+                    <option value="">-- เลือกจังหวัด --</option>
+                    {provList.map(p => (
+                      <option key={p.id} value={p.name_th}>{p.name_th}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               <Input
-                label="ชื่อตำแหน่ง (ภาษาไทย) *"
+                label="ชื่อสถานที่ (ภาษาไทย) *"
                 value={formData.name_th || ''}
                 onChange={e => setFormData({ ...formData, name_th: e.target.value })}
-                placeholder="เช่น เจ้าหน้าที่สรรหาบุคลากร"
+                placeholder="เช่น ปราจีนบุรี : 304 ดั๊บเบิ้ล เอ (IP1)"
                 required
               />
 
               <Input
-                label="ชื่อตำแหน่ง (ภาษาอังกฤษ)"
+                label="ชื่อสถานที่ (ภาษาอังกฤษ) *"
                 value={formData.name_en || ''}
                 onChange={e => setFormData({ ...formData, name_en: e.target.value })}
-                placeholder="เช่น Talent Acquisition Specialist"
+                placeholder="เช่น Prachin Buri : 304 Double A (IP1)"
+                required
+              />
+
+              <Input
+                label="โซน / ลักษณะสถานที่ (Zone / Facility Type)"
+                value={formData.zone || ''}
+                onChange={e => setFormData({ ...formData, zone: e.target.value })}
+                placeholder="เช่น โรงงาน / นิคมอุตสาหกรรม, สำนักงานใหญ่, ศูนย์กระจายสินค้า"
               />
             </>
           )}

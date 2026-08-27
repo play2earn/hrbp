@@ -31,12 +31,15 @@ import {
   Heart,
   ChevronDown,
   Handshake,
-  Lock
+  Lock,
+  Sparkles
 } from 'lucide-react';
 
 import { api, AuthUser } from './services/api';
 import TrackingSystem from './components/TrackingSystem';
 import { CookieConsent } from './components/CookieConsent';
+import { JobExplorerSection } from './components/landing/JobExplorerSection';
+import { WorkplaceSection } from './components/landing/WorkplaceSection';
 
 const FullPageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -195,18 +198,30 @@ export default function App() {
     setLang(prev => prev === 'en' ? 'th' : 'en');
   };
 
-  const handleApplyClick = (job?: typeof FEATURED_JOBS[0]) => {
+  const [siteLocationFilter, setSiteLocationFilter] = useState<string | number | null>('all');
+
+  const handleApplyClick = (job?: any) => {
     if (job) {
       setSelectedJob({
-        position: job.title,
-        department: job.dept,
-        // Map mock departments to BU if possible, otherwise default empty
-        businessUnit: 'Technology' // Mock default
+        position: job.name_th || job.name_en || job.title || '',
+        positionEn: job.name_en || job.titleEn || '',
+        department: job.departments?.name_th || job.departments?.name_en || job.dept || '',
+        departmentEn: job.departments?.name_en || '',
+        businessUnit: 'Double A Alliance'
       });
     } else {
       setSelectedJob(undefined);
     }
     setIsPdpaModalOpen(true);
+  };
+
+  const handleSelectSite = (siteKey: string) => {
+    const el = document.getElementById('job-explorer');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+    // Location ID 2 = IP1 Prachinburi, ID 6 = One Bangkok
+    setSiteLocationFilter(siteKey === 'ip1' ? 2 : siteKey === 'onebkk' ? 6 : 'all');
   };
 
   const handleStartApplication = () => {
@@ -463,35 +478,109 @@ export default function App() {
         </div>
       </div>
 
+      {/* 1. Interactive Job Explorer Section */}
+      <JobExplorerSection
+        lang={lang}
+        onApplyPosition={handleApplyClick}
+        selectedLocationFilter={siteLocationFilter}
+        onSelectLocationFilter={setSiteLocationFilter}
+      />
 
-      {/* Values Section - Enhanced with Double A 3Ts */}
-      <div className="py-24 bg-white relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* 2. Workplace & Environments Section */}
+      <WorkplaceSection
+        lang={lang}
+        onSelectSite={handleSelectSite}
+      />
+
+      {/* 3. Culture & Benefits Bento Grid - Enhanced with 3D Visuals */}
+      <div className="py-24 bg-white relative overflow-hidden">
+        {/* Background ambient glow */}
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-indigo-50/60 rounded-full blur-[140px] pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">{landingText.aboutTitle}</h2>
-            <div className="w-24 h-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 mx-auto rounded-full"></div>
+            <span className="text-indigo-600 font-bold tracking-wider uppercase text-xs sm:text-sm mb-3 block">
+              Double A Culture & Life
+            </span>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 mb-4">
+              {landingText.aboutTitle}
+            </h2>
+            <div className="w-24 h-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 mx-auto rounded-full mb-6"></div>
+            <p className="text-slate-600 max-w-2xl mx-auto text-base sm:text-lg">
+              {lang === 'th'
+                ? 'เราเชื่อมั่นในพลังของการพัฒนาตนเองและการทำงานร่วมกัน เพื่อผลักดันนวัตกรรมและสร้างความสำเร็จที่ยั่งยืน'
+                : 'We empower personal development and collective synergy to drive innovation and lasting success.'}
+            </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { icon: Users, gradient: 'from-blue-600 to-indigo-600', bg: 'bg-blue-50', ...landingText.values[0] },
-              { icon: Handshake, gradient: 'from-purple-600 to-pink-600', bg: 'bg-purple-50', ...landingText.values[1] },
-              { icon: Shield, gradient: 'from-emerald-600 to-teal-600', bg: 'bg-emerald-50', ...landingText.values[2] },
-            ].map((val, idx) => (
-              <div
-                key={idx}
-                className="group p-8 rounded-3xl bg-white border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-500 relative overflow-hidden"
-              >
-                {/* Decorative circle */}
-                <div className={`absolute -right-4 -top-4 w-24 h-24 bg-gradient-to-br ${val.gradient} opacity-[0.03] rounded-full group-hover:scale-150 transition-transform duration-700 pointer-events-none`}></div>
-                
-                <div className={`w-16 h-16 ${val.bg} rounded-2xl flex items-center justify-center mb-6 relative`}>
-                  <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${val.gradient} opacity-0 group-hover:opacity-100 transition-all duration-300`}></div>
-                  <val.icon className={`w-8 h-8 text-gray-700 group-hover:text-white transition-colors duration-300 relative z-10`} />
+
+          {/* Bento Grid: 3Ts Culture + 3D Benefits Showcase */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
+            {/* Left 3Ts Column */}
+            <div className="lg:col-span-7 grid grid-cols-1 gap-6">
+              {[
+                { icon: Users, gradient: 'from-blue-600 to-indigo-600', bg: 'bg-blue-50', ...landingText.values[0] },
+                { icon: Handshake, gradient: 'from-purple-600 to-pink-600', bg: 'bg-purple-50', ...landingText.values[1] },
+                { icon: Shield, gradient: 'from-emerald-600 to-teal-600', bg: 'bg-emerald-50', ...landingText.values[2] },
+              ].map((val, idx) => (
+                <div
+                  key={idx}
+                  className="group p-6 sm:p-8 rounded-3xl bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:border-indigo-100 transition-all duration-300 relative overflow-hidden flex items-start gap-6"
+                >
+                  <div className={`w-14 h-14 sm:w-16 sm:h-16 ${val.bg} rounded-2xl flex items-center justify-center shrink-0 shadow-xs group-hover:scale-110 transition-transform duration-300`}>
+                    <val.icon className="w-7 h-7 text-indigo-700" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">{val.title}</h3>
+                    <p className="text-slate-600 leading-relaxed text-sm sm:text-base">{val.desc}</p>
+                  </div>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">{val.title}</h3>
-                <p className="text-gray-600 leading-relaxed text-lg">{val.desc}</p>
+              ))}
+            </div>
+
+            {/* Right 3D Benefits Showcase Box - Light Harmonious Theme */}
+            <div className="lg:col-span-5 bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/30 rounded-[2.5rem] p-8 sm:p-10 border border-indigo-100/80 shadow-sm hover:shadow-xl transition-all duration-500 flex flex-col justify-between relative overflow-hidden group">
+              {/* Background ambient lighting */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-200/20 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-200/20 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none"></div>
+
+              <div className="relative z-10">
+                <div className="flex items-center justify-between gap-3 mb-6">
+                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/60 shadow-xs">
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                    {lang === 'th' ? 'สวัสดิการและการเติบโต' : 'Comprehensive Perks & Growth'}
+                  </span>
+                </div>
+
+                <div className="mb-6 rounded-2xl overflow-hidden shadow-lg border border-white/80 bg-white transform group-hover:scale-[1.02] transition-transform duration-500">
+                  <img
+                    src="/benefits_3d_isometric.png"
+                    alt="Double A Employee Perks 3D"
+                    className="w-full h-60 sm:h-64 object-contain p-3"
+                  />
+                </div>
+
+                <h3 className="text-2xl sm:text-3xl font-black text-slate-900 mb-3">
+                  {lang === 'th' ? 'ดูแลคุณในทุกก้าวของชีวิตการทำงาน' : 'Supporting Every Step of Your Journey'}
+                </h3>
+                <p className="text-slate-600 text-sm leading-relaxed mb-6">
+                  {lang === 'th'
+                    ? 'สวัสดิการที่ครอบคลุม ทั้งกองทุนสำรองเลี้ยงชีพ ประกันสุขภาพ ค่ารักษาพยาบาล โบนัสประจำปี คอร์สพัฒนาทักษะ และกิจกรรมส่งเสริมสุขภาพ'
+                    : 'Holistic benefits including Provident Fund, Group Healthcare, Performance Bonus, Continuous Upskilling, and Employee Wellbeing programs.'}
+                </p>
               </div>
-            ))}
+
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById('job-explorer');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-sm shadow-lg shadow-indigo-200 hover:shadow-xl transition-all flex items-center justify-center gap-2 group-hover:gap-3 relative z-10"
+              >
+                <span>{lang === 'th' ? 'ค้นหาตำแหน่งงานและสมัครเลย' : 'Join Double A Alliance'}</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </div>

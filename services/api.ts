@@ -1,6 +1,6 @@
 
 import { supabase } from '../supabaseClient';
-import { ApplicationForm, BlacklistEntry, BlacklistAuditLog } from '../types';
+import { ApplicationForm, BlacklistEntry, BlacklistAuditLog, WorkLocation, MasterPosition } from '../types';
 import md5 from 'js-md5';
 import { uploadToR2, getStorageProvider } from '../utils/r2-upload';
 import { getIdmsErrorMessage } from '../utils/idms-response';
@@ -1511,16 +1511,25 @@ export const api = {
     },
 
     getPositions: async (departmentId: number) => {
-      const { data } = await supabase.from('positions').select('*').eq('department_id', departmentId).eq('is_active', true).order('name_en');
+      const { data } = await supabase.from('positions').select('*, work_locations(*)').eq('department_id', departmentId).eq('is_active', true).order('name_en');
       return data || [];
     },
 
     getAllPositions: async function (activeOnly = true) {
       return this._getCached(`all_positions_${activeOnly}`, async () => {
-        let query = supabase.from('positions').select('*, departments(id, name_th, name_en)').order('name_th');
+        let query = supabase.from('positions').select('*, departments(id, name_th, name_en), work_locations(*)').order('name_th');
         if (activeOnly) query = query.eq('is_active', true);
         const { data } = await query;
-        return data || [];
+        return (data || []) as MasterPosition[];
+      });
+    },
+
+    getWorkLocations: async function (activeOnly = true) {
+      return this._getCached(`work_locations_${activeOnly}`, async () => {
+        let query = supabase.from('work_locations').select('*').order('id');
+        if (activeOnly) query = query.eq('is_active', true);
+        const { data } = await query;
+        return (data || []) as WorkLocation[];
       });
     },
 

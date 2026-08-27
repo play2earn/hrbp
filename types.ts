@@ -346,3 +346,38 @@ export interface BlacklistAuditLog {
   details?: string;
 }
 
+export interface WorkLocation {
+  id: number;
+  code: string;
+  name_th: string;
+  name_en: string;
+  province?: string;
+  zone?: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface MasterPosition {
+  id: number;
+  department_id: number;
+  name_th: string;
+  name_en?: string;
+  is_active: boolean;
+  location_id?: number | null;
+  location_ids?: number[] | null;
+  job_level?: string | null;
+  employment_type?: string | null;
+  min_education?: string | null;
+  education_levels?: string[] | null;
+  is_urgent?: boolean;
+  skills?: string[] | null;
+  job_overview?: string | null;
+  qualifications?: string | null;
+  work_locations?: WorkLocation | null;
+  departments?: {
+    id: number;
+    name_th: string;
+    name_en: string;
+  } | null;
+}
