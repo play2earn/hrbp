@@ -199,6 +199,17 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
     return departments.find(d => d.name_th === appFilters.department || d.name === appFilters.department);
   }, [departments, appFilters.department]);
 
+  // Compute HRMS Queue stats from memory
+  const readyHrmsCount = useMemo(() => {
+    const list = statsApplications || applications;
+    return list.filter((a: any) => a.hrms_sync_status === 'READY_TO_SYNC').length;
+  }, [statsApplications, applications]);
+
+  const syncedHrmsCount = useMemo(() => {
+    const list = statsApplications || applications;
+    return list.filter((a: any) => a.hrms_sync_status === 'SYNCED').length;
+  }, [statsApplications, applications]);
+
   const positionOptions = useMemo(() => {
     let filteredPositions = positions;
     if (selectedDeptObj) {
@@ -395,6 +406,99 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
         {/* Recent Applications Table */}
         <Card>
           <div className="border-b border-gray-100 pb-4 mb-6">
+            {/* Quick Interactive Metric Chips Bar */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-4 border-b border-gray-100">
+              <button
+                type="button"
+                onClick={() => { setAppFilters(f => ({ ...f, status: 'all', hrms: 'all' })); setAppPage(1); }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                  appFilters.status === 'all' && (appFilters.hrms === 'all' || !appFilters.hrms)
+                    ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-300'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <span>ทั้งหมด</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${appFilters.status === 'all' && (appFilters.hrms === 'all' || !appFilters.hrms) ? 'bg-indigo-700 text-white' : 'bg-white text-gray-800'}`}>
+                  {stats.total || totalCount || 0}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setAppFilters(f => ({ ...f, status: 'Reviewing', hrms: 'all' })); setAppPage(1); }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                  appFilters.status === 'Reviewing'
+                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-300'
+                    : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
+                }`}
+              >
+                <span>กำลังพิจารณา</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white text-blue-800 font-bold">
+                  {stats.reviewing || 0}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setAppFilters(f => ({ ...f, status: 'InterviewScheduled', hrms: 'all' })); setAppPage(1); }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                  appFilters.status === 'InterviewScheduled'
+                    ? 'bg-purple-600 text-white shadow-sm shadow-purple-300'
+                    : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
+                }`}
+              >
+                <span>นัดสัมภาษณ์</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white text-purple-800 font-bold">
+                  {stats.interviewing || 0}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setAppFilters(f => ({ ...f, status: 'Hired', hrms: 'all' })); setAppPage(1); }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                  appFilters.status === 'Hired'
+                    ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-300'
+                    : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+                }`}
+              >
+                <span>รับเข้าทำงาน</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white text-emerald-800 font-bold">
+                  {stats.hired || 0}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setAppFilters(f => ({ ...f, status: 'all', hrms: 'READY_TO_SYNC' })); setAppPage(1); }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                  appFilters.hrms === 'READY_TO_SYNC'
+                    ? 'bg-amber-600 text-white shadow-sm shadow-amber-300'
+                    : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
+                }`}
+              >
+                <span className={readyHrmsCount > 0 ? 'animate-pulse' : ''}>⚡ รอส่ง HRMS</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white text-amber-800 font-bold">
+                  {readyHrmsCount}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setAppFilters(f => ({ ...f, status: 'all', hrms: 'SYNCED' })); setAppPage(1); }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                  appFilters.hrms === 'SYNCED'
+                    ? 'bg-teal-600 text-white shadow-sm shadow-teal-300'
+                    : 'bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200'
+                }`}
+              >
+                <span>✅ เข้า HRMS แล้ว</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white text-teal-800 font-bold">
+                  {syncedHrmsCount}
+                </span>
+              </button>
+            </div>
+
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h3 className="text-lg font-bold text-gray-800">Applications</h3>
@@ -512,6 +616,18 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                   <option value="NoShow">ไม่มาตามนัด</option>
                 </select>
 
+                {/* HRMS Filter */}
+                <select
+                  className="border rounded-lg px-2 py-1.5 text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none w-full md:w-auto min-w-[130px] text-gray-750 font-semibold"
+                  value={appFilters.hrms || 'all'}
+                  onChange={(e) => { setAppFilters(f => ({ ...f, hrms: e.target.value })); setAppPage(1); }}
+                >
+                  <option value="all">สถานะ HRMS ทั้งหมด</option>
+                  <option value="READY_TO_SYNC">⚡ รอส่ง HRMS (Ready)</option>
+                  <option value="SYNCED">🟢 เข้า HRMS แล้ว (Synced)</option>
+                  <option value="none">⏳ ยังไม่ส่ง HRMS</option>
+                </select>
+
                 {/* Blacklist Filter */}
                 <select
                   className="border rounded-lg px-2 py-1.5 text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none w-full md:w-auto min-w-[130px] text-gray-750 font-semibold"
@@ -524,7 +640,7 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                 </select>
                 
                 {/* Clear Filters Button */}
-                {(appFilters.position || appFilters.department || appFilters.bu || appFilters.channel || appFilters.status !== 'all' || (appFilters.blacklist && appFilters.blacklist !== 'all') || appFilters.search) && (
+                {(appFilters.position || appFilters.department || appFilters.bu || appFilters.channel || appFilters.status !== 'all' || (appFilters.blacklist && appFilters.blacklist !== 'all') || (appFilters.hrms && appFilters.hrms !== 'all') || appFilters.search) && (
                   <button
                     onClick={() => {
                       setAppFilters({
@@ -535,11 +651,12 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                         bu: '',
                         channel: '',
                         assignment: appFilters.assignment,
-                        blacklist: 'all'
+                        blacklist: 'all',
+                        hrms: 'all'
                       });
                       setAppPage(1);
                     }}
-                    className="text-xs text-red-500 hover:text-red-700 font-medium px-2.5 py-1.5 rounded hover:bg-red-50 transition-colors flex items-center justify-center gap-1 col-span-2 md:col-span-1 md:w-auto"
+                    className="text-xs text-red-500 hover:text-red-700 font-medium px-2.5 py-1.5 rounded hover:bg-red-50 transition-colors flex items-center justify-center gap-1 col-span-2 md:col-span-1 md:w-auto cursor-pointer"
                   >
                     ล้างตัวกรอง
                   </button>
@@ -714,14 +831,24 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                                       </button>
                                     )}
                                   </h4>
-                                  <div className="flex flex-col items-end">
+                                  <div className="flex flex-col items-end gap-1">
                                     <span className={`px-2 py-0.5 text-[11px] font-semibold rounded-full flex-shrink-0 ${getStatusBadgeClass(app.status)}`}>
                                       {getStatusLabel(app.status)}
                                     </span>
                                     {isInterviewScheduledStatus(app.status) && app.interview_date && (
-                                      <div className="text-[10px] text-orange-600 font-medium mt-1 whitespace-nowrap">
+                                      <div className="text-[10px] text-orange-600 font-medium whitespace-nowrap">
                                         นัด: {new Date(app.interview_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}
                                       </div>
+                                    )}
+                                    {app.hrms_sync_status === 'READY_TO_SYNC' && (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
+                                        ⚡ รอส่ง HRMS
+                                      </span>
+                                    )}
+                                    {app.hrms_sync_status === 'SYNCED' && (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                        ✅ HRMS: {app.hrms_employee_id || 'Synced'}
+                                      </span>
                                     )}
                                   </div>
                                 </div>
@@ -885,7 +1012,7 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                             </td>
 
                             {/* สถานะ */}
-                            <td className="px-4 py-3 w-28 whitespace-nowrap">
+                            <td className="px-4 py-3 w-32 whitespace-nowrap">
                               <div className="flex flex-col items-start gap-1">
                                 <span className={`px-2 py-1 text-xs font-semibold rounded-full inline-block ${getStatusBadgeClass(app.status)}`}>
                                   {getStatusLabel(app.status)}
@@ -893,6 +1020,16 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                                 {isInterviewScheduledStatus(app.status) && app.interview_date && (
                                   <span className="text-[11px] text-orange-600 font-medium whitespace-nowrap">
                                     นัด: {new Date(app.interview_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                  </span>
+                                )}
+                                {app.hrms_sync_status === 'READY_TO_SYNC' && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse" title="อยู่ในคิวรอ IT ดึงเข้า HRMS">
+                                    ⚡ รอส่ง HRMS
+                                  </span>
+                                )}
+                                {app.hrms_sync_status === 'SYNCED' && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200" title={`นำเข้า HRMS เรียบร้อยแล้ว (รหัส: ${app.hrms_employee_id || '-'})`}>
+                                    ✅ HRMS: {app.hrms_employee_id || 'Synced'}
                                   </span>
                                 )}
                               </div>

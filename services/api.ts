@@ -78,6 +78,7 @@ export interface GetApplicationsParams {
   currentUserId: string | null;
   blacklist: string;
   blacklistEntries: any[];
+  hrms?: string;
 }
 
 export interface EvaluationTemplateItem {
@@ -511,6 +512,12 @@ export const api = {
           interview_end_time,
           teams_meeting_url,
           updated_at,
+          hrms_sync_status,
+          hrms_ready_at,
+          hrms_ready_by,
+          hrms_synced_at,
+          hrms_employee_id,
+          hrms_sync_notes,
           nickname:form_data->>nickname,
           photoUrl:form_data->>photoUrl,
           isThaiNational:form_data->>isThaiNational,
@@ -597,6 +604,17 @@ export const api = {
       if (params.search) {
         const q = `%${params.search.trim().toLowerCase()}%`;
         query = query.or(`full_name.ilike.${q},phone.ilike.${q},form_data->>nickname.ilike.${q}`);
+      }
+
+      // 9. HRMS Filter
+      if (params.hrms && params.hrms !== 'all') {
+        if (params.hrms === 'READY_TO_SYNC') {
+          query = query.eq('hrms_sync_status', 'READY_TO_SYNC');
+        } else if (params.hrms === 'SYNCED') {
+          query = query.eq('hrms_sync_status', 'SYNCED');
+        } else if (params.hrms === 'none') {
+          query = query.or('hrms_sync_status.is.null,hrms_sync_status.eq.NOT_READY');
+        }
       }
 
       // Order by created_at desc
@@ -2134,6 +2152,197 @@ export const api = {
         return { success: true, data: data || [] };
       } catch (error) {
         return handleError(error, 'systemLogs.getUserLogs');
+      }
+    }
+  },
+
+  // HRMS / IDMS Integration
+  hrms: {
+    getQueue: async (): Promise<ApiResponse<any[]>> => {
+      try {
+        const { data, error } = await supabase
+          .from('applications')
+          .select(`
+            id,
+            created_at,
+            full_name,
+            phone,
+            position,
+            department,
+            status,
+            business_unit,
+            source_channel,
+            campaign_tag,
+            hrms_sync_status,
+            hrms_ready_at,
+            hrms_ready_by,
+            hrms_synced_at,
+            hrms_employee_id,
+            hrms_sync_notes,
+            national_id,
+            form_data
+          `)
+          .in('hrms_sync_status', ['READY_TO_SYNC', 'SYNCED', 'FAILED'])
+          .order('hrms_ready_at', { ascending: false, nullsFirst: false });
+
+        if (error) return handleError(error, 'hrms.getQueue');
+        return { success: true, data: data || [] };
+      } catch (error: any) {
+        return handleError(error, 'hrms.getQueue');
+      }
+    },
+
+    markReadyToSync: async (applicationId: string, readyByEmail: string): Promise<ApiResponse<any>> => {
+      try {
+        const response = await fetch('/api?route=hrms-ack', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            application_id: applicationId,
+            sync_status: 'READY_TO_SYNC',
+            ready_by: readyByEmail,
+          }),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !result.success) {
+          return { success: false, error: { message: result.error || 'Failed to update HRMS sync status' } };
+        }
+        return { success: true, data: result.data };
+      } catch (error: any) {
+        return handleError(error, 'hrms.markReadyToSync');
+      }
+    },
+
+    cancelReadyToSync: async (applicationId: string): Promise<ApiResponse<any>> => {
+      try {
+        const response = await fetch('/api?route=hrms-ack', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            application_id: applicationId,
+            sync_status: 'NOT_READY',
+          }),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !result.success) {
+          return { success: false, error: { message: result.error || 'Failed to cancel HRMS sync status' } };
+        }
+        return { success: true, data: result.data };
+      } catch (error: any) {
+        return handleError(error, 'hrms.cancelReadyToSync');
+      }
+    },
+
+    simulateAck: async (applicationId: string, employeeId: string, notes?: string): Promise<ApiResponse<any>> => {
+      try {
+        const response = await fetch('/api?route=hrms-ack', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            application_id: applicationId,
+            hrms_employee_id: employeeId,
+            sync_status: 'SYNCED',
+            notes: notes || 'Simulated ACK from HRBP Dashboard Sandbox',
+          }),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !result.success) {
+          return { success: false, error: { message: result.error || 'Failed to send HRMS ACK' } };
+        }
+        return { success: true, data: result.data };
+      } catch (error: any) {
+        return handleError(error, 'hrms.simulateAck');
+      }
+    },
+
+    previewExport: async (applicationId: string): Promise<ApiResponse<any>> => {
+      try {
+        const res = await fetch(`/api?route=hrms-export&application_id=${encodeURIComponent(applicationId)}`, {
+          credentials: 'same-origin',
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json.success) {
+          return { success: false, error: { message: json.error || 'Failed to fetch HRMS preview' } };
+        }
+        return { success: true, data: json.data };
+      } catch (error: any) {
+        return { success: false, error: { message: error.message || 'Failed to fetch HRMS preview' } };
+      }
+    }
+  },
+
+  // Dynamic API Keys Management
+  apiKeys: {
+    list: async (): Promise<ApiResponse<any[]>> => {
+      try {
+        const res = await fetch('/api?route=api-keys', {
+          method: 'GET',
+          credentials: 'same-origin',
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json.success) {
+          return { success: false, error: { message: json.error || 'Failed to fetch API keys' } };
+        }
+        return { success: true, data: json.data || [] };
+      } catch (error: any) {
+        return handleError(error, 'apiKeys.list');
+      }
+    },
+
+    generate: async (name: string, notes?: string): Promise<ApiResponse<any>> => {
+      try {
+        const res = await fetch('/api?route=api-keys', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ action: 'generate', name, notes }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json.success) {
+          return { success: false, error: { message: json.error || 'Failed to generate API key' } };
+        }
+        return { success: true, data: json.data };
+      } catch (error: any) {
+        return handleError(error, 'apiKeys.generate');
+      }
+    },
+
+    toggle: async (id: string, isActive: boolean): Promise<ApiResponse<any>> => {
+      try {
+        const res = await fetch('/api?route=api-keys', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ action: 'toggle', id, is_active: isActive }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json.success) {
+          return { success: false, error: { message: json.error || 'Failed to toggle API key' } };
+        }
+        return { success: true, data: json.data };
+      } catch (error: any) {
+        return handleError(error, 'apiKeys.toggle');
+      }
+    },
+
+    delete: async (id: string): Promise<ApiResponse<any>> => {
+      try {
+        const res = await fetch('/api?route=api-keys', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ action: 'delete', id }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json.success) {
+          return { success: false, error: { message: json.error || 'Failed to delete API key' } };
+        }
+        return { success: true, data: json.data };
+      } catch (error: any) {
+        return handleError(error, 'apiKeys.delete');
       }
     }
   }

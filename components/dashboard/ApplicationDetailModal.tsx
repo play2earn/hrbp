@@ -8,7 +8,8 @@ import {
   FileText, ExternalLink, Edit, Calendar, History, Clock,
   CheckCircle, XCircle, UserPlus, UserCheck, Link, Copy, Check,
   Crop, RotateCcw, Upload, ChevronDown, ChevronUp, AlertTriangle, Paperclip, ShieldAlert,
-  Eye, Download, X, Settings, HardDrive, ShieldCheck, ArrowRight
+  Eye, Download, X, Settings, HardDrive, ShieldCheck, ArrowRight,
+  Send, Database, CheckCheck, RefreshCw
 } from 'lucide-react';
 import {
   LOG_LABELS, getStatusBadgeClass, getStatusLabel,
@@ -135,8 +136,18 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
   const [calendarTargetApp, setCalendarTargetApp] = useState<any | null>(null);
   const [calendarHasShareLink, setCalendarHasShareLink] = useState(false);
   const [calendarCreateShareLink, setCalendarCreateShareLink] = useState(true);
-  const [calendarShareLinkUrl, setCalendarShareLinkUrl] = useState<string | null>(null);
   const [isProcessingCalendar, setIsProcessingCalendar] = useState(false);
+
+  // HRMS / IDMS Integration State
+  const [showHrmsConfirm, setShowHrmsConfirm] = useState(false);
+  const [showHrmsCancelConfirm, setShowHrmsCancelConfirm] = useState(false);
+  const [showHrmsResetConfirm, setShowHrmsResetConfirm] = useState(false);
+  const [isProcessingHrms, setIsProcessingHrms] = useState(false);
+  const [showHrmsPreviewModal, setShowHrmsPreviewModal] = useState(false);
+  const [hrmsPreviewData, setHrmsPreviewData] = useState<any | null>(null);
+  const [isLoadingHrmsPreview, setIsLoadingHrmsPreview] = useState(false);
+  const [copiedHrmsJson, setCopiedHrmsJson] = useState(false);
+  const [copiedHrmsUrl, setCopiedHrmsUrl] = useState(false);
 
   useEffect(() => {
     if (toastNotification) {
@@ -733,6 +744,27 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
     : [fd.titleEn, fd.firstNameEn, fd.lastNameEn].filter(Boolean).join(' ') || viewingApp?.full_name || '-';
   const fullNameEn = hasThaiName ? [fd.titleEn, fd.firstNameEn, fd.lastNameEn].filter(Boolean).join(' ') : null;
 
+  const countAttachedFiles = () => {
+    if (!viewingApp) return 0;
+    const data = viewingApp.form_data || {};
+    const fileKeys = [
+      'photoUrl', 'photo_url', 'resumeUrl', 'resume_url',
+      'transcriptUrl', 'transcript_url', 'certificateUrl', 'certificate_url',
+      'otherDocsUrl', 'other_docs_url', 'idCardUrl', 'id_card_url',
+      'houseRegUrl', 'house_reg_url', 'eduCertificateUrl', 'edu_certificate_url',
+      'militaryCertUrl', 'military_cert_url', 'toeicCertUrl', 'toeic_cert_url',
+      'bankBookUrl', 'bank_book_url'
+    ];
+    const set = new Set();
+    fileKeys.forEach(k => {
+      const val = data[k] || viewingApp[k];
+      if (val && typeof val === 'string' && val.trim()) {
+        set.add(val.trim());
+      }
+    });
+    return set.size;
+  };
+
   const deleteFileByUrl = async (url: string | undefined | null) => {
     if (!url) return;
     try {
@@ -1114,6 +1146,27 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                     <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(viewingApp.status)}`}>
                       {getStatusLabel(viewingApp.status)}
                     </span>
+
+                    {/* HRMS Sync Status Badge */}
+                    {viewingApp.hrms_sync_status === 'READY_TO_SYNC' && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-full bg-amber-50 text-amber-800 border border-amber-300 animate-pulse">
+                        <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                        ⚡ รอ IT ดึงข้อมูล HRMS
+                      </span>
+                    )}
+                    {viewingApp.hrms_sync_status === 'SYNCED' && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300">
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        นำเข้า HRMS แล้ว {viewingApp.hrms_employee_id ? `(รหัส: ${viewingApp.hrms_employee_id})` : ''}
+                      </span>
+                    )}
+                    {viewingApp.hrms_sync_status === 'FAILED' && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-full bg-rose-50 text-rose-800 border border-rose-300">
+                        <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                        HRMS Sync ขัดข้อง
+                      </span>
+                    )}
+
                     <button
                       type="button"
                       onClick={(e) => {
@@ -2207,14 +2260,103 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                 )}
                 {(isInterviewScheduledStatus(viewingApp.status) || viewingApp.status === 'Interviewed' || viewingApp.status === 'Offer') && (
                   <>
-                    <Button size={showPreview ? "sm" : "md"} className="bg-green-600 hover:bg-green-700" onClick={() => { setApprovingApp(viewingApp); setViewingApp(null); }}>
-                      <CheckCircle className="w-4 h-4 mr-2" /> {lang === 'en' ? 'Hire' : 'รับเข้าทำงาน'}
+                    <Button size={showPreview ? "sm" : "md"} className="bg-green-600 hover:bg-green-700 text-white font-semibold" onClick={() => { setApprovingApp(viewingApp); setViewingApp(null); }}>
+                      <CheckCircle className="w-4 h-4 mr-1.5" /> {lang === 'en' ? 'Hire' : 'รับเข้าทำงาน'}
                     </Button>
-                    <Button size={showPreview ? "sm" : "md"} variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => { setRejectingApp(viewingApp); setViewingApp(null); setRejectComment(''); setRejectionReason(''); }}>
-                      <XCircle className="w-4 h-4 mr-2" /> {lang === 'en' ? 'Not Pass' : 'ไม่ผ่าน'}
+                    <Button size={showPreview ? "sm" : "md"} variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 font-semibold" onClick={() => { setRejectingApp(viewingApp); setViewingApp(null); setRejectComment(''); setRejectionReason(''); }}>
+                      <XCircle className="w-4 h-4 mr-1.5" /> {lang === 'en' ? 'Not Pass' : 'ไม่ผ่าน'}
                     </Button>
                   </>
                 )}
+
+                {/* HRMS / IDMS Data Sync Action */}
+                {viewingApp.hrms_sync_status === 'READY_TO_SYNC' ? (
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      size={showPreview ? "sm" : "md"}
+                      variant="outline"
+                      className="text-amber-700 border-amber-300 bg-amber-50/70 hover:bg-amber-100 font-semibold"
+                      onClick={async () => {
+                        setIsLoadingHrmsPreview(true);
+                        setShowHrmsPreviewModal(true);
+                        try {
+                          const res = await api.hrms.previewExport(viewingApp.id);
+                          if (res.success && res.data) {
+                            setHrmsPreviewData(res.data);
+                          } else {
+                            setHrmsPreviewData({ error: res.error?.message || 'Failed to load preview payload' });
+                          }
+                        } catch (err: any) {
+                          setHrmsPreviewData({ error: err.message });
+                        } finally {
+                          setIsLoadingHrmsPreview(false);
+                        }
+                      }}
+                      title="ดูตัวอย่าง JSON Payload ที่จะส่งให้ IT"
+                    >
+                      <Database className="w-4 h-4 mr-1.5 text-amber-600" />
+                      ดูข้อมูล Export
+                    </Button>
+                    <Button
+                      size={showPreview ? "sm" : "md"}
+                      variant="outline"
+                      className="text-slate-600 border-slate-300 hover:bg-slate-100 text-xs"
+                      onClick={() => setShowHrmsCancelConfirm(true)}
+                      disabled={isProcessingHrms}
+                    >
+                      ยกเลิกส่ง HRMS
+                    </Button>
+                  </div>
+                ) : viewingApp.hrms_sync_status === 'SYNCED' ? (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <Button
+                      size={showPreview ? "sm" : "md"}
+                      variant="outline"
+                      className="text-emerald-700 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 font-semibold"
+                      onClick={async () => {
+                        setIsLoadingHrmsPreview(true);
+                        setShowHrmsPreviewModal(true);
+                        try {
+                          const res = await api.hrms.previewExport(viewingApp.id);
+                          if (res.success && res.data) {
+                            setHrmsPreviewData(res.data);
+                          } else {
+                            setHrmsPreviewData({ error: res.error?.message || 'Failed to load preview payload' });
+                          }
+                        } catch (err: any) {
+                          setHrmsPreviewData({ error: err.message });
+                        } finally {
+                          setIsLoadingHrmsPreview(false);
+                        }
+                      }}
+                    >
+                      <CheckCheck className="w-4 h-4 mr-1.5 text-emerald-600" />
+                      HRMS Synced {viewingApp.hrms_employee_id ? `(${viewingApp.hrms_employee_id})` : ''}
+                    </Button>
+
+                    <Button
+                      size={showPreview ? "sm" : "md"}
+                      variant="outline"
+                      className="text-amber-700 border-amber-300 hover:bg-amber-50 text-xs font-semibold"
+                      onClick={() => setShowHrmsResetConfirm(true)}
+                      title="รีเซ็ตสถานะ HRMS สำหรับทดสอบ (Admin Demo Reset)"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 mr-1 text-amber-600" />
+                      รีเซ็ต (Demo)
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    size={showPreview ? "sm" : "md"}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-xs"
+                    onClick={() => setShowHrmsConfirm(true)}
+                    title="อนุมัติและเปิดคิวให้ IT ภายในดึงข้อมูลผู้สมัครเข้าสู่ HRMS"
+                  >
+                    <Send className="w-4 h-4 mr-1.5" />
+                    ส่งข้อมูลไป HRMS
+                  </Button>
+                )}
+
                 <Button size={showPreview ? "sm" : "md"} variant="outline" onClick={() => setViewingApp(null)}>{lang === 'en' ? 'Close' : 'ปิด'}</Button>
               </div>
             </div>
@@ -3221,6 +3363,380 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
               >
                 <ArrowRight className="w-4 h-4" />
                 🚀 ยืนยันย้ายไฟล์ ({pendingFilesToMigrate.length} รายการ)
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* HRMS / IDMS Confirmation Modal */}
+      {showHrmsConfirm && viewingApp && createPortal(
+        <div className="fixed inset-0 z-[105000] bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="p-3 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded-2xl">
+                <Send className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                  ยืนยันการส่งข้อมูลเข้า IDMS / HRMS
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Enterprise HRMS Data Sync & Onboarding Handover
+                </p>
+              </div>
+            </div>
+
+            <div className="text-xs text-slate-600 dark:text-slate-300 space-y-3 bg-slate-50 dark:bg-slate-950/60 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+              <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-slate-800 pb-2">
+                <span className="text-slate-500">ชื่อผู้สมัคร:</span>
+                <span className="font-bold text-slate-900 dark:text-white text-sm">{fullName}</span>
+              </div>
+              <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-slate-800 pb-2">
+                <span className="text-slate-500">ตำแหน่งงาน:</span>
+                <span className="font-semibold text-indigo-600 dark:text-indigo-400">{viewingApp.position || fd.position || '-'}</span>
+              </div>
+              <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-slate-800 pb-2">
+                <span className="text-slate-500">แผนก / ฝ่าย:</span>
+                <span className="font-medium text-slate-800 dark:text-slate-200">{viewingApp.department || fd.department || '-'}</span>
+              </div>
+              <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-slate-800 pb-2">
+                <span className="text-slate-500">รหัสบัตรประชาชน:</span>
+                <span className="font-mono font-bold text-slate-900 dark:text-white">{viewingApp.national_id || fd.nationalId || '-'}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">จำนวนไฟล์แนบทั้งหมด:</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{countAttachedFiles()} ไฟล์</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              💡 เมื่อกดยืนยัน ระบบจะเปลี่ยนสถานะเป็น <strong className="text-amber-600">"พร้อมให้ IT ดึงข้อมูล (READY_TO_SYNC)"</strong> เพื่อให้ระบบ IDMS/HRMS ขององค์กรสามารถดึงข้อมูลประวัติและไฟล์แนบผ่าน Secure Export API ไปออกรหัสพนักงานได้ทันที
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowHrmsConfirm(false)}
+                disabled={isProcessingHrms}
+              >
+                ยกเลิก
+              </Button>
+              <Button
+                type="button"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-md flex items-center gap-1.5"
+                onClick={async () => {
+                  if (!viewingApp) return;
+                  setIsProcessingHrms(true);
+                  try {
+                    const userEmail = currentUser?.email || currentUser?.username || 'HRBP Staff';
+                    const res = await api.hrms.markReadyToSync(viewingApp.id, userEmail);
+                    if (res.success && res.data) {
+                      const updated = { ...viewingApp, ...res.data };
+                      setViewingApp(updated);
+                      if (onApplicationUpdated) onApplicationUpdated(updated);
+                      setToastNotification({
+                        message: 'อนุมัติส่งข้อมูลเข้า HRMS สำเร็จ (สถานะ: พร้อมให้ IT ดึงข้อมูล)',
+                        type: 'success'
+                      });
+                      setShowHrmsConfirm(false);
+                    } else {
+                      setToastNotification({
+                        message: res.error?.message || 'เกิดข้อผิดพลาดในการอัปเดตสถานะ HRMS',
+                        type: 'error'
+                      });
+                    }
+                  } catch (err: any) {
+                    setToastNotification({
+                      message: err?.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ',
+                      type: 'error'
+                    });
+                  } finally {
+                    setIsProcessingHrms(false);
+                  }
+                }}
+                disabled={isProcessingHrms}
+              >
+                <Send className="w-4 h-4" />
+                {isProcessingHrms ? 'กำลังบันทึก...' : 'ยืนยันและเปิดคิวให้ IT ดึงข้อมูล'}
+              </Button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* HRMS / IDMS Cancel Send Confirmation Modal */}
+      {showHrmsCancelConfirm && viewingApp && createPortal(
+        <div className="fixed inset-0 z-[105000] bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4 animate-in zoom-in-95 border border-slate-200">
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+              <div className="p-3 bg-slate-100 text-slate-700 rounded-2xl">
+                <XCircle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-slate-900">
+                  ยืนยันการยกเลิกคิวส่งข้อมูลเข้า HRMS
+                </h3>
+                <p className="text-xs text-slate-500">
+                  ดึงรายชื่อออกจากคิวรอ IT ดึงข้อมูล
+                </p>
+              </div>
+            </div>
+
+            <div className="text-xs text-slate-600 space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                <span className="text-slate-500">ชื่อผู้สมัคร:</span>
+                <span className="font-bold text-slate-900 text-sm">{fullName}</span>
+              </div>
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                <span className="text-slate-500">ตำแหน่งงาน:</span>
+                <span className="font-semibold text-indigo-600">{viewingApp.position || fd.position || '-'}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">สถานะปัจจุบัน:</span>
+                <span className="font-bold text-amber-700">⚡ รอส่ง HRMS (READY_TO_SYNC)</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-500 leading-relaxed">
+              เมื่อกดยืนยัน รายชื่อของ <strong>{fullName}</strong> จะถูกดึงออกจากคิวส่งข้อมูล และระบบ IT จะไม่สามารถดึงข้อมูลรายนี้ไปออกรหัสพนักงานได้จนกว่าจะมีการกดส่งใหม่อีกครั้ง
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowHrmsCancelConfirm(false)}
+                disabled={isProcessingHrms}
+              >
+                ย้อนกลับ
+              </Button>
+              <Button
+                type="button"
+                className="bg-slate-800 hover:bg-slate-900 text-white font-bold shadow-md flex items-center gap-1.5"
+                onClick={async () => {
+                  if (!viewingApp) return;
+                  setIsProcessingHrms(true);
+                  try {
+                    const res = await api.hrms.cancelReadyToSync(viewingApp.id);
+                    if (res.success && res.data) {
+                      const updated = { ...viewingApp, ...res.data };
+                      setViewingApp(updated);
+                      if (onApplicationUpdated) onApplicationUpdated(updated);
+                      setToastNotification({
+                        message: 'ยกเลิกการส่งข้อมูลเข้า HRMS เรียบร้อยแล้ว',
+                        type: 'success'
+                      });
+                      setShowHrmsCancelConfirm(false);
+                    } else {
+                      setToastNotification({
+                        message: res.error?.message || 'เกิดข้อผิดพลาดในการยกเลิก',
+                        type: 'error'
+                      });
+                    }
+                  } catch (err: any) {
+                    setToastNotification({
+                      message: err?.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ',
+                      type: 'error'
+                    });
+                  } finally {
+                    setIsProcessingHrms(false);
+                  }
+                }}
+                disabled={isProcessingHrms}
+              >
+                <XCircle className={`w-4 h-4 ${isProcessingHrms ? 'animate-spin' : ''}`} />
+                {isProcessingHrms ? 'กำลังยกเลิก...' : 'ยืนยันยกเลิกคิว'}
+              </Button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* HRMS / IDMS Reset Confirmation Modal (Admin Demo Tool) */}
+      {showHrmsResetConfirm && viewingApp && createPortal(
+        <div className="fixed inset-0 z-[105000] bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4 animate-in zoom-in-95 border border-slate-200">
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+              <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
+                <RefreshCw className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-slate-900">
+                  ยืนยันการรีเซ็ตสถานะ HRMS (Demo Reset)
+                </h3>
+                <p className="text-xs text-slate-500">
+                  สำหรับผู้ดูแลระบบ (Admin) เพื่อทดสอบกระบวนการส่งข้อมูลซ้ำ
+                </p>
+              </div>
+            </div>
+
+            <div className="text-xs text-slate-600 space-y-3 bg-amber-50/60 p-4 rounded-2xl border border-amber-200">
+              <div className="flex items-center justify-between border-b border-amber-200/60 pb-2">
+                <span className="text-amber-700">ชื่อผู้สมัคร:</span>
+                <span className="font-bold text-slate-900 text-sm">{fullName}</span>
+              </div>
+              <div className="flex items-center justify-between border-b border-amber-200/60 pb-2">
+                <span className="text-amber-700">สถานะ HRMS ปัจจุบัน:</span>
+                <span className="font-bold text-slate-900">{viewingApp.hrms_sync_status}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-amber-700">รหัสพนักงาน (EMP ID):</span>
+                <span className="font-mono font-bold text-indigo-700">{viewingApp.hrms_employee_id || '-'}</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-500 leading-relaxed">
+              ⚠️ เมื่อกดยืนยัน ระบบจะล้างสถานะการ Sync, รหัสพนักงาน และประวัติเวลาส่งข้อมูลของเคสนี้กลับเป็น <strong>"ยังไม่พร้อมส่ง (NOT_READY)"</strong> เพื่อให้คุณสามารถกดปุ่ม <em>"ส่งข้อมูลไป HRMS"</em> เพื่อเริ่มทดสอบใหม่อีกครั้งได้ทันที
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowHrmsResetConfirm(false)}
+                disabled={isProcessingHrms}
+              >
+                ยกเลิก
+              </Button>
+              <Button
+                type="button"
+                className="bg-amber-600 hover:bg-amber-700 text-white font-bold shadow-md flex items-center gap-1.5"
+                onClick={async () => {
+                  if (!viewingApp) return;
+                  setIsProcessingHrms(true);
+                  try {
+                    const res = await api.hrms.cancelReadyToSync(viewingApp.id);
+                    if (res.success && res.data) {
+                      const updated = { ...viewingApp, ...res.data };
+                      setViewingApp(updated);
+                      if (onApplicationUpdated) onApplicationUpdated(updated);
+                      setToastNotification({
+                        message: 'รีเซ็ตสถานะ HRMS สำหรับทดสอบเรียบร้อยแล้ว',
+                        type: 'success'
+                      });
+                      setShowHrmsResetConfirm(false);
+                    } else {
+                      setToastNotification({
+                        message: res.error?.message || 'เกิดข้อผิดพลาดในการรีเซ็ตสถานะ',
+                        type: 'error'
+                      });
+                    }
+                  } catch (err: any) {
+                    setToastNotification({
+                      message: err?.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ',
+                      type: 'error'
+                    });
+                  } finally {
+                    setIsProcessingHrms(false);
+                  }
+                }}
+                disabled={isProcessingHrms}
+              >
+                <RefreshCw className={`w-4 h-4 ${isProcessingHrms ? 'animate-spin' : ''}`} />
+                {isProcessingHrms ? 'กำลังรีเซ็ต...' : 'ยืนยันการรีเซ็ต'}
+              </Button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* HRMS JSON Export Preview Modal */}
+      {showHrmsPreviewModal && createPortal(
+        <div className="fixed inset-0 z-[106000] bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-2xl w-full shadow-2xl text-white space-y-4 animate-in zoom-in-95 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-indigo-500/20 text-indigo-400 rounded-xl">
+                  <Database className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-white">ตัวอย่างข้อมูล Export (HRMS JSON Payload)</h3>
+                  <p className="text-xs text-slate-400">Secure API Response สำหรับ IT IDMS/HRMS</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowHrmsPreviewModal(false)}
+                className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto bg-slate-950 p-4 rounded-2xl border border-slate-800 font-mono text-xs text-emerald-400">
+              {isLoadingHrmsPreview ? (
+                <div className="py-12 text-center text-slate-400 font-sans flex items-center justify-center gap-2">
+                  <RefreshCw className="w-4 h-4 animate-spin text-indigo-400" />
+                  กำลังสร้าง JSON Payload และ Presigned URLs...
+                </div>
+              ) : (
+                <pre className="whitespace-pre-wrap break-all leading-relaxed">
+                  {JSON.stringify(hrmsPreviewData, null, 2)}
+                </pre>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 flex-shrink-0 border-t border-slate-800">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!hrmsPreviewData) return;
+                    navigator.clipboard.writeText(JSON.stringify(hrmsPreviewData, null, 2));
+                    setCopiedHrmsJson(true);
+                    setTimeout(() => setCopiedHrmsJson(false), 2500);
+                  }}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-indigo-300 hover:text-white rounded-xl text-xs font-semibold border border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  {copiedHrmsJson ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-emerald-300">คัดลอก JSON แล้ว!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>คัดลอก JSON Payload</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const fullApiUrl = `${window.location.origin}/api?route=hrms-export&application_id=${viewingApp?.id}`;
+                    navigator.clipboard.writeText(fullApiUrl);
+                    setCopiedHrmsUrl(true);
+                    setTimeout(() => setCopiedHrmsUrl(false), 2500);
+                  }}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-indigo-300 hover:text-white rounded-xl text-xs font-semibold border border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  {copiedHrmsUrl ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-emerald-300">คัดลอกลิงก์แล้ว!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Link className="w-3.5 h-3.5" />
+                      <span>คัดลอก URL ของ API</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowHrmsPreviewModal(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 hover:text-white text-xs font-bold rounded-xl border border-slate-700 transition-colors cursor-pointer"
+              >
+                ปิดหน้าต่าง
               </button>
             </div>
           </div>

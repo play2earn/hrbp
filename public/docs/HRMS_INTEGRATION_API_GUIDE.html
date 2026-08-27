@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>HRBP to IDMS/HRMS API Integration Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: A4;
+      margin: 14mm 16mm 14mm 16mm;
+    }
+    
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      font-family: 'Prompt', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #1e293b;
+      line-height: 1.6;
+      font-size: 13px;
+      margin: 0;
+      padding: 0;
+      background-color: #ffffff;
+    }
+
+    .header-banner {
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+      color: #ffffff;
+      padding: 24px 28px;
+      border-radius: 16px;
+      margin-bottom: 24px;
+      position: relative;
+      box-shadow: 0 10px 25px -5px rgba(49, 46, 129, 0.2);
+    }
+
+    .header-banner h1 {
+      margin: 0 0 6px 0;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-banner p {
+      margin: 0;
+      font-size: 13px;
+      color: #c7d2fe;
+      font-weight: 400;
+    }
+
+    .badge-version {
+      position: absolute;
+      top: 24px;
+      right: 28px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 6px;
+      margin-top: 28px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      page-break-after: avoid;
+    }
+
+    h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1e293b;
+      margin-top: 18px;
+      margin-bottom: 8px;
+      page-break-after: avoid;
+    }
+
+    p {
+      margin: 0 0 10px 0;
+    }
+
+    .workflow-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin: 16px 0;
+    }
+
+    .step-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+
+    .step-num {
+      display: inline-block;
+      width: 22px;
+      height: 22px;
+      background: #4f46e5;
+      color: white;
+      text-align: center;
+      line-height: 22px;
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .step-title {
+      font-weight: 600;
+      font-size: 12px;
+      color: #1e293b;
+      margin-bottom: 4px;
+    }
+
+    .step-desc {
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.4;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 18px 0;
+      font-size: 12px;
+      page-break-inside: avoid;
+    }
+
+    th {
+      background: #f1f5f9;
+      color: #334155;
+      font-weight: 600;
+      text-align: left;
+      padding: 8px 12px;
+      border: 1px solid #cbd5e1;
+    }
+
+    td {
+      padding: 8px 12px;
+      border: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+
+    .method-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-family: 'Fira Code', monospace;
+      font-weight: 700;
+      font-size: 11px;
+    }
+
+    .method-get {
+      background: #e0e7ff;
+      color: #3730a3;
+      border: 1px solid #c7d2fe;
+    }
+
+    .method-post {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+
+    .endpoint-box {
+      background: #0f172a;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin: 10px 0 14px 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #f8fafc;
+      font-family: 'Fira Code', monospace;
+      font-size: 13px;
+    }
+
+    .code-block {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 14px 16px;
+      border-radius: 10px;
+      font-family: 'Fira Code', monospace;
+      font-size: 11px;
+      line-height: 1.5;
+      overflow-x: auto;
+      margin: 10px 0 16px 0;
+      border: 1px solid #1e293b;
+      page-break-inside: avoid;
+    }
+
+    .alert-box {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 10px 14px;
+      border-radius: 0 8px 8px 0;
+      font-size: 12px;
+      color: #1e40af;
+      margin: 12px 0;
+    }
+
+    .alert-warning {
+      background: #fffbeb;
+      border-left-color: #f59e0b;
+      color: #92400e;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      padding-top: 12px;
+      border-top: 1px solid #e2e8f0;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header Banner -->
+  <div class="header-banner">
+    <div class="badge-version">API Spec v1.0.0</div>
+    <h1>📘 คู่มือการเชื่อมต่อ API สำหรับระบบ IDMS / HRMS</h1>
+    <p>HRBP Candidate Data Synchronization & Onboarding Integration API Documentation</p>
+  </div>
+
+  <!-- 1. ภาพรวมระบบ -->
+  <h2>1. ภาพรวมระบบ (System Overview)</h2>
+  <p>
+    เอกสารฉบับนี้จัดทำขึ้นสำหรับทีมงาน <strong>IT / System Integrator / HRMS Developer</strong> 
+    เพื่อใช้ในการเชื่อมต่อดึงข้อมูลผู้สมัครงานที่ผ่านการคัดเลือก (Finalized Candidates) และไฟล์แนบทั้งหมดจากระบบ 
+    <strong>HRBP Recruitment Dashboard</strong> ไปยังระบบ <strong>IDMS / HRMS</strong> ภายในองค์กรเพื่อออกรหัสพนักงานใหม่และเตรียม Onboarding
+  </p>
+
+  <div class="workflow-grid">
+    <div class="step-card">
+      <div class="step-num">1</div>
+      <div class="step-title">HR อนุมัติส่งตัว</div>
+      <div class="step-desc">HR ตรวจเอกสารครบถ้วน และกดปุ่ม "ส่งข้อมูลไป HRMS" ในหน้าผู้สมัคร</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">2</div>
+      <div class="step-title">IT ดึงข้อมูล Export</div>
+      <div class="step-desc">ระบบ IT เรียก Export API ดึง JSON และ Presigned URLs ของไฟล์แนบ</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">3</div>
+      <div class="step-title">ดาวน์โหลดไฟล์</div>
+      <div class="step-desc">ระบบ IT โหลดเอกสารแนบเก็บเข้าเซิร์ฟเวอร์ และออกรหัสพนักงาน</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">4</div>
+      <div class="step-title">ส่ง Callback Ack</div>
+      <div class="step-desc">ระบบ IT ยิง Ack Callback ส่งรหัสพนักงาน (EMP ID) กลับมาอัปเดต</div>
+    </div>
+  </div>
+
+  <!-- 2. การยืนยันตัวตนและความปลอดภัย -->
+  <h2>2. การยืนยันตัวตนและความปลอดภัย (Authentication & Security)</h2>
+  <p>ทุก Request ที่ส่งมายังระบบ HRBP จะต้องแนบ Secret Key ผ่าน HTTP Header เพื่อความปลอดภัยตามมาตรฐาน PDPA:</p>
+
+  <div class="code-block">
+X-API-Key: YOUR_ENTERPRISE_SECRET_KEY
+Content-Type: application/json
+  </div>
+
+  <div class="alert-box alert-warning">
+    🔒 <strong>ข้อกำหนดด้านความปลอดภัย (PDPA Compliance):</strong><br>
+    - ไม่อนุญาตให้เปิด Public API โดยไม่มี Header ยืนยันตัวตน (หากไม่มี Key ระบบจะส่งกลับ <code>401 Unauthorized</code>)<br>
+    - ลิงก์ดาวน์โหลดไฟล์แนบเป็น <strong>Presigned Secure URLs มีอายุจำกัด 2 ชั่วโมง (7,200 วินาที)</strong> ดังนั้นระบบ IT ควรดาวน์โหลดและจัดเก็บเข้า File Server ภายในทันที
+  </div>
+
+  <!-- 3. Endpoint 1: Export API -->
+  <div class="page-break"></div>
+  <h2>3. Endpoint 1: ดึงข้อมูลผู้สมัคร (Export API)</h2>
+  <p>ใช้สำหรับดึงข้อมูลประวัติผู้สมัครและ Presigned URLs ของเอกสารแนบทั้งหมด</p>
+
+  <div class="endpoint-box">
+    <span class="method-badge method-get">GET</span>
+    <span>/api?route=hrms-export</span>
+  </div>
+
+  <h3>พารามิเตอร์ (Query Parameters):</h3>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Parameter</th>
+        <th style="width: 15%;">Type</th>
+        <th style="width: 15%;">Required</th>
+        <th>คำอธิบาย</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>application_id</code></td>
+        <td>UUID</td>
+        <td>Optional</td>
+        <td>ระบุรหัสใบสมัครเฉพาะเจาะจง เช่น <code>33656a06-96dd-41c2-a42f-094c834c19c0</code> <strong>[แนะนำ]</strong></td>
+      </tr>
+      <tr>
+        <td><code>status</code></td>
+        <td>String</td>
+        <td>Optional</td>
+        <td>ระบุสถานะ เช่น <code>READY_TO_SYNC</code> สำหรับตั้ง Cron Job ดึงคิวทั้งหมดเป็น Batch</td>
+      </tr>
+      <tr>
+        <td><code>national_id</code></td>
+        <td>String</td>
+        <td>Optional</td>
+        <td>ค้นหาด้วยรหัสบัตรประชาชน 13 หลัก</td>
+      </tr>
+      <tr>
+        <td><code>limit</code></td>
+        <td>Number</td>
+        <td>Optional</td>
+        <td>จำนวนรายการสูงสุดต่อรอบ (ค่าเริ่มต้น: 50, สูงสุด: 100)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>ตัวอย่าง Request (cURL):</h3>
+  <div class="code-block">
+curl -X GET "https://&lt;DOMAIN&gt;/api?route=hrms-export&status=READY_TO_SYNC" \
+  -H "X-API-Key: YOUR_ENTERPRISE_SECRET_KEY" \
+  -H "Content-Type: application/json"
+  </div>
+
+  <h3>ตัวอย่าง JSON Response Payload:</h3>
+  <div class="code-block">
+{
+  "success": true,
+  "timestamp": "2026-08-27T18:30:00.000Z",
+  "count": 1,
+  "data": [
+    {
+      "application_id": "33656a06-96dd-41c2-a42f-094c834c19c0",
+      "status": "Offer",
+      "hrms_sync": {
+        "status": "READY_TO_SYNC",
+        "ready_at": "2026-08-27T18:25:00.000Z",
+        "ready_by": "Chatchawan Tulaphak"
+      },
+      "rehire_meta": {
+        "is_rehire": false,
+        "total_applications_in_system": 1,
+        "note": "First-time applicant record."
+      },
+      "applied_position": {
+        "position_th": "เจ้าหน้าที่บัญชี",
+        "position_en": "Accounting Officer",
+        "department_th": "การบัญชี",
+        "business_unit": "NPS",
+        "expected_salary": "25000"
+      },
+      "personal_info": {
+        "is_thai_national": true,
+        "national_id": "1100100000000",
+        "title_th": "นาย",
+        "first_name_th": "สมชาย",
+        "last_name_th": "ใจดี",
+        "date_of_birth": "1998-05-15",
+        "age": "28",
+        "military_status": "ROTC"
+      },
+      "contact_info": {
+        "phone": "0899999999",
+        "email": "somchai@gmail.com",
+        "current_address": {
+          "address_line": "123/45 หมู่ 1",
+          "subdistrict": "บางสมัคร",
+          "district": "บางปะกง",
+          "province": "ฉะเชิงเทรา",
+          "postcode": "24180"
+        }
+      },
+      "education": [
+        { "level": "ปริญญาตรี", "institute": "มหาวิทยาลัยบูรพา", "major": "บัญชี", "gpa": "3.50" }
+      ],
+      "work_experience": [
+        { "company": "บริษัท ABC จำกัด", "position": "Junior Accountant", "salary": "20000" }
+      ],
+      "attachments": {
+        "profile_photo": { "url": "https://<DOMAIN>/api?route=files&url=...&download=true", "file_name": "photo.jpg", "expires_in_seconds": 7200 },
+        "resume": { "url": "https://<DOMAIN>/api?route=files&url=...&download=true", "file_name": "resume.pdf", "expires_in_seconds": 7200 },
+        "transcript": { "url": "https://<DOMAIN>/api?route=files&url=...&download=true", "file_name": "transcript.pdf", "expires_in_seconds": 7200 }
+      }
+    }
+  ]
+}
+  </div>
+
+  <!-- 4. Endpoint 2: Ack API -->
+  <div class="page-break"></div>
+  <h2>4. Endpoint 2: ส่ง Callback ยืนยันผล (Acknowledgment API)</h2>
+  <p>เมื่อระบบ IT นำเข้าข้อมูลสู่ IDMS/HRMS และออกรหัสพนักงานสำเร็จ ให้เรียก API นี้เพื่อยืนยันสถานะกลับมายัง HRBP</p>
+
+  <div class="endpoint-box">
+    <span class="method-badge method-post">POST</span>
+    <span>/api?route=hrms-ack</span>
+  </div>
+
+  <h3>Request Body (JSON Schema):</h3>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Field</th>
+        <th style="width: 15%;">Type</th>
+        <th style="width: 15%;">Required</th>
+        <th>คำอธิบาย</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>application_id</code></td>
+        <td>UUID</td>
+        <td><strong>Required</strong></td>
+        <td>รหัสใบสมัครผู้สมัคร (จากฟิลด์ <code>application_id</code> ที่ได้จาก Export API)</td>
+      </tr>
+      <tr>
+        <td><code>hrms_employee_id</code></td>
+        <td>String</td>
+        <td><strong>Required</strong></td>
+        <td>รหัสพนักงานใหม่ที่ออกโดยระบบ HRMS/IDMS เช่น <code>EMP-69042</code></td>
+      </tr>
+      <tr>
+        <td><code>sync_status</code></td>
+        <td>String</td>
+        <td>Optional</td>
+        <td>สถานะการ Sync: <code>SYNCED</code> (สำเร็จ) หรือ <code>FAILED</code> (ไม่สำเร็จ)</td>
+      </tr>
+      <tr>
+        <td><code>notes</code></td>
+        <td>String</td>
+        <td>Optional</td>
+        <td>บันทึกช่วยจำ หรือ Error Message หากนำเข้าไม่สำเร็จ</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>ตัวอย่าง Request Body:</h3>
+  <div class="code-block">
+curl -X POST "https://&lt;DOMAIN&gt;/api?route=hrms-ack" \
+  -H "X-API-Key: YOUR_ENTERPRISE_SECRET_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "application_id": "33656a06-96dd-41c2-a42f-094c834c19c0",
+    "hrms_employee_id": "EMP-69042",
+    "sync_status": "SYNCED",
+    "notes": "นำเข้าข้อมูลสู่ระบบ IDMS สำเร็จโดยระบบอัตโนมัติ"
+  }'
+  </div>
+
+  <h3>ตัวอย่าง Response:</h3>
+  <div class="code-block">
+{
+  "success": true,
+  "message": "HRMS sync status updated successfully",
+  "data": {
+    "id": "33656a06-96dd-41c2-a42f-094c834c19c0",
+    "full_name": "นาย สมชาย ใจดี",
+    "hrms_sync_status": "SYNCED",
+    "hrms_employee_id": "EMP-69042",
+    "hrms_synced_at": "2026-08-27T18:35:00.000Z"
+  }
+}
+  </div>
+
+  <!-- 5. เคสพนักงานเก่า (Re-hire) และรหัส Error -->
+  <h2>5. การจัดการกรณีพนักงานเก่า (Re-hire Handling)</h2>
+  <p>
+    ในกรณีที่ผู้สมัครเคยทำงานในองค์กรมาก่อน หรือเคยมีประวัติการสมัครในอดีต ระบบ HRBP จะระบุ Flag <code>"is_rehire": true</code> 
+    ใน Object <code>rehire_meta</code> ให้โดยอัตโนมัติ เพื่อให้ทีม IT สามารถนำ <code>national_id</code> 
+    ไปเชื่อมโยงประวัติบุคคลเดิมในฐานข้อมูล HRMS และออกรหัสพนักงานใหม่ตามนโยบายขององค์กรได้ทันที
+  </p>
+
+  <h2>6. ตารางรหัสสถานะ HTTP (Status Codes)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 15%;">Status</th>
+        <th style="width: 25%;">Code</th>
+        <th>คำอธิบาย</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>200</strong></td>
+        <td><code>OK</code></td>
+        <td>ดำเนินการสำเร็จ ข้อมูลถูกต้อง</td>
+      </tr>
+      <tr>
+        <td><strong>400</strong></td>
+        <td><code>Bad Request</code></td>
+        <td>ส่ง Parameter หรือ Body ไม่ครบถ้วน (เช่น ขาด application_id)</td>
+      </tr>
+      <tr>
+        <td><strong>401</strong></td>
+        <td><code>Unauthorized</code></td>
+        <td>ไม่ได้ส่ง <code>X-API-Key</code> หรือ Secret Key ไม่ถูกต้อง</td>
+      </tr>
+      <tr>
+        <td><strong>404</strong></td>
+        <td><code>Not Found</code></td>
+        <td>ไม่พบข้อมูลใบสมัครที่ระบุในระบบ</td>
+      </tr>
+      <tr>
+        <td><strong>500</strong></td>
+        <td><code>Internal Error</code></td>
+        <td>เกิดข้อผิดพลาดภายในระบบเซิร์ฟเวอร์</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer">
+    HRBP Recruitment Dashboard &bull; Enterprise IDMS / HRMS Data Integration Guide &bull; Document Version 1.0.0
+  </div>
+
+</body>
+</html>

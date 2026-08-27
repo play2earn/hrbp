@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { dispatchApiRoute, type ApiHandlerLoader } from '../server/api-router.js';
 
 const handlers: Record<string, ApiHandlerLoader> = {
+  'api-keys': () => import('../handlers/api-keys.js'),
   'application-delete': () => import('../handlers/application-delete.js'),
   'application-edit': () => import('../handlers/application-edit.js'),
   blacklist: () => import('../handlers/blacklist.js'),
@@ -13,6 +14,8 @@ const handlers: Record<string, ApiHandlerLoader> = {
   'evaluation-templates': () => import('../handlers/evaluation-templates.js'),
   files: () => import('../handlers/files.js'),
   'finalize-attachments': () => import('../handlers/finalize-attachments.js'),
+  'hrms-ack': () => import('../handlers/hrms-ack.js'),
+  'hrms-export': () => import('../handlers/hrms-export.js'),
   'idms-auth': () => import('../handlers/idms-auth.js'),
   'proxy-image': () => import('../handlers/proxy-image.js'),
   'register-hrms-user': () => import('../handlers/register-hrms-user.js'),

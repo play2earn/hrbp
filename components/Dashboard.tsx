@@ -29,6 +29,7 @@ const CalendarTab = React.lazy(() => import('./dashboard/CalendarTab').then(m =>
 const SystemLogsTab = React.lazy(() => import('./dashboard/SystemLogsTab').then(m => ({ default: m.SystemLogsTab })));
 const S3StorageTab = React.lazy(() => import('./dashboard/S3StorageTab').then(m => ({ default: m.S3StorageTab })));
 const MasterDataTab = React.lazy(() => import('./dashboard/MasterDataTab').then(m => ({ default: m.MasterDataTab })));
+const IntegrationsTab = React.lazy(() => import('./dashboard/IntegrationsTab').then(m => ({ default: m.IntegrationsTab })));
 
 const TabLoading = () => (
   <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-slate-200 bg-white">
@@ -50,7 +51,7 @@ const ModalLoadingOverlay = () => (
 
 
 export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUser: initialUser }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'reports' | 'qr' | 'settings' | 'config' | 'profile' | 'blacklist' | 'calendar' | 'logs' | 'hr-drive' | 'evaluations'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'reports' | 'qr' | 'settings' | 'config' | 'profile' | 'blacklist' | 'calendar' | 'logs' | 'hr-drive' | 'evaluations' | 'integrations'>('overview');
   const [hrDrivePrefix, setHrDrivePrefix] = useState<string>('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -120,7 +121,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
     channel: '',
     status: 'all',
     assignment: 'all',
-    blacklist: 'all'
+    blacklist: 'all',
+    hrms: 'all'
   });
   const [appPage, setAppPage] = useState(1);
   const [appPerPage, setAppPerPage] = useState(25);
@@ -486,7 +488,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
         assignment: appFilters.assignment,
         currentUserId: currentUserId,
         blacklist: appFilters.blacklist,
-        blacklistEntries: currentBlacklist
+        blacklistEntries: currentBlacklist,
+        hrms: appFilters.hrms
       });
       setApplications(result.data);
       setTotalCount(result.count);
@@ -512,7 +515,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
         assignment: appFilters.assignment,
         currentUserId: currentUserId,
         blacklist: appFilters.blacklist,
-        blacklistEntries: blacklistEntries
+        blacklistEntries: blacklistEntries,
+        hrms: appFilters.hrms
       });
       setApplications(result.data);
       setTotalCount(result.count);
@@ -891,6 +895,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
           {role === 'admin' && (
             <>
               <button
+                onClick={() => { setActiveTab('integrations'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-2' : 'gap-3 px-3'} py-3 rounded-xl transition-all ${activeTab === 'integrations' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                title="HRMS Integration"
+              >
+                <ArrowRightLeft className="w-5 h-5 shrink-0 text-indigo-400" />
+                {!sidebarCollapsed && <span className="font-medium">HRMS Integration</span>}
+              </button>
+              <button
                 onClick={() => { setActiveTab('settings'); setIsMobileMenuOpen(false); }}
                 className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-2' : 'gap-3 px-3'} py-3 rounded-xl transition-all ${activeTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
                 title="Settings"
@@ -1127,6 +1139,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
 
             {activeTab === 'blacklist' && (
               <BlacklistTab showToast={showToast} currentUser={currentUser} />
+            )}
+
+            {activeTab === 'integrations' && role === 'admin' && (
+              <IntegrationsTab
+                currentUser={currentUser}
+                onViewApplicant={(app) => setViewingApp(app)}
+              />
             )}
           </React.Suspense>
 

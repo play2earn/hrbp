@@ -381,3 +381,15 @@ export interface MasterPosition {
     name_en: string;
   } | null;
 }
+
+export type HrmsSyncStatus = 'NOT_READY' | 'READY_TO_SYNC' | 'SYNCED' | 'FAILED';
+
+export interface HrmsSyncInfo {
+  hrms_sync_status?: HrmsSyncStatus | string | null;
+  hrms_ready_at?: string | null;
+  hrms_ready_by?: string | null;
+  hrms_synced_at?: string | null;
+  hrms_employee_id?: string | null;
+  hrms_sync_notes?: string | null;
+}
+
