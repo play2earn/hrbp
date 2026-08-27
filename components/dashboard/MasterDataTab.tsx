@@ -109,6 +109,9 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
     isArchived?: boolean;
   } | null>(null);
 
+  // Tag Input text state for Skills
+  const [tagInputText, setTagInputText] = useState('');
+
   // Master Data Group Configurations
   const TABLE_GROUPS: GroupDef[] = useMemo(() => [
     {
@@ -272,6 +275,7 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
   const openAdd = () => {
     setEditingItem(null);
     setDuplicateWarning(null);
+    setTagInputText('');
     if (activeTable === 'positions') {
       setFormData({
         name_th: '',
@@ -284,7 +288,7 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
         min_education: '',
         education_levels: [],
         is_urgent: false,
-        skills: '',
+        skills: [],
         job_overview: '',
         qualifications: '',
         is_active: true
@@ -311,10 +315,13 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
   const openEdit = (item: any) => {
     setEditingItem(item);
     setDuplicateWarning(null);
+    setTagInputText('');
     const initialForm = { ...item };
     if (activeTable === 'positions') {
-      if (Array.isArray(initialForm.skills)) {
-        initialForm.skills = initialForm.skills.join(', ');
+      if (typeof initialForm.skills === 'string') {
+        initialForm.skills = initialForm.skills.split(',').map((s: string) => s.trim()).filter(Boolean);
+      } else if (!Array.isArray(initialForm.skills)) {
+        initialForm.skills = [];
       }
       if (!Array.isArray(initialForm.location_ids)) {
         initialForm.location_ids = initialForm.location_id ? [initialForm.location_id] : [];
@@ -360,12 +367,19 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
         payload.education_levels = eduLevels;
         payload.min_education = eduLevels.length > 0 ? eduLevels.join(', ') : null;
 
-        payload.is_urgent = Boolean(payload.is_urgent);
-        if (typeof payload.skills === 'string') {
-          payload.skills = payload.skills.split(',').map((s: string) => s.trim()).filter(Boolean);
-        } else if (!Array.isArray(payload.skills)) {
-          payload.skills = [];
+        // Skills array handling + any pending tag input text
+        let skillsArr: string[] = [];
+        if (Array.isArray(payload.skills)) {
+          skillsArr = [...payload.skills];
+        } else if (typeof payload.skills === 'string') {
+          skillsArr = payload.skills.split(',').map((s: string) => s.trim()).filter(Boolean);
         }
+        if (tagInputText.trim()) {
+          const pending = tagInputText.split(',').map((s: string) => s.trim()).filter(Boolean);
+          skillsArr = [...skillsArr, ...pending];
+        }
+        payload.skills = Array.from(new Set(skillsArr));
+
         payload.job_level = payload.job_level || null;
         payload.employment_type = payload.employment_type || 'full_time';
         payload.job_overview = payload.job_overview || null;
@@ -1140,6 +1154,7 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={`${editingItem ? 'แก้ไข' : 'เพิ่ม'}${currentTableDef.labelTh}`}
+        size={activeTable === 'positions' ? '2xl' : 'xl'}
       >
         <form onSubmit={handleSave} className="space-y-4">
           {/* Duplicate Detection Warning Banner */}
@@ -1170,39 +1185,23 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
 
           {activeTable === 'positions' && (
             <>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">แผนก / สังกัด (Department) *</label>
-                <select
-                  value={formData.department_id || ''}
-                  onChange={e => setFormData({ ...formData, department_id: Number(e.target.value) })}
-                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none font-medium"
-                  required
-                >
-                  <option value="">-- เลือกแผนก --</option>
-                  {deptList.map(d => (
-                    <option key={d.id} value={d.id}>{d.name_th || d.name_en}</option>
-                  ))}
-                </select>
-              </div>
+              {/* Row 1: Department, Level, Employment Type */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">แผนก / สังกัด (Department) *</label>
+                  <select
+                    value={formData.department_id || ''}
+                    onChange={e => setFormData({ ...formData, department_id: Number(e.target.value) })}
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none font-medium"
+                    required
+                  >
+                    <option value="">-- เลือกแผนก --</option>
+                    {deptList.map(d => (
+                      <option key={d.id} value={d.id}>{d.name_th || d.name_en}</option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Input
-                  label="ชื่อตำแหน่ง (ภาษาไทย) *"
-                  value={formData.name_th || ''}
-                  onChange={e => setFormData({ ...formData, name_th: e.target.value })}
-                  placeholder="เช่น เจ้าหน้าที่ปรับปรุงกระบวนการ"
-                  required
-                />
-
-                <Input
-                  label="ชื่อตำแหน่ง (ภาษาอังกฤษ)"
-                  value={formData.name_en || ''}
-                  onChange={e => setFormData({ ...formData, name_en: e.target.value })}
-                  placeholder="เช่น Process Improvement Officer"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">ระดับตำแหน่ง (Job Level)</label>
                   <select
@@ -1234,11 +1233,29 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
                 </div>
               </div>
 
-              {/* Multi-Select Work Locations */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-bold text-slate-700">
-                    สถานที่ปฏิบัติงาน (Work Locations - เลือกได้มากกว่า 1 แห่ง)
+              {/* Row 2: Position Titles (TH / EN) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                <Input
+                  label="ชื่อตำแหน่ง (ภาษาไทย) *"
+                  value={formData.name_th || ''}
+                  onChange={e => setFormData({ ...formData, name_th: e.target.value })}
+                  placeholder="เช่น เจ้าหน้าที่ปรับปรุงกระบวนการ"
+                  required
+                />
+
+                <Input
+                  label="ชื่อตำแหน่ง (ภาษาอังกฤษ)"
+                  value={formData.name_en || ''}
+                  onChange={e => setFormData({ ...formData, name_en: e.target.value })}
+                  placeholder="เช่น Process Improvement Officer"
+                />
+              </div>
+
+              {/* Row 3: Multi-Select Work Locations */}
+              <div className="p-3.5 bg-slate-50/80 border border-slate-200 rounded-2xl">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-bold text-slate-800">
+                    📍 สถานที่ปฏิบัติงาน (Work Locations - เลือกได้มากกว่า 1 แห่ง)
                   </label>
                   <div className="flex items-center gap-2">
                     <button
@@ -1247,7 +1264,7 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
                         const allIds = locationList.map(l => l.id);
                         setFormData({ ...formData, location_ids: allIds, location_id: allIds[0] || null });
                       }}
-                      className="text-[10px] text-indigo-600 hover:underline font-bold"
+                      className="text-xs text-indigo-600 hover:underline font-bold"
                     >
                       เลือกทั้งหมด
                     </button>
@@ -1255,13 +1272,13 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, location_ids: [], location_id: null })}
-                      className="text-[10px] text-slate-500 hover:underline"
+                      className="text-xs text-slate-500 hover:underline"
                     >
                       ล้าง
                     </button>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl max-h-48 overflow-y-auto">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
                   {locationList.map(loc => {
                     const selectedLocIds: number[] = Array.isArray(formData.location_ids)
                       ? formData.location_ids
@@ -1270,10 +1287,10 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
                     return (
                       <label
                         key={loc.id}
-                        className={`flex items-start gap-2 p-2 rounded-xl border text-xs cursor-pointer select-none transition ${
+                        className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-xs cursor-pointer select-none transition ${
                           isChecked
-                            ? 'bg-indigo-50 border-indigo-300 text-indigo-900 font-bold shadow-2xs ring-1 ring-indigo-200'
-                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100/80'
+                            ? 'bg-indigo-50/90 border-indigo-300 text-indigo-950 font-bold shadow-xs ring-1 ring-indigo-200'
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100/70'
                         }`}
                       >
                         <input
@@ -1290,27 +1307,27 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
                               location_id: updated.length > 0 ? updated[0] : null
                             });
                           }}
-                          className="rounded text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5 mt-0.5"
+                          className="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 mt-0.5"
                         />
                         <span className="truncate leading-tight">
-                          <span className="font-bold text-indigo-600 block text-[10px]">[{loc.code.toUpperCase()}]</span>
-                          {loc.name_th || loc.name_en}
+                          <span className="font-extrabold text-indigo-600 block text-[11px]">[{loc.code.toUpperCase()}]</span>
+                          <span className="text-[11px] text-slate-700">{loc.name_th || loc.name_en}</span>
                         </span>
                       </label>
                     );
                   })}
                 </div>
-                <p className="text-[10px] text-slate-400 mt-1">
+                <p className="text-[11px] text-slate-400 mt-2">
                   * หากไม่เลือกสถานที่ใดๆ ระบบจะถือว่าเป็น "ทุกสาขา / ตามตกลง"
                 </p>
               </div>
 
-              {/* Multi-Select Education Levels */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  วุฒิการศึกษาที่เปิดรับ (Education Levels - เลือกได้มากกว่า 1 วุฒิ)
+              {/* Row 4: Multi-Select Education Levels */}
+              <div className="p-3.5 bg-slate-50/80 border border-slate-200 rounded-2xl">
+                <label className="block text-xs font-bold text-slate-800 mb-2">
+                  🎓 วุฒิการศึกษาที่เปิดรับ (Education Levels - เลือกได้มากกว่า 1 วุฒิ)
                 </label>
-                <div className="flex flex-wrap gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <div className="flex flex-wrap gap-2.5">
                   {['ม.6 / ปวช.', 'ปวส. / อนุปริญญา', 'ปริญญาตรี', 'ปริญญาโท', 'ปริญญาเอก'].map(degree => {
                     const selectedEduLevels: string[] = Array.isArray(formData.education_levels)
                       ? formData.education_levels
@@ -1319,7 +1336,7 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
                     return (
                       <label
                         key={degree}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs cursor-pointer select-none transition ${
+                        className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs cursor-pointer select-none transition ${
                           isChecked
                             ? 'bg-indigo-600 border-indigo-600 text-white font-bold shadow-xs'
                             : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
@@ -1342,58 +1359,178 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
                           className="sr-only"
                         />
                         <span>{degree}</span>
-                        {isChecked && <Check className="w-3.5 h-3.5 text-white ml-0.5" />}
+                        {isChecked && <Check className="w-4 h-4 text-white" />}
                       </label>
                     );
                   })}
                 </div>
-                <p className="text-[10px] text-slate-400 mt-1">
+                <p className="text-[11px] text-slate-400 mt-2">
                   * หากไม่เลือกวุฒิใดๆ ระบบจะถือว่าเป็น "ไม่จำกัดวุฒิ"
                 </p>
               </div>
 
+              {/* Row 5: Skills Tags (Auto Pill on Comma or Enter) */}
               <div>
-                <Input
-                  label="ทักษะที่ต้องการ (Skills / Tags - คั่นด้วยเครื่องหมายจุลภาค)"
-                  value={formData.skills || ''}
-                  onChange={e => setFormData({ ...formData, skills: e.target.value })}
-                  placeholder="เช่น AutoCAD, PLC, Maintenance, ภาษาอังกฤษ"
-                />
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700">
+                    🏷️ ทักษะที่ต้องการ (Skills / Tags - พิมพ์แล้วใส่ Comma , หรือกด Enter เพื่อสร้าง Pill)
+                  </label>
+                  {Array.isArray(formData.skills) && formData.skills.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, skills: [] })}
+                      className="text-[11px] text-slate-400 hover:text-rose-600 font-normal transition"
+                    >
+                      ล้างแท็กทั้งหมด ({formData.skills.length})
+                    </button>
+                  )}
+                </div>
+                <div
+                  onClick={() => document.getElementById('skill-tag-input')?.focus()}
+                  className="w-full min-h-[46px] p-2 bg-white border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition flex flex-wrap items-center gap-1.5 cursor-text shadow-2xs"
+                >
+                  {(Array.isArray(formData.skills) ? formData.skills : []).map((skill: string, idx: number) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/80 shadow-2xs animate-fade-in group hover:bg-indigo-100 transition"
+                    >
+                      <span>{skill}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const updated = (formData.skills as string[]).filter((_, i) => i !== idx);
+                          setFormData({ ...formData, skills: updated });
+                        }}
+                        className="text-indigo-400 hover:text-rose-600 hover:bg-white rounded-md p-0.5 transition"
+                        title="ลบแท็กนี้"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    id="skill-tag-input"
+                    type="text"
+                    value={tagInputText}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val.includes(',')) {
+                        const parts = val.split(',');
+                        const newTags = parts
+                          .slice(0, -1)
+                          .map(s => s.trim())
+                          .filter(Boolean);
+                        const remainder = parts[parts.length - 1];
+
+                        if (newTags.length > 0) {
+                          const currentSkills = Array.isArray(formData.skills) ? formData.skills : [];
+                          const combined = Array.from(new Set([...currentSkills, ...newTags]));
+                          setFormData({ ...formData, skills: combined });
+                        }
+                        setTagInputText(remainder);
+                      } else {
+                        setTagInputText(val);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ',') {
+                        e.preventDefault();
+                        const val = tagInputText.trim();
+                        if (val) {
+                          const currentSkills = Array.isArray(formData.skills) ? formData.skills : [];
+                          if (!currentSkills.includes(val)) {
+                            setFormData({ ...formData, skills: [...currentSkills, val] });
+                          }
+                          setTagInputText('');
+                        }
+                      } else if (e.key === 'Backspace' && !tagInputText) {
+                        const currentSkills = Array.isArray(formData.skills) ? formData.skills : [];
+                        if (currentSkills.length > 0) {
+                          setFormData({ ...formData, skills: currentSkills.slice(0, -1) });
+                        }
+                      }
+                    }}
+                    onPaste={(e) => {
+                      const pasted = e.clipboardData.getData('text');
+                      if (pasted.includes(',')) {
+                        e.preventDefault();
+                        const parts = pasted.split(',').map(s => s.trim()).filter(Boolean);
+                        const currentSkills = Array.isArray(formData.skills) ? formData.skills : [];
+                        const combined = Array.from(new Set([...currentSkills, ...parts]));
+                        setFormData({ ...formData, skills: combined });
+                        setTagInputText('');
+                      }
+                    }}
+                    placeholder={
+                      !formData.skills || formData.skills.length === 0
+                        ? "พิมพ์ทักษะแล้วใส่ Comma (,) หรือกด Enter เช่น AutoCAD, PLC, Maintenance, ภาษาอังกฤษ"
+                        : "พิมพ์เพิ่มแล้วใส่ Comma หรือกด Enter..."
+                    }
+                    className="flex-1 min-w-[200px] text-xs bg-transparent outline-none py-1 px-1 text-slate-800 placeholder:text-slate-400 font-medium"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  💡 เคล็ดลับ: พิมพ์ชื่อทักษะแล้วใส่เครื่องหมายจุลภาค <code>,</code> หรือกด Enter ระบบจะแปลงเป็น Tag Pill ให้อัตโนมัติทันที หรือกด Backspace เพื่อลบแท็กก่อนหน้า
+                </p>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">ภาพรวมหน้าที่ความรับผิดชอบ (Job Overview / Brief)</label>
-                <textarea
-                  value={formData.job_overview || ''}
-                  onChange={e => setFormData({ ...formData, job_overview: e.target.value })}
-                  rows={2}
-                  placeholder="สรุปขอบเขตงานสั้นๆ 2-3 บรรทัด สำหรับแสดงในการ์ดหรือหน้าแรก"
-                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                />
+              {/* Row 6: Overview & Qualifications (2 Columns Side-by-Side) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    ภาพรวมหน้าที่ความรับผิดชอบ (Job Overview / Brief)
+                  </label>
+                  <textarea
+                    value={formData.job_overview || ''}
+                    onChange={e => setFormData({ ...formData, job_overview: e.target.value })}
+                    rows={4}
+                    placeholder="สรุปขอบเขตงานสั้นๆ 2-3 บรรทัด สำหรับแสดงในการ์ดหรือหน้าแรก"
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none leading-relaxed"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    คุณสมบัติผู้สมัคร (Qualifications)
+                  </label>
+                  <textarea
+                    value={formData.qualifications || ''}
+                    onChange={e => setFormData({ ...formData, qualifications: e.target.value })}
+                    rows={4}
+                    placeholder="เช่น จบสาขาวิศวกรรมเครื่องกล, สามารถทำงานเข้ากะได้, มีใบประกอบวิชาชีพ"
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none leading-relaxed"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">คุณสมบัติผู้สมัคร (Qualifications)</label>
-                <textarea
-                  value={formData.qualifications || ''}
-                  onChange={e => setFormData({ ...formData, qualifications: e.target.value })}
-                  rows={3}
-                  placeholder="เช่น จบสาขาวิศวกรรมเครื่องกล, สามารถทำงานเข้ากะได้, มีใบประกอบวิชาชีพ"
-                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                />
-              </div>
+              {/* Row 7: Flags (Urgent Hot Job & Status) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex items-center gap-2 p-3 bg-amber-50/70 border border-amber-200/70 rounded-xl">
+                  <input
+                    type="checkbox"
+                    id="pos_urgent"
+                    checked={Boolean(formData.is_urgent)}
+                    onChange={e => setFormData({ ...formData, is_urgent: e.target.checked })}
+                    className="rounded text-amber-600 focus:ring-amber-500 h-4 w-4"
+                  />
+                  <label htmlFor="pos_urgent" className="text-xs font-bold text-amber-900 select-none cursor-pointer">
+                    🔥 ตำแหน่งนี้เปิดรับสมัครด่วน (Hot Job)
+                  </label>
+                </div>
 
-              <div className="flex items-center gap-2 p-3 bg-amber-50/70 border border-amber-200/70 rounded-xl">
-                <input
-                  type="checkbox"
-                  id="pos_urgent"
-                  checked={Boolean(formData.is_urgent)}
-                  onChange={e => setFormData({ ...formData, is_urgent: e.target.checked })}
-                  className="rounded text-amber-600 focus:ring-amber-500 h-4 w-4"
-                />
-                <label htmlFor="pos_urgent" className="text-xs font-bold text-amber-900 select-none cursor-pointer">
-                  🔥 ตำแหน่งนี้เปิดรับสมัครด่วน (Urgent / Hot Job - แสดง Badge เด่นบนหน้าแรก)
-                </label>
+                <div className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                  <input
+                    type="checkbox"
+                    id="pos_active"
+                    checked={Boolean(formData.is_active)}
+                    onChange={e => setFormData({ ...formData, is_active: e.target.checked })}
+                    className="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                  />
+                  <label htmlFor="pos_active" className="text-xs font-bold text-slate-800 select-none cursor-pointer">
+                    ✅ เปิดใช้งาน (Active / เปิดรับสมัคร)
+                  </label>
+                </div>
               </div>
             </>
           )}
@@ -1526,18 +1663,20 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
             </>
           )}
 
-          <div className="flex items-center gap-2 pt-2">
-            <input
-              type="checkbox"
-              id="item_active"
-              checked={formData.is_active !== false}
-              onChange={e => setFormData({ ...formData, is_active: e.target.checked })}
-              className="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4"
-            />
-            <label htmlFor="item_active" className="text-xs font-bold text-slate-700 select-none">
-              เปิดใช้งาน (Active / เปิดรับสมัคร)
-            </label>
-          </div>
+          {activeTable !== 'positions' && (
+            <div className="flex items-center gap-2 pt-2">
+              <input
+                type="checkbox"
+                id="item_active"
+                checked={formData.is_active !== false}
+                onChange={e => setFormData({ ...formData, is_active: e.target.checked })}
+                className="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+              />
+              <label htmlFor="item_active" className="text-xs font-bold text-slate-700 select-none">
+                เปิดใช้งาน (Active / เปิดรับสมัคร)
+              </label>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-3 border-t">
             <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>

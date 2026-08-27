@@ -696,10 +696,10 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
   const isFull = size === 'full';
 
   const sizeClasses = {
-    md: 'sm:max-w-lg mt-20 mb-8 mx-4 rounded-xl',
-    lg: 'sm:max-w-2xl mt-20 mb-8 mx-4 rounded-xl',
-    xl: 'sm:max-w-4xl mt-10 mb-8 mx-4 rounded-xl',
-    '2xl': 'sm:max-w-6xl mt-10 mb-8 mx-4 rounded-xl',
+    md: 'w-full sm:max-w-lg my-6 mx-4 rounded-2xl',
+    lg: 'w-full sm:max-w-2xl my-6 mx-4 rounded-2xl',
+    xl: 'w-full sm:max-w-4xl my-6 mx-4 rounded-3xl',
+    '2xl': 'w-full sm:max-w-6xl my-6 mx-4 rounded-3xl',
     full: 'w-full h-full rounded-none m-0'
   };
 
