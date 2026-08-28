@@ -34,7 +34,7 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({ currentUser, o
   const [queueFilter, setQueueFilter] = useState<'all' | 'READY_TO_SYNC' | 'SYNCED' | 'FAILED'>('all');
 
   // Sandbox / Explorer State
-  const [selectedSandboxAppId, setSelectedSandboxAppId] = useState<string>('');
+  const [selectedSandboxAppId, setSelectedSandboxAppId] = useState<string>('__ALL_READY__');
   const [sandboxApiKey, setSandboxApiKey] = useState<string>('');
   const [isExecutingSandbox, setIsExecutingSandbox] = useState(false);
   const [sandboxResponse, setSandboxResponse] = useState<any | null>(null);
@@ -84,6 +84,34 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({ currentUser, o
     }
   };
 
+  // Helper to increment trailing numbers in Employee ID (e.g. EMP-69001 -> EMP-69002)
+  const getNextEmpId = (currentId: string): string => {
+    if (!currentId || !currentId.trim()) return 'EMP-69001';
+    const match = currentId.trim().match(/^(.*?)(\d+)$/);
+    if (!match) return `${currentId.trim()}-01`;
+    const prefix = match[1];
+    const digitsStr = match[2];
+    const nextNum = parseInt(digitsStr, 10) + 1;
+    const nextDigitsStr = String(nextNum).padStart(digitsStr.length, '0');
+    return `${prefix}${nextDigitsStr}`;
+  };
+
+  const computeNextAvailableEmpId = (list: any[]): string => {
+    let maxIdNum = 69000;
+    let hasFound = false;
+    list.forEach(item => {
+      if (item.hrms_employee_id) {
+        const match = String(item.hrms_employee_id).match(/(\d+)$/);
+        if (match) {
+          hasFound = true;
+          const num = parseInt(match[1], 10);
+          if (num > maxIdNum) maxIdNum = num;
+        }
+      }
+    });
+    return hasFound ? `EMP-${maxIdNum + 1}` : 'EMP-69001';
+  };
+
   // 2. Fetch Sync Queue
   const fetchQueue = async () => {
     setIsLoadingQueue(true);
@@ -92,8 +120,15 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({ currentUser, o
       if (res.success && res.data) {
         setQueueList(res.data);
         if (res.data.length > 0 && !selectedSandboxAppId) {
-          setSelectedSandboxAppId(res.data[0].id);
+          setSelectedSandboxAppId('__ALL_READY__');
         }
+        // Auto compute next available emp id if default
+        setSimMockEmpId(prev => {
+          if (!prev || prev === 'EMP-69001') {
+            return computeNextAvailableEmpId(res.data);
+          }
+          return prev;
+        });
       }
     } catch {
       showToast('เกิดข้อผิดพลาดในการโหลดคิว HRMS', 'error');
@@ -192,7 +227,7 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({ currentUser, o
   // Handle Live Sandbox Execution
   const handleExecuteSandbox = async () => {
     if (!selectedSandboxAppId) {
-      showToast('กรุณาเลือกผู้สมัครที่ต้องการทดสอบ', 'error');
+      showToast('กรุณาเลือกเป้าหมายที่ต้องการทดสอบ', 'error');
       return;
     }
 
@@ -220,7 +255,16 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({ currentUser, o
         headers['X-API-Key'] = trimmedKey;
       }
 
-      const res = await fetch(`/api?route=hrms-export&application_id=${encodeURIComponent(selectedSandboxAppId)}`, {
+      let exportUrl = '';
+      if (selectedSandboxAppId === '__ALL_READY__') {
+        exportUrl = '/api?route=hrms-export&status=READY_TO_SYNC';
+      } else if (selectedSandboxAppId === '__ALL_SYNCED__') {
+        exportUrl = '/api?route=hrms-export&status=SYNCED';
+      } else {
+        exportUrl = `/api?route=hrms-export&application_id=${encodeURIComponent(selectedSandboxAppId)}`;
+      }
+
+      const res = await fetch(exportUrl, {
         headers: Object.keys(headers).length > 0 ? headers : undefined,
         credentials: 'same-origin',
       });
@@ -239,7 +283,12 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({ currentUser, o
 
   // Handle Simulated Callback ACK
   const handleSimulateAck = async () => {
-    if (!selectedSandboxAppId || !simMockEmpId.trim()) {
+    if (!selectedSandboxAppId || selectedSandboxAppId.startsWith('__ALL_')) {
+      showToast('กรุณาเลือกผู้สมัครรายบุคคลใน Dropdown ด้านบนเพื่อทดสอบส่ง Mock ACK', 'error');
+      return;
+    }
+
+    if (!simMockEmpId.trim()) {
       showToast('กรุณากรอกรหัสพนักงานจำลอง', 'error');
       return;
     }
@@ -248,14 +297,17 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({ currentUser, o
     setSimAckResult(null);
 
     try {
+      const usedEmpId = simMockEmpId.trim();
       const res = await api.hrms.simulateAck(
         selectedSandboxAppId,
-        simMockEmpId.trim(),
+        usedEmpId,
         'ทดสอบส่ง Callback ACK ผ่านหน้า Integrations Sandbox'
       );
       if (res.success) {
+        const nextId = getNextEmpId(usedEmpId);
+        setSimMockEmpId(nextId);
         setSimAckResult(res.data);
-        showToast(`จำลองการออกรหัสพนักงาน ${simMockEmpId} สำเร็จ`, 'success');
+        showToast(`จำลองการออกรหัสพนักงาน ${usedEmpId} สำเร็จ (ระบบเตรียมรหัส ${nextId} สำหรับคนถัดไปให้อัตโนมัติ)`, 'success');
         fetchQueue();
       } else {
         showToast(res.error?.message || 'ส่ง Callback ACK ล้มเหลว', 'error');
@@ -288,6 +340,12 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({ currentUser, o
   };
 
   const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://hrbp.yourcompany.com';
+
+  const sandboxQueryPath = useMemo(() => {
+    if (selectedSandboxAppId === '__ALL_READY__') return '/api?route=hrms-export&status=READY_TO_SYNC';
+    if (selectedSandboxAppId === '__ALL_SYNCED__') return '/api?route=hrms-export&status=SYNCED';
+    return `/api?route=hrms-export&application_id=${selectedSandboxAppId || '<UUID>'}`;
+  }, [selectedSandboxAppId]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -775,22 +833,43 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({ currentUser, o
 
               {/* Candidate Selector */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-700">
-                  1. เลือกผู้สมัครที่ต้องการทดสอบ (Candidate)
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-700">
+                    1. โหมดทดสอบดึงข้อมูล (Query Target)
+                  </label>
+                  {selectedSandboxAppId === '__ALL_READY__' ? (
+                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                      ⚡ คิวรอส่ง (Ready Queue)
+                    </span>
+                  ) : selectedSandboxAppId === '__ALL_SYNCED__' ? (
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                      📦 ประวัติที่ Sync แล้ว (Synced)
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">
+                      👤 รายบุคคล (Single ID)
+                    </span>
+                  )}
+                </div>
                 <select
                   value={selectedSandboxAppId}
                   onChange={(e) => setSelectedSandboxAppId(e.target.value)}
                   className="w-full px-3 py-2 text-xs bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 font-medium"
                 >
-                  {queueList.length === 0 ? (
-                    <option value="">-- ไม่พบผู้สมัครในคิว --</option>
-                  ) : (
-                    queueList.map((app) => (
-                      <option key={app.id} value={app.id}>
-                        {app.full_name || app.id} ({app.position || '-'}) - {app.hrms_sync_status}
-                      </option>
-                    ))
+                  <option value="__ALL_READY__">
+                    ⚡ ดึงคิวทั้งหมดที่พร้อมส่ง (status=READY_TO_SYNC) [{queueList.filter(q => q.hrms_sync_status === 'READY_TO_SYNC').length} คน]
+                  </option>
+                  <option value="__ALL_SYNCED__">
+                    📦 ดึงรายการที่ Sync สำเร็จแล้วทั้งหมด (status=SYNCED) [{queueList.filter(q => q.hrms_sync_status === 'SYNCED').length} คน]
+                  </option>
+                  {queueList.length > 0 && (
+                    <optgroup label="--- ทดสอบเจาะจงรายบุคคล (Single Candidate) ---">
+                      {queueList.map((app) => (
+                        <option key={app.id} value={app.id}>
+                          👤 {app.full_name || app.id} ({app.position || '-'}) - {app.hrms_sync_status}
+                        </option>
+                      ))}
+                    </optgroup>
                   )}
                 </select>
               </div>
@@ -871,7 +950,7 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({ currentUser, o
                   ) : (
                     <>
                       <Play className="w-4 h-4 fill-current" />
-                      ยิงทดสอบดึงข้อมูล (GET Export API)
+                      {selectedSandboxAppId.startsWith('__ALL_') ? 'ยิงทดสอบดึงข้อมูลทั้งชุด (GET Export Batch)' : 'ยิงทดสอบดึงข้อมูลรายคน (GET Export API)'}
                     </>
                   )}
                 </Button>
@@ -879,43 +958,68 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({ currentUser, o
 
               {/* Simulated ACK Section */}
               <div className="pt-4 border-t border-gray-100 space-y-3">
-                <div className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
-                  <Send className="w-4 h-4 text-emerald-600" />
-                  จำลองการตอบกลับจาก IT (POST /api?route=hrms-ack)
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={simMockEmpId}
-                    onChange={(e) => setSimMockEmpId(e.target.value)}
-                    placeholder="รหัสพนักงาน เช่น EMP-69042"
-                    className="flex-1 px-3 py-2 text-xs font-mono bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900"
-                  />
-                  <Button
-                    type="button"
-                    onClick={handleSimulateAck}
-                    disabled={isSimulatingAck || !selectedSandboxAppId || !simMockEmpId}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl shrink-0 cursor-pointer"
-                  >
-                    {isSimulatingAck ? 'กำลังส่ง...' : 'ส่ง Mock ACK'}
-                  </Button>
-
-                  {selectedSandboxAppId && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        const target = queueList.find(q => q.id === selectedSandboxAppId);
-                        if (target) setAppToReset(target);
-                      }}
-                      className="text-amber-700 border-amber-300 hover:bg-amber-50 font-bold text-xs px-3 py-2 rounded-xl shrink-0 cursor-pointer"
-                      title="รีเซ็ตสถานะผู้สมัครรายนี้กลับเป็น NOT_READY"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                      <span>รีเซ็ตสถานะ</span>
-                    </Button>
+                <div className="text-xs font-bold text-gray-800 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Send className="w-4 h-4 text-emerald-600" />
+                    จำลองการตอบกลับจาก IT (POST /api?route=hrms-ack)
+                  </span>
+                  {selectedSandboxAppId.startsWith('__ALL_') && (
+                    <span className="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                      (สำหรับรายคน)
+                    </span>
                   )}
                 </div>
+
+                {selectedSandboxAppId.startsWith('__ALL_') ? (
+                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 flex items-start gap-2">
+                    <span className="text-sm">💡</span>
+                    <span>การส่ง <strong>Mock ACK</strong> และปุ่มรีเซ็ตสถานะ เป็นการทำงานแบบระบุรายคน — เลือกผู้สมัครรายบุคคลใน Dropdown ข้อ 1 ด้านบน เพื่อทดสอบ</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        value={simMockEmpId}
+                        onChange={(e) => setSimMockEmpId(e.target.value)}
+                        placeholder="รหัสพนักงาน เช่น EMP-69042"
+                        className="w-full px-3 py-2 text-xs font-mono bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 pr-12"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setSimMockEmpId(prev => getNextEmpId(prev))}
+                        className="absolute right-1.5 top-1.5 px-2 py-0.5 text-[10px] font-bold font-mono bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-md border border-indigo-200 transition cursor-pointer"
+                        title="เพิ่มรหัส +1 อัตโนมัติ"
+                      >
+                        +1
+                      </button>
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={handleSimulateAck}
+                      disabled={isSimulatingAck || !selectedSandboxAppId || selectedSandboxAppId.startsWith('__ALL_') || !simMockEmpId}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl shrink-0 cursor-pointer"
+                    >
+                      {isSimulatingAck ? 'กำลังส่ง...' : 'ส่ง Mock ACK'}
+                    </Button>
+
+                    {selectedSandboxAppId && !selectedSandboxAppId.startsWith('__ALL_') && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          const target = queueList.find(q => q.id === selectedSandboxAppId);
+                          if (target) setAppToReset(target);
+                        }}
+                        className="text-amber-700 border-amber-300 hover:bg-amber-50 font-bold text-xs px-3 py-2 rounded-xl shrink-0 cursor-pointer"
+                        title="รีเซ็ตสถานะผู้สมัครรายนี้กลับเป็น NOT_READY"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>รีเซ็ตสถานะ</span>
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
             </Card>
 
@@ -944,13 +1048,13 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({ currentUser, o
 
               <div className="relative">
                 <pre className="text-[11px] font-mono text-emerald-400 bg-slate-950 p-3.5 rounded-xl overflow-x-auto leading-relaxed border border-slate-800 max-h-48">
-                  {sandboxCodeLang === 'curl' && `curl -X GET "${currentOrigin}/api?route=hrms-export&application_id=${selectedSandboxAppId || '<UUID>'}" \\
+                  {sandboxCodeLang === 'curl' && `curl -X GET "${currentOrigin}${sandboxQueryPath}" \\
   -H "X-API-Key: YOUR_ENTERPRISE_SECRET_KEY" \\
   -H "Content-Type: application/json"`}
 
                   {sandboxCodeLang === 'python' && `import requests
 
-url = "${currentOrigin}/api?route=hrms-export&application_id=${selectedSandboxAppId || '<UUID>'}"
+url = "${currentOrigin}${sandboxQueryPath}"
 headers = {
     "X-API-Key": "YOUR_ENTERPRISE_SECRET_KEY",
     "Content-Type": "application/json"
@@ -958,9 +1062,10 @@ headers = {
 
 response = requests.get(url, headers=headers)
 payload = response.json()
+print(f"พบข้อมูล: {payload.get('count', 0)} รายการ")
 print(payload)`}
 
-                  {sandboxCodeLang === 'js' && `const res = await fetch('${currentOrigin}/api?route=hrms-export&application_id=${selectedSandboxAppId || '<UUID>'}', {
+                  {sandboxCodeLang === 'js' && `const res = await fetch('${currentOrigin}${sandboxQueryPath}', {
   headers: {
     'X-API-Key': 'YOUR_ENTERPRISE_SECRET_KEY',
     'Content-Type': 'application/json'
@@ -974,10 +1079,10 @@ console.log(data);`}
                   type="button"
                   onClick={() => {
                     const code = sandboxCodeLang === 'curl'
-                      ? `curl -X GET "${currentOrigin}/api?route=hrms-export&application_id=${selectedSandboxAppId || '<UUID>'}" -H "X-API-Key: YOUR_ENTERPRISE_SECRET_KEY" -H "Content-Type: application/json"`
+                      ? `curl -X GET "${currentOrigin}${sandboxQueryPath}" -H "X-API-Key: YOUR_ENTERPRISE_SECRET_KEY" -H "Content-Type: application/json"`
                       : sandboxCodeLang === 'python'
-                      ? `import requests\nresponse = requests.get("${currentOrigin}/api?route=hrms-export&application_id=${selectedSandboxAppId || '<UUID>'}", headers={"X-API-Key": "YOUR_ENTERPRISE_SECRET_KEY"})\nprint(response.json())`
-                      : `const res = await fetch('${currentOrigin}/api?route=hrms-export&application_id=${selectedSandboxAppId || '<UUID>'}', { headers: { 'X-API-Key': 'YOUR_ENTERPRISE_SECRET_KEY' } });\nconsole.log(await res.json());`;
+                      ? `import requests\nresponse = requests.get("${currentOrigin}${sandboxQueryPath}", headers={"X-API-Key": "YOUR_ENTERPRISE_SECRET_KEY"})\nprint(response.json())`
+                      : `const res = await fetch('${currentOrigin}${sandboxQueryPath}', { headers: { 'X-API-Key': 'YOUR_ENTERPRISE_SECRET_KEY' } });\nconsole.log(await res.json());`;
                     navigator.clipboard.writeText(code);
                     showToast('คัดลอก Code Snippet แล้ว', 'success');
                   }}
