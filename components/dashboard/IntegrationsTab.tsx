@@ -5,7 +5,7 @@ import {
   ExternalLink, FileText, Download, ShieldCheck, AlertCircle,
   Play, Terminal, Server, CheckCircle2, Clock, XCircle, Search,
   Eye, Code2, Sparkles, Lock, ArrowRight, Activity, ShieldAlert,
-  SlidersHorizontal, CheckCircle
+  SlidersHorizontal, CheckCircle, X
 } from 'lucide-react';
 import { api } from '../../services/api';
 import type { AuthUser } from '../../services/api';
@@ -196,13 +196,32 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({ currentUser, o
       return;
     }
 
+    const trimmedKey = (sandboxApiKey || '').trim();
+
+    // Check if user accidentally pasted a masked key containing bullets or asterisks
+    if (trimmedKey.includes('•') || trimmedKey.includes('*')) {
+      setSandboxError('⚠️ ค่า X-API-Key ที่ระบุเป็น Masked Key (มีจุดซ่อนรหัส •) ไม่ใช่ Secret Key ตัวเต็ม — สำหรับการทดสอบในหน้านี้ สามารถกดล้างช่องนี้ให้ว่างเพื่อใช้ Staff Session ทดสอบได้ทันที');
+      return;
+    }
+
+    // Check if key contains non-ASCII characters that would cause browser fetch header errors
+    if (/[^\x00-\x7F]/.test(trimmedKey)) {
+      setSandboxError('⚠️ ค่า Header X-API-Key มีตัวอักษรพิเศษที่ไม่รองรับใน HTTP Header กรุณาล้างค่าเพื่อใช้สิทธิ์ Staff Session หรือกรอก API Key ภาษาอังกฤษ');
+      return;
+    }
+
     setIsExecutingSandbox(true);
     setSandboxResponse(null);
     setSandboxError(null);
 
     try {
+      const headers: Record<string, string> = {};
+      if (trimmedKey) {
+        headers['X-API-Key'] = trimmedKey;
+      }
+
       const res = await fetch(`/api?route=hrms-export&application_id=${encodeURIComponent(selectedSandboxAppId)}`, {
-        headers: sandboxApiKey ? { 'X-API-Key': sandboxApiKey } : undefined,
+        headers: Object.keys(headers).length > 0 ? headers : undefined,
         credentials: 'same-origin',
       });
       const json = await res.json();
@@ -778,17 +797,62 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({ currentUser, o
 
               {/* API Key Header Input */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-700 flex items-center justify-between">
-                  <span>2. Header X-API-Key (Optional สำหรับทดสอบ)</span>
-                  <span className="text-[10px] text-gray-400">ถ้าว่างจะใช้ Staff Session</span>
-                </label>
-                <input
-                  type="text"
-                  value={sandboxApiKey}
-                  onChange={(e) => setSandboxApiKey(e.target.value)}
-                  placeholder="hrbp_live_xxxxxxxxxxxxxxxx"
-                  className="w-full px-3 py-2 text-xs font-mono bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900"
-                />
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-700">
+                    2. Header X-API-Key (Optional สำหรับทดสอบ)
+                  </label>
+                  {sandboxApiKey ? (
+                    <button
+                      type="button"
+                      onClick={() => setSandboxApiKey('')}
+                      className="text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold cursor-pointer"
+                    >
+                      ล้างค่า (ใช้ Staff Session)
+                    </button>
+                  ) : (
+                    <span className="text-[10px] text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                      ✓ ใช้ Staff Session อัตโนมัติ
+                    </span>
+                  )}
+                </div>
+                
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={sandboxApiKey}
+                    onChange={(e) => setSandboxApiKey(e.target.value)}
+                    placeholder="เว้นว่างไว้เพื่อใช้ Staff Session หรือกรอก Secret Key ตัวเต็ม"
+                    className={`w-full px-3 py-2 text-xs font-mono bg-white border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 pr-8 ${
+                      sandboxApiKey.includes('•') ? 'border-amber-400 bg-amber-50/30' : 'border-gray-300'
+                    }`}
+                  />
+                  {sandboxApiKey && (
+                    <button
+                      type="button"
+                      onClick={() => setSandboxApiKey('')}
+                      className="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600 cursor-pointer"
+                      title="ล้างค่า"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {sandboxApiKey.includes('•') && (
+                  <div className="p-2 rounded-lg bg-amber-50 border border-amber-200 text-[11px] text-amber-800 flex items-start gap-1.5 animate-in fade-in">
+                    <span className="shrink-0 font-bold">⚠️</span>
+                    <div className="flex-1">
+                      <span>นี่คือ <strong>Masked Key</strong> (มีจุดซ่อนรหัส •) ไม่ใช่ Secret Key ตัวเต็ม — กด</span>{' '}
+                      <button
+                        type="button"
+                        onClick={() => setSandboxApiKey('')}
+                        className="underline font-bold text-amber-900 hover:text-indigo-700 cursor-pointer"
+                      >
+                        ล้างค่าเพื่อใช้ Staff Session ทดสอบ
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons */}

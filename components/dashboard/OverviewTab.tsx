@@ -310,7 +310,96 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
   const chartData = appsByDate.length > 0 ? appsByDate : [{ name: 'No Data', value: 0 }];
   const statusData = appsByStatus.length > 0 ? appsByStatus : [{ name: 'No Data', value: 0 }];
   const buData = appsByBU.length > 0 ? appsByBU : [{ name: 'No Data', value: 0 }];
-  const deptData = appsByDept.length > 0 ? appsByDept : [{ name: 'No Data', value: 0 }];
+  const quickStatusOptions = useMemo(() => [
+    {
+      key: 'all',
+      label: 'ทั้งหมด',
+      count: stats?.total || totalCount || 0,
+      isActive: appFilters.status === 'all' && (appFilters.hrms === 'all' || !appFilters.hrms),
+      activeClass: 'bg-indigo-600 text-white shadow-sm shadow-indigo-300',
+      inactiveClass: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+      badgeActiveClass: 'bg-indigo-700 text-white',
+      badgeInactiveClass: 'bg-white text-gray-800',
+      badgeColor: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
+      pulse: false,
+      onClick: () => { setAppFilters(f => ({ ...f, status: 'all', hrms: 'all' })); setAppPage(1); }
+    },
+    {
+      key: 'Reviewing',
+      label: 'กำลังพิจารณา',
+      count: stats?.reviewing || 0,
+      isActive: appFilters.status === 'Reviewing',
+      activeClass: 'bg-blue-600 text-white shadow-sm shadow-blue-300',
+      inactiveClass: 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200',
+      badgeActiveClass: 'bg-white text-blue-800 font-bold',
+      badgeInactiveClass: 'bg-white text-blue-800 font-bold',
+      badgeColor: 'bg-blue-50 text-blue-700 border border-blue-200',
+      pulse: false,
+      onClick: () => { setAppFilters(f => ({ ...f, status: 'Reviewing', hrms: 'all' })); setAppPage(1); }
+    },
+    {
+      key: 'InterviewScheduled',
+      label: 'นัดสัมภาษณ์',
+      count: stats?.interviewing || 0,
+      isActive: appFilters.status === 'InterviewScheduled',
+      activeClass: 'bg-purple-600 text-white shadow-sm shadow-purple-300',
+      inactiveClass: 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200',
+      badgeActiveClass: 'bg-white text-purple-800 font-bold',
+      badgeInactiveClass: 'bg-white text-purple-800 font-bold',
+      badgeColor: 'bg-purple-50 text-purple-700 border border-purple-200',
+      pulse: false,
+      onClick: () => { setAppFilters(f => ({ ...f, status: 'InterviewScheduled', hrms: 'all' })); setAppPage(1); }
+    },
+    {
+      key: 'Hired',
+      label: 'รับเข้าทำงาน',
+      count: stats?.hired || 0,
+      isActive: appFilters.status === 'Hired',
+      activeClass: 'bg-emerald-600 text-white shadow-sm shadow-emerald-300',
+      inactiveClass: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200',
+      badgeActiveClass: 'bg-white text-emerald-800 font-bold',
+      badgeInactiveClass: 'bg-white text-emerald-800 font-bold',
+      badgeColor: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+      pulse: false,
+      onClick: () => { setAppFilters(f => ({ ...f, status: 'Hired', hrms: 'all' })); setAppPage(1); }
+    },
+    {
+      key: 'READY_TO_SYNC',
+      label: '⚡ รอส่ง HRMS',
+      count: readyHrmsCount,
+      isActive: appFilters.hrms === 'READY_TO_SYNC',
+      activeClass: 'bg-amber-600 text-white shadow-sm shadow-amber-300',
+      inactiveClass: 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200',
+      badgeActiveClass: 'bg-white text-amber-800 font-bold',
+      badgeInactiveClass: 'bg-white text-amber-800 font-bold',
+      badgeColor: 'bg-amber-50 text-amber-700 border border-amber-200',
+      pulse: readyHrmsCount > 0,
+      onClick: () => { setAppFilters(f => ({ ...f, status: 'all', hrms: 'READY_TO_SYNC' })); setAppPage(1); }
+    },
+    {
+      key: 'SYNCED',
+      label: '✅ เข้า HRMS แล้ว',
+      count: syncedHrmsCount,
+      isActive: appFilters.hrms === 'SYNCED',
+      activeClass: 'bg-teal-600 text-white shadow-sm shadow-teal-300',
+      inactiveClass: 'bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200',
+      badgeActiveClass: 'bg-white text-teal-800 font-bold',
+      badgeInactiveClass: 'bg-white text-teal-800 font-bold',
+      badgeColor: 'bg-teal-50 text-teal-700 border border-teal-200',
+      pulse: false,
+      onClick: () => { setAppFilters(f => ({ ...f, status: 'all', hrms: 'SYNCED' })); setAppPage(1); }
+    },
+  ], [stats, totalCount, appFilters.status, appFilters.hrms, readyHrmsCount, syncedHrmsCount, setAppFilters, setAppPage]);
+
+  const currentQuickStatusKey = useMemo(() => {
+    if (appFilters.hrms === 'READY_TO_SYNC') return 'READY_TO_SYNC';
+    if (appFilters.hrms === 'SYNCED') return 'SYNCED';
+    return appFilters.status || 'all';
+  }, [appFilters.status, appFilters.hrms]);
+
+  const activeQuickStatus = useMemo(() => {
+    return quickStatusOptions.find(opt => opt.key === currentQuickStatusKey) || quickStatusOptions[0];
+  }, [quickStatusOptions, currentQuickStatusKey]);
 
   return (
     <>
@@ -340,11 +429,11 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-6">
-            <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl sm:rounded-2xl p-3 sm:p-5 text-white shadow-xl shadow-indigo-500/25 card-hover">
+            <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-xl sm:rounded-2xl p-3 sm:p-5 text-white shadow-xl shadow-indigo-500/25 card-hover">
               <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/10 rounded-full -mr-8 -mt-8 sm:-mr-10 sm:-mt-10"></div>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-indigo-100 text-[11px] sm:text-sm font-medium">Total Apps</p>
+                  <p className="text-indigo-100 text-[11px] sm:text-sm font-medium">Total Applicants</p>
                   <p className="text-xl sm:text-3xl font-bold mt-0.5 sm:mt-1.5">{stats.total}</p>
                 </div>
                 <div className="p-1.5 sm:p-2.5 bg-white/20 rounded-lg sm:rounded-xl"><FileText className="w-4 h-4 sm:w-6 sm:h-6" /></div>
@@ -406,97 +495,64 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
         {/* Recent Applications Table */}
         <Card>
           <div className="border-b border-gray-100 pb-4 mb-6">
-            {/* Quick Interactive Metric Chips Bar */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-4 border-b border-gray-100">
-              <button
-                type="button"
-                onClick={() => { setAppFilters(f => ({ ...f, status: 'all', hrms: 'all' })); setAppPage(1); }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                  appFilters.status === 'all' && (appFilters.hrms === 'all' || !appFilters.hrms)
-                    ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-300'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                <span>ทั้งหมด</span>
-                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${appFilters.status === 'all' && (appFilters.hrms === 'all' || !appFilters.hrms) ? 'bg-indigo-700 text-white' : 'bg-white text-gray-800'}`}>
-                  {stats.total || totalCount || 0}
-                </span>
-              </button>
+            {/* Quick Interactive Metric Chips Bar (Adaptive: Mobile Single-Row Select vs Desktop Chips) */}
 
-              <button
-                type="button"
-                onClick={() => { setAppFilters(f => ({ ...f, status: 'Reviewing', hrms: 'all' })); setAppPage(1); }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                  appFilters.status === 'Reviewing'
-                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-300'
-                    : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
-                }`}
-              >
-                <span>กำลังพิจารณา</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white text-blue-800 font-bold">
-                  {stats.reviewing || 0}
-                </span>
-              </button>
+            {/* Mobile View: Space-saving 1-line Status Selector */}
+            <div className="block md:hidden mb-4 pb-3 border-b border-gray-100">
+              <div className="relative">
+                <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 shadow-xs text-xs font-semibold text-gray-700">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-400 font-normal">สถานะ:</span>
+                    <span className="font-bold text-gray-900 flex items-center gap-1.5">
+                      {activeQuickStatus.label}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${activeQuickStatus.badgeColor}`}>
+                      {activeQuickStatus.count}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 text-indigo-600 font-medium">
+                    <span className="text-[11px]">เลือก</span>
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <select
+                  value={currentQuickStatusKey}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const target = quickStatusOptions.find(opt => opt.key === val);
+                    if (target) target.onClick();
+                  }}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer text-base"
+                  aria-label="เลือกสถานะผู้สมัคร"
+                >
+                  {quickStatusOptions.map(opt => (
+                    <option key={opt.key} value={opt.key}>
+                      {opt.label} ({opt.count})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-              <button
-                type="button"
-                onClick={() => { setAppFilters(f => ({ ...f, status: 'InterviewScheduled', hrms: 'all' })); setAppPage(1); }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                  appFilters.status === 'InterviewScheduled'
-                    ? 'bg-purple-600 text-white shadow-sm shadow-purple-300'
-                    : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
-                }`}
-              >
-                <span>นัดสัมภาษณ์</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white text-purple-800 font-bold">
-                  {stats.interviewing || 0}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => { setAppFilters(f => ({ ...f, status: 'Hired', hrms: 'all' })); setAppPage(1); }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                  appFilters.status === 'Hired'
-                    ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-300'
-                    : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
-                }`}
-              >
-                <span>รับเข้าทำงาน</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white text-emerald-800 font-bold">
-                  {stats.hired || 0}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => { setAppFilters(f => ({ ...f, status: 'all', hrms: 'READY_TO_SYNC' })); setAppPage(1); }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                  appFilters.hrms === 'READY_TO_SYNC'
-                    ? 'bg-amber-600 text-white shadow-sm shadow-amber-300'
-                    : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
-                }`}
-              >
-                <span className={readyHrmsCount > 0 ? 'animate-pulse' : ''}>⚡ รอส่ง HRMS</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white text-amber-800 font-bold">
-                  {readyHrmsCount}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => { setAppFilters(f => ({ ...f, status: 'all', hrms: 'SYNCED' })); setAppPage(1); }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                  appFilters.hrms === 'SYNCED'
-                    ? 'bg-teal-600 text-white shadow-sm shadow-teal-300'
-                    : 'bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200'
-                }`}
-              >
-                <span>✅ เข้า HRMS แล้ว</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white text-teal-800 font-bold">
-                  {syncedHrmsCount}
-                </span>
-              </button>
+            {/* Desktop View: Interactive Metric Chips Bar with Flex-wrap (No Horizontal Scrollbars) */}
+            <div className="hidden md:flex flex-wrap items-center gap-2 pb-3 mb-4 border-b border-gray-100">
+              {quickStatusOptions.map((opt) => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={opt.onClick}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    opt.isActive ? opt.activeClass : opt.inactiveClass
+                  }`}
+                >
+                  <span className={opt.pulse ? 'animate-pulse' : ''}>{opt.label}</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                    opt.isActive ? opt.badgeActiveClass : opt.badgeInactiveClass
+                  }`}>
+                    {opt.count}
+                  </span>
+                </button>
+              ))}
             </div>
 
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
