@@ -1688,10 +1688,10 @@ console.log(data);`}
         >
           <div className="space-y-5">
             {/* Header info */}
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900 text-white p-4 rounded-2xl">
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900 text-white p-4 rounded-2xl border border-slate-800 shadow-sm">
               <div>
                 <div className="text-xs text-slate-400 font-medium">กุญแจที่เลือกตรวจสอบ</div>
-                <div className="text-base font-bold flex items-center gap-2 mt-0.5">
+                <div className="text-base font-bold flex items-center gap-2 mt-0.5 text-white">
                   <Key className="w-4 h-4 text-amber-400" />
                   <span>{selectedKeyForLogs.name}</span>
                 </div>
@@ -1701,17 +1701,16 @@ console.log(data);`}
               </div>
 
               <div className="flex items-center gap-2">
-                <Button
+                <button
                   type="button"
-                  size="sm"
-                  variant="outline"
-                  className="bg-slate-800 hover:bg-slate-700 border-slate-700 text-white text-xs font-semibold flex items-center gap-1.5"
                   onClick={() => fetchKeyLogs(selectedKeyForLogs.id, keyLogsStatusFilter)}
                   disabled={isLoadingKeyLogs}
+                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-900 border border-slate-700 text-white text-xs font-bold flex items-center gap-2 transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                  title="รีเฟรชประวัติการเรียกใช้ API ล่าสุด"
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingKeyLogs ? 'animate-spin text-indigo-400' : ''}`} />
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingKeyLogs ? 'animate-spin text-indigo-400' : 'text-indigo-400'}`} />
                   <span>รีเฟรชประวัติ</span>
-                </Button>
+                </button>
               </div>
             </div>
 
@@ -1769,10 +1768,10 @@ console.log(data);`}
                     setKeyLogsStatusFilter('all');
                     fetchKeyLogs(selectedKeyForLogs.id, 'all');
                   }}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     keyLogsStatusFilter === 'all'
-                      ? 'bg-slate-900 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
                   }`}
                 >
                   ทั้งหมด ({keyLogsStats?.total_7d || 0})
@@ -1783,10 +1782,10 @@ console.log(data);`}
                     setKeyLogsStatusFilter('success');
                     fetchKeyLogs(selectedKeyForLogs.id, 'success');
                   }}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     keyLogsStatusFilter === 'success'
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
                   }`}
                 >
                   🟢 สำเร็จ ({keyLogsStats?.success_count || 0})
@@ -1797,10 +1796,10 @@ console.log(data);`}
                     setKeyLogsStatusFilter('error');
                     fetchKeyLogs(selectedKeyForLogs.id, 'error');
                   }}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     keyLogsStatusFilter === 'error'
-                      ? 'bg-rose-600 text-white'
-                      : 'bg-rose-50 text-rose-700 hover:bg-rose-100'
+                      ? 'bg-rose-600 text-white shadow-sm'
+                      : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
                   }`}
                 >
                   🔴 ผิดพลาด ({keyLogsStats?.error_count || 0})
@@ -1961,10 +1960,11 @@ console.log(data);`}
                 <button
                   type="button"
                   onClick={fetchStorageStats}
-                  className="text-xs text-slate-400 hover:text-white p-1 cursor-pointer"
-                  title="รีเฟรชข้อมูล"
+                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-xs text-slate-200 hover:text-white border border-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer font-medium shadow-sm"
+                  title="รีเฟรชข้อมูลขนาดพื้นที่"
                 >
-                  <RefreshCw className="w-3.5 h-3.5" />
+                  <RefreshCw className="w-3 h-3 text-indigo-400" />
+                  <span>รีเฟรช</span>
                 </button>
               </div>
 

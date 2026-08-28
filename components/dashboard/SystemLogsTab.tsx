@@ -828,10 +828,11 @@ export const SystemLogsTab: React.FC<SystemLogsTabProps> = ({ showToast, current
                 <button
                   type="button"
                   onClick={fetchStorageStats}
-                  className="text-xs text-slate-400 hover:text-white p-1 cursor-pointer"
-                  title="รีเฟรชข้อมูล"
+                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-xs text-slate-200 hover:text-white border border-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer font-medium shadow-sm"
+                  title="รีเฟรชข้อมูลขนาดพื้นที่"
                 >
-                  <RefreshCw className="w-3.5 h-3.5" />
+                  <RefreshCw className="w-3 h-3 text-indigo-400" />
+                  <span>รีเฟรช</span>
                 </button>
               </div>
 
