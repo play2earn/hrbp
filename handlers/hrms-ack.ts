@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
 import { getAdminSupabase, getActiveStaff, safeEqual } from '../server/security.js';
+import { logApiKeyUsageAsync } from '../server/api-logger.js';
 
 function getHeaderApiKey(req: VercelRequest): string {
   const xApiKey = req.headers['x-api-key'];
@@ -18,9 +19,16 @@ function getHeaderApiKey(req: VercelRequest): string {
   return '';
 }
 
-async function verifyIntegrationAuthAsync(req: VercelRequest): Promise<boolean> {
+export interface AuthResult {
+  valid: boolean;
+  keyId?: string;
+  keyName?: string;
+  keyPrefix?: string;
+}
+
+async function verifyIntegrationAuthAsync(req: VercelRequest): Promise<AuthResult> {
   const providedKey = getHeaderApiKey(req);
-  if (!providedKey) return false;
+  if (!providedKey) return { valid: false };
 
   // 1. Check against dynamic database API keys in system_api_keys
   try {
@@ -28,20 +36,25 @@ async function verifyIntegrationAuthAsync(req: VercelRequest): Promise<boolean> 
     const supabase = getAdminSupabase();
     const { data: matchedKey } = await supabase
       .from('system_api_keys')
-      .select('id, is_active')
+      .select('id, name, key_prefix, is_active')
       .eq('key_hash', keyHash)
       .eq('is_active', true)
       .maybeSingle();
 
     if (matchedKey) {
       // Update last_used_at asynchronously
-      supabase
-        .from('system_api_keys')
-        .update({ last_used_at: new Date().toISOString() })
-        .eq('id', matchedKey.id)
-        .then(() => {})
-        .catch(() => {});
-      return true;
+      Promise.resolve(
+        supabase
+          .from('system_api_keys')
+          .update({ last_used_at: new Date().toISOString() })
+          .eq('id', matchedKey.id)
+      ).catch(() => {});
+      return {
+        valid: true,
+        keyId: matchedKey.id,
+        keyName: matchedKey.name,
+        keyPrefix: matchedKey.key_prefix,
+      };
     }
   } catch (err) {
     console.error('[Verify DB API Key Error]:', err);
@@ -54,15 +67,25 @@ async function verifyIntegrationAuthAsync(req: VercelRequest): Promise<boolean> 
     process.env.HRBP_SESSION_SECRET,
   ].filter(Boolean) as string[];
 
-  if (validKeys.length === 0) return false;
+  if (validKeys.length === 0) return { valid: false };
 
-  return validKeys.some(validKey => {
+  const isMatched = validKeys.some(validKey => {
     try {
       return safeEqual(providedKey, validKey.trim());
     } catch {
       return false;
     }
   });
+
+  if (isMatched) {
+    return {
+      valid: true,
+      keyName: 'Environment Secret Key',
+      keyPrefix: 'env_',
+    };
+  }
+
+  return { valid: false };
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -80,16 +103,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // 1. Authenticate Request
+  const startTime = Date.now();
   const isStaff = await getActiveStaff(req);
-  const isApiKeyValid = await verifyIntegrationAuthAsync(req);
+  const authResult = await verifyIntegrationAuthAsync(req);
 
-  if (!isStaff && !isApiKeyValid) {
+  if (!isStaff && !authResult.valid) {
+    logApiKeyUsageAsync({
+      req,
+      endpoint: '/api?route=hrms-ack',
+      method: 'POST',
+      statusCode: 401,
+      responseTimeMs: Date.now() - startTime,
+      queryParams: req.query as any,
+      errorMessage: 'Unauthorized. Provide a valid X-API-Key header or staff session.',
+    });
+
     return res.status(401).json({
       success: false,
       error: 'Unauthorized. Provide a valid X-API-Key header or staff session.',
       code: 'AUTH_REQUIRED',
     });
   }
+
+  const effectiveKeyId = authResult.valid ? authResult.keyId : null;
+  const effectiveKeyName = authResult.valid ? authResult.keyName : `Staff Session (${isStaff?.full_name || 'Staff'})`;
+  const effectiveKeyPrefix = authResult.valid ? authResult.keyPrefix : 'session_';
 
   const body = req.body || {};
   const applicationId = (body.application_id || body.applicationId || '').trim();
@@ -98,6 +136,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const notes = (body.notes || body.sync_notes || '').trim();
 
   if (!applicationId) {
+    logApiKeyUsageAsync({
+      req,
+      apiKeyId: effectiveKeyId,
+      keyName: effectiveKeyName,
+      keyPrefix: effectiveKeyPrefix,
+      endpoint: '/api?route=hrms-ack',
+      method: 'POST',
+      statusCode: 400,
+      responseTimeMs: Date.now() - startTime,
+      errorMessage: 'Missing required field: application_id',
+    });
+
     return res.status(400).json({
       success: false,
       error: 'Missing required field: application_id',
@@ -115,6 +165,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .maybeSingle();
 
     if (fetchErr || !existingApp) {
+      logApiKeyUsageAsync({
+        req,
+        apiKeyId: effectiveKeyId,
+        keyName: effectiveKeyName,
+        keyPrefix: effectiveKeyPrefix,
+        endpoint: '/api?route=hrms-ack',
+        method: 'POST',
+        statusCode: 404,
+        responseTimeMs: Date.now() - startTime,
+        errorMessage: `Application with ID ${applicationId} not found`,
+      });
+
       return res.status(404).json({
         success: false,
         error: `Application with ID ${applicationId} not found`,
@@ -154,11 +216,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (updateErr) {
       console.error('[HRMS Ack Update Error]:', updateErr);
+
+      logApiKeyUsageAsync({
+        req,
+        apiKeyId: effectiveKeyId,
+        keyName: effectiveKeyName,
+        keyPrefix: effectiveKeyPrefix,
+        endpoint: '/api?route=hrms-ack',
+        method: 'POST',
+        statusCode: 500,
+        responseTimeMs: Date.now() - startTime,
+        errorMessage: updateErr.message,
+      });
+
       return res.status(500).json({
         success: false,
         error: updateErr.message,
       });
     }
+
+    logApiKeyUsageAsync({
+      req,
+      apiKeyId: effectiveKeyId,
+      keyName: effectiveKeyName,
+      keyPrefix: effectiveKeyPrefix,
+      endpoint: '/api?route=hrms-ack',
+      method: 'POST',
+      statusCode: 200,
+      responseTimeMs: Date.now() - startTime,
+      summary: `ACK for ${existingApp.full_name || applicationId} -> Status: ${syncStatus}${employeeId ? ` (EmpID: ${employeeId})` : ''}`,
+    });
 
     return res.status(200).json({
       success: true,
@@ -167,6 +254,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (err: any) {
     console.error('[HRMS Ack Exception]:', err);
+
+    logApiKeyUsageAsync({
+      req,
+      apiKeyId: effectiveKeyId,
+      keyName: effectiveKeyName,
+      keyPrefix: effectiveKeyPrefix,
+      endpoint: '/api?route=hrms-ack',
+      method: 'POST',
+      statusCode: 500,
+      responseTimeMs: Date.now() - startTime,
+      errorMessage: err.message || 'Internal server error during HRMS acknowledgment',
+    });
+
     return res.status(500).json({
       success: false,
       error: err.message || 'Internal server error during HRMS acknowledgment',

@@ -7,6 +7,7 @@ const handlers: Record<string, ApiHandlerLoader> = {
   'application-edit': () => import('../handlers/application-edit.js'),
   blacklist: () => import('../handlers/blacklist.js'),
   'candidate-evaluations': () => import('../handlers/candidate-evaluations.js'),
+  'clean-logs': () => import('../handlers/clean-logs.js'),
   'clean-orphans': () => import('../handlers/clean-orphans.js'),
   'complete-resubmit': () => import('../handlers/complete-resubmit.js'),
   'draft-files': () => import('../handlers/draft-files.js'),

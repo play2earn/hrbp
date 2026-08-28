@@ -17,7 +17,11 @@ import {
   ExternalLink,
   User,
   Plus,
-  Edit
+  Edit,
+  HardDrive,
+  Trash2,
+  BarChart3,
+  CheckCircle2
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { supabase } from '../../supabaseClient';
@@ -41,6 +45,19 @@ export const SystemLogsTab: React.FC<SystemLogsTabProps> = ({ showToast, current
   const [endDate, setEndDate] = useState('');
   const [usersList, setUsersList] = useState<any[]>([]);
 
+  // Log Storage & Retention State
+  const [storageStats, setStorageStats] = useState<{
+    system_activity_logs: number;
+    system_api_key_logs: number;
+    application_logs: number;
+    qr_logs: number;
+    total_log_rows: number;
+    checked_at: string;
+  } | null>(null);
+  const [showRetentionModal, setShowRetentionModal] = useState(false);
+  const [isCleaningLogs, setIsCleaningLogs] = useState(false);
+  const [selectedRetentionDays, setSelectedRetentionDays] = useState<number>(90);
+
   // Stats
   const [stats, setStats] = useState({
     total: 0,
@@ -51,6 +68,40 @@ export const SystemLogsTab: React.FC<SystemLogsTabProps> = ({ showToast, current
 
   // Modal details
   const [viewingMetadata, setViewingMetadata] = useState<any | null>(null);
+
+  // Fetch Storage Stats
+  const fetchStorageStats = async () => {
+    try {
+      const res = await api.systemLogs.getStorageStats();
+      if (res.success && res.data) {
+        setStorageStats(res.data);
+      }
+    } catch {}
+  };
+
+  const handleExecuteCleanup = async (retentionDays: number = 90) => {
+    setIsCleaningLogs(true);
+    try {
+      const res = await api.systemLogs.cleanupOldLogs({
+        activityDays: retentionDays,
+        appLogDays: 60,
+        qrDays: 60,
+        apiKeyDays: 30,
+      });
+      if (res.success && res.data) {
+        showToast(`ล้าง Log เก่าสำเร็จ! ลบไปทั้งหมด ${res.data.total_deleted.toLocaleString()} รายการ`, 'success');
+        fetchStorageStats();
+        fetchLogs(1);
+        setShowRetentionModal(false);
+      } else {
+        showToast(res.error?.message || 'ไม่สามารถล้าง Log เก่าได้', 'error');
+      }
+    } catch {
+      showToast('เกิดข้อผิดพลาดในการล้าง Log', 'error');
+    } finally {
+      setIsCleaningLogs(false);
+    }
+  };
 
   // Fetch users for dropdown filter
   useEffect(() => {
@@ -172,6 +223,7 @@ export const SystemLogsTab: React.FC<SystemLogsTabProps> = ({ showToast, current
   useEffect(() => {
     fetchLogs(1);
     calculateStats();
+    fetchStorageStats();
   }, [fetchLogs, calculateStats]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -279,15 +331,95 @@ export const SystemLogsTab: React.FC<SystemLogsTabProps> = ({ showToast, current
           <h2 className="text-2xl font-bold text-gray-900 mb-1">System Audit & Activity Logs</h2>
           <p className="text-gray-500 text-sm">ตรวจสอบพฤติกรรมการเข้าชมข้อมูลและการเข้าใช้งานระบบสรรหา</p>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => { fetchLogs(page); calculateStats(); }}
-          className="self-start sm:self-center flex items-center gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-        >
-          <RefreshCw className="w-4 h-4" /> Refresh Logs
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => {
+              fetchStorageStats();
+              setShowRetentionModal(true);
+            }}
+            className="flex items-center gap-2 border-gray-200 text-gray-700 hover:bg-gray-50 cursor-pointer font-bold text-xs"
+            title="จัดการพื้นที่และล้าง Log เก่า"
+          >
+            <HardDrive className="w-4 h-4 text-indigo-600" />
+            <span>จัดการพื้นที่ Log</span>
+          </Button>
+
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => { fetchLogs(page); calculateStats(); fetchStorageStats(); }}
+            className="flex items-center gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 cursor-pointer font-bold text-xs"
+          >
+            <RefreshCw className="w-4 h-4" /> Refresh Logs
+          </Button>
+        </div>
       </div>
+
+      {/* Log Storage & Health Overview Card */}
+      {storageStats && storageStats.total_log_rows > 0 && (
+        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white rounded-2xl p-4 sm:p-5 shadow-sm space-y-3 border border-slate-800">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-indigo-600/30 rounded-xl border border-indigo-500/30 text-indigo-300">
+                <HardDrive className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <span>สถานะพื้นที่จัดเก็บ Log ในฐานข้อมูล</span>
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono">
+                    Auto-Clean Active
+                  </span>
+                </h4>
+                <p className="text-xs text-slate-300 mt-0.5">
+                  มีข้อมูลบันทึกสะสมทั้งหมด <strong className="text-white">{storageStats.total_log_rows.toLocaleString()}</strong> แถว (ล้างอัตโนมัติทุกวันอาทิตย์ 04:00 น.)
+                </p>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              size="sm"
+              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 rounded-xl shadow-md cursor-pointer self-start sm:self-auto"
+              onClick={() => setShowRetentionModal(true)}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>ล้าง Log เก่าทันที</span>
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+            <div className="bg-slate-800/80 p-2.5 rounded-xl border border-slate-700/80">
+              <div className="text-[10px] text-slate-400 font-semibold uppercase">System Activity</div>
+              <div className="text-base font-bold text-white mt-0.5 font-mono">
+                {storageStats.system_activity_logs.toLocaleString()} <span className="text-[10px] font-sans font-normal text-slate-400">แถว</span>
+              </div>
+            </div>
+
+            <div className="bg-slate-800/80 p-2.5 rounded-xl border border-slate-700/80">
+              <div className="text-[10px] text-slate-400 font-semibold uppercase">Application Logs</div>
+              <div className="text-base font-bold text-white mt-0.5 font-mono">
+                {storageStats.application_logs.toLocaleString()} <span className="text-[10px] font-sans font-normal text-slate-400">แถว</span>
+              </div>
+            </div>
+
+            <div className="bg-slate-800/80 p-2.5 rounded-xl border border-slate-700/80">
+              <div className="text-[10px] text-slate-400 font-semibold uppercase">API Key Traffic</div>
+              <div className="text-base font-bold text-white mt-0.5 font-mono">
+                {storageStats.system_api_key_logs.toLocaleString()} <span className="text-[10px] font-sans font-normal text-slate-400">แถว</span>
+              </div>
+            </div>
+
+            <div className="bg-slate-800/80 p-2.5 rounded-xl border border-slate-700/80">
+              <div className="text-[10px] text-slate-400 font-semibold uppercase">QR Scan Logs</div>
+              <div className="text-base font-bold text-white mt-0.5 font-mono">
+                {storageStats.qr_logs.toLocaleString()} <span className="text-[10px] font-sans font-normal text-slate-400">แถว</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Brute Force Alert Banner */}
       {stats.bruteForceWarnings.length > 0 && (
@@ -677,6 +809,128 @@ export const SystemLogsTab: React.FC<SystemLogsTabProps> = ({ showToast, current
           </div>
         )}
       </Modal>
+
+      {/* Retention & Storage Cleanup Modal */}
+      {showRetentionModal && (
+        <Modal
+          isOpen={showRetentionModal}
+          onClose={() => setShowRetentionModal(false)}
+          title="🧹 จัดการพื้นที่และนโยบายล้าง Log (Retention & Cleanup)"
+          size="md"
+        >
+          <div className="space-y-4">
+            <div className="p-4 bg-slate-900 text-white rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="font-bold text-sm flex items-center gap-2 text-indigo-300">
+                  <HardDrive className="w-4 h-4 text-indigo-400" />
+                  <span>ขนาดพื้นที่และจำนวน Log ในระบบปัจจุบัน</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={fetchStorageStats}
+                  className="text-xs text-slate-400 hover:text-white p-1 cursor-pointer"
+                  title="รีเฟรชข้อมูล"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center pt-1">
+                <div className="bg-slate-800/80 p-2.5 rounded-xl border border-slate-700">
+                  <div className="text-[10px] text-slate-400">Activity Logs</div>
+                  <div className="text-base font-bold text-white mt-0.5">
+                    {(storageStats?.system_activity_logs || 0).toLocaleString()}
+                  </div>
+                </div>
+
+                <div className="bg-slate-800/80 p-2.5 rounded-xl border border-slate-700">
+                  <div className="text-[10px] text-slate-400">App Logs</div>
+                  <div className="text-base font-bold text-white mt-0.5">
+                    {(storageStats?.application_logs || 0).toLocaleString()}
+                  </div>
+                </div>
+
+                <div className="bg-slate-800/80 p-2.5 rounded-xl border border-slate-700">
+                  <div className="text-[10px] text-slate-400">API Key Traffic</div>
+                  <div className="text-base font-bold text-white mt-0.5">
+                    {(storageStats?.system_api_key_logs || 0).toLocaleString()}
+                  </div>
+                </div>
+
+                <div className="bg-slate-800/80 p-2.5 rounded-xl border border-slate-700">
+                  <div className="text-[10px] text-slate-400">QR Scan Logs</div>
+                  <div className="text-base font-bold text-white mt-0.5">
+                    {(storageStats?.qr_logs || 0).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-xs text-slate-400 text-center border-t border-slate-800 pt-2 font-mono">
+                รวมทั้งหมด: <strong className="text-white">{(storageStats?.total_log_rows || 0).toLocaleString()}</strong> แถว
+              </div>
+            </div>
+
+            {/* Retention Policy Selector */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-gray-700">
+                เลือกระยะเวลาเก็บรักษาข้อมูล Log (Retention Policy):
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { days: 30, label: '30 วัน', desc: 'ล้าง Log เก่ากว่า 1 เดือน' },
+                  { days: 60, label: '60 วัน', desc: 'ล้าง Log เก่ากว่า 2 เดือน' },
+                  { days: 90, label: '90 วัน', desc: 'ล้าง Log เก่ากว่า 3 เดือน (แนะนำ)' },
+                ].map((opt) => (
+                  <button
+                    key={opt.days}
+                    type="button"
+                    onClick={() => setSelectedRetentionDays(opt.days)}
+                    className={`p-3 rounded-xl text-left border transition-all cursor-pointer ${
+                      selectedRetentionDays === opt.days
+                        ? 'border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-600/20'
+                        : 'border-gray-200 bg-white hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="font-bold text-sm text-gray-900">{opt.label}</div>
+                    <div className="text-[10px] text-gray-500 mt-0.5 leading-tight">{opt.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Auto cleanup note */}
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-xs space-y-1">
+              <div className="font-bold flex items-center gap-1.5 text-emerald-800">
+                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>ระบบ Auto-Cleanup ทำงานให้อัตโนมัติทุกสัปดาห์</span>
+              </div>
+              <p className="text-[11px] text-emerald-800/80 leading-relaxed">
+                Vercel Cron จะสั่งล้าง Log เก่าเป็นประจำทุกวันอาทิตย์ เวลา 04:00 น. หรือคุณสามารถกดปุ่มด้านล่างเพื่อล้างทันทีได้ตลอดเวลา
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowRetentionModal(false)}
+                disabled={isCleaningLogs}
+              >
+                ยกเลิก
+              </Button>
+              <Button
+                type="button"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold flex items-center gap-1.5"
+                onClick={() => handleExecuteCleanup(selectedRetentionDays)}
+                disabled={isCleaningLogs}
+              >
+                <Trash2 className={`w-4 h-4 ${isCleaningLogs ? 'animate-spin' : ''}`} />
+                <span>{isCleaningLogs ? 'กำลังล้างข้อมูล...' : `ล้าง Log เก่ากว่า ${selectedRetentionDays} วัน`}</span>
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

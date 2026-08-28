@@ -126,6 +126,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // Automated weekly log retention cleanup during cron/confirmed maintenance
+    if (isCron || allowDeletion) {
+      try {
+        const nowMs = Date.now();
+        const apiKeyCutoff = new Date(nowMs - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const activityCutoff = new Date(nowMs - 90 * 24 * 60 * 60 * 1000).toISOString();
+        const appLogCutoff = new Date(nowMs - 60 * 24 * 60 * 60 * 1000).toISOString();
+        const qrCutoff = new Date(nowMs - 60 * 24 * 60 * 60 * 1000).toISOString();
+
+        await Promise.all([
+          supabase.from('system_api_key_logs').delete().lt('created_at', apiKeyCutoff),
+          supabase.from('system_activity_logs').delete().lt('created_at', activityCutoff),
+          supabase.from('application_logs').delete().lt('created_at', appLogCutoff),
+          supabase.from('qr_logs').delete().lt('created_at', qrCutoff),
+        ]);
+      } catch (logCleanErr) {
+        console.error('[Cron Log Clean Error]:', logCleanErr);
+      }
+    }
+
     return res.status(200).json({
       success: true,
       dryRun: !allowDeletion,

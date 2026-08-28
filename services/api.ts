@@ -2153,6 +2153,60 @@ export const api = {
       } catch (error) {
         return handleError(error, 'systemLogs.getUserLogs');
       }
+    },
+
+    getStorageStats: async (): Promise<ApiResponse<{
+      system_activity_logs: number;
+      system_api_key_logs: number;
+      application_logs: number;
+      qr_logs: number;
+      total_log_rows: number;
+      checked_at: string;
+    }>> => {
+      try {
+        const res = await fetch('/api?route=clean-logs', {
+          method: 'GET',
+          credentials: 'same-origin',
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json.success) {
+          return { success: false, error: { message: json.error || 'Failed to fetch log statistics' } };
+        }
+        return { success: true, data: json.data };
+      } catch (error: any) {
+        return handleError(error, 'systemLogs.getStorageStats');
+      }
+    },
+
+    cleanupOldLogs: async (params?: {
+      apiKeyDays?: number;
+      activityDays?: number;
+      appLogDays?: number;
+      qrDays?: number;
+    }): Promise<ApiResponse<{
+      deleted_api_key_logs: number;
+      deleted_activity_logs: number;
+      deleted_application_logs: number;
+      deleted_qr_logs: number;
+      total_deleted: number;
+      retention_applied: any;
+      cleaned_at: string;
+    }>> => {
+      try {
+        const res = await fetch('/api?route=clean-logs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify(params || {}),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json.success) {
+          return { success: false, error: { message: json.error || 'Failed to execute log cleanup' } };
+        }
+        return { success: true, data: json.data };
+      } catch (error: any) {
+        return handleError(error, 'systemLogs.cleanupOldLogs');
+      }
     }
   },
 
@@ -2343,6 +2397,45 @@ export const api = {
         return { success: true, data: json.data };
       } catch (error: any) {
         return handleError(error, 'apiKeys.delete');
+      }
+    },
+
+    getLogs: async (params?: {
+      keyId?: string;
+      status?: string;
+      page?: number;
+      limit?: number;
+    }): Promise<ApiResponse<{
+      logs: any[];
+      total_count: number;
+      stats: {
+        total_7d: number;
+        total_24h: number;
+        success_count: number;
+        error_count: number;
+        success_rate: number;
+        avg_latency_ms: number;
+      };
+    }>> => {
+      try {
+        const query = new URLSearchParams();
+        query.set('action', 'logs');
+        if (params?.keyId) query.set('key_id', params.keyId);
+        if (params?.status) query.set('status', params.status);
+        if (params?.page) query.set('page', String(params.page));
+        if (params?.limit) query.set('limit', String(params.limit));
+
+        const res = await fetch(`/api?route=api-keys&${query.toString()}`, {
+          method: 'GET',
+          credentials: 'same-origin',
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json.success) {
+          return { success: false, error: { message: json.error || 'Failed to fetch API key logs' } };
+        }
+        return { success: true, data: json.data };
+      } catch (error: any) {
+        return handleError(error, 'apiKeys.getLogs');
       }
     }
   }

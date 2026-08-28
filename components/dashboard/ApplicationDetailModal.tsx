@@ -135,6 +135,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
   const [toastNotification, setToastNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [calendarTargetApp, setCalendarTargetApp] = useState<any | null>(null);
   const [calendarHasShareLink, setCalendarHasShareLink] = useState(false);
+  const [calendarShareLinkUrl, setCalendarShareLinkUrl] = useState<string | null>(null);
   const [calendarCreateShareLink, setCalendarCreateShareLink] = useState(true);
   const [isProcessingCalendar, setIsProcessingCalendar] = useState(false);
 
@@ -3431,7 +3432,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                   if (!viewingApp) return;
                   setIsProcessingHrms(true);
                   try {
-                    const userEmail = currentUser?.email || currentUser?.username || 'HRBP Staff';
+                    const userEmail = currentUser?.full_name || currentUser?.email || currentUser?.emp_id || 'HRBP Staff';
                     const res = await api.hrms.markReadyToSync(viewingApp.id, userEmail);
                     if (res.success && res.data) {
                       const updated = { ...viewingApp, ...res.data };

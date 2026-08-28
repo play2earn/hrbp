@@ -5,7 +5,8 @@ import {
   ExternalLink, FileText, Download, ShieldCheck, AlertCircle,
   Play, Terminal, Server, CheckCircle2, Clock, XCircle, Search,
   Eye, Code2, Sparkles, Lock, ArrowRight, Activity, ShieldAlert,
-  SlidersHorizontal, CheckCircle, X
+  SlidersHorizontal, CheckCircle, X, BarChart3, HardDrive,
+  Calendar, ArrowUpRight, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { api } from '../../services/api';
 import type { AuthUser } from '../../services/api';
@@ -26,6 +27,34 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({ currentUser, o
   const [newKeyNotes, setNewKeyNotes] = useState('');
   const [isGeneratingKey, setIsGeneratingKey] = useState(false);
   const [generatedKeyResult, setGeneratedKeyResult] = useState<{ name: string; plain_api_key: string; masked_key: string } | null>(null);
+
+  // API Key Logs & Traffic State
+  const [selectedKeyForLogs, setSelectedKeyForLogs] = useState<any | null>(null);
+  const [keyLogsList, setKeyLogsList] = useState<any[]>([]);
+  const [keyLogsStats, setKeyLogsStats] = useState<{
+    total_7d: number;
+    total_24h: number;
+    success_count: number;
+    error_count: number;
+    success_rate: number;
+    avg_latency_ms: number;
+  } | null>(null);
+  const [isLoadingKeyLogs, setIsLoadingKeyLogs] = useState(false);
+  const [keyLogsStatusFilter, setKeyLogsStatusFilter] = useState<'all' | 'success' | 'error'>('all');
+  const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
+
+  // Log Storage & Retention State
+  const [showRetentionModal, setShowRetentionModal] = useState(false);
+  const [storageStats, setStorageStats] = useState<{
+    system_activity_logs: number;
+    system_api_key_logs: number;
+    application_logs: number;
+    qr_logs: number;
+    total_log_rows: number;
+    checked_at: string;
+  } | null>(null);
+  const [isCleaningLogs, setIsCleaningLogs] = useState(false);
+  const [selectedRetentionDays, setSelectedRetentionDays] = useState<number>(30);
 
   // Sync Queue State
   const [queueList, setQueueList] = useState<any[]>([]);
@@ -84,6 +113,70 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({ currentUser, o
     }
   };
 
+  // 2. Fetch Storage Stats
+  const fetchStorageStats = async () => {
+    try {
+      const res = await api.systemLogs.getStorageStats();
+      if (res.success && res.data) {
+        setStorageStats(res.data);
+      }
+    } catch {}
+  };
+
+  // 3. Fetch API Key Request Logs
+  const fetchKeyLogs = async (keyId?: string, status: string = 'all') => {
+    setIsLoadingKeyLogs(true);
+    try {
+      const res = await api.apiKeys.getLogs({
+        keyId: keyId || undefined,
+        status: status !== 'all' ? status : undefined,
+        limit: 50,
+      });
+      if (res.success && res.data) {
+        setKeyLogsList(res.data.logs || []);
+        setKeyLogsStats(res.data.stats || null);
+      } else {
+        showToast(res.error?.message || 'ไม่สามารถโหลดประวัติการเรียกใช้ API Key ได้', 'error');
+      }
+    } catch {
+      showToast('เกิดข้อผิดพลาดในการโหลด API Key Logs', 'error');
+    } finally {
+      setIsLoadingKeyLogs(false);
+    }
+  };
+
+  const openKeyLogsModal = (keyItem?: any) => {
+    const target = keyItem || { id: '', name: 'ทุกกุญแจในระบบ (All API Keys Traffic)', masked_key: 'ภาพรวมระบบ' };
+    setSelectedKeyForLogs(target);
+    setKeyLogsStatusFilter('all');
+    setExpandedLogId(null);
+    fetchKeyLogs(target.id, 'all');
+  };
+
+  const handleExecuteCleanup = async (retentionDays: number = 30) => {
+    setIsCleaningLogs(true);
+    try {
+      const res = await api.systemLogs.cleanupOldLogs({
+        apiKeyDays: retentionDays,
+        activityDays: Math.max(retentionDays, 60),
+        appLogDays: 60,
+        qrDays: 60,
+      });
+      if (res.success && res.data) {
+        showToast(`ล้าง Log เก่าสำเร็จ! ลบไปทั้งหมด ${res.data.total_deleted.toLocaleString()} รายการ`, 'success');
+        fetchStorageStats();
+        fetchKeys();
+        setShowRetentionModal(false);
+      } else {
+        showToast(res.error?.message || 'ไม่สามารถล้าง Log เก่าได้', 'error');
+      }
+    } catch {
+      showToast('เกิดข้อผิดพลาดในการล้าง Log', 'error');
+    } finally {
+      setIsCleaningLogs(false);
+    }
+  };
+
   // Helper to increment trailing numbers in Employee ID (e.g. EMP-69001 -> EMP-69002)
   const getNextEmpId = (currentId: string): string => {
     if (!currentId || !currentId.trim()) return 'EMP-69001';
@@ -112,7 +205,7 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({ currentUser, o
     return hasFound ? `EMP-${maxIdNum + 1}` : 'EMP-69001';
   };
 
-  // 2. Fetch Sync Queue
+  // 4. Fetch Sync Queue
   const fetchQueue = async () => {
     setIsLoadingQueue(true);
     try {
@@ -140,6 +233,7 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({ currentUser, o
   useEffect(() => {
     fetchKeys();
     fetchQueue();
+    fetchStorageStats();
   }, []);
 
   // Compute Queue Counts
@@ -518,7 +612,7 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({ currentUser, o
       {activeSubTab === 'keys' && (
         <div className="space-y-6 animate-in fade-in duration-200">
           <Card className="p-6 space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
               <div>
                 <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
                   <Key className="w-5 h-5 text-indigo-600" />
@@ -529,14 +623,41 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({ currentUser, o
                 </p>
               </div>
 
-              <Button
-                type="button"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md flex items-center gap-2 rounded-xl cursor-pointer"
-                onClick={() => setShowNewKeyModal(true)}
-              >
-                <Plus className="w-4 h-4" />
-                <span>สร้าง API Key ใหม่</span>
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-bold text-xs flex items-center gap-1.5 rounded-xl cursor-pointer"
+                  onClick={() => openKeyLogsModal()}
+                  title="ดูประวัติการเรียกใช้ API รวมทุก Key"
+                >
+                  <BarChart3 className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Traffic รวมทุก Key</span>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-gray-200 text-gray-700 hover:bg-gray-50 font-bold text-xs flex items-center gap-1.5 rounded-xl cursor-pointer"
+                  onClick={() => {
+                    fetchStorageStats();
+                    setShowRetentionModal(true);
+                  }}
+                  title="จัดการนโยบายล้าง Log อัตโนมัติ"
+                >
+                  <HardDrive className="w-3.5 h-3.5 text-gray-500" />
+                  <span>จัดการพื้นที่ Log</span>
+                </Button>
+
+                <Button
+                  type="button"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md flex items-center gap-2 rounded-xl cursor-pointer"
+                  onClick={() => setShowNewKeyModal(true)}
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>สร้าง API Key ใหม่</span>
+                </Button>
+              </div>
             </div>
 
             {/* Keys Table */}
@@ -547,22 +668,23 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({ currentUser, o
                     <th className="px-4 py-3.5">ชื่อ API Key / ระบบที่ใช้</th>
                     <th className="px-4 py-3.5">Masked Secret Key</th>
                     <th className="px-4 py-3.5">สถานะ</th>
-                    <th className="px-4 py-3.5">สร้างโดย</th>
+                    <th className="px-4 py-3.5">Traffic (30 วัน)</th>
                     <th className="px-4 py-3.5">ใช้งานล่าสุด</th>
+                    <th className="px-4 py-3.5">สร้างโดย</th>
                     <th className="px-4 py-3.5 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 bg-white">
                   {isLoadingKeys ? (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-gray-400">
+                      <td colSpan={7} className="py-12 text-center text-gray-400">
                         <RefreshCw className="w-5 h-5 animate-spin mx-auto text-indigo-500 mb-2" />
                         กำลังโหลดรายการ API Key...
                       </td>
                     </tr>
                   ) : apiKeys.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-gray-400 space-y-2">
+                      <td colSpan={7} className="py-12 text-center text-gray-400 space-y-2">
                         <Key className="w-8 h-8 mx-auto text-gray-300" />
                         <p className="text-sm font-medium text-gray-600">ยังไม่มี API Key ในระบบ</p>
                         <p className="text-xs text-gray-400">คลิกปุ่ม "+ สร้าง API Key ใหม่" ด้านบนเพื่อสร้างกุญแจสำหรับส่งมอบให้ทีม IT</p>
@@ -614,11 +736,16 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({ currentUser, o
                             {k.is_active ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
                           </button>
                         </td>
-                        <td className="px-4 py-3.5 text-gray-600">
-                          {k.created_by || 'Staff'}
-                          <div className="text-[10px] text-gray-400">
-                            {new Date(k.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
-                          </div>
+                        <td className="px-4 py-3.5">
+                          <button
+                            type="button"
+                            onClick={() => openKeyLogsModal(k)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 transition-colors font-bold text-[11px] cursor-pointer"
+                            title="คลิกเพื่อดูประวัติการเรียกใช้ของ Key นี้"
+                          >
+                            <BarChart3 className="w-3.5 h-3.5 text-indigo-600" />
+                            <span>{(k.total_calls_30d || 0).toLocaleString()} calls</span>
+                          </button>
                         </td>
                         <td className="px-4 py-3.5 text-gray-600">
                           {k.last_used_at ? (
@@ -630,15 +757,32 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({ currentUser, o
                             <span className="text-gray-400 italic">ยังไม่เคยใช้งาน</span>
                           )}
                         </td>
+                        <td className="px-4 py-3.5 text-gray-600">
+                          {k.created_by || 'Staff'}
+                          <div className="text-[10px] text-gray-400">
+                            {new Date(k.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
+                          </div>
+                        </td>
                         <td className="px-4 py-3.5 text-right">
-                          <button
-                            type="button"
-                            onClick={() => setKeyToDelete(k)}
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                            title="เพิกถอน API Key (Revoke)"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => openKeyLogsModal(k)}
+                              className="px-2 py-1 text-xs text-indigo-700 hover:text-indigo-900 hover:bg-indigo-50 border border-indigo-200 rounded-lg transition-colors cursor-pointer flex items-center gap-1 font-semibold"
+                              title="ดูประวัติการเรียกใช้ & Traffic"
+                            >
+                              <BarChart3 className="w-3.5 h-3.5" />
+                              <span>ประวัติ</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setKeyToDelete(k)}
+                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                              title="เพิกถอน API Key (Revoke)"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -1526,6 +1670,395 @@ console.log(data);`}
               >
                 <Trash2 className={`w-4 h-4 ${isDeletingKey ? 'animate-spin' : ''}`} />
                 <span>{isDeletingKey ? 'กำลังเพิกถอน...' : 'ยืนยันเพิกถอน Key'}</span>
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 6: API KEY TRAFFIC & REQUEST LOGS MODAL */}
+      {/* ========================================================================= */}
+      {selectedKeyForLogs && (
+        <Modal
+          isOpen={!!selectedKeyForLogs}
+          onClose={() => setSelectedKeyForLogs(null)}
+          title={`📊 ประวัติการเรียกใช้ & Traffic: ${selectedKeyForLogs.name}`}
+          size="lg"
+        >
+          <div className="space-y-5">
+            {/* Header info */}
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900 text-white p-4 rounded-2xl">
+              <div>
+                <div className="text-xs text-slate-400 font-medium">กุญแจที่เลือกตรวจสอบ</div>
+                <div className="text-base font-bold flex items-center gap-2 mt-0.5">
+                  <Key className="w-4 h-4 text-amber-400" />
+                  <span>{selectedKeyForLogs.name}</span>
+                </div>
+                <div className="text-xs font-mono text-indigo-300 mt-1">
+                  {selectedKeyForLogs.masked_key}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="bg-slate-800 hover:bg-slate-700 border-slate-700 text-white text-xs font-semibold flex items-center gap-1.5"
+                  onClick={() => fetchKeyLogs(selectedKeyForLogs.id, keyLogsStatusFilter)}
+                  disabled={isLoadingKeyLogs}
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingKeyLogs ? 'animate-spin text-indigo-400' : ''}`} />
+                  <span>รีเฟรชประวัติ</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Metrics Overview */}
+            {keyLogsStats && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-indigo-50/70 border border-indigo-100 p-3.5 rounded-2xl">
+                  <div className="text-[11px] font-bold text-indigo-600 uppercase flex items-center gap-1">
+                    <BarChart3 className="w-3.5 h-3.5" /> 7 วันล่าสุด
+                  </div>
+                  <div className="text-xl font-black text-indigo-950 mt-1">
+                    {keyLogsStats.total_7d.toLocaleString()}
+                  </div>
+                  <div className="text-[10px] text-indigo-700/80 mt-0.5">Total API Requests</div>
+                </div>
+
+                <div className="bg-sky-50/70 border border-sky-100 p-3.5 rounded-2xl">
+                  <div className="text-[11px] font-bold text-sky-600 uppercase flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5" /> 24 ชม. ล่าสุด
+                  </div>
+                  <div className="text-xl font-black text-sky-950 mt-1">
+                    {keyLogsStats.total_24h.toLocaleString()}
+                  </div>
+                  <div className="text-[10px] text-sky-700/80 mt-0.5">Traffic 24h</div>
+                </div>
+
+                <div className="bg-emerald-50/70 border border-emerald-100 p-3.5 rounded-2xl">
+                  <div className="text-[11px] font-bold text-emerald-600 uppercase flex items-center gap-1">
+                    <CheckCircle className="w-3.5 h-3.5" /> Success Rate
+                  </div>
+                  <div className="text-xl font-black text-emerald-950 mt-1">
+                    {keyLogsStats.success_rate}%
+                  </div>
+                  <div className="text-[10px] text-emerald-700/80 mt-0.5">{keyLogsStats.success_count} ครั้ง สำเร็จ</div>
+                </div>
+
+                <div className="bg-amber-50/70 border border-amber-100 p-3.5 rounded-2xl">
+                  <div className="text-[11px] font-bold text-amber-600 uppercase flex items-center gap-1">
+                    <Activity className="w-3.5 h-3.5" /> Avg Latency
+                  </div>
+                  <div className="text-xl font-black text-amber-950 mt-1">
+                    {keyLogsStats.avg_latency_ms} <span className="text-xs font-normal">ms</span>
+                  </div>
+                  <div className="text-[10px] text-amber-700/80 mt-0.5">ความเร็วเฉลี่ย</div>
+                </div>
+              </div>
+            )}
+
+            {/* Filter Tabs */}
+            <div className="flex items-center justify-between gap-2 border-b pb-2">
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setKeyLogsStatusFilter('all');
+                    fetchKeyLogs(selectedKeyForLogs.id, 'all');
+                  }}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    keyLogsStatusFilter === 'all'
+                      ? 'bg-slate-900 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  ทั้งหมด ({keyLogsStats?.total_7d || 0})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setKeyLogsStatusFilter('success');
+                    fetchKeyLogs(selectedKeyForLogs.id, 'success');
+                  }}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    keyLogsStatusFilter === 'success'
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                  }`}
+                >
+                  🟢 สำเร็จ ({keyLogsStats?.success_count || 0})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setKeyLogsStatusFilter('error');
+                    fetchKeyLogs(selectedKeyForLogs.id, 'error');
+                  }}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    keyLogsStatusFilter === 'error'
+                      ? 'bg-rose-600 text-white'
+                      : 'bg-rose-50 text-rose-700 hover:bg-rose-100'
+                  }`}
+                >
+                  🔴 ผิดพลาด ({keyLogsStats?.error_count || 0})
+                </button>
+              </div>
+
+              <span className="text-xs text-gray-400 font-mono">
+                แสดง 50 รายการล่าสุด
+              </span>
+            </div>
+
+            {/* Request Timeline Table */}
+            <div className="overflow-x-auto border border-gray-200 rounded-2xl max-h-[380px] overflow-y-auto">
+              <table className="w-full text-left text-xs text-gray-700">
+                <thead className="bg-gray-50 text-gray-600 sticky top-0 z-10 border-b border-gray-200 font-bold">
+                  <tr>
+                    <th className="px-3.5 py-2.5">เวลา (Timestamp)</th>
+                    <th className="px-3.5 py-2.5">สถานะ</th>
+                    <th className="px-3.5 py-2.5">Method & Endpoint</th>
+                    <th className="px-3.5 py-2.5">Client IP</th>
+                    <th className="px-3.5 py-2.5">Latency</th>
+                    <th className="px-3.5 py-2.5 text-right">รายละเอียด</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 bg-white">
+                  {isLoadingKeyLogs ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-gray-400">
+                        <RefreshCw className="w-5 h-5 animate-spin mx-auto text-indigo-500 mb-2" />
+                        กำลังโหลดประวัติการเรียกใช้ API...
+                      </td>
+                    </tr>
+                  ) : keyLogsList.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-gray-400 space-y-2">
+                        <BarChart3 className="w-8 h-8 mx-auto text-gray-300" />
+                        <p className="text-sm font-medium text-gray-600">ไม่พบประวัติการเรียกใช้ในช่วงเวลานี้</p>
+                        <p className="text-xs text-gray-400">เมื่อระบบ IT หรือ Sandbox มีการยิง API ระบบจะบันทึก Log แสดงที่นี่แบบ Real-time</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    keyLogsList.map((log) => (
+                      <React.Fragment key={log.id}>
+                        <tr className="hover:bg-slate-50 transition-colors">
+                          <td className="px-3.5 py-2.5 whitespace-nowrap text-gray-600 font-mono text-[11px]">
+                            {new Date(log.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}{' '}
+                            {new Date(log.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                          </td>
+                          <td className="px-3.5 py-2.5 whitespace-nowrap">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold ${
+                              log.status_code >= 200 && log.status_code < 300
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : log.status_code >= 400 && log.status_code < 500
+                                ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                : 'bg-rose-50 text-rose-700 border border-rose-200'
+                            }`}>
+                              {log.status_code} {log.status_code === 200 ? 'OK' : log.status_code === 401 ? 'Unauthorized' : log.status_code === 400 ? 'Bad Req' : 'Error'}
+                            </span>
+                          </td>
+                          <td className="px-3.5 py-2.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold font-mono ${
+                                log.http_method === 'GET' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+                              }`}>
+                                {log.http_method}
+                              </span>
+                              <span className="font-mono text-gray-800 truncate max-w-[200px]" title={log.endpoint}>
+                                {log.endpoint}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-3.5 py-2.5 font-mono text-[11px] text-gray-500 whitespace-nowrap">
+                            {log.ip_address || '-'}
+                          </td>
+                          <td className="px-3.5 py-2.5 whitespace-nowrap font-mono text-[11px] text-gray-600">
+                            {log.response_time_ms ? `${log.response_time_ms} ms` : '-'}
+                          </td>
+                          <td className="px-3.5 py-2.5 text-right whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)}
+                              className="text-indigo-600 hover:text-indigo-800 font-bold text-[11px] inline-flex items-center gap-0.5 cursor-pointer"
+                            >
+                              <span>{expandedLogId === log.id ? 'ย่อ' : 'ดูรายละเอียด'}</span>
+                              {expandedLogId === log.id ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                            </button>
+                          </td>
+                        </tr>
+
+                        {/* Expandable Accordion Detail */}
+                        {expandedLogId === log.id && (
+                          <tr className="bg-slate-50/80">
+                            <td colSpan={6} className="px-4 py-3 border-t border-dashed border-gray-200">
+                              <div className="space-y-2 text-xs">
+                                {log.summary && (
+                                  <div className="flex items-start gap-2">
+                                    <span className="text-gray-400 font-semibold shrink-0">ผลลัพธ์:</span>
+                                    <span className="text-gray-900 font-medium">{log.summary}</span>
+                                  </div>
+                                )}
+                                {log.error_message && (
+                                  <div className="flex items-start gap-2 text-rose-700 bg-rose-50 p-2 rounded-lg border border-rose-200">
+                                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                                    <span>{log.error_message}</span>
+                                  </div>
+                                )}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-[11px] font-mono">
+                                  <div className="bg-white p-2 rounded border border-gray-200">
+                                    <div className="text-gray-400 font-sans font-bold text-[10px] uppercase mb-1">User-Agent</div>
+                                    <div className="text-gray-700 break-all">{log.user_agent || '-'}</div>
+                                  </div>
+                                  <div className="bg-white p-2 rounded border border-gray-200">
+                                    <div className="text-gray-400 font-sans font-bold text-[10px] uppercase mb-1">Query Parameters</div>
+                                    <div className="text-gray-700 break-all">{JSON.stringify(log.query_params || {})}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setSelectedKeyForLogs(null)}
+              >
+                ปิดหน้าต่าง
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 7: LOG RETENTION & CLEANUP MODAL */}
+      {/* ========================================================================= */}
+      {showRetentionModal && (
+        <Modal
+          isOpen={showRetentionModal}
+          onClose={() => setShowRetentionModal(false)}
+          title="🧹 จัดการพื้นที่และนโยบายล้าง Log (Retention & Cleanup)"
+          size="md"
+        >
+          <div className="space-y-4">
+            <div className="p-4 bg-slate-900 text-white rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="font-bold text-sm flex items-center gap-2 text-indigo-300">
+                  <HardDrive className="w-4 h-4 text-indigo-400" />
+                  <span>ขนาดพื้นที่และจำนวน Log ในระบบปัจจุบัน</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={fetchStorageStats}
+                  className="text-xs text-slate-400 hover:text-white p-1 cursor-pointer"
+                  title="รีเฟรชข้อมูล"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center pt-1">
+                <div className="bg-slate-800/80 p-2.5 rounded-xl border border-slate-700">
+                  <div className="text-[10px] text-slate-400">Activity Logs</div>
+                  <div className="text-base font-bold text-white mt-0.5">
+                    {(storageStats?.system_activity_logs || 0).toLocaleString()}
+                  </div>
+                </div>
+
+                <div className="bg-slate-800/80 p-2.5 rounded-xl border border-slate-700">
+                  <div className="text-[10px] text-slate-400">API Key Traffic</div>
+                  <div className="text-base font-bold text-white mt-0.5">
+                    {(storageStats?.system_api_key_logs || 0).toLocaleString()}
+                  </div>
+                </div>
+
+                <div className="bg-slate-800/80 p-2.5 rounded-xl border border-slate-700">
+                  <div className="text-[10px] text-slate-400">App Logs</div>
+                  <div className="text-base font-bold text-white mt-0.5">
+                    {(storageStats?.application_logs || 0).toLocaleString()}
+                  </div>
+                </div>
+
+                <div className="bg-slate-800/80 p-2.5 rounded-xl border border-slate-700">
+                  <div className="text-[10px] text-slate-400">QR Logs</div>
+                  <div className="text-base font-bold text-white mt-0.5">
+                    {(storageStats?.qr_logs || 0).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-xs text-slate-400 text-center border-t border-slate-800 pt-2 font-mono">
+                รวมทั้งหมด: <strong className="text-white">{(storageStats?.total_log_rows || 0).toLocaleString()}</strong> แถว
+              </div>
+            </div>
+
+            {/* Retention Policy Selector */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-gray-700">
+                เลือกอายุ Log ที่ต้องการเก็บรักษา (Retention Policy):
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { days: 30, label: '30 วัน', desc: 'ลบ Log ที่เก่ากว่า 1 เดือน' },
+                  { days: 60, label: '60 วัน', desc: 'ลบ Log ที่เก่ากว่า 2 เดือน' },
+                  { days: 90, label: '90 วัน', desc: 'ลบ Log ที่เก่ากว่า 3 เดือน' },
+                ].map((opt) => (
+                  <button
+                    key={opt.days}
+                    type="button"
+                    onClick={() => setSelectedRetentionDays(opt.days)}
+                    className={`p-3 rounded-xl text-left border transition-all cursor-pointer ${
+                      selectedRetentionDays === opt.days
+                        ? 'border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-600/20'
+                        : 'border-gray-200 bg-white hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="font-bold text-sm text-gray-900">{opt.label}</div>
+                    <div className="text-[10px] text-gray-500 mt-0.5 leading-tight">{opt.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Auto cleanup note */}
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-xs space-y-1">
+              <div className="font-bold flex items-center gap-1.5 text-emerald-800">
+                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>ระบบ Auto-Cleanup ทำงานให้อัตโนมัติทุกสัปดาห์</span>
+              </div>
+              <p className="text-[11px] text-emerald-800/80 leading-relaxed">
+                Vercel Cron จะสั่งล้าง Log เก่าเป็นประจำทุกวันอาทิตย์ เวลา 04:00 น. หรือคุณสามารถกดปุ่มด้านล่างเพื่อล้างทันทีได้ตลอดเวลา
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowRetentionModal(false)}
+                disabled={isCleaningLogs}
+              >
+                ยกเลิก
+              </Button>
+              <Button
+                type="button"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold flex items-center gap-1.5"
+                onClick={() => handleExecuteCleanup(selectedRetentionDays)}
+                disabled={isCleaningLogs}
+              >
+                <Trash2 className={`w-4 h-4 ${isCleaningLogs ? 'animate-spin' : ''}`} />
+                <span>{isCleaningLogs ? 'กำลังล้างข้อมูล...' : `ล้าง Log เก่ากว่า ${selectedRetentionDays} วัน`}</span>
               </Button>
             </div>
           </div>
