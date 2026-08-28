@@ -1684,7 +1684,7 @@ console.log(data);`}
           isOpen={!!selectedKeyForLogs}
           onClose={() => setSelectedKeyForLogs(null)}
           title={`📊 ประวัติการเรียกใช้ & Traffic: ${selectedKeyForLogs.name}`}
-          size="lg"
+          size="2xl"
         >
           <div className="space-y-5">
             {/* Header info */}
@@ -1949,7 +1949,7 @@ console.log(data);`}
           isOpen={showRetentionModal}
           onClose={() => setShowRetentionModal(false)}
           title="🧹 จัดการพื้นที่และนโยบายล้าง Log (Retention & Cleanup)"
-          size="md"
+          size="lg"
         >
           <div className="space-y-4">
             <div className="p-4 bg-slate-900 text-white rounded-2xl space-y-3">

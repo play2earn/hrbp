@@ -816,7 +816,7 @@ export const SystemLogsTab: React.FC<SystemLogsTabProps> = ({ showToast, current
           isOpen={showRetentionModal}
           onClose={() => setShowRetentionModal(false)}
           title="🧹 จัดการพื้นที่และนโยบายล้าง Log (Retention & Cleanup)"
-          size="md"
+          size="lg"
         >
           <div className="space-y-4">
             <div className="p-4 bg-slate-900 text-white rounded-2xl space-y-3">
