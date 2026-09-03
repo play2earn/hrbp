@@ -159,7 +159,34 @@ export default function App() {
     };
   }, []);
 
-  const [lang, setLang] = useState<Language>('en');
+  const [lang, setLang] = useState<Language>(() => {
+    try {
+      // 1. Check URL query param e.g. ?lang=th or ?lang=en
+      const params = new URLSearchParams(window.location.search);
+      const urlLang = params.get('lang')?.toLowerCase();
+      if (urlLang === 'th' || urlLang === 'en') {
+        return urlLang as Language;
+      }
+
+      // 2. Check localStorage
+      const savedLang = localStorage.getItem('applicant_lang')?.toLowerCase();
+      if (savedLang === 'th' || savedLang === 'en') {
+        return savedLang as Language;
+      }
+
+      // 3. Auto-detect browser language
+      if (typeof navigator !== 'undefined' && navigator.language) {
+        if (navigator.language.toLowerCase().startsWith('th')) {
+          return 'th';
+        }
+      }
+    } catch {
+      // Ignore security errors in sandboxed storage
+    }
+
+    // 4. Default to Thai for applicant system in Thailand
+    return 'th';
+  });
   const [pdpaAccepted, setPdpaAccepted] = useState(false);
   const [isPdpaModalOpen, setIsPdpaModalOpen] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
@@ -195,7 +222,15 @@ export default function App() {
   };
 
   const toggleLang = () => {
-    setLang(prev => prev === 'en' ? 'th' : 'en');
+    setLang(prev => {
+      const nextLang: Language = prev === 'en' ? 'th' : 'en';
+      try {
+        localStorage.setItem('applicant_lang', nextLang);
+      } catch {
+        // ignore
+      }
+      return nextLang;
+    });
   };
 
   const [siteLocationFilter, setSiteLocationFilter] = useState<string | number | null>('all');
@@ -275,9 +310,15 @@ export default function App() {
               </h1>
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
-              <button onClick={toggleLang} className="flex items-center text-slate-500 hover:text-indigo-600 transition-colors px-2 py-1 rounded-md hover:bg-slate-50">
-                <Globe className="w-5 h-5 mr-1.5" />
-                <span className="uppercase font-medium text-sm">{lang}</span>
+              <button 
+                onClick={toggleLang} 
+                className="flex items-center gap-1.5 text-slate-700 hover:text-indigo-600 transition-all px-2.5 py-1.5 rounded-lg border border-slate-200 hover:border-indigo-300 bg-slate-50/80 hover:bg-white text-xs font-semibold shadow-2xs"
+                title={lang === 'th' ? 'Switch to English' : 'เปลี่ยนเป็นภาษาไทย'}
+              >
+                <Globe className="w-3.5 h-3.5 text-indigo-500" />
+                <span className={lang === 'th' ? 'text-indigo-600 font-bold' : 'text-slate-400 font-medium'}>TH</span>
+                <span className="text-slate-300">|</span>
+                <span className={lang === 'en' ? 'text-indigo-600 font-bold' : 'text-slate-400 font-medium'}>EN</span>
               </button>
               <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
               <Button variant="ghost" size="sm" onClick={handleLogout} className="text-slate-600">
@@ -343,8 +384,15 @@ export default function App() {
               </span>
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
-              <button onClick={toggleLang} className="text-gray-500 hover:text-indigo-600 font-medium text-sm flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-indigo-50 transition-all">
-                <Globe className="w-4 h-4" /> {lang.toUpperCase()}
+              <button 
+                onClick={toggleLang} 
+                className="flex items-center gap-1.5 text-slate-700 hover:text-indigo-600 transition-all px-2.5 py-1.5 rounded-lg border border-slate-200 hover:border-indigo-300 bg-white/70 hover:bg-white text-xs font-semibold shadow-2xs"
+                title={lang === 'th' ? 'Switch to English' : 'เปลี่ยนเป็นภาษาไทย'}
+              >
+                <Globe className="w-3.5 h-3.5 text-indigo-500" />
+                <span className={lang === 'th' ? 'text-indigo-600 font-bold' : 'text-slate-400 font-medium'}>TH</span>
+                <span className="text-slate-300">|</span>
+                <span className={lang === 'en' ? 'text-indigo-600 font-bold' : 'text-slate-400 font-medium'}>EN</span>
               </button>
               <button onClick={() => setIsTrackingOpen(true)} className="hidden sm:flex text-sm font-medium text-gray-600 hover:text-indigo-600 transition-all items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-indigo-50">
                 <Search className="w-4 h-4" /> {lang === 'th' ? 'ตรวจสอบสถานะ' : 'Check Status'}

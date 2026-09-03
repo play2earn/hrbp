@@ -268,6 +268,7 @@ export interface SearchableSelectOption {
   label: string;
   sublabel?: string;
   badge?: string;
+  keywords?: string[];
 }
 
 export interface SearchableSelectProps {
@@ -281,6 +282,10 @@ export interface SearchableSelectProps {
   className?: string;
   disabled?: boolean;
   clearable?: boolean;
+  emptyAction?: {
+    label: string | ((searchQuery: string) => string);
+    onClick: (searchQuery: string) => void;
+  };
 }
 
 export const SearchableSelect: React.FC<SearchableSelectProps> = ({
@@ -294,6 +299,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   className = '',
   disabled = false,
   clearable = true,
+  emptyAction,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -328,6 +334,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
     return options.filter(opt =>
       opt.label.toLowerCase().includes(q) ||
       (opt.sublabel && opt.sublabel.toLowerCase().includes(q)) ||
+      (opt.keywords && opt.keywords.some(k => k && k.toLowerCase().includes(q))) ||
       opt.value.toLowerCase().includes(q)
     );
   }, [options, search]);
@@ -417,8 +424,39 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
           {/* Options List */}
           <div className="max-h-60 overflow-y-auto p-1.5 space-y-0.5 text-xs sm:text-sm divide-y divide-gray-50">
             {filteredOptions.length === 0 ? (
-              <div className="py-6 text-center text-gray-400 text-xs">
-                ไม่พบข้อมูลที่ตรงกับ "{search}"
+              <div className="py-5 px-3 text-center">
+                <p className="text-gray-400 text-xs">
+                  ไม่พบข้อมูลที่ตรงกับ "{search}"
+                </p>
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSearch('');
+                      searchInputRef.current?.focus();
+                    }}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium transition cursor-pointer"
+                  >
+                    <span>ล้างคำค้นหา</span>
+                  </button>
+                  {emptyAction && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        emptyAction.onClick(search.trim());
+                        setIsOpen(false);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs font-medium transition cursor-pointer"
+                    >
+                      <span>
+                        {typeof emptyAction.label === 'function'
+                          ? emptyAction.label(search.trim())
+                          : emptyAction.label}
+                      </span>
+                    </button>
+                  )}
+                </div>
               </div>
             ) : (
               filteredOptions.map((opt, index) => {

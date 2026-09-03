@@ -166,7 +166,6 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
   const [departments, setDepartments] = useState<any[]>([]);
   const [positions, setPositions] = useState<any[]>([]);
   const [allPositions, setAllPositions] = useState<any[]>([]);
-  const [isCustomPosition, setIsCustomPosition] = useState(false);
   const [bus, setBus] = useState<any[]>([]);
   const [provinces, setProvinces] = useState<any[]>([]);
   const [districts, setDistricts] = useState<any[]>([]);
@@ -261,19 +260,41 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
       const deptName = lang === 'en'
         ? (deptObj?.name_en || deptObj?.name_th)
         : (deptObj?.name_th || deptObj?.name_en);
-      const posLabel = lang === 'en' ? (p.name_en || p.name_th) : (p.name_th || p.name_en);
+
+      // Display both languages e.g. "Mechanical Engineer (วิศวกรเครื่องกล)" or "วิศวกรเครื่องกล (Mechanical Engineer)"
+      const primaryName = (lang === 'en' ? (p.name_en || p.name_th) : (p.name_th || p.name_en)) || '';
+      const secondaryName = (lang === 'en'
+        ? (p.name_th && p.name_th !== primaryName ? p.name_th : '')
+        : (p.name_en && p.name_en !== primaryName ? p.name_en : '')) || '';
+      const posLabel = secondaryName ? `${primaryName} (${secondaryName})` : primaryName;
+
       const deptSublabel = deptName ? (lang === 'en' ? `Dept: ${deptName}` : `สังกัด: ${deptName}`) : undefined;
+      
+      // Keywords enable searching in both Thai & English regardless of UI language
+      const keywords = [
+        p.name_th,
+        p.name_en,
+        deptObj?.name_th,
+        deptObj?.name_en,
+      ].filter(Boolean) as string[];
+
       return {
         label: posLabel,
         sublabel: deptSublabel,
         value: String(p.id),
+        keywords,
       };
     });
 
     items.push({
-      label: lang === 'en' ? '★ Other / Not Listed (Specify Below)' : '★ อื่นๆ / ตำแหน่งทั่วไป (ระบุเอง)',
-      sublabel: lang === 'en' ? 'Choose this if your desired position is not listed' : 'เลือกข้อนี้หากไม่พบตำแหน่งที่ต้องการในรายการ',
-      value: '__other__',
+      label: lang === 'en'
+        ? '★ General Application / Other (ตำแหน่งทั่วไป / อื่นๆ)'
+        : '★ ตำแหน่งทั่วไป / อื่นๆ (General Application)',
+      sublabel: lang === 'en'
+        ? 'Allow HR recruiters to consider matching vacancies for your profile'
+        : 'ให้ฝ่ายสรรหาพิจารณาตำแหน่งงานที่เหมาะสมตามประวัติของคุณ',
+      value: '__general_application__',
+      keywords: ['general', 'other', 'all', 'ตำแหน่งทั่วไป', 'ทั่วไป', 'อื่นๆ', 'อื่น', 'ไม่ระบุ', 'พิจารณาตามความเหมาะสม'],
     });
 
     return items;
@@ -285,6 +306,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
       label: lang === 'en' ? (d.name_en || d.name_th) : (d.name_th || d.name_en),
       sublabel: lang === 'en' ? (d.name_th !== d.name_en ? d.name_th : undefined) : (d.name_en !== d.name_th ? d.name_en : undefined),
       value: d.name_th,
+      keywords: [d.name_th, d.name_en].filter(Boolean) as string[],
     }));
   }, [departments, lang]);
 
@@ -909,28 +931,25 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                   placeholder={lang === 'en' ? 'Type or select position...' : 'พิมพ์ค้นหาหรือเลือกตำแหน่งงาน...'}
                   searchPlaceholder={lang === 'en' ? 'Type job title to search...' : 'พิมพ์ชื่อตำแหน่งเพื่อค้นหา...'}
                   value={
-                    isCustomPosition
-                      ? '__other__'
+                    formData.position === 'ตำแหน่งทั่วไป (General Application)'
+                      ? '__general_application__'
                       : (allPositions.find(p => p.name_th === formData.position || p.name_en === formData.position)?.id
                           ? String(allPositions.find(p => p.name_th === formData.position || p.name_en === formData.position)?.id)
                           : (formData.position || ''))
                   }
                   onChange={(selectedVal) => {
                     if (!selectedVal) {
-                      setIsCustomPosition(false);
                       updateField('position', '');
                       updateField('positionEn', '');
                       return;
                     }
 
-                    if (selectedVal === '__other__') {
-                      setIsCustomPosition(true);
-                      updateField('position', '');
-                      updateField('positionEn', '');
+                    if (selectedVal === '__general_application__') {
+                      updateField('position', 'ตำแหน่งทั่วไป (General Application)');
+                      updateField('positionEn', 'General Application');
                       return;
                     }
 
-                    setIsCustomPosition(false);
                     const matchedPos = allPositions.find(p => String(p.id) === selectedVal || p.name_th === selectedVal || p.name_en === selectedVal);
                     if (matchedPos) {
                       updateField('position', matchedPos.name_th || selectedVal);
@@ -947,24 +966,18 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                     }
                   }}
                   options={positionOptions}
+                  emptyAction={{
+                    label: () =>
+                      lang === 'en'
+                        ? '📋 Select "General Application"'
+                        : '📋 เลือก "ตำแหน่งทั่วไป (General Application)"',
+                    onClick: () => {
+                      updateField('position', 'ตำแหน่งทั่วไป (General Application)');
+                      updateField('positionEn', 'General Application');
+                    },
+                  }}
                 />
                 {validationErrors.position && <p className="text-red-500 text-xs mt-1">{validationErrors.position}</p>}
-
-                {/* Custom Position Text Input */}
-                {isCustomPosition && (
-                  <div className="mt-3 animate-in fade-in slide-in-from-top-1 duration-150">
-                    <Input
-                      label={lang === 'en' ? 'Specify Desired Position *' : 'ระบุชื่อตำแหน่งที่ต้องการสมัคร *'}
-                      placeholder={lang === 'en' ? 'e.g. AI Prompt Engineer' : 'เช่น เจ้าหน้าที่พัฒนาธุรกิจสัมพันธ์'}
-                      value={formData.position}
-                      onChange={(e) => {
-                        updateField('position', e.target.value);
-                        updateField('positionEn', e.target.value);
-                      }}
-                      required
-                    />
-                  </div>
-                )}
               </div>
 
               {/* Department Selection (Searchable Combobox) */}
@@ -979,8 +992,8 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                     const matchedDept = departments.find(d => d.name_th === selectedValue || d.name_en === selectedValue);
                     updateField('departmentEn', matchedDept?.name_en || selectedValue);
 
-                    // If not custom and position doesn't belong to this department, clear position
-                    if (!isCustomPosition && formData.position && matchedDept) {
+                    // If not general application and position doesn't belong to this department, clear position
+                    if (formData.position && formData.position !== 'ตำแหน่งทั่วไป (General Application)' && matchedDept) {
                       const isValidInDept = allPositions.some(
                         p => p.department_id === matchedDept.id && (p.name_th === formData.position || p.name_en === formData.position)
                       );
