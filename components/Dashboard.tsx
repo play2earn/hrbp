@@ -1805,6 +1805,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
           candidateApp={comparingDuplicateCandidate}
           duplicateGroupAppIds={comparingDuplicateInfo?.groupAppIds || []}
           matchReasons={comparingDuplicateInfo?.matchReasons || []}
+          isAdmin={role === 'admin'}
           onViewApp={(app) => setViewingApp(app)}
           onRefresh={fetchData}
           showToast={showToast}

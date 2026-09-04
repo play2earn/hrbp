@@ -14,6 +14,7 @@ interface DuplicateCompareModalProps {
   candidateApp: any | null;
   duplicateGroupAppIds: string[];
   matchReasons?: string[];
+  isAdmin?: boolean;
   onViewApp: (app: any) => void;
   onRefresh: () => void;
   showToast: (message: string, type?: 'success' | 'error') => void;
@@ -25,6 +26,7 @@ export const DuplicateCompareModal: React.FC<DuplicateCompareModalProps> = ({
   candidateApp,
   duplicateGroupAppIds,
   matchReasons = [],
+  isAdmin = false,
   onViewApp,
   onRefresh,
   showToast,
@@ -365,14 +367,16 @@ export const DuplicateCompareModal: React.FC<DuplicateCompareModalProps> = ({
                         ดูใบสมัครเต็ม
                       </Button>
 
-                      <button
-                        type="button"
-                        onClick={() => setConfirmDeleteApp(app)}
-                        className="p-1.5 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors border border-red-200/80 bg-white"
-                        title="ลบใบสมัครนี้"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteApp(app)}
+                          className="p-1.5 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors border border-red-200/80 bg-white"
+                          title="ลบใบสมัครนี้ (เฉพาะผู้ดูแลระบบ)"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
