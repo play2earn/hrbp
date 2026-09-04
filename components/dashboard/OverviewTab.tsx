@@ -3,13 +3,14 @@ import { Card, Button } from '../UIComponents';
 import {
   FileText, Users, Edit, Calendar, CheckCircle, XCircle,
   Search, MoreVertical, LayoutGrid, List, ChevronDown, ChevronRight, Check,
-  UserPlus, UserCheck, Phone, Copy, ShieldAlert, Printer
+  UserPlus, UserCheck, Phone, Copy, ShieldAlert, Printer, AlertTriangle
 } from 'lucide-react';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
   BarChart, Bar, XAxis, YAxis, CartesianGrid
 } from 'recharts';
 import type { ApplicationStatus } from '../../services/api';
+import type { DuplicateInfo } from './duplicateUtils';
 import {
   COLORS, getBuChartColor, getBuColor, getStatusBadgeClass, getStatusLabel,
   isInterviewScheduledStatus, isClosedStatus
@@ -153,6 +154,9 @@ interface OverviewTabProps {
   loading?: boolean;
   totalCount?: number;
   statsApplications?: any[];
+  duplicateMap?: Map<string, DuplicateInfo>;
+  duplicateTotalApps?: number;
+  onOpenDuplicateModal?: (candidateApp: any, duplicateInfo: DuplicateInfo) => void;
 }
 
 export const OverviewTab = React.memo<OverviewTabProps>(({
@@ -162,7 +166,8 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
   setClaimingApp, setTransferringApp, setUnassigningApp, setInterviewingApp,
   setRejectingApp, setApprovingApp, currentUserId,
   appPerPage, setAppPerPage, openActionMenu, blacklistEntries,
-  onViewBlacklistDetail, loading = false, totalCount, statsApplications
+  onViewBlacklistDetail, loading = false, totalCount, statsApplications,
+  duplicateMap, duplicateTotalApps, onOpenDuplicateModal
 }) => {
 
   const checkIsBlacklisted = React.useCallback((app: any) => {
@@ -315,87 +320,101 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
       key: 'all',
       label: 'ทั้งหมด',
       count: stats?.total || totalCount || 0,
-      isActive: appFilters.status === 'all' && (appFilters.hrms === 'all' || !appFilters.hrms),
+      isActive: appFilters.status === 'all' && (appFilters.hrms === 'all' || !appFilters.hrms) && (appFilters.duplicate === 'all' || !appFilters.duplicate),
       activeClass: 'bg-indigo-600 text-white shadow-sm shadow-indigo-300',
       inactiveClass: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
       badgeActiveClass: 'bg-indigo-700 text-white',
       badgeInactiveClass: 'bg-white text-gray-800',
       badgeColor: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
       pulse: false,
-      onClick: () => { setAppFilters(f => ({ ...f, status: 'all', hrms: 'all' })); setAppPage(1); }
+      onClick: () => { setAppFilters(f => ({ ...f, status: 'all', hrms: 'all', duplicate: 'all' })); setAppPage(1); }
     },
     {
       key: 'Reviewing',
       label: 'กำลังพิจารณา',
       count: stats?.reviewing || 0,
-      isActive: appFilters.status === 'Reviewing',
+      isActive: appFilters.status === 'Reviewing' && (appFilters.duplicate === 'all' || !appFilters.duplicate),
       activeClass: 'bg-blue-600 text-white shadow-sm shadow-blue-300',
       inactiveClass: 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200',
       badgeActiveClass: 'bg-white text-blue-800 font-bold',
       badgeInactiveClass: 'bg-white text-blue-800 font-bold',
       badgeColor: 'bg-blue-50 text-blue-700 border border-blue-200',
       pulse: false,
-      onClick: () => { setAppFilters(f => ({ ...f, status: 'Reviewing', hrms: 'all' })); setAppPage(1); }
+      onClick: () => { setAppFilters(f => ({ ...f, status: 'Reviewing', hrms: 'all', duplicate: 'all' })); setAppPage(1); }
     },
     {
       key: 'InterviewScheduled',
       label: 'นัดสัมภาษณ์',
       count: stats?.interviewing || 0,
-      isActive: appFilters.status === 'InterviewScheduled',
+      isActive: appFilters.status === 'InterviewScheduled' && (appFilters.duplicate === 'all' || !appFilters.duplicate),
       activeClass: 'bg-purple-600 text-white shadow-sm shadow-purple-300',
       inactiveClass: 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200',
       badgeActiveClass: 'bg-white text-purple-800 font-bold',
       badgeInactiveClass: 'bg-white text-purple-800 font-bold',
       badgeColor: 'bg-purple-50 text-purple-700 border border-purple-200',
       pulse: false,
-      onClick: () => { setAppFilters(f => ({ ...f, status: 'InterviewScheduled', hrms: 'all' })); setAppPage(1); }
+      onClick: () => { setAppFilters(f => ({ ...f, status: 'InterviewScheduled', hrms: 'all', duplicate: 'all' })); setAppPage(1); }
     },
     {
       key: 'Hired',
       label: 'รับเข้าทำงาน',
       count: stats?.hired || 0,
-      isActive: appFilters.status === 'Hired',
+      isActive: appFilters.status === 'Hired' && (appFilters.duplicate === 'all' || !appFilters.duplicate),
       activeClass: 'bg-emerald-600 text-white shadow-sm shadow-emerald-300',
       inactiveClass: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200',
       badgeActiveClass: 'bg-white text-emerald-800 font-bold',
       badgeInactiveClass: 'bg-white text-emerald-800 font-bold',
       badgeColor: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
       pulse: false,
-      onClick: () => { setAppFilters(f => ({ ...f, status: 'Hired', hrms: 'all' })); setAppPage(1); }
+      onClick: () => { setAppFilters(f => ({ ...f, status: 'Hired', hrms: 'all', duplicate: 'all' })); setAppPage(1); }
     },
     {
       key: 'READY_TO_SYNC',
       label: '⚡ รอส่ง HRMS',
       count: readyHrmsCount,
-      isActive: appFilters.hrms === 'READY_TO_SYNC',
+      isActive: appFilters.hrms === 'READY_TO_SYNC' && (appFilters.duplicate === 'all' || !appFilters.duplicate),
       activeClass: 'bg-amber-600 text-white shadow-sm shadow-amber-300',
       inactiveClass: 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200',
       badgeActiveClass: 'bg-white text-amber-800 font-bold',
       badgeInactiveClass: 'bg-white text-amber-800 font-bold',
       badgeColor: 'bg-amber-50 text-amber-700 border border-amber-200',
       pulse: readyHrmsCount > 0,
-      onClick: () => { setAppFilters(f => ({ ...f, status: 'all', hrms: 'READY_TO_SYNC' })); setAppPage(1); }
+      onClick: () => { setAppFilters(f => ({ ...f, status: 'all', hrms: 'READY_TO_SYNC', duplicate: 'all' })); setAppPage(1); }
     },
     {
       key: 'SYNCED',
       label: '✅ เข้า HRMS แล้ว',
       count: syncedHrmsCount,
-      isActive: appFilters.hrms === 'SYNCED',
+      isActive: appFilters.hrms === 'SYNCED' && (appFilters.duplicate === 'all' || !appFilters.duplicate),
       activeClass: 'bg-teal-600 text-white shadow-sm shadow-teal-300',
       inactiveClass: 'bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200',
       badgeActiveClass: 'bg-white text-teal-800 font-bold',
       badgeInactiveClass: 'bg-white text-teal-800 font-bold',
       badgeColor: 'bg-teal-50 text-teal-700 border border-teal-200',
       pulse: false,
-      onClick: () => { setAppFilters(f => ({ ...f, status: 'all', hrms: 'SYNCED' })); setAppPage(1); }
+      onClick: () => { setAppFilters(f => ({ ...f, status: 'all', hrms: 'SYNCED', duplicate: 'all' })); setAppPage(1); }
     },
-  ], [stats, totalCount, appFilters.status, appFilters.hrms, readyHrmsCount, syncedHrmsCount, setAppFilters, setAppPage]);
+    {
+      key: 'DUPLICATE',
+      label: '⚠️ พบใบสมัครซ้ำ',
+      count: duplicateTotalApps || 0,
+      isActive: appFilters.duplicate === 'yes',
+      activeClass: 'bg-amber-600 text-white shadow-sm shadow-amber-300',
+      inactiveClass: 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-300',
+      badgeActiveClass: 'bg-white text-amber-900 font-bold',
+      badgeInactiveClass: 'bg-white text-amber-900 font-bold',
+      badgeColor: 'bg-amber-100 text-amber-800 border border-amber-300',
+      pulse: (duplicateTotalApps || 0) > 0,
+      onClick: () => { setAppFilters(f => ({ ...f, status: 'all', hrms: 'all', duplicate: 'yes' })); setAppPage(1); }
+    },
+  ], [stats, totalCount, appFilters.status, appFilters.hrms, appFilters.duplicate, readyHrmsCount, syncedHrmsCount, duplicateTotalApps, setAppFilters, setAppPage]);
 
   const currentQuickStatusKey = useMemo(() => {
+    if (appFilters.duplicate === 'yes') return 'DUPLICATE';
     if (appFilters.hrms === 'READY_TO_SYNC') return 'READY_TO_SYNC';
     if (appFilters.hrms === 'SYNCED') return 'SYNCED';
     return appFilters.status || 'all';
-  }, [appFilters.status, appFilters.hrms]);
+  }, [appFilters.status, appFilters.hrms, appFilters.duplicate]);
 
   const activeQuickStatus = useMemo(() => {
     return quickStatusOptions.find(opt => opt.key === currentQuickStatusKey) || quickStatusOptions[0];
@@ -694,9 +713,19 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                   <option value="yes">⚠️ ติด Blacklist</option>
                   <option value="no">✅ ประวัติปกติ</option>
                 </select>
+
+                {/* Duplicate Filter */}
+                <select
+                  className="border rounded-lg px-2 py-1.5 text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none w-full md:w-auto min-w-[130px] text-gray-750 font-semibold"
+                  value={appFilters.duplicate || 'all'}
+                  onChange={(e) => { setAppFilters(f => ({ ...f, duplicate: e.target.value })); setAppPage(1); }}
+                >
+                  <option value="all">ข้อมูลซ้ำทั้งหมด (All)</option>
+                  <option value="yes">⚠️ แสดงเฉพาะใบสมัครซ้ำ</option>
+                </select>
                 
                 {/* Clear Filters Button */}
-                {(appFilters.position || appFilters.department || appFilters.bu || appFilters.channel || appFilters.status !== 'all' || (appFilters.blacklist && appFilters.blacklist !== 'all') || (appFilters.hrms && appFilters.hrms !== 'all') || appFilters.search) && (
+                {(appFilters.position || appFilters.department || appFilters.bu || appFilters.channel || appFilters.status !== 'all' || (appFilters.blacklist && appFilters.blacklist !== 'all') || (appFilters.hrms && appFilters.hrms !== 'all') || (appFilters.duplicate && appFilters.duplicate !== 'all') || appFilters.search) && (
                   <button
                     onClick={() => {
                       setAppFilters({
@@ -708,7 +737,8 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                         channel: '',
                         assignment: appFilters.assignment,
                         blacklist: 'all',
-                        hrms: 'all'
+                        hrms: 'all',
+                        duplicate: 'all'
                       });
                       setAppPage(1);
                     }}
@@ -810,6 +840,11 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                   if (appFilters.blacklist === 'no' && isBlacklisted) return false;
                 }
 
+                // Duplicate filter
+                if (appFilters.duplicate && appFilters.duplicate !== 'all' && duplicateMap) {
+                  if (appFilters.duplicate === 'yes' && !duplicateMap.has(app.id)) return false;
+                }
+
                 if (appFilters.search) {
                   const q = appFilters.search.toLowerCase();
                   const name = (app.full_name || `${app.form_data?.firstName || ''} ${app.form_data?.lastName || ''}`).toLowerCase();
@@ -821,6 +856,16 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
               totalPages = Math.ceil(filtered.length / appPerPage);
               paginated = filtered.slice((appPage - 1) * appPerPage, appPage * appPerPage);
               totalMatchingCount = filtered.length;
+            }
+
+            // If filtering by duplicates, sort so duplicate groups are clustered together
+            if (appFilters.duplicate === 'yes' && duplicateMap) {
+              paginated = [...paginated].sort((a: any, b: any) => {
+                const groupA = duplicateMap.get(a.id)?.groupAppIds[0] || a.id;
+                const groupB = duplicateMap.get(b.id)?.groupAppIds[0] || b.id;
+                if (groupA !== groupB) return groupA.localeCompare(groupB);
+                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+              });
             }
 
             return (
@@ -842,6 +887,7 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                         const bu = fd.businessUnit || app.business_unit || '';
                         const ch = fd.sourceChannel || app.source_channel || '';
                         const isBlacklisted = checkIsBlacklisted(app);
+                        const duplicateInfo = duplicateMap?.get(app.id);
 
                         return (
                           <div key={app.id} className="py-3 px-1 hover:bg-gray-50/50 transition-colors" onClick={() => setViewingApp(app)}>
@@ -870,7 +916,7 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                               {/* Content */}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between gap-2">
-                                  <h4 className="text-sm font-semibold text-gray-900 truncate flex items-center gap-1">
+                                  <h4 className="text-sm font-semibold text-gray-900 truncate flex items-center gap-1 flex-wrap">
                                     {fullName}{fd.nickname ? ` (${fd.nickname})` : ''}
                                     {isBlacklisted && (
                                       <button
@@ -884,6 +930,20 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                                       >
                                         <ShieldAlert className="w-3.5 h-3.5 text-red-600" />
                                         <span>Blacklist</span>
+                                      </button>
+                                    )}
+                                    {duplicateInfo && onOpenDuplicateModal && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onOpenDuplicateModal(app, duplicateInfo);
+                                        }}
+                                        className="inline-flex items-center text-amber-900 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded text-[10px] font-bold gap-1 hover:bg-amber-200 transition-colors flex-shrink-0 align-middle shadow-2xs"
+                                        title="คลิกเพื่อเปรียบเทียบและจัดการใบสมัครซ้ำ"
+                                      >
+                                        <AlertTriangle className="w-3 h-3 text-amber-600" />
+                                        <span>ซ้ำ {duplicateInfo.count} ใบ</span>
                                       </button>
                                     )}
                                   </h4>
@@ -969,9 +1029,10 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                         const ch = fd.sourceChannel || app.source_channel || '';
                         const tag = fd.campaignTag || app.campaign_tag || '';
                         const isBlacklisted = checkIsBlacklisted(app);
+                        const duplicateInfo = duplicateMap?.get(app.id);
 
                         return (
-                          <tr key={app.id} className="hover:bg-gray-50 transition-colors">
+                          <tr key={app.id} className={`hover:bg-gray-50 transition-colors ${appFilters.duplicate === 'yes' ? 'bg-amber-50/20' : ''}`}>
                             {/* ลำดับ */}
                             <td className="px-4 py-3 text-sm text-gray-500 text-center font-medium bg-gray-50/50 w-16">{rowIndex}</td>
 
@@ -1044,6 +1105,20 @@ export const OverviewTab = React.memo<OverviewTabProps>(({
                                       >
                                         <ShieldAlert className="w-3.5 h-3.5 animate-pulse text-red-600" />
                                         <span>Blacklist</span>
+                                      </button>
+                                    )}
+                                    {duplicateInfo && onOpenDuplicateModal && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onOpenDuplicateModal(app, duplicateInfo);
+                                        }}
+                                        className="inline-flex items-center text-amber-900 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded text-[10px] font-bold gap-1 hover:bg-amber-200 transition-colors cursor-pointer shadow-2xs"
+                                        title="คลิกเพื่อเปรียบเทียบและจัดการใบสมัครซ้ำ"
+                                      >
+                                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                                        <span>ซ้ำ {duplicateInfo.count} ใบ</span>
                                       </button>
                                     )}
                                   </div>

@@ -57,3 +57,4 @@ dist-api/
 .tmp-vercel/
 ops/storage/reports/
 graft/
+.playwright-mcp/

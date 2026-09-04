@@ -79,6 +79,8 @@ export interface GetApplicationsParams {
   blacklist: string;
   blacklistEntries: any[];
   hrms?: string;
+  duplicate?: string;
+  duplicateAppIds?: string[];
 }
 
 export interface EvaluationTemplateItem {
@@ -617,6 +619,16 @@ export const api = {
         }
       }
 
+      // 10. Duplicate Filter
+      if (params.duplicate && params.duplicate !== 'all') {
+        if (params.duplicateAppIds && params.duplicateAppIds.length > 0) {
+          query = query.in('id', params.duplicateAppIds);
+        } else {
+          // Force return empty if duplicate selected but no duplicates exist
+          query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+        }
+      }
+
       // Order by created_at desc
       query = query.order('created_at', { ascending: false });
 
@@ -747,7 +759,7 @@ export const api = {
       while (true) {
         const { data, error } = await supabase
           .from('applications')
-          .select('id, created_at, status, business_unit, department, position')
+          .select('id, created_at, status, business_unit, department, position, full_name, phone, nationalId:form_data->>nationalId, passportNo:form_data->>passportNo')
           .range(page * pageSize, (page + 1) * pageSize - 1);
 
         if (error) {

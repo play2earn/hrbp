@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { MOCK_BU } from '../constants';
 import { Card, Button, Input, Select, Modal } from './UIComponents';
-import { LucideIcon, Home, FileText, QrCode, Settings, LogOut, CheckCircle, XCircle, Search, Filter, Download, ExternalLink, Calendar, Menu, X, ChevronRight, ChevronLeft, ChevronDown, User, Shield, Users, Copy, Check, Database, Plus, Edit, Trash2, Building2, Tag, GraduationCap, MapPin, Phone, UserPlus, UserCheck, History, Clock, ArrowRightLeft, BarChart2, ShieldAlert, Save, Sparkles, ArrowRight, FileCheck2 } from 'lucide-react';
+import { LucideIcon, Home, FileText, QrCode, Settings, LogOut, CheckCircle, XCircle, Search, Filter, Download, ExternalLink, Calendar, Menu, X, ChevronRight, ChevronLeft, ChevronDown, User, Shield, Users, Copy, Check, Database, Plus, Edit, Trash2, Building2, Tag, GraduationCap, MapPin, Phone, UserPlus, UserCheck, History, Clock, ArrowRightLeft, BarChart2, ShieldAlert, Save, Sparkles, ArrowRight, FileCheck2, AlertTriangle } from 'lucide-react';
 import { api } from '../services/api';
 import { supabase } from '../supabaseClient';
 import { Role, BlacklistEntry } from '../types';
@@ -17,6 +17,8 @@ import {
 } from './dashboard/dashboardConstants';
 import { ApplicationActionModals } from './dashboard/ApplicationActionModals';
 import { OverviewTab } from './dashboard/OverviewTab';
+import { findDuplicates, type DuplicateInfo } from './dashboard/duplicateUtils';
+import { DuplicateCompareModal } from './dashboard/DuplicateCompareModal';
 import { HardDrive } from 'lucide-react';
 
 const ApplicationDetailModal = React.lazy(() => import('./dashboard/ApplicationDetailModal').then(m => ({ default: m.ApplicationDetailModal })));
@@ -122,7 +124,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
     status: 'all',
     assignment: 'all',
     blacklist: 'all',
-    hrms: 'all'
+    hrms: 'all',
+    duplicate: 'all'
   });
   const [appPage, setAppPage] = useState(1);
   const [appPerPage, setAppPerPage] = useState(25);
@@ -147,6 +150,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
     }
   }, []);
   const [viewingBlacklistDetail, setViewingBlacklistDetail] = useState<any | null>(null);
+  const [comparingDuplicateCandidate, setComparingDuplicateCandidate] = useState<any | null>(null);
+  const [comparingDuplicateInfo, setComparingDuplicateInfo] = useState<DuplicateInfo | null>(null);
+  const handleOpenDuplicateModal = React.useCallback((candidateApp: any, duplicateInfo: DuplicateInfo) => {
+    setComparingDuplicateCandidate(candidateApp);
+    setComparingDuplicateInfo(duplicateInfo);
+  }, []);
   const [claimingApp, setClaimingApp] = useState<any | null>(null);
   const [unassigningApp, setUnassigningApp] = useState<any | null>(null);
   const [transferringApp, setTransferringApp] = useState<any | null>(null);
@@ -474,6 +483,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
     const rejected = statsData.filter((a: any) => a.status === 'Rejected' || a.status === 'Withdrawn' || a.status === 'NoShow').length;
     setStats({ total, pending, reviewing, interviewing, hired, rejected });
 
+    // Calculate duplicate detection result
+    const currentDupRes = findDuplicates(statsData);
+
     // 3. Fetch current page of applications
     try {
       const result = await api.getApplicationsPaginated({
@@ -489,7 +501,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
         currentUserId: currentUserId,
         blacklist: appFilters.blacklist,
         blacklistEntries: currentBlacklist,
-        hrms: appFilters.hrms
+        hrms: appFilters.hrms,
+        duplicate: appFilters.duplicate,
+        duplicateAppIds: Array.from(currentDupRes.duplicateAppIds)
       });
       setApplications(result.data);
       setTotalCount(result.count);
@@ -500,9 +514,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
     }
   }, [appPage, appPerPage, appFilters, currentUserId]);
 
+  const duplicateResult = React.useMemo(() => {
+    return findDuplicates(statsApplications);
+  }, [statsApplications]);
+
   const fetchPaginatedApplications = React.useCallback(async () => {
     setLoading(true);
     try {
+      const currentDupRes = findDuplicates(statsApplications);
       const result = await api.getApplicationsPaginated({
         page: appPage,
         limit: appPerPage,
@@ -516,7 +535,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
         currentUserId: currentUserId,
         blacklist: appFilters.blacklist,
         blacklistEntries: blacklistEntries,
-        hrms: appFilters.hrms
+        hrms: appFilters.hrms,
+        duplicate: appFilters.duplicate,
+        duplicateAppIds: Array.from(currentDupRes.duplicateAppIds)
       });
       setApplications(result.data);
       setTotalCount(result.count);
@@ -525,7 +546,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
     } finally {
       setLoading(false);
     }
-  }, [appPage, appPerPage, appFilters, currentUserId, blacklistEntries]);
+  }, [appPage, appPerPage, appFilters, currentUserId, blacklistEntries, statsApplications]);
 
   // Effect to refetch when pagination/filters change (after initial mount)
   const isInitialMount = React.useRef(true);
@@ -1048,6 +1069,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
                 loading={loading}
                 totalCount={totalCount}
                 statsApplications={statsApplications}
+                duplicateMap={duplicateResult.duplicateMap}
+                duplicateTotalApps={duplicateResult.totalDuplicateApps}
+                onOpenDuplicateModal={handleOpenDuplicateModal}
               />
             )}
 
@@ -1437,16 +1461,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
                   fd.department = fullApp.department;
                   fd.business_unit = fullApp.business_unit;
                   
-                  // Fetch master conditions & calendars for memo.html DDL
+                  fd.work_location = fullApp.work_location || (fullApp.formData && fullApp.formData.workLocation) || '';
+                  
+                  // Fetch master conditions, calendars, work locations, and interview evaluations for memo.html
                   try {
-                    const [condsRes, calsRes] = await Promise.all([
+                    const [condsRes, calsRes, locsRes, evalBundleRes, legacyEvalsRes] = await Promise.all([
                       api.master.getAll('memo_conditions'),
-                      api.master.getAll('memo_calendars')
+                      api.master.getAll('memo_calendars'),
+                      api.master.getWorkLocations(false).catch(() => []),
+                      api.candidateEvaluations.getBundle(fullApp.id).catch(() => null),
+                      api.evaluations.getByApplicationId(fullApp.id).catch(() => [])
                     ]);
                     fd.masterConditions = condsRes.data || [];
                     fd.masterCalendars = calsRes.data || [];
+                    fd.masterWorkLocations = locsRes || [];
+                    fd.evaluationBundle = evalBundleRes && evalBundleRes.success ? evalBundleRes.data : null;
+                    fd.legacyEvaluations = legacyEvalsRes || [];
                   } catch (e) {
-                    console.error("Failed to prefetch memo master data", e);
+                    console.error("Failed to prefetch memo master and evaluation data", e);
                   }
 
                   localStorage.setItem('memoPreviewData', JSON.stringify(fd));
@@ -1491,6 +1523,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
                   </button>
                   <button className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-left text-red-600 hover:bg-red-50 transition-colors" onClick={() => { setRejectingApp(app); setRejectComment(''); setRejectionReason(''); setActionMenu(null); }}>
                     <XCircle className="w-4 h-4" /> ไม่ผ่านสัมภาษณ์
+                  </button>
+                </>
+              )}
+              {duplicateResult.duplicateMap.has(app.id) && (
+                <>
+                  <div className="border-t border-gray-100 my-1" />
+                  <button
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-left text-amber-800 bg-amber-50 hover:bg-amber-100 transition-colors font-medium cursor-pointer"
+                    onClick={() => {
+                      const dInfo = duplicateResult.duplicateMap.get(app.id);
+                      if (dInfo) handleOpenDuplicateModal(app, dInfo);
+                      setActionMenu(null);
+                    }}
+                  >
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    เปรียบเทียบใบสมัครซ้ำ ({duplicateResult.duplicateMap.get(app.id)?.count} ใบ)
                   </button>
                 </>
               )}
@@ -1745,6 +1793,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
         confirmQrAction={confirmQrAction} setConfirmQrAction={setConfirmQrAction}
         executeGenerateLink={executeGenerateLink}
       />
+
+      {/* Duplicate Candidate Comparison & Resolution Modal */}
+      {comparingDuplicateCandidate && (
+        <DuplicateCompareModal
+          isOpen={!!comparingDuplicateCandidate}
+          onClose={() => {
+            setComparingDuplicateCandidate(null);
+            setComparingDuplicateInfo(null);
+          }}
+          candidateApp={comparingDuplicateCandidate}
+          duplicateGroupAppIds={comparingDuplicateInfo?.groupAppIds || []}
+          matchReasons={comparingDuplicateInfo?.matchReasons || []}
+          onViewApp={(app) => setViewingApp(app)}
+          onRefresh={fetchData}
+          showToast={showToast}
+        />
+      )}
 
       {
         toast.show && (

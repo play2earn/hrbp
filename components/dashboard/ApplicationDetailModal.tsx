@@ -2147,15 +2147,24 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                           fd.department = fullApp.department;
                           fd.business_unit = fullApp.business_unit;
 
+                          fd.work_location = fullApp.work_location || (fullApp.formData && fullApp.formData.workLocation) || '';
+
+                          // Fetch master conditions, calendars, work locations, and interview evaluations for memo.html
                           try {
-                            const [condsRes, calsRes] = await Promise.all([
+                            const [condsRes, calsRes, locsRes, evalBundleRes, legacyEvalsRes] = await Promise.all([
                               api.master.getAll('memo_conditions'),
-                              api.master.getAll('memo_calendars')
+                              api.master.getAll('memo_calendars'),
+                              api.master.getWorkLocations(false).catch(() => []),
+                              api.candidateEvaluations.getBundle(fullApp.id).catch(() => null),
+                              api.evaluations.getByApplicationId(fullApp.id).catch(() => [])
                             ]);
                             fd.masterConditions = condsRes.data || [];
                             fd.masterCalendars = calsRes.data || [];
+                            fd.masterWorkLocations = locsRes || [];
+                            fd.evaluationBundle = evalBundleRes && evalBundleRes.success ? evalBundleRes.data : null;
+                            fd.legacyEvaluations = legacyEvalsRes || [];
                           } catch (e) {
-                            console.error("Failed to prefetch memo master data", e);
+                            console.error("Failed to prefetch memo master and evaluation data", e);
                           }
 
                           localStorage.setItem('memoPreviewData', JSON.stringify(fd));

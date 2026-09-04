@@ -54,6 +54,11 @@
       .editable-field:empty::before {
         content: "" !important;
       }
+
+      /* Clean underlines on print */
+      .decoration-dotted {
+        text-decoration: none !important;
+      }
     }
 
     /* Styles for contenteditable fields to look like paper form fields */
@@ -91,9 +96,17 @@
       font-weight: normal;
     }
 
-    /* Hide placeholders during image capture */
+    /* Hide placeholders and UI buttons during image capture */
     .exporting-image .editable-field:empty::before {
       content: "" !important;
+    }
+    
+    .exporting-image .no-print {
+      display: none !important;
+    }
+
+    .exporting-image .decoration-dotted {
+      text-decoration: none !important;
     }
     
     .exporting-image .editable-field {
@@ -102,6 +115,12 @@
       box-shadow: none !important;
       padding-top: 0px !important;
       padding-bottom: 4px !important;
+    }
+
+    .exporting-image img[id^="photo-img"] {
+      width: 112px !important;
+      height: 144px !important;
+      object-fit: cover !important;
     }
   </style>
 </head>
@@ -131,6 +150,7 @@
           <option value="workskill" class="bg-slate-900" data-translate-key="ui_opt_workskill">ระดับ Work Skill</option>
           <option value="bachelor" class="bg-slate-900" data-translate-key="ui_opt_bachelor">ระดับ ปริญญาตรี</option>
           <option value="vocational" class="bg-slate-900" data-translate-key="ui_opt_vocational">ระดับ ปวส.</option>
+          <option value="executive" class="bg-slate-900" data-translate-key="ui_opt_executive">ระดับ ผู้บริหาร / ผู้มีประสบการณ์</option>
         </select>
       </div>
 
@@ -140,6 +160,14 @@
           <div id="mib2-toggle-thumb" class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 translate-x-0"></div>
         </div>
         <span class="text-xs font-bold text-slate-300" data-translate-key="ui_mib2_label">Extra Incentive (MIB2)</span>
+      </div>
+
+      <!-- Expat Benefits Toggle Button (visible only when executive template is active) -->
+      <div id="expat-toggle-wrapper" class="hidden items-center gap-2 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 shadow-sm cursor-pointer select-none" onclick="toggleExpatBenefits()" title="สิทธิประโยชน์พนักงานต่างชาติ">
+        <div id="expat-toggle-track" class="relative w-9 h-5 rounded-full transition-colors duration-200 bg-slate-600">
+          <div id="expat-toggle-thumb" class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 translate-x-0"></div>
+        </div>
+        <span class="text-xs font-bold text-slate-300" data-translate-key="ui_expat_label">สิทธิประโยชน์ต่างชาติ</span>
       </div>
 
       <button onclick="downloadAsImage()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-sm flex items-center gap-2 shadow-sm transition-all hover:-translate-y-0.5 active:translate-y-0">
@@ -234,7 +262,7 @@
               </div>
               <div data-translate-key="label_change_photo" class="absolute inset-0 bg-black/40 text-white text-[10px] font-bold opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all no-print">เปลี่ยนรูปภาพ</div>
             </div>
-            <input type="file" id="photo-uploader" accept="image/*" class="hidden" onchange="loadLocalPhoto(this)">
+            <input type="file" id="photo-uploader" accept="image/*" class="hidden" onchange="handlePhotoUpload(this)">
           </div>
         </div>
 
@@ -416,7 +444,7 @@
               </div>
               <div data-translate-key="label_change_photo" class="absolute inset-0 bg-black/40 text-white text-[10px] font-bold opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all no-print">เปลี่ยนรูปภาพ</div>
             </div>
-            <input type="file" id="photo-uploader_bachelor" accept="image/*" class="hidden" onchange="loadLocalPhotoBachelor(this)">
+            <input type="file" id="photo-uploader_bachelor" accept="image/*" class="hidden" onchange="handlePhotoUpload(this)">
           </div>
         </div>
 
@@ -700,7 +728,7 @@
               </div>
               <div data-translate-key="label_change_photo" class="absolute inset-0 bg-black/40 text-white text-[10px] font-bold opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all no-print">เปลี่ยนรูปภาพ</div>
             </div>
-            <input type="file" id="photo-uploader_vocational" accept="image/*" class="hidden" onchange="loadLocalPhotoVocational(this)">
+            <input type="file" id="photo-uploader_vocational" accept="image/*" class="hidden" onchange="handlePhotoUpload(this)">
           </div>
         </div>
 
@@ -871,6 +899,306 @@
           จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ
         </div>
       </div>
+
+      <!-- 4. Executive / Experienced Hire Layout -->
+      <div id="executive-layout" class="hidden flex-col flex-grow">
+        <!-- Title Box with Inline DDL Selector -->
+        <div id="doc-title-executive" class="border border-slate-900 bg-[#E2E8F0] py-2.5 px-4 text-center font-bold text-lg text-slate-900 mb-5 relative flex items-center justify-center gap-2">
+          <span data-translate-key="doc_title_executive_prefix">แบบขออนุมัติจ้างงานระดับ</span>
+          <span id="executive-title-type" class="cursor-pointer underline decoration-dotted decoration-slate-700 hover:text-indigo-800 text-indigo-950 font-black" onclick="openExecutiveTitleDropdown(event)" title="คลิกเพื่อเลือก ผู้บริหาร หรือ ผู้มีประสบการณ์">ผู้บริหาร</span>
+        </div>
+
+        <!-- Candidate profile with Photo -->
+        <div class="flex items-start gap-4 mb-5">
+          <!-- Main details -->
+          <div class="flex-1 flex flex-col gap-3 text-sm">
+            <!-- Row 1: Company -->
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_company">บริษัท</span>
+              <span id="company_executive" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุบริษัท..."></span>
+            </div>
+
+            <!-- Row 2: Name & Age -->
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_fullname">ชื่อ-สกุล</span>
+              <span id="fullName_executive" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุชื่อ-นามสกุล..."></span>
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_age">อายุ</span>
+              <span id="age_executive" contenteditable="true" class="editable-field w-16 text-center" data-placeholder="-"></span>
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_years">ปี</span>
+            </div>
+
+            <!-- Row 3: Height, Weight, BMI -->
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_height">ส่วนสูง</span>
+              <span id="height_executive" contenteditable="true" oninput="calculateBMIExecutive()" class="editable-field w-20 text-center" data-placeholder="-"></span>
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_cm">เซนติเมตร</span>
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_weight">น้ำหนัก</span>
+              <span id="weight_executive" contenteditable="true" oninput="calculateBMIExecutive()" class="editable-field w-20 text-center" data-placeholder="-"></span>
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_kg">กิโลกรัม</span>
+              <span class="font-bold text-slate-800 shrink-0" data-translate-key="label_bmi">ค่า BMI</span>
+              <span id="bmi_executive" class="editable-field w-24 text-center font-bold text-indigo-950" data-placeholder="คำนวณอัตโนมัติ"></span>
+            </div>
+          </div>
+
+          <!-- Photo Box -->
+          <div class="w-32 flex flex-col items-center">
+            <div id="photo-box_executive" class="w-28 h-36 border border-slate-300 relative bg-slate-50 flex items-center justify-center text-xs text-slate-400 cursor-pointer overflow-hidden group shadow-inner" onclick="document.getElementById('photo-uploader_executive').click()">
+              <img id="photo-img_executive" src="" alt="Candidate Photo" class="hidden w-full h-full object-cover">
+              <div id="photo-placeholder_executive" class="text-center p-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto text-slate-300 mb-1 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span data-translate-key="label_click_to_upload">คลิกเพื่ออัปโหลด</span>
+              </div>
+              <div data-translate-key="label_change_photo" class="absolute inset-0 bg-black/40 text-white text-[10px] font-bold opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all no-print">เปลี่ยนรูปภาพ</div>
+            </div>
+            <input type="file" id="photo-uploader_executive" accept="image/*" class="hidden" onchange="handlePhotoUpload(this)">
+          </div>
+        </div>
+
+        <!-- Section: Education History (ประวัติการศึกษา) -->
+        <div class="mb-5">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-1 mb-2">
+            <div data-translate-key="label_education_section" class="font-bold text-slate-900 text-sm">ประวัติการศึกษา</div>
+            <button type="button" class="no-print text-xs font-bold text-indigo-700 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2.5 py-1 rounded shadow-xs flex items-center gap-1 transition-all cursor-pointer" onclick="addEducationRow()">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" /></svg>
+              <span data-translate-key="btn_add_education">+ เพิ่มวุฒิการศึกษา</span>
+            </button>
+          </div>
+          <div class="border border-slate-300 rounded overflow-hidden">
+            <table class="w-full text-xs text-left border-collapse">
+              <thead class="bg-slate-100 text-slate-800 font-bold border-b border-slate-300">
+                <tr>
+                  <th class="p-2 w-32 border-r border-slate-300" data-translate-key="col_edu_level">ระดับการศึกษา</th>
+                  <th class="p-2 border-r border-slate-300" data-translate-key="col_edu_institute">สถาบันการศึกษา</th>
+                  <th class="p-2 border-r border-slate-300" data-translate-key="col_edu_major">สาขาวิชา</th>
+                  <th class="p-2 w-16 text-center border-r border-slate-300" data-translate-key="col_edu_gpa">เกรดเฉลี่ย</th>
+                  <th class="p-2 w-28 text-center border-r border-slate-300" data-translate-key="col_edu_years">ปีที่ศึกษา</th>
+                  <th class="p-2 w-10 text-center no-print" data-translate-key="col_delete">ลบ</th>
+                </tr>
+              </thead>
+              <tbody id="education-tbody_executive" class="divide-y divide-slate-200">
+                <!-- Rows injected dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Section: Work Experience (ประวัติการทำงาน) -->
+        <div class="mb-5">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-1 mb-2">
+            <div data-translate-key="label_experience_section" class="font-bold text-slate-900 text-sm">ประวัติการทำงาน</div>
+            <button type="button" class="no-print text-xs font-bold text-indigo-700 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2.5 py-1 rounded shadow-xs flex items-center gap-1 transition-all cursor-pointer" onclick="addExperienceRow()">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" /></svg>
+              <span data-translate-key="btn_add_experience">+ เพิ่มประสบการณ์ทำงาน</span>
+            </button>
+          </div>
+          <div class="border border-slate-300 rounded overflow-hidden">
+            <table class="w-full text-xs text-left border-collapse">
+              <thead class="bg-slate-100 text-slate-800 font-bold border-b border-slate-300">
+                <tr>
+                  <th class="p-2 w-36 text-center border-r border-slate-300" data-translate-key="col_exp_period">ระยะเวลา</th>
+                  <th class="p-2 w-32 text-center border-r border-slate-300" data-translate-key="col_exp_duration">ระยะเวลา (ปี)</th>
+                  <th class="p-2 border-r border-slate-300" data-translate-key="col_exp_company">บริษัท</th>
+                  <th class="p-2 border-r border-slate-300" data-translate-key="col_exp_position">ตำแหน่ง</th>
+                  <th class="p-2 w-10 text-center no-print" data-translate-key="col_delete">ลบ</th>
+                </tr>
+              </thead>
+              <tbody id="experience-tbody_executive" class="divide-y divide-slate-200">
+                <!-- Rows injected dynamically -->
+              </tbody>
+              <tfoot class="bg-slate-50 font-bold border-t border-slate-300 text-slate-800">
+                <tr>
+                  <td colspan="2" class="p-2 text-right border-r border-slate-300 text-slate-700" data-translate-key="label_total_work_experience">รวมประสบการณ์ทำงานทั้งหมด :</td>
+                  <td colspan="2" class="p-2 text-indigo-950 font-bold">
+                    <span id="total-experience-years_executive" class="editable-field font-black" contenteditable="true" data-placeholder="คำนวณอัตโนมัติ...">-</span>
+                  </td>
+                  <td class="no-print"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- Section: Interview Assessment & Comments -->
+        <div class="mb-5">
+          <div data-translate-key="label_interview_section_executive" class="font-bold text-slate-900 border-b border-slate-800 pb-1 mb-2 text-sm">ผลการสัมภาษณ์</div>
+          <div class="space-y-3 text-sm pl-2">
+            <!-- Row 1: Interview date & result score -->
+            <div class="flex items-center flex-wrap gap-2">
+              <span class="font-bold text-slate-800 shrink-0 w-36" data-translate-key="label_interview_result_executive">ผลการสัมภาษณ์ :</span>
+              <span data-translate-key="label_interview_date">วันที่</span>
+              <span id="interviewDate_executive" contenteditable="true" class="editable-field w-36 text-center" data-placeholder="ระบุวันที่สัมภาษณ์..."></span>
+              <span class="ml-2 font-bold text-slate-800" data-translate-key="label_interview_score_executive">ผลการประเมิน :</span>
+              <span id="interviewScore_executive" contenteditable="true" class="editable-field min-w-[120px] font-bold text-indigo-950" data-placeholder="ผ่านเกณฑ์การสัมภาษณ์">ผ่านเกณฑ์</span>
+            </div>
+
+            <!-- Row 2: Interviewers -->
+            <div class="flex items-start gap-2">
+              <span class="font-bold text-slate-800 shrink-0 w-36 mt-1" data-translate-key="label_interviewers_executive">กรรมการสัมภาษณ์ :</span>
+              <div id="interviewers_executive" contenteditable="true" class="editable-field flex-1 min-h-[28px]" data-placeholder="ระบุรายชื่อกรรมการสัมภาษณ์..."></div>
+            </div>
+
+            <!-- Row 3: Committee Comments (No separate strengths or concerns) -->
+            <div class="flex items-start gap-2">
+              <span class="font-bold text-slate-800 shrink-0 w-36 mt-1" data-translate-key="label_interview_comments_executive">ความเห็นของกรรมการ :</span>
+              <div id="interviewComments_executive" contenteditable="true" class="editable-field flex-1 min-h-[48px] whitespace-pre-wrap leading-relaxed text-slate-800" data-placeholder="ระบุความคิดเห็นและข้อเสนอแนะของคณะกรรมการสัมภาษณ์...">ผู้สมัครมีคุณสมบัติและประสบการณ์ตรงตามความต้องการของตำแหน่งงาน มีความพร้อมในการเริ่มงานและร่วมพัฒนาองค์กร</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Proposed Position (ตำแหน่งที่เสนอขออนุมัติจ้าง) -->
+        <div class="mb-5">
+          <div data-translate-key="label_proposed_position_header" class="font-bold text-slate-900 border-b border-slate-800 pb-1 mb-2 text-sm">ตำแหน่งที่เสนอขออนุมัติจ้าง</div>
+          <div class="border border-slate-400 text-sm">
+            <!-- Row 1 -->
+            <div class="grid grid-cols-2 border-b border-slate-400">
+              <div class="p-2 border-r border-slate-400 flex items-center gap-2">
+                <span data-translate-key="label_position" class="font-bold text-slate-800 shrink-0 w-28">ตำแหน่ง</span>
+                <span id="position_executive" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุตำแหน่ง..."></span>
+              </div>
+              <div class="p-2 flex items-center gap-2">
+                <span data-translate-key="label_dept_division" class="font-bold text-slate-800 shrink-0 w-32">แผนก / ฝ่าย</span>
+                <span id="deptDivision_executive" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุแผนก/ฝ่าย..."></span>
+              </div>
+            </div>
+            <!-- Row 2 -->
+            <div class="grid grid-cols-2 border-b border-slate-400">
+              <div class="p-2 border-r border-slate-400 flex items-center gap-2">
+                <span data-translate-key="label_company" class="font-bold text-slate-800 shrink-0 w-28">บริษัท</span>
+                <span id="company_job_executive" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุบริษัท..."></span>
+              </div>
+              <div class="p-2 flex items-center gap-2">
+                <span data-translate-key="label_work_location" class="font-bold text-slate-800 shrink-0 w-32">สถานที่ปฏิบัติงาน</span>
+                <span id="workLocation_executive" contenteditable="true" class="editable-field flex-1 cursor-pointer hover:bg-slate-50" data-placeholder="ระบุสถานที่ทำงาน..." title="คลิกเพื่อเลือกสถานที่ทำงานจากฐานข้อมูล"></span>
+              </div>
+            </div>
+            <!-- Row 3 -->
+            <div class="grid grid-cols-2 border-b border-slate-400">
+              <div class="p-2 border-r border-slate-400 flex items-center gap-2">
+                <span data-translate-key="label_supervisor" class="font-bold text-slate-800 shrink-0 w-28">หัวหน้างาน</span>
+                <span id="supervisor_executive" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุชื่อหัวหน้างาน..."></span>
+              </div>
+              <div class="p-2 flex items-center gap-2">
+                <span data-translate-key="label_supervisor_position" class="font-bold text-slate-800 shrink-0 w-32">ตำแหน่งหัวหน้างาน</span>
+                <span id="supervisorPosition_executive" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุตำแหน่งหัวหน้า..."></span>
+              </div>
+            </div>
+            <!-- Row 4 -->
+            <div class="grid grid-cols-2">
+              <div class="p-2 border-r border-slate-400 flex items-center gap-2">
+                <span data-translate-key="label_start_date" class="font-bold text-slate-800 shrink-0 w-28">วันที่เริ่มงานจริง</span>
+                <span id="startDate_executive" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุวันที่เริ่มงาน...">-</span>
+              </div>
+              <div class="p-2 flex items-center gap-2">
+                <span data-translate-key="label_transfer_date" class="font-bold text-slate-800 shrink-0 w-32">วันที่โอนย้าย</span>
+                <span id="transferDate_executive" contenteditable="true" class="editable-field flex-1" data-placeholder="ระบุวันที่โอนย้าย...">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Proposed Employment Offer (อัตราเงินเดือนที่เสนอขออนุมัติ) -->
+        <div class="mb-5">
+          <div data-translate-key="label_proposed_offer_header" class="font-bold text-slate-900 border-b border-slate-800 pb-1 mb-2 text-sm">อัตราเงินเดือนที่เสนอขออนุมัติ</div>
+          <div class="text-sm space-y-3 pl-2">
+            <!-- Row 1: Base Salary -->
+            <div class="flex items-center gap-x-2">
+              <span class="font-bold text-slate-900 shrink-0 w-64" data-translate-key="label_base_salary">ฐานเงินเดือน :</span>
+              <span id="salaryRate_executive" contenteditable="true" class="editable-field w-36 text-center font-bold text-indigo-950" data-placeholder="-"></span>
+              <span class="font-bold shrink-0 text-slate-700" data-translate-key="label_baht_month">บาท/เดือน</span>
+            </div>
+
+            <!-- Row 2: Position Allowance -->
+            <div class="flex items-center gap-x-2">
+              <span class="font-bold text-slate-800 shrink-0 w-64" data-translate-key="label_position_allowance">ค่าตำแหน่ง :</span>
+              <span id="positionAllowance_executive" contenteditable="true" class="editable-field w-36 text-center font-bold" data-placeholder="-">-</span>
+              <span class="font-bold shrink-0 text-slate-700" data-translate-key="label_baht_month">บาท/เดือน</span>
+              <span class="text-xs text-rose-600 font-semibold ml-2" data-translate-key="label_position_allowance_note">*ไม่ได้รับทุกคน</span>
+            </div>
+
+            <!-- Row 3: Upcountry Allowance or Travelling Allowance (DDL) -->
+            <div class="flex items-center gap-x-2">
+              <div class="flex items-center gap-1 shrink-0 w-64">
+                <span id="upcountryOrTravelLabel_executive" class="cursor-pointer underline decoration-dotted font-bold text-slate-800 hover:text-indigo-800" onclick="openUpcountryTravelDropdown(event)" title="คลิกเพื่อเลือก ค่าต่างจังหวัด หรือ ค่าเดินทาง">ค่าต่างจังหวัด</span>
+                <span class="font-bold text-slate-800">:</span>
+              </div>
+              <span id="upcountryOrTravelAllowance_executive" contenteditable="true" class="editable-field w-36 text-center font-bold" data-placeholder="-">-</span>
+              <span class="font-bold shrink-0 text-slate-700" data-translate-key="label_baht_month">บาท/เดือน</span>
+            </div>
+
+            <!-- Row 4: Work Location -->
+            <div class="flex items-center gap-x-2">
+              <span class="font-bold text-slate-800 shrink-0 w-64" data-translate-key="label_work_location_offer">สถานที่ทำงาน :</span>
+              <span id="workLocationOffer_executive" contenteditable="true" class="editable-field flex-1 cursor-pointer hover:bg-slate-50" data-placeholder="เลือกหรือระบุสถานที่ทำงาน..." title="คลิกเพื่อเลือกสถานที่ทำงานจากฐานข้อมูล"></span>
+            </div>
+
+            <!-- Row 5: Working Schedule (DDL) -->
+            <div class="flex items-center gap-x-2">
+              <span class="font-bold text-slate-800 shrink-0 w-64" data-translate-key="label_working_schedule">ปฏิทินการทำงาน :</span>
+              <span id="calendar-selector-container-exec" class="no-print"></span>
+              <span id="calendar_executive" contenteditable="true" class="editable-field flex-1 cursor-pointer hover:bg-slate-50" data-placeholder="ตามตารางการทำงาน เป็นไปตามนโยบายของบริษัท">วันจันทร์ - ศุกร์ (08.00 - 17.00 น.) หรือตามตารางการทำงาน</span>
+            </div>
+
+            <!-- Row 6: Employment Type (DDL) -->
+            <div class="flex items-center gap-x-2">
+              <span class="font-bold text-slate-800 shrink-0 w-64" data-translate-key="label_employment_type">ประเภทการจ้างงาน :</span>
+              <div class="flex items-center gap-2 flex-1">
+                <span id="employmentType_executive" class="cursor-pointer underline decoration-dotted font-bold text-slate-800 hover:text-indigo-800" onclick="openEmploymentTypeDropdown(event)" title="คลิกเพื่อเลือกประเภทการจ้างงาน">พนักงานประจำ</span>
+              </div>
+            </div>
+
+            <!-- Row 7: Welfare -->
+            <div class="flex items-center gap-x-2">
+              <span class="font-bold text-slate-800 shrink-0 w-64" data-translate-key="label_welfare">สวัสดิการ :</span>
+              <span id="welfare_executive" contenteditable="true" class="editable-field flex-1" data-placeholder="ตามโครงสร้างบริษัท">ตามโครงสร้างบริษัท</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Foreign Employee Clause (Others Benefit) -->
+        <div id="expat-benefits-section_executive" class="mb-5 hidden">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-1 mb-2">
+            <div class="flex items-center gap-2">
+              <span data-translate-key="label_expat_benefits_header" class="font-bold text-slate-900 text-sm">สิทธิประโยชน์อื่นๆ (เฉพาะพนักงานต่างชาติ) :</span>
+              <button type="button" onclick="toggleExpatBenefits()" class="no-print text-xs text-indigo-600 hover:text-indigo-800 underline decoration-dotted cursor-pointer ml-1" title="คลิกเพื่อซ่อนหรือแสดงส่วนนี้">
+                <span data-translate-key="btn_toggle_expat_visibility">(ซ่อน/แสดง)</span>
+              </button>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="no-print text-xs text-slate-500 italic" data-translate-key="hint_expat_recruiter_fill">สรรหาสามารถกรอกรายละเอียดสิทธิประโยชน์ในช่องว่างด้านขวา</span>
+              <button type="button" class="no-print text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 px-2 py-1 rounded shadow-xs flex items-center gap-1 transition-all cursor-pointer" onclick="fillStandardExpatBenefits()" title="เติมข้อความนโยบายมาตรฐาน">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                <span data-translate-key="btn_fill_standard_benefit">ใช้ข้อความมาตรฐาน</span>
+              </button>
+              <button type="button" class="no-print text-xs font-bold text-indigo-700 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2.5 py-1 rounded shadow-xs flex items-center gap-1 transition-all cursor-pointer" onclick="addExpatBenefitRow()">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" /></svg>
+                <span data-translate-key="btn_add_benefit">+ เพิ่มสิทธิประโยชน์</span>
+              </button>
+            </div>
+          </div>
+          <div class="border border-slate-300 rounded overflow-hidden">
+            <table class="w-full text-xs text-left border-collapse">
+              <thead class="bg-slate-100 text-slate-800 font-bold border-b border-slate-300">
+                <tr>
+                  <th class="p-2 w-72 border-r border-slate-300" data-translate-key="col_benefit_item">หัวข้อสิทธิประโยชน์</th>
+                  <th class="p-2 border-r border-slate-300" data-translate-key="col_benefit_details">รายละเอียด</th>
+                  <th class="p-2 w-10 text-center no-print" data-translate-key="col_delete">ลบ</th>
+                </tr>
+              </thead>
+              <tbody id="expat-benefits-tbody_executive" class="divide-y divide-slate-200">
+                <!-- Benefit rows injected dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Closing Text -->
+        <div data-translate-key="label_closing_text" class="mt-auto text-center font-bold text-slate-900 text-sm mb-4">
+          จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ
+        </div>
+      </div>
       
     </div>
   </div>
@@ -959,7 +1287,45 @@
         ui_mib2_label: "Extra Incentive (MIB2)",
         label_mib2: "Extra Incentive (MIB2)",
         placeholder_mib2_amount: "ตามนโยบายบริษัท",
-        placeholder_mib2_condition: "หลักเกณฑ์การจ่าย Extra Incentive Cap Max 25,000 บาท เป็นไปตามเงื่อนไขและหลักเกณฑ์ที่บริษัทฯกำหนด"
+        placeholder_mib2_condition: "หลักเกณฑ์การจ่าย Extra Incentive Cap Max 25,000 บาท เป็นไปตามเงื่อนไขและหลักเกณฑ์ที่บริษัทฯกำหนด",
+        doc_title_executive_prefix: "แบบขออนุมัติจ้างงานระดับ",
+        ui_opt_executive: "ระดับ ผู้บริหาร / ผู้มีประสบการณ์",
+        ui_expat_label: "สิทธิประโยชน์ต่างชาติ",
+        label_education_section: "ประวัติการศึกษา",
+        btn_add_education: "+ เพิ่มวุฒิการศึกษา",
+        col_edu_level: "ระดับการศึกษา",
+        col_edu_institute: "สถาบันการศึกษา",
+        col_edu_major: "สาขาวิชา",
+        col_edu_gpa: "เกรดเฉลี่ย",
+        col_edu_years: "ปีที่ศึกษา",
+        label_experience_section: "ประวัติการทำงาน",
+        btn_add_experience: "+ เพิ่มประสบการณ์ทำงาน",
+        col_exp_period: "ระยะเวลา",
+        col_exp_duration: "ระยะเวลา (ปี)",
+        col_exp_company: "บริษัท",
+        col_exp_position: "ตำแหน่ง",
+        col_delete: "ลบ",
+        label_total_work_experience: "รวมประสบการณ์ทำงานทั้งหมด :",
+        label_interview_section_executive: "ผลการสัมภาษณ์",
+        label_interview_result_executive: "ผลการสัมภาษณ์ :",
+        label_interviewers_executive: "กรรมการสัมภาษณ์ :",
+        label_interview_comments_executive: "ความเห็นของกรรมการ :",
+        label_proposed_position_header: "ตำแหน่งที่เสนอขออนุมัติจ้าง",
+        label_proposed_offer_header: "อัตราเงินเดือนที่เสนอขออนุมัติ",
+        label_base_salary: "ฐานเงินเดือน :",
+        label_position_allowance: "ค่าตำแหน่ง :",
+        label_position_allowance_note: "*ไม่ได้รับทุกคน",
+        label_work_location_offer: "สถานที่ทำงาน :",
+        label_working_schedule: "ปฏิทินการทำงาน :",
+        label_employment_type: "ประเภทการจ้างงาน :",
+        label_expat_benefits_header: "สิทธิประโยชน์อื่นๆ (เฉพาะพนักงานต่างชาติ) :",
+        btn_add_benefit: "+ เพิ่มสิทธิประโยชน์",
+        btn_fill_standard_benefit: "ใช้ข้อความมาตรฐาน",
+        btn_toggle_expat_visibility: "(ซ่อน/แสดง)",
+        col_benefit_item: "หัวข้อสิทธิประโยชน์",
+        col_benefit_details: "รายละเอียด",
+        label_interview_score_executive: "ผลการประเมิน :",
+        hint_expat_recruiter_fill: "สรรหาสามารถกรอกรายละเอียดสิทธิประโยชน์ในช่องว่างด้านขวา"
       },
       en: {
         ui_header_title: "Hiring Memo Generation System",
@@ -968,12 +1334,15 @@
         ui_opt_workskill: "Work Skill Level",
         ui_opt_bachelor: "Bachelor's Degree Level",
         ui_opt_vocational: "High Vocational Certificate Level",
+        ui_opt_executive: "Executive / Experienced Level",
+        ui_expat_label: "Expat Benefits",
         ui_btn_save_png: "Save as Image (PNG)",
         ui_btn_print_pdf: "Print Document (PDF)",
         ui_btn_close: "Close Window",
         doc_title_workskill: "Approval for hiring Work Skill Level",
         doc_title_bachelor: "Approval for hiring Bachelor's Degree",
         doc_title_vocational: "Approval for hiring Vocational Level (High Vocational Certificate)",
+        doc_title_executive_prefix: "Approval for Hiring",
         label_company: "Company",
         label_fullname: "First name - Last name",
         label_age: "Age",
@@ -1035,7 +1404,42 @@
         ui_mib2_label: "Extra Incentive (MIB2)",
         label_mib2: "Extra Incentive (MIB2)",
         placeholder_mib2_amount: "Per company policy",
-        placeholder_mib2_condition: "Extra Incentive payment criteria: Cap Max 25,000 THB, subject to conditions and criteria set by the company"
+        placeholder_mib2_condition: "Extra Incentive payment criteria: Cap Max 25,000 THB, subject to conditions and criteria set by the company",
+        label_education_section: "Education Background",
+        btn_add_education: "+ Add Education",
+        col_edu_level: "Education Level",
+        col_edu_institute: "Institute",
+        col_edu_major: "Major",
+        col_edu_gpa: "GPA",
+        col_edu_years: "Period",
+        label_experience_section: "Work Experience",
+        btn_add_experience: "+ Add Experience",
+        col_exp_period: "Period",
+        col_exp_duration: "Duration (Years)",
+        col_exp_company: "Company",
+        col_exp_position: "Position",
+        col_delete: "Delete",
+        label_total_work_experience: "Total Work Experience :",
+        label_interview_section_executive: "Interview Assessment",
+        label_interview_result_executive: "Interview Result :",
+        label_interviewers_executive: "Interviewers :",
+        label_interview_comments_executive: "Committee Comments :",
+        label_proposed_position_header: "Proposed Position",
+        label_proposed_offer_header: "Proposed Employment Offer",
+        label_base_salary: "Base Salary :",
+        label_position_allowance: "Position Allowance :",
+        label_position_allowance_note: "*Not eligible for everyone",
+        label_work_location_offer: "Work Location :",
+        label_working_schedule: "Working Schedule :",
+        label_employment_type: "Employment Type :",
+        label_expat_benefits_header: "Others Benefit (Foreign Employee Only) :",
+        btn_add_benefit: "+ Add Benefit",
+        btn_fill_standard_benefit: "Use Standard Policy",
+        btn_toggle_expat_visibility: "(Hide/Show)",
+        col_benefit_item: "Benefit Item",
+        col_benefit_details: "Details",
+        label_interview_score_executive: "Assessment :",
+        hint_expat_recruiter_fill: "Recruiters can enter benefit details in the right field"
       }
     };
 
@@ -1065,7 +1469,8 @@
         supervisorPosition: "ระบุตำแหน่งหัวหน้า...",
         supervisorPosition_bachelor: "ระบุตำแหน่งหัวหน้า...",
         workLocation: "ระบุสถานที่ทำงาน...",
-        workLocation_bachelor: "ระบุสถานที่ทำงาน...",
+        workLocation_executive: "ระบุสถานที่ทำงาน...",
+        workLocationOffer_executive: "เลือกหรือระบุสถานที่ทำงาน...",
         calendar: "ระบุปฏิทินการทำงาน...",
         calendar_bachelor: "ตามตารางกะ เป็นไปตามนโยบายของบริษัท",
         welfare: "ระบุสวัสดิการ...",
@@ -1111,7 +1516,9 @@
         interviewPercent_vocational: "-",
         growingTogetherNote_vocational: "ระบุหมายเหตุการเข้าร่วมกิจกรรม (เว้นว่างได้)...",
         mib2Amount: "ตามนโยบายบริษัท",
-        mib2Condition: "หลักเกณฑ์การจ่าย Extra Incentive Cap Max 25,000 บาท เป็นไปตามเงื่อนไขและหลักเกณฑ์ที่บริษัทฯกำหนด"
+        mib2Condition: "หลักเกณฑ์การจ่าย Extra Incentive Cap Max 25,000 บาท เป็นไปตามเงื่อนไขและหลักเกณฑ์ที่บริษัทฯกำหนด",
+        expatTopic: "ระบุหัวข้อ...",
+        expatDetails: "รอ สรรหากรอก..."
       },
       en: {
         company: "Specify company...",
@@ -1138,7 +1545,8 @@
         supervisorPosition: "Specify supervisor's position...",
         supervisorPosition_bachelor: "Specify supervisor's position...",
         workLocation: "Specify working site...",
-        workLocation_bachelor: "Specify working site...",
+        workLocation_executive: "Specify working site...",
+        workLocationOffer_executive: "Select or specify work location...",
         calendar: "Specify operational calendar...",
         calendar_bachelor: "Specify operational calendar...",
         welfare: "Specify welfare...",
@@ -1184,7 +1592,9 @@
         interviewPercent_vocational: "-",
         growingTogetherNote_vocational: "Specify activity remarks (optional)...",
         mib2Amount: "Per company policy",
-        mib2Condition: "Extra Incentive payment criteria: Cap Max 25,000 THB, subject to conditions and criteria set by the company"
+        mib2Condition: "Extra Incentive payment criteria: Cap Max 25,000 THB, subject to conditions and criteria set by the company",
+        expatTopic: "Specify topic...",
+        expatDetails: "Waiting for recruitment..."
       }
     };
 
@@ -1296,7 +1706,65 @@
       "หลักเกณฑ์การจ่าย Extra Incentive Cap Max 25,000 บาท เป็นไปตามเงื่อนไขและหลักเกณฑ์ที่บริษัทฯกำหนด": {
         en: "Extra Incentive payment criteria: Cap Max 25,000 THB, subject to conditions and criteria set by the company",
         th: "หลักเกณฑ์การจ่าย Extra Incentive Cap Max 25,000 บาท เป็นไปตามเงื่อนไขและหลักเกณฑ์ที่บริษัทฯกำหนด"
+      },
+      "ผู้บริหาร": { en: "Executive", th: "ผู้บริหาร" },
+      "Executive": { en: "Executive", th: "ผู้บริหาร" },
+      "ผู้มีประสบการณ์": { en: "Experienced Professional", th: "ผู้มีประสบการณ์" },
+      "Experienced Professional": { en: "Experienced Professional", th: "ผู้มีประสบการณ์" },
+      "Experienced": { en: "Experienced Professional", th: "ผู้มีประสบการณ์" },
+      "ค่าต่างจังหวัด": { en: "Upcountry Allowance", th: "ค่าต่างจังหวัด" },
+      "Upcountry Allowance": { en: "Upcountry Allowance", th: "ค่าต่างจังหวัด" },
+      "ค่าเดินทาง": { en: "Travelling Allowance", th: "ค่าเดินทาง" },
+      "Travelling Allowance": { en: "Travelling Allowance", th: "ค่าเดินทาง" },
+      "พนักงานประจำ": { en: "Permanent Employee", th: "พนักงานประจำ" },
+      "พนักงานประจำ (Permanent Employee)": { en: "Permanent Employee", th: "พนักงานประจำ" },
+      "Permanent Employee": { en: "Permanent Employee", th: "พนักงานประจำ" },
+      "พนักงานสัญญาจ้าง": { en: "Fixed-Term Contract Employee", th: "พนักงานสัญญาจ้าง" },
+      "พนักงานสัญญาจ้างระยะเวลาที่กำหนด (Fixed-Term Employee)": { en: "Fixed-Term Contract Employee", th: "พนักงานสัญญาจ้าง" },
+      "Fixed-Term Contract Employee": { en: "Fixed-Term Contract Employee", th: "พนักงานสัญญาจ้าง" },
+      "วันจันทร์ - ศุกร์ (08.00 - 17.00 น.) หรือตามตารางการทำงาน": {
+        en: "Monday - Friday (08:00 - 17:00) or according to work schedule",
+        th: "วันจันทร์ - ศุกร์ (08.00 - 17.00 น.) หรือตามตารางการทำงาน"
+      },
+      "Monday - Friday (08:00 - 17:00) or according to work schedule": {
+        en: "Monday - Friday (08:00 - 17:00) or according to work schedule",
+        th: "วันจันทร์ - ศุกร์ (08.00 - 17.00 น.) หรือตามตารางการทำงาน"
+      },
+      "ตามโครงสร้างบริษัท": { en: "Following company policies", th: "ตามโครงสร้างบริษัท" },
+      "Following company policies": { en: "Following company policies", th: "ตามโครงสร้างบริษัท" },
+      "ผ่านเกณฑ์": { en: "Passed criteria", th: "ผ่านเกณฑ์" },
+      "Passed criteria": { en: "Passed criteria", th: "ผ่านเกณฑ์" },
+      "ผู้สมัครมีคุณสมบัติและประสบการณ์ตรงตามความต้องการของตำแหน่งงาน มีความพร้อมในการเริ่มงานและร่วมพัฒนาองค์กร": {
+        en: "The candidate meets all qualifications and experience required for the position, and is ready to start work and contribute to corporate development.",
+        th: "ผู้สมัครมีคุณสมบัติและประสบการณ์ตรงตามความต้องการของตำแหน่งงาน มีความพร้อมในการเริ่มงานและร่วมพัฒนาองค์กร"
+      },
+      "The candidate meets all qualifications and experience required for the position, and is ready to start work and contribute to corporate development.": {
+        en: "The candidate meets all qualifications and experience required for the position, and is ready to start work and contribute to corporate development.",
+        th: "ผู้สมัครมีคุณสมบัติและประสบการณ์ตรงตามความต้องการของตำแหน่งงาน มีความพร้อมในการเริ่มงานและร่วมพัฒนาองค์กร"
       }
+    };
+
+    const EXPAT_BENEFIT_TOPICS = {
+      'Tax per year': { th: 'ภาษีต่อปี', en: 'Tax per year' },
+      'ภาษีต่อปี': { th: 'ภาษีต่อปี', en: 'Tax per year' },
+      'Visa and Work Permit': { th: 'วีซ่าและใบอนุญาตทำงาน', en: 'Visa and Work Permit' },
+      'วีซ่าและใบอนุญาตทำงาน': { th: 'วีซ่าและใบอนุญาตทำงาน', en: 'Visa and Work Permit' },
+      'Annual Physical Check-Up': { th: 'ตรวจสุขภาพประจำปี', en: 'Annual Physical Check-Up' },
+      'ตรวจสุขภาพประจำปี': { th: 'ตรวจสุขภาพประจำปี', en: 'Annual Physical Check-Up' },
+      'Air Ticket (Start and end contract)': { th: 'ตั๋วเครื่องบิน (เริ่มและสิ้นสุดสัญญา)', en: 'Air Ticket (Start and end contract)' },
+      'ตั๋วเครื่องบิน (เริ่มและสิ้นสุดสัญญา)': { th: 'ตั๋วเครื่องบิน (เริ่มและสิ้นสุดสัญญา)', en: 'Air Ticket (Start and end contract)' },
+      'Baggage Excess': { th: 'สัมภาระส่วนเกิน', en: 'Baggage Excess' },
+      'สัมภาระส่วนเกิน': { th: 'สัมภาระส่วนเกิน', en: 'Baggage Excess' },
+      'Annual Leave': { th: 'วันหยุดพักผ่อนประจำปี', en: 'Annual Leave' },
+      'วันหยุดพักผ่อนประจำปี': { th: 'วันหยุดพักผ่อนประจำปี', en: 'Annual Leave' },
+      'Personal Leave': { th: 'วันลากิจ', en: 'Personal Leave' },
+      'วันลากิจ': { th: 'วันลากิจ', en: 'Personal Leave' },
+      'Traditional Leave': { th: 'วันหยุดตามประเพณี', en: 'Traditional Leave' },
+      'วันหยุดตามประเพณี': { th: 'วันหยุดตามประเพณี', en: 'Traditional Leave' },
+      'Housing Allowance': { th: 'ค่าที่พักอาศัย', en: 'Housing Allowance' },
+      'ค่าที่พักอาศัย': { th: 'ค่าที่พักอาศัย', en: 'Housing Allowance' },
+      'Medical Insurance': { th: 'ประกันสุขภาพ', en: 'Medical Insurance' },
+      'ประกันสุขภาพ': { th: 'ประกันสุขภาพ', en: 'Medical Insurance' }
     };
 
     function translateText(text, lang) {
@@ -1361,6 +1829,19 @@
             el.setAttribute('data-placeholder', placeholderTranslations[lang][id]);
           }
         });
+
+        // Update expat benefit table placeholders
+        const expatTbody = document.getElementById('expat-benefits-tbody_executive');
+        if (expatTbody) {
+          const phDetails = placeholderTranslations[lang].expatDetails || 'รอ สรรหากรอก...';
+          const phTopic = placeholderTranslations[lang].expatTopic || 'ระบุหัวข้อ...';
+          expatTbody.querySelectorAll('tr').forEach(tr => {
+            const topicSpan = tr.querySelector('td:nth-child(1) span');
+            const detailSpan = tr.querySelector('td:nth-child(2) span');
+            if (topicSpan) topicSpan.setAttribute('data-placeholder', phTopic);
+            if (detailSpan) detailSpan.setAttribute('data-placeholder', phDetails);
+          });
+        }
       }
       
       // 3. Translate current editable field contents
@@ -1377,7 +1858,8 @@
         'interviewers_bachelor', 'interviewers_vocational', 'interviewScore_bachelor', 'interviewScore_vocational',
         'interviewPercent_bachelor', 'interviewPercent_vocational', 'growingTogetherNote_vocational',
         'jobValueLabel_vocational', 'jobValueAllowance_vocational',
-        'mib2Amount', 'mib2Condition'
+        'mib2Amount', 'mib2Condition',
+        'welfare_executive', 'calendar_executive', 'interviewScore_executive', 'interviewComments_executive'
       ];
       translatableFieldIds.forEach(id => {
         const el = document.getElementById(id);
@@ -1390,7 +1872,73 @@
         }
       });
 
-      // 4. Update date formatting
+      // 4. Translate Executive dynamic labels & tables
+      const titleTypeEl = document.getElementById('executive-title-type');
+      if (titleTypeEl) {
+        titleTypeEl.textContent = translateText(titleTypeEl.textContent, lang);
+      }
+      const upcountryLabelEl = document.getElementById('upcountryOrTravelLabel_executive');
+      if (upcountryLabelEl) {
+        upcountryLabelEl.textContent = translateText(upcountryLabelEl.textContent, lang);
+      }
+      const empTypeEl = document.getElementById('employmentType_executive');
+      if (empTypeEl) {
+        empTypeEl.textContent = translateText(empTypeEl.textContent, lang);
+      }
+
+      // Expat Benefits table topics translation
+      const expatTbody = document.getElementById('expat-benefits-tbody_executive');
+      if (expatTbody) {
+        expatTbody.querySelectorAll('tr').forEach(tr => {
+          const topicSpan = tr.querySelector('td:nth-child(1) span');
+          if (topicSpan) {
+            const rawTopic = topicSpan.textContent.trim();
+            if (EXPAT_BENEFIT_TOPICS[rawTopic]) {
+              topicSpan.textContent = EXPAT_BENEFIT_TOPICS[rawTopic][lang];
+            }
+          }
+        });
+      }
+
+      // Education table degree levels translation
+      const eduTbody = document.getElementById('education-tbody_executive');
+      if (eduTbody) {
+        eduTbody.querySelectorAll('tr').forEach(tr => {
+          const lvlSpan = tr.querySelector('td:nth-child(1) span');
+          if (lvlSpan) {
+            lvlSpan.textContent = translateText(lvlSpan.textContent, lang);
+          }
+        });
+      }
+
+      // Experience table durations and placeholders translation
+      const expTbody = document.getElementById('experience-tbody_executive');
+      if (expTbody) {
+        const phPeriod = lang === 'en' ? 'YYYY - YYYY' : 'ปี - ปี';
+        const phDur = lang === 'en' ? 'e.g. 5 Years' : 'เช่น 5 ปี';
+        const phComp = lang === 'en' ? 'Specify company...' : 'ระบุบริษัท...';
+        const phPos = lang === 'en' ? 'Specify position...' : 'ระบุตำแหน่ง...';
+
+        expTbody.querySelectorAll('tr').forEach(tr => {
+          const pSpan = tr.querySelector('.exp-period');
+          const dSpan = tr.querySelector('.exp-duration');
+          const cSpan = tr.querySelector('td:nth-child(3) span');
+          const posSpan = tr.querySelector('td:nth-child(4) span');
+          if (pSpan) pSpan.setAttribute('data-placeholder', phPeriod);
+          if (dSpan) {
+            dSpan.setAttribute('data-placeholder', phDur);
+            const dt = dSpan.textContent.trim();
+            if (dt) {
+              dSpan.textContent = translateExperienceDuration(dt, lang);
+            }
+          }
+          if (cSpan) cSpan.setAttribute('data-placeholder', phComp);
+          if (posSpan) posSpan.setAttribute('data-placeholder', phPos);
+        });
+        updateTotalExperience();
+      }
+
+      // 5. Update date formatting
       updateInterviewDateDisplay();
     }
 
@@ -1409,7 +1957,7 @@
         formattedDate = `${dateObj.getDate()} ${thaiMonths[dateObj.getMonth()]} ${dateObj.getFullYear() + 543}`;
       }
 
-      ['interviewDate', 'interviewDate_bachelor', 'interviewDate_vocational'].forEach(id => {
+      ['interviewDate', 'interviewDate_bachelor', 'interviewDate_vocational', 'interviewDate_executive'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.textContent = formattedDate;
       });
@@ -1417,28 +1965,28 @@
 
     // Shared fields list for synchronization
     const sharedFields = [
-      { ws: 'company', bach: 'company_bachelor', voc: 'company_vocational' },
-      { ws: 'fullName', bach: 'fullName_bachelor', voc: 'fullName_vocational' },
-      { ws: 'age', bach: 'age_bachelor', voc: 'age_vocational' },
-      { ws: 'height', bach: 'height_bachelor', voc: 'height_vocational' },
-      { ws: 'weight', bach: 'weight_bachelor', voc: 'weight_vocational' },
-      { ws: 'bmi', bach: 'bmi_bachelor', voc: 'bmi_vocational' },
-      { ws: 'education', bach: 'education_bachelor', voc: 'education_vocational' },
-      { ws: 'major', bach: 'major_bachelor', voc: 'major_vocational' },
-      { ws: 'institute', bach: 'institute_bachelor', voc: 'institute_vocational' },
-      { ws: 'gpa', bach: 'gpa_bachelor', voc: 'gpa_vocational' },
-      { ws: 'position', bach: 'position_bachelor', voc: 'position_vocational' },
-      { ws: 'supervisor', bach: 'supervisor_bachelor', voc: 'supervisor_vocational' },
-      { ws: 'supervisorPosition', bach: 'supervisorPosition_bachelor', voc: 'supervisorPosition_vocational' },
-      { ws: 'workLocation', bach: 'workLocation_bachelor', voc: 'workLocation_vocational' },
-      { ws: 'welfare', bach: 'welfare_bachelor', voc: 'welfare_vocational' },
-      { ws: 'jobValueAllowance', bach: null, voc: 'jobValueAllowance_vocational' },
-      { ws: 'jobValueCondition', bach: null, voc: 'jobValueCondition_vocational' },
-      { ws: 'interviewDate', bach: 'interviewDate_bachelor', voc: 'interviewDate_vocational' },
-      { ws: 'interviewScore', bach: 'interviewScore_bachelor', voc: 'interviewScore_vocational' },
-      { ws: 'interviewPercent', bach: 'interviewPercent_bachelor', voc: 'interviewPercent_vocational' },
-      { ws: 'interviewers', bach: 'interviewers_bachelor', voc: 'interviewers_vocational' },
-      { ws: null, bach: 'growingTogetherNote', voc: 'growingTogetherNote_vocational' }
+      { ws: 'company', bach: 'company_bachelor', voc: 'company_vocational', exec: 'company_executive' },
+      { ws: 'fullName', bach: 'fullName_bachelor', voc: 'fullName_vocational', exec: 'fullName_executive' },
+      { ws: 'age', bach: 'age_bachelor', voc: 'age_vocational', exec: 'age_executive' },
+      { ws: 'height', bach: 'height_bachelor', voc: 'height_vocational', exec: 'height_executive' },
+      { ws: 'weight', bach: 'weight_bachelor', voc: 'weight_vocational', exec: 'weight_executive' },
+      { ws: 'bmi', bach: 'bmi_bachelor', voc: 'bmi_vocational', exec: 'bmi_executive' },
+      { ws: 'education', bach: 'education_bachelor', voc: 'education_vocational', exec: null },
+      { ws: 'major', bach: 'major_bachelor', voc: 'major_vocational', exec: null },
+      { ws: 'institute', bach: 'institute_bachelor', voc: 'institute_vocational', exec: null },
+      { ws: 'gpa', bach: 'gpa_bachelor', voc: 'gpa_vocational', exec: null },
+      { ws: 'position', bach: 'position_bachelor', voc: 'position_vocational', exec: 'position_executive' },
+      { ws: 'supervisor', bach: 'supervisor_bachelor', voc: 'supervisor_vocational', exec: 'supervisor_executive' },
+      { ws: 'supervisorPosition', bach: 'supervisorPosition_bachelor', voc: 'supervisorPosition_vocational', exec: 'supervisorPosition_executive' },
+      { ws: 'workLocation', bach: 'workLocation_bachelor', voc: 'workLocation_vocational', exec: 'workLocation_executive' },
+      { ws: 'welfare', bach: 'welfare_bachelor', voc: 'welfare_vocational', exec: 'welfare_executive' },
+      { ws: 'jobValueAllowance', bach: null, voc: 'jobValueAllowance_vocational', exec: null },
+      { ws: 'jobValueCondition', bach: null, voc: 'jobValueCondition_vocational', exec: null },
+      { ws: 'interviewDate', bach: 'interviewDate_bachelor', voc: 'interviewDate_vocational', exec: 'interviewDate_executive' },
+      { ws: 'interviewScore', bach: 'interviewScore_bachelor', voc: 'interviewScore_vocational', exec: 'interviewScore_executive' },
+      { ws: 'interviewPercent', bach: 'interviewPercent_bachelor', voc: 'interviewPercent_vocational', exec: null },
+      { ws: 'interviewers', bach: 'interviewers_bachelor', voc: 'interviewers_vocational', exec: 'interviewers_executive' },
+      { ws: null, bach: 'growingTogetherNote', voc: 'growingTogetherNote_vocational', exec: null }
     ];
 
     // Automatically parse candidate data from localStorage on load
@@ -1448,14 +1996,23 @@
         try {
           const data = JSON.parse(dataStr);
           
-          // 1. Auto-detect template based on education level first
+          // 1. Auto-detect template based on position or education level first
           const highestEdu = getHighestEducation(data);
           const eduLevel = highestEdu.level ? highestEdu.level.toLowerCase() : '';
           
+          const pos = (data.position || '').toLowerCase();
+          const isExecPosition = pos.includes('manager') || pos.includes('director') || pos.includes('ผู้จัดการ') || pos.includes('ผู้บริหาร') || pos.includes('lead') || pos.includes('head') || pos.includes('specialist') || pos.includes('vp') || pos.includes('avp');
           const isBachelorOrAbove = ['bachelor', 'master', 'phd'].includes(eduLevel);
           const isVocational = eduLevel === 'vocational';
 
-          const targetTemplate = isBachelorOrAbove ? 'bachelor' : (isVocational ? 'vocational' : 'workskill');
+          let targetTemplate = 'workskill';
+          if (isExecPosition) {
+            targetTemplate = 'executive';
+          } else if (isBachelorOrAbove) {
+            targetTemplate = 'bachelor';
+          } else if (isVocational) {
+            targetTemplate = 'vocational';
+          }
           activeTemplate = targetTemplate;
 
           const selector = document.getElementById('template-selector');
@@ -1467,6 +2024,14 @@
 
           // 3. Set correct initial template visibility
           applyTemplateVisibility(targetTemplate);
+
+          // 4. Auto-detect Foreigner for Expat Benefits (Default to OFF if Thai or unspecified)
+          const isForeigner = data.isThaiNational === false 
+            || (data.nationality && data.nationality !== 'ไทย' && data.nationality.toLowerCase() !== 'thai')
+            || Boolean(data.passportNo && !data.nationalId)
+            || Boolean(data.passport && !data.idCard);
+          
+          toggleExpatBenefits(Boolean(isForeigner));
         } catch (e) {
           console.error("Failed to parse candidate data", e);
         }
@@ -1693,27 +2258,7 @@
       // 5. Photo
       const photoUrl = data.photoUrl || data.photo_url || '';
       if (photoUrl) {
-        const proxyUrl = photoUrl.startsWith('http') 
-          ? `/api/proxy-image?url=${encodeURIComponent(photoUrl)}` 
-          : photoUrl;
-        
-        // Work Skill Photo
-        const photoImg = document.getElementById('photo-img');
-        photoImg.src = proxyUrl;
-        photoImg.classList.remove('hidden');
-        document.getElementById('photo-placeholder').classList.add('hidden');
-
-        // Bachelor Photo
-        const photoImgBach = document.getElementById('photo-img_bachelor');
-        photoImgBach.src = proxyUrl;
-        photoImgBach.classList.remove('hidden');
-        document.getElementById('photo-placeholder_bachelor').classList.add('hidden');
-
-        // Vocational Photo
-        const photoImgVoc = document.getElementById('photo-img_vocational');
-        photoImgVoc.src = proxyUrl;
-        photoImgVoc.classList.remove('hidden');
-        document.getElementById('photo-placeholder_vocational').classList.add('hidden');
+        setCandidatePhoto(photoUrl);
       }
 
       // 6. Interview Date
@@ -1743,6 +2288,9 @@
       document.getElementById('division_vocational').textContent = data.department || '';
       document.getElementById('workLocation_vocational').textContent = 'IP2'; // Default matching the sample
       document.getElementById('duration_vocational').textContent = 'ประจำ';
+
+      // 8. Executive / Experienced Hire
+      populateExecutiveData(data);
     }
 
     function switchTemplate(type) {
@@ -1759,6 +2307,7 @@
       const wsLayout = document.getElementById('workskill-layout');
       const bachLayout = document.getElementById('bachelor-layout');
       const vocLayout = document.getElementById('vocational-layout');
+      const execLayout = document.getElementById('executive-layout');
       
       wsLayout.classList.add('hidden');
       wsLayout.classList.remove('flex');
@@ -1766,44 +2315,62 @@
       bachLayout.classList.remove('flex');
       vocLayout.classList.add('hidden');
       vocLayout.classList.remove('flex');
+      if (execLayout) {
+        execLayout.classList.add('hidden');
+        execLayout.classList.remove('flex');
+      }
       
       const mib2Wrapper = document.getElementById('mib2-toggle-wrapper');
+      const expatWrapper = document.getElementById('expat-toggle-wrapper');
 
-      if (type === 'bachelor') {
+      if (type === 'executive') {
+        if (execLayout) {
+          execLayout.classList.remove('hidden');
+          execLayout.classList.add('flex');
+        }
+        if (expatWrapper) {
+          expatWrapper.classList.remove('hidden');
+          expatWrapper.classList.add('flex');
+        }
+        if (mib2Wrapper) {
+          mib2Wrapper.classList.add('hidden');
+          mib2Wrapper.classList.remove('flex');
+        }
+        toggleExpatBenefits(expatBenefitsEnabled);
+      } else if (type === 'bachelor') {
         bachLayout.classList.remove('hidden');
         bachLayout.classList.add('flex');
         if (mib2Wrapper) {
           mib2Wrapper.classList.remove('hidden');
           mib2Wrapper.classList.add('flex');
         }
-      } else {
-        if (type === 'vocational') {
-          vocLayout.classList.remove('hidden');
-          vocLayout.classList.add('flex');
-        } else {
-          wsLayout.classList.remove('hidden');
-          wsLayout.classList.add('flex');
+        if (expatWrapper) {
+          expatWrapper.classList.add('hidden');
+          expatWrapper.classList.remove('flex');
         }
-
+      } else if (type === 'vocational') {
+        vocLayout.classList.remove('hidden');
+        vocLayout.classList.add('flex');
         if (mib2Wrapper) {
           mib2Wrapper.classList.add('hidden');
           mib2Wrapper.classList.remove('flex');
         }
-        
-        // Also reset MIB2 row
-        const mib2Row = document.getElementById('mib2-row-bachelor');
-        if (mib2Row) mib2Row.classList.add('hidden');
-        const track = document.getElementById('mib2-toggle-track');
-        if (track) {
-          track.classList.remove('bg-emerald-500');
-          track.classList.add('bg-slate-600');
+        if (expatWrapper) {
+          expatWrapper.classList.add('hidden');
+          expatWrapper.classList.remove('flex');
         }
-        const thumb = document.getElementById('mib2-toggle-thumb');
-        if (thumb) {
-          thumb.classList.remove('translate-x-4');
-          thumb.classList.add('translate-x-0');
+      } else {
+        // workskill
+        wsLayout.classList.remove('hidden');
+        wsLayout.classList.add('flex');
+        if (mib2Wrapper) {
+          mib2Wrapper.classList.add('hidden');
+          mib2Wrapper.classList.remove('flex');
         }
-        mib2Enabled = false;
+        if (expatWrapper) {
+          expatWrapper.classList.add('hidden');
+          expatWrapper.classList.remove('flex');
+        }
       }
     }
 
@@ -1837,10 +2404,59 @@
       }
     }
 
+    // --- Expat Benefits Toggle State ---
+    let expatBenefitsEnabled = false;
+
+    function toggleExpatBenefits(forceState) {
+      if (typeof forceState === 'boolean') {
+        expatBenefitsEnabled = forceState;
+      } else {
+        expatBenefitsEnabled = !expatBenefitsEnabled;
+      }
+
+      const section = document.getElementById('expat-benefits-section_executive');
+      const track = document.getElementById('expat-toggle-track');
+      const thumb = document.getElementById('expat-toggle-thumb');
+
+      if (expatBenefitsEnabled) {
+        if (section) section.classList.remove('hidden');
+        if (track) {
+          track.classList.remove('bg-slate-600');
+          track.classList.add('bg-emerald-500');
+        }
+        if (thumb) {
+          thumb.classList.remove('translate-x-0');
+          thumb.classList.add('translate-x-4');
+        }
+      } else {
+        if (section) section.classList.add('hidden');
+        if (track) {
+          track.classList.remove('bg-emerald-500');
+          track.classList.add('bg-slate-600');
+        }
+        if (thumb) {
+          thumb.classList.remove('translate-x-4');
+          thumb.classList.add('translate-x-0');
+        }
+      }
+    }
+
     function syncTemplates(fromType, toType) {
+      const getFieldKey = (type) => {
+        if (type === 'workskill') return 'ws';
+        if (type === 'bachelor') return 'bach';
+        if (type === 'vocational') return 'voc';
+        if (type === 'executive') return 'exec';
+        return 'ws';
+      };
+
+      const fromKey = getFieldKey(fromType);
+      const toKey = getFieldKey(toType);
+
       sharedFields.forEach(field => {
-        const fromId = field[fromType === 'workskill' ? 'ws' : (fromType === 'bachelor' ? 'bach' : 'voc')];
-        const toId = field[toType === 'workskill' ? 'ws' : (toType === 'bachelor' ? 'bach' : 'voc')];
+        const fromId = field[fromKey];
+        const toId = field[toKey];
+        if (!fromId || !toId) return;
         
         const fromEl = document.getElementById(fromId);
         const toEl = document.getElementById(toId);
@@ -1850,53 +2466,52 @@
       });
       
       // Synchronize Company name inside Job table
-      const fromJobCompany = document.getElementById(
-        fromType === 'workskill' ? 'jobCompany' : 
-        (fromType === 'bachelor' ? 'company_job_bachelor' : 'company_job_vocational')
-      );
-      const toJobCompany = document.getElementById(
-        toType === 'workskill' ? 'jobCompany' : 
-        (toType === 'bachelor' ? 'company_job_bachelor' : 'company_job_vocational')
-      );
+      const getJobCompanyId = (t) => {
+        if (t === 'workskill') return 'jobCompany';
+        if (t === 'bachelor') return 'company_job_bachelor';
+        if (t === 'vocational') return 'company_job_vocational';
+        if (t === 'executive') return 'company_job_executive';
+        return 'jobCompany';
+      };
+      const fromJobCompany = document.getElementById(getJobCompanyId(fromType));
+      const toJobCompany = document.getElementById(getJobCompanyId(toType));
       if (fromJobCompany && toJobCompany) {
         toJobCompany.textContent = fromJobCompany.textContent;
       }
 
       // Synchronize division/department
-      const fromDept = document.getElementById(
-        fromType === 'workskill' ? 'department' : 
-        (fromType === 'bachelor' ? 'deptDivision_bachelor' : 'department_vocational')
-      );
-      const toDept = document.getElementById(
-        toType === 'workskill' ? 'department' : 
-        (toType === 'bachelor' ? 'deptDivision_bachelor' : 'department_vocational')
-      );
+      const getDeptId = (t) => {
+        if (t === 'workskill') return 'department';
+        if (t === 'bachelor') return 'deptDivision_bachelor';
+        if (t === 'vocational') return 'department_vocational';
+        if (t === 'executive') return 'deptDivision_executive';
+        return 'department';
+      };
+      const fromDept = document.getElementById(getDeptId(fromType));
+      const toDept = document.getElementById(getDeptId(toType));
       if (fromDept && toDept) {
         toDept.textContent = fromDept.textContent;
       }
-      if (toType === 'workskill') {
-        document.getElementById('division').textContent = toDept.textContent;
-      } else if (toType === 'vocational') {
-        document.getElementById('division_vocational').textContent = toDept.textContent;
-      }
 
       // Synchronize Photo
-      const fromImg = document.getElementById(
-        fromType === 'workskill' ? 'photo-img' : 
-        (fromType === 'bachelor' ? 'photo-img_bachelor' : 'photo-img_vocational')
-      );
-      const toImg = document.getElementById(
-        toType === 'workskill' ? 'photo-img' : 
-        (toType === 'bachelor' ? 'photo-img_bachelor' : 'photo-img_vocational')
-      );
-      const fromPlaceholder = document.getElementById(
-        fromType === 'workskill' ? 'photo-placeholder' : 
-        (fromType === 'bachelor' ? 'photo-placeholder_bachelor' : 'photo-placeholder_vocational')
-      );
-      const toPlaceholder = document.getElementById(
-        toType === 'workskill' ? 'photo-placeholder' : 
-        (toType === 'bachelor' ? 'photo-placeholder_bachelor' : 'photo-placeholder_vocational')
-      );
+      const getImgId = (t) => {
+        if (t === 'workskill') return 'photo-img';
+        if (t === 'bachelor') return 'photo-img_bachelor';
+        if (t === 'vocational') return 'photo-img_vocational';
+        if (t === 'executive') return 'photo-img_executive';
+        return 'photo-img';
+      };
+      const getPlaceholderId = (t) => {
+        if (t === 'workskill') return 'photo-placeholder';
+        if (t === 'bachelor') return 'photo-placeholder_bachelor';
+        if (t === 'vocational') return 'photo-placeholder_vocational';
+        if (t === 'executive') return 'photo-placeholder_executive';
+        return 'photo-placeholder';
+      };
+      const fromImg = document.getElementById(getImgId(fromType));
+      const toImg = document.getElementById(getImgId(toType));
+      const fromPlaceholder = document.getElementById(getPlaceholderId(fromType));
+      const toPlaceholder = document.getElementById(getPlaceholderId(toType));
       
       if (fromImg && toImg && fromPlaceholder && toPlaceholder) {
         if (!fromImg.classList.contains('hidden')) {
@@ -1911,8 +2526,800 @@
       
       if (toType === 'vocational') {
         autoCalculateGradeAllowance();
+      } else if (toType === 'executive') {
+        calculateBMIExecutive();
       }
     }
+
+    // =========================================================================
+    // Executive / Experienced Hire Logic & Helper Functions
+    // =========================================================================
+    function populateExecutiveData(data) {
+      console.log("Populating executive data:", data);
+
+      // 1. Company
+      const bu = data.businessUnit || data.business_unit || '';
+      let companyName = '';
+      if (bu) {
+        const buLower = bu.toLowerCase();
+        if (buLower.includes('nps')) {
+          companyName = 'บริษัท เนชั่นแนล เพาเวอร์ แพลนท์ 5เอ จำกัด';
+        } else if (buLower.includes('double') || buLower.includes('ดั๊บเบิ้ล')) {
+          companyName = 'บริษัท ดั๊บเบิ้ล เอ (1991) จำกัด (มหาชน)';
+        } else {
+          companyName = bu;
+        }
+      }
+      const compEl = document.getElementById('company_executive');
+      if (compEl) compEl.textContent = companyName;
+      const compJobEl = document.getElementById('company_job_executive');
+      if (compJobEl) compJobEl.textContent = companyName;
+
+      // 2. Candidate full name
+      const prefix = data.prefix || data.title || '';
+      const firstName = data.firstName || data.first_name || '';
+      const lastName = data.lastName || data.last_name || '';
+      const fullName = `${prefix} ${firstName} ${lastName}`.trim() || data.full_name || '';
+      const nameEl = document.getElementById('fullName_executive');
+      if (nameEl) nameEl.textContent = fullName;
+
+      // 3. Age
+      let ageVal = data.age != null ? String(data.age).replace(/[^0-9]/g, '') : '';
+      if (!ageVal && data.dateOfBirth) {
+        const dob = new Date(data.dateOfBirth);
+        if (!isNaN(dob.getTime())) {
+          const today = new Date();
+          let calculatedAge = today.getFullYear() - dob.getFullYear();
+          const m = today.getMonth() - dob.getMonth();
+          if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) calculatedAge--;
+          if (calculatedAge > 0 && calculatedAge < 120) ageVal = String(calculatedAge);
+        }
+      }
+      const ageEl = document.getElementById('age_executive');
+      if (ageEl && ageVal) ageEl.textContent = ageVal;
+
+      // 4. Height, Weight, BMI
+      const heightVal = data.height != null ? String(data.height) : '';
+      const heightEl = document.getElementById('height_executive');
+      if (heightEl && heightVal) heightEl.textContent = heightVal;
+
+      const weightVal = data.weight != null ? String(data.weight) : '';
+      const weightEl = document.getElementById('weight_executive');
+      if (weightEl && weightVal) weightEl.textContent = weightVal;
+
+      calculateBMIExecutive();
+
+      // 5. Photo
+      const photoUrl = data.photoUrl || data.photo_url || '';
+      if (photoUrl) {
+        setCandidatePhoto(photoUrl);
+      }
+
+      // 6. Education Table
+      renderEducationTable(data.education);
+
+      // 7. Experience Table
+      renderExperienceTable(data.experience);
+
+      // 8. Interview Assessment
+      renderExecutiveInterview(data);
+
+      // 9. Proposed Position
+      const posEl = document.getElementById('position_executive');
+      if (posEl) posEl.textContent = data.position || '';
+      const deptEl = document.getElementById('deptDivision_executive');
+      if (deptEl) deptEl.textContent = data.department || '';
+      const locEl = document.getElementById('workLocation_executive');
+      const resolvedLoc = resolveLocationName(data.work_location || data.workLocation, data.masterWorkLocations || DEFAULT_WORK_LOCATIONS, currentLang);
+      if (locEl) locEl.textContent = resolvedLoc || 'ปราจีนบุรี : 304 ดั๊บเบิ้ล เอ (IP1)';
+
+      // 10. Proposed Offer
+      const expSalary = data.expectedSalary || data.salary || '';
+      const salaryEl = document.getElementById('salaryRate_executive');
+      if (salaryEl && expSalary) {
+        const num = Number(String(expSalary).replace(/[^0-9.]/g, ''));
+        salaryEl.textContent = !isNaN(num) && num > 0 ? num.toLocaleString('th-TH') : String(expSalary);
+      }
+      const workLocOffer = document.getElementById('workLocationOffer_executive');
+      if (workLocOffer) {
+        workLocOffer.textContent = locEl ? locEl.textContent : (resolvedLoc || 'ปราจีนบุรี : 304 ดั๊บเบิ้ล เอ (IP1)');
+      }
+
+      // 11. Expat Benefits Table
+      renderExpatBenefits(data.expatBenefits);
+    }
+
+    // Dynamic Education Table Handlers
+    function renderEducationTable(eduData) {
+      const tbody = document.getElementById('education-tbody_executive');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      const levelNames = {
+        'phd': 'ปริญญาเอก',
+        'master': 'ปริญญาโท',
+        'bachelor': 'ปริญญาตรี',
+        'vocational': 'ปวส.',
+        'highSchool': 'ม.ปลาย/ปวช.',
+        'juniorHighSchool': 'ม.ต้น',
+        'primarySchool': 'ประถม'
+      };
+
+      let items = [];
+      if (Array.isArray(eduData)) {
+        items = eduData.filter(e => e && (e.institute || e.major || e.level));
+      } else if (eduData && typeof eduData === 'object') {
+        ['phd', 'master', 'bachelor', 'vocational', 'highSchool'].forEach(key => {
+          if (eduData[key] && (eduData[key].institute || eduData[key].major)) {
+            items.push({
+              level: levelNames[key] || key,
+              institute: eduData[key].institute || '',
+              major: eduData[key].major || '',
+              gpa: eduData[key].gpa || '',
+              period: (eduData[key].startDate && eduData[key].endDate) ? `${eduData[key].startDate} - ${eduData[key].endDate}` : ''
+            });
+          }
+        });
+      }
+
+      if (items.length === 0) {
+        addEducationRow();
+      } else {
+        items.forEach(item => {
+          const rawKey = (item.level || '').toLowerCase().trim();
+          let lvl = levelNames[rawKey] || item.level || '';
+          if (currentLang === 'en' && dbTranslations[lvl]?.en) {
+            lvl = dbTranslations[lvl].en;
+          }
+          const period = item.period || (item.startDate && item.endDate ? `${item.startDate} - ${item.endDate}` : (item.fromYear && item.toYear ? `${item.fromYear} - ${item.toYear}` : ''));
+          addEducationRow({
+            level: lvl,
+            institute: item.institute || '',
+            major: item.major || '',
+            gpa: item.gpa || '',
+            period: period
+          });
+        });
+      }
+    }
+
+    function addEducationRow(item = {}) {
+      const tbody = document.getElementById('education-tbody_executive');
+      if (!tbody) return;
+
+      const tr = document.createElement('tr');
+      tr.className = 'hover:bg-slate-50 transition-colors group/edu';
+      tr.innerHTML = `
+        <td class="p-2 border-r border-slate-300">
+          <span contenteditable="true" class="editable-field w-full" data-placeholder="ระบุวุฒิ...">${item.level || ''}</span>
+        </td>
+        <td class="p-2 border-r border-slate-300">
+          <span contenteditable="true" class="editable-field w-full font-medium" data-placeholder="ระบุสถาบัน...">${item.institute || ''}</span>
+        </td>
+        <td class="p-2 border-r border-slate-300">
+          <span contenteditable="true" class="editable-field w-full" data-placeholder="ระบุสาขาวิชา...">${item.major || ''}</span>
+        </td>
+        <td class="p-2 text-center border-r border-slate-300">
+          <span contenteditable="true" class="editable-field w-14 text-center font-bold" data-placeholder="-">${item.gpa || ''}</span>
+        </td>
+        <td class="p-2 text-center border-r border-slate-300">
+          <span contenteditable="true" class="editable-field w-24 text-center" data-placeholder="25xx-25xx">${item.period || ''}</span>
+        </td>
+        <td class="p-2 text-center no-print">
+          <button type="button" onclick="deleteEducationRow(this)" class="text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-1 rounded transition-colors cursor-pointer" title="ลบแถวนี้">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function deleteEducationRow(btn) {
+      const tr = btn.closest('tr');
+      if (tr) tr.remove();
+    }
+
+    // Dynamic Experience Table Handlers
+    function parseDateOrYear(str) {
+      if (!str) return null;
+      const s = String(str).trim();
+      if (/^\d{4}$/.test(s)) {
+        let y = parseInt(s);
+        if (y > 2400) y -= 543;
+        return { year: y, month: 1 };
+      }
+      const m1 = s.match(/^(\d{4})[-/](\d{1,2})/);
+      if (m1) {
+        let y = parseInt(m1[1]);
+        if (y > 2400) y -= 543;
+        return { year: y, month: parseInt(m1[2]) };
+      }
+      const m2 = s.match(/^(\d{1,2})[-/](\d{4})/);
+      if (m2) {
+        let y = parseInt(m2[2]);
+        if (y > 2400) y -= 543;
+        return { year: y, month: parseInt(m2[1]) };
+      }
+      const d = new Date(s);
+      if (!isNaN(d.getTime())) {
+        let y = d.getFullYear();
+        if (y > 2400) y -= 543;
+        return { year: y, month: d.getMonth() + 1 };
+      }
+      return null;
+    }
+
+    function parseExperienceDuration(fromVal, toVal, periodText) {
+      let start = null;
+      let end = null;
+
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
+
+      if (fromVal) {
+        start = parseDateOrYear(fromVal);
+        if (toVal && !toVal.includes('ปัจจุบัน') && !toVal.toLowerCase().includes('present') && !toVal.toLowerCase().includes('now')) {
+          end = parseDateOrYear(toVal);
+        } else {
+          end = { year: currentYear, month: currentMonth };
+        }
+      } else if (periodText) {
+        const text = String(periodText).trim();
+        const fourDigitYears = text.match(/\b(19\d\d|20\d\d|25\d\d)\b/g);
+        if (fourDigitYears && fourDigitYears.length >= 2) {
+          let y1 = parseInt(fourDigitYears[0]);
+          let y2 = parseInt(fourDigitYears[1]);
+          if (y1 > 2400) y1 -= 543;
+          if (y2 > 2400) y2 -= 543;
+          start = { year: y1, month: 1 };
+          end = { year: y2, month: 1 };
+        } else if (fourDigitYears && fourDigitYears.length === 1 && (text.includes('ปัจจุบัน') || text.toLowerCase().includes('present'))) {
+          let y1 = parseInt(fourDigitYears[0]);
+          if (y1 > 2400) y1 -= 543;
+          start = { year: y1, month: 1 };
+          end = { year: currentYear, month: currentMonth };
+        } else {
+          const myMatches = Array.from(text.matchAll(/(\d{1,2})[\/.-](\d{4})/g));
+          if (myMatches.length >= 2) {
+            let m1 = parseInt(myMatches[0][1]);
+            let y1 = parseInt(myMatches[0][2]);
+            let m2 = parseInt(myMatches[1][1]);
+            let y2 = parseInt(myMatches[1][2]);
+            if (y1 > 2400) y1 -= 543;
+            if (y2 > 2400) y2 -= 543;
+            start = { year: y1, month: m1 };
+            end = { year: y2, month: m2 };
+          } else if (myMatches.length === 1 && (text.includes('ปัจจุบัน') || text.toLowerCase().includes('present'))) {
+            let m1 = parseInt(myMatches[0][1]);
+            let y1 = parseInt(myMatches[0][2]);
+            if (y1 > 2400) y1 -= 543;
+            start = { year: y1, month: m1 };
+            end = { year: currentYear, month: currentMonth };
+          }
+        }
+      }
+
+      if (!start || !end) return '';
+
+      let totalMonths = (end.year - start.year) * 12 + (end.month - start.month);
+      if (totalMonths < 0) totalMonths = Math.abs(totalMonths);
+      if (totalMonths === 0) totalMonths = 1;
+
+      const years = Math.floor(totalMonths / 12);
+      const months = totalMonths % 12;
+
+      if (years > 0 && months > 0) {
+        return currentLang === 'en'
+          ? `${years} ${years > 1 ? 'Years' : 'Year'} ${months} ${months > 1 ? 'Months' : 'Month'}`
+          : `${years} ปี ${months} เดือน`;
+      } else if (years > 0) {
+        return currentLang === 'en'
+          ? `${years} ${years > 1 ? 'Years' : 'Year'}`
+          : `${years} ปี`;
+      } else if (months > 0) {
+        return currentLang === 'en'
+          ? `${months} ${months > 1 ? 'Months' : 'Month'}`
+          : `${months} เดือน`;
+      }
+      return currentLang === 'en' ? '1 Year' : '1 ปี';
+    }
+
+    function translateExperienceDuration(txt, targetLang) {
+      if (!txt) return txt;
+      let y = 0, m = 0;
+      const ymTh = txt.match(/(\d+(?:\.\d+)?)\s*ปี/);
+      const mmTh = txt.match(/(\d+)\s*เดือน/);
+      const ymEn = txt.match(/(\d+(?:\.\d+)?)\s*(?:years?|yr)/i);
+      const mmEn = txt.match(/(\d+)\s*(?:months?|mo)/i);
+
+      if (ymTh) y = parseFloat(ymTh[1]);
+      else if (ymEn) y = parseFloat(ymEn[1]);
+
+      if (mmTh) m = parseInt(mmTh[1]);
+      else if (mmEn) m = parseInt(mmEn[1]);
+
+      const intY = Math.floor(y);
+      const extraM = Math.round((y - intY) * 12);
+      const totalM = intY * 12 + extraM + m;
+
+      if (totalM <= 0) return txt;
+
+      const totY = Math.floor(totalM / 12);
+      const totM = totalM % 12;
+
+      if (targetLang === 'en') {
+        if (totY > 0 && totM > 0) {
+          return `${totY} ${totY > 1 ? 'Years' : 'Year'} ${totM} ${totM > 1 ? 'Months' : 'Month'}`;
+        } else if (totY > 0) {
+          return `${totY} ${totY > 1 ? 'Years' : 'Year'}`;
+        } else {
+          return `${totM} ${totM > 1 ? 'Months' : 'Month'}`;
+        }
+      } else {
+        if (totY > 0 && totM > 0) {
+          return `${totY} ปี ${totM} เดือน`;
+        } else if (totY > 0) {
+          return `${totY} ปี`;
+        } else {
+          return `${totM} เดือน`;
+        }
+      }
+    }
+
+    function updateTotalExperience() {
+      const tbody = document.getElementById('experience-tbody_executive');
+      if (!tbody) return;
+      const rows = tbody.querySelectorAll('tr');
+      let totalMonths = 0;
+
+      rows.forEach(tr => {
+        const durSpan = tr.querySelector('.exp-duration');
+        if (!durSpan) return;
+        const txt = durSpan.textContent.trim();
+        if (!txt) return;
+
+        let y = 0;
+        let m = 0;
+        const yMatch = txt.match(/(\d+(?:\.\d+)?)\s*(?:ปี|years?|yr)/i);
+        if (yMatch) {
+          const val = parseFloat(yMatch[1]);
+          y = Math.floor(val);
+          m = Math.round((val - y) * 12);
+        }
+        const mMatch = txt.match(/(\d+)\s*(?:เดือน|months?|mo)/i);
+        if (mMatch) {
+          m += parseInt(mMatch[1]);
+        }
+        totalMonths += (y * 12 + m);
+      });
+
+      const totalEl = document.getElementById('total-experience-years_executive');
+      if (totalEl) {
+        if (totalMonths > 0) {
+          const totY = Math.floor(totalMonths / 12);
+          const totM = totalMonths % 12;
+          let res = '';
+          const isEn = (currentLang === 'en');
+          if (isEn) {
+            if (totY > 0 && totM > 0) {
+              res = `${totY} ${totY > 1 ? 'Years' : 'Year'} ${totM} ${totM > 1 ? 'Months' : 'Month'}`;
+            } else if (totY > 0) {
+              res = `${totY} ${totY > 1 ? 'Years' : 'Year'}`;
+            } else {
+              res = `${totM} ${totM > 1 ? 'Months' : 'Month'}`;
+            }
+          } else {
+            if (totY > 0 && totM > 0) {
+              res = `${totY} ปี ${totM} เดือน`;
+            } else if (totY > 0) {
+              res = `${totY} ปี`;
+            } else {
+              res = `${totM} เดือน`;
+            }
+          }
+          totalEl.textContent = res;
+        } else {
+          totalEl.textContent = '-';
+        }
+      }
+    }
+
+    function handleExpPeriodBlur(periodEl) {
+      const tr = periodEl.closest('tr');
+      if (!tr) return;
+      const durSpan = tr.querySelector('.exp-duration');
+      if (!durSpan) return;
+      const periodText = periodEl.textContent.trim();
+      if (periodText) {
+        const calc = parseExperienceDuration('', '', periodText);
+        if (calc) {
+          durSpan.textContent = calc;
+        }
+      }
+      updateTotalExperience();
+    }
+
+    function renderExperienceTable(expData) {
+      const tbody = document.getElementById('experience-tbody_executive');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      let items = [];
+      if (Array.isArray(expData)) {
+        items = expData.filter(e => e && (e.company || e.position || e.from));
+      }
+
+      if (items.length === 0) {
+        addExperienceRow();
+      } else {
+        items.forEach(exp => {
+          let period = '';
+          if (exp.from) {
+            const formatPart = (val) => {
+              if (!val) return 'ปัจจุบัน';
+              const s = String(val).trim();
+              if (s === 'ปัจจุบัน' || s.toLowerCase() === 'present' || s.toLowerCase() === 'now') return 'ปัจจุบัน';
+              const match = s.match(/^(\d{4})[-/](\d{1,2})/);
+              if (match) {
+                return `${match[1]}`;
+              }
+              return s;
+            };
+            const f = formatPart(exp.from);
+            const t = exp.to ? formatPart(exp.to) : 'ปัจจุบัน';
+            period = `${f} - ${t}`;
+          }
+          const duration = parseExperienceDuration(exp.from, exp.to, period);
+          addExperienceRow({
+            period: period,
+            duration: duration,
+            company: exp.company || '',
+            position: exp.position || ''
+          });
+        });
+      }
+      updateTotalExperience();
+    }
+
+    function addExperienceRow(item = {}) {
+      const tbody = document.getElementById('experience-tbody_executive');
+      if (!tbody) return;
+
+      const isEn = (currentLang === 'en');
+      const tr = document.createElement('tr');
+      tr.className = 'hover:bg-slate-50 transition-colors group/exp';
+      tr.innerHTML = `
+        <td class="p-2 border-r border-slate-300 text-center">
+          <span contenteditable="true" class="editable-field w-full text-center exp-period" data-placeholder="${isEn ? 'YYYY - YYYY' : 'ปี - ปี'}" onblur="handleExpPeriodBlur(this)">${item.period || ''}</span>
+        </td>
+        <td class="p-2 border-r border-slate-300 text-center">
+          <span contenteditable="true" class="editable-field w-full text-center font-bold text-slate-800 exp-duration" data-placeholder="${isEn ? 'e.g. 5 Years' : 'เช่น 5 ปี'}" onblur="updateTotalExperience()">${item.duration || ''}</span>
+        </td>
+        <td class="p-2 border-r border-slate-300">
+          <span contenteditable="true" class="editable-field w-full font-medium" data-placeholder="${isEn ? 'Specify company...' : 'ระบุบริษัท...'}">${item.company || ''}</span>
+        </td>
+        <td class="p-2 border-r border-slate-300">
+          <span contenteditable="true" class="editable-field w-full" data-placeholder="${isEn ? 'Specify position...' : 'ระบุตำแหน่ง...'}">${item.position || ''}</span>
+        </td>
+        <td class="p-2 text-center no-print">
+          <button type="button" onclick="deleteExperienceRow(this)" class="text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-1 rounded transition-colors cursor-pointer" title="${isEn ? 'Delete this row' : 'ลบแถวนี้'}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+      updateTotalExperience();
+    }
+
+    function deleteExperienceRow(btn) {
+      const tr = btn.closest('tr');
+      if (tr) {
+        tr.remove();
+        updateTotalExperience();
+      }
+    }
+
+    // Dynamic Expat Benefits Table Handlers
+    const DEFAULT_EXPAT_BENEFITS = [
+      { item: 'ภาษีต่อปี', details: '' },
+      { item: 'วีซ่าและใบอนุญาตทำงาน', details: '' },
+      { item: 'ตรวจสุขภาพประจำปี', details: '' },
+      { item: 'ตั๋วเครื่องบิน (เริ่มและสิ้นสุดสัญญา)', details: '' },
+      { item: 'สัมภาระส่วนเกิน', details: '' },
+      { item: 'วันหยุดพักผ่อนประจำปี', details: '' },
+      { item: 'วันลากิจ', details: '' },
+      { item: 'วันหยุดตามประเพณี', details: '' },
+      { item: 'ค่าที่พักอาศัย', details: '' },
+      { item: 'ประกันสุขภาพ', details: '' }
+    ];
+
+    const STANDARD_EXPAT_POLICY_TEXT = {
+      'ภาษีต่อปี': 'ตามนโยบายบริษัท',
+      'Tax per year': 'ตามนโยบายบริษัท',
+      'วีซ่าและใบอนุญาตทำงาน': 'บริษัทเป็นผู้รับผิดชอบค่าใช้จ่าย',
+      'Visa and Work Permit': 'บริษัทเป็นผู้รับผิดชอบค่าใช้จ่าย',
+      'ตรวจสุขภาพประจำปี': 'ได้รับสิทธิตรวจสุขภาพประจำปี',
+      'Annual Physical Check-Up': 'ได้รับสิทธิตรวจสุขภาพประจำปี',
+      'ตั๋วเครื่องบิน (เริ่มและสิ้นสุดสัญญา)': 'ราคาขึ้นอยู่กับระยะเวลาการจองในช่วงเวลานั้น',
+      'Air Ticket (Start and end contract)': 'The price depends on the booking period at that time.',
+      'สัมภาระส่วนเกิน': 'ตามนโยบายบริษัท',
+      'Baggage Excess': 'ตามนโยบายบริษัท',
+      'วันหยุดพักผ่อนประจำปี': 'ตามระเบียบข้อบังคับของบริษัท',
+      'Annual Leave': 'ตามระเบียบข้อบังคับของบริษัท',
+      'วันลากิจ': 'ตามระเบียบข้อบังคับของบริษัท',
+      'Personal Leave': 'ตามระเบียบข้อบังคับของบริษัท',
+      'วันหยุดตามประเพณี': 'ตามปฏิทินวันหยุดประเพณีของบริษัท',
+      'Traditional Leave': 'ตามปฏิทินวันหยุดประเพณีของบริษัท',
+      'ค่าที่พักอาศัย': 'ตามตกลงในสัญญาจ้าง',
+      'Housing Allowance': 'ตามตกลงในสัญญาจ้าง',
+      'ประกันสุขภาพ': 'ประกันสุขภาพกลุ่มตามระดับตำแหน่ง',
+      'Medical Insurance': 'ประกันสุขภาพกลุ่มตามระดับตำแหน่ง'
+    };
+
+    function renderExpatBenefits(benefitsList) {
+      const tbody = document.getElementById('expat-benefits-tbody_executive');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      const items = (Array.isArray(benefitsList) && benefitsList.length > 0)
+        ? benefitsList
+        : DEFAULT_EXPAT_BENEFITS;
+
+      items.forEach(b => {
+        let topic = b.item || '';
+        if (currentLang === 'en' && EXPAT_BENEFIT_TOPICS[topic]) {
+          topic = EXPAT_BENEFIT_TOPICS[topic].en;
+        } else if (currentLang === 'th' && EXPAT_BENEFIT_TOPICS[topic]) {
+          topic = EXPAT_BENEFIT_TOPICS[topic].th;
+        }
+        addExpatBenefitRow({ item: topic, details: b.details || '' });
+      });
+    }
+
+    function addExpatBenefitRow(item = {}) {
+      const tbody = document.getElementById('expat-benefits-tbody_executive');
+      if (!tbody) return;
+
+      const phDetails = (placeholderTranslations[currentLang] && placeholderTranslations[currentLang].expatDetails) || 'รอ สรรหากรอก...';
+      const phTopic = (placeholderTranslations[currentLang] && placeholderTranslations[currentLang].expatTopic) || 'ระบุหัวข้อ...';
+
+      const tr = document.createElement('tr');
+      tr.className = 'hover:bg-slate-50 transition-colors group/benefit';
+      tr.innerHTML = `
+        <td class="p-2 border-r border-slate-300 font-bold text-slate-800 w-72">
+          <span contenteditable="true" class="editable-field w-full font-bold text-slate-800" data-placeholder="${phTopic}">${item.item || ''}</span>
+        </td>
+        <td class="p-2 border-r border-slate-300">
+          <span contenteditable="true" class="editable-field w-full min-h-[22px]" data-placeholder="${phDetails}">${item.details || ''}</span>
+        </td>
+        <td class="p-2 text-center no-print">
+          <button type="button" onclick="deleteExpatBenefitRow(this)" class="text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-1 rounded transition-colors cursor-pointer" title="ลบแถวนี้">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function deleteExpatBenefitRow(btn) {
+      const tr = btn.closest('tr');
+      if (tr) tr.remove();
+    }
+
+    function fillStandardExpatBenefits() {
+      const tbody = document.getElementById('expat-benefits-tbody_executive');
+      if (!tbody) return;
+      const rows = tbody.querySelectorAll('tr');
+      rows.forEach(tr => {
+        const itemSpan = tr.querySelector('td:nth-child(1) span');
+        const detailSpan = tr.querySelector('td:nth-child(2) span');
+        if (itemSpan && detailSpan) {
+          const itemText = itemSpan.textContent.trim();
+          if (STANDARD_EXPAT_POLICY_TEXT[itemText]) {
+            detailSpan.textContent = STANDARD_EXPAT_POLICY_TEXT[itemText];
+          } else if (!detailSpan.textContent.trim()) {
+            detailSpan.textContent = 'ตามนโยบายบริษัท';
+          }
+        }
+      });
+    }
+
+    // Interview Assessment Renderer (Overall score, reviewers, and combined comments)
+    function renderExecutiveInterview(data) {
+      let ivDate = data.interview_date || '';
+      const dateEl = document.getElementById('interviewDate_executive');
+      if (dateEl && ivDate) {
+        dateEl.textContent = ivDate;
+      }
+
+      const bundle = data.evaluationBundle;
+      const legacy = data.legacyEvaluations || [];
+      const scoreEl = document.getElementById('interviewScore_executive');
+      const interviewersEl = document.getElementById('interviewers_executive');
+      const commentsEl = document.getElementById('interviewComments_executive');
+
+      let reviewerNames = [];
+      let gatheredComments = [];
+      let passResult = 'ผ่านเกณฑ์';
+
+      if (bundle && bundle.reviewers && bundle.reviewers.length > 0) {
+        bundle.reviewers.forEach(r => {
+          const name = r.full_name || r.emp_id || '';
+          const pos = r.position ? ` (${r.position})` : '';
+          if (name) reviewerNames.push(`${name}${pos}`);
+
+          if (r.evaluation) {
+            if (r.evaluation.comments && r.evaluation.comments.trim()) {
+              gatheredComments.push(`${name}: ${r.evaluation.comments.trim()}`);
+            }
+          }
+        });
+
+        if (bundle.summary) {
+          if (bundle.summary.average_percent) {
+            passResult = `ผ่านเกณฑ์ (${bundle.summary.average_percent}%)`;
+          }
+        }
+      } else if (legacy && legacy.length > 0) {
+        legacy.forEach(ev => {
+          const name = ev.interviewer?.full_name || ev.interviewer_id || '';
+          if (name) reviewerNames.push(name);
+          if (ev.comments && ev.comments.trim()) {
+            gatheredComments.push(name ? `${name}: ${ev.comments.trim()}` : ev.comments.trim());
+          }
+        });
+      }
+
+      if (scoreEl && passResult) {
+        scoreEl.textContent = passResult;
+      }
+
+      if (interviewersEl && reviewerNames.length > 0) {
+        interviewersEl.textContent = reviewerNames.join(', ');
+      }
+
+      if (commentsEl && gatheredComments.length > 0) {
+        commentsEl.textContent = gatheredComments.join('\n');
+      }
+    }
+
+    // 1. Title Dropdown: ผู้บริหาร vs ผู้มีประสบการณ์
+    function openExecutiveTitleDropdown(e) {
+      e.stopPropagation();
+      const targetEl = document.getElementById('executive-title-type');
+      if (!targetEl) return;
+
+      const isTh = currentLang === 'th';
+      const options = isTh ? [
+        {
+          title: "ผู้บริหาร",
+          description: "แบบขออนุมัติจ้างงานระดับ ผู้บริหาร",
+          value: "ผู้บริหาร"
+        },
+        {
+          title: "ผู้มีประสบการณ์",
+          description: "แบบขออนุมัติจ้างงานระดับ ผู้มีประสบการณ์",
+          value: "ผู้มีประสบการณ์"
+        }
+      ] : [
+        {
+          title: "Executive",
+          description: "Approval for Hiring Executive Level",
+          value: "Executive"
+        },
+        {
+          title: "Experienced Professional",
+          description: "Approval for Hiring Experienced Professional Level",
+          value: "Experienced Professional"
+        }
+      ];
+
+      showFloatingMenu(targetEl, options, (selected) => {
+        targetEl.textContent = selected.value;
+      });
+    }
+
+    // 2. Upcountry vs Travelling Allowance Dropdown
+    function openUpcountryTravelDropdown(e) {
+      e.stopPropagation();
+      const targetEl = document.getElementById('upcountryOrTravelLabel_executive');
+      if (!targetEl) return;
+
+      const isTh = currentLang === 'th';
+      const options = isTh ? [
+        {
+          title: "ค่าต่างจังหวัด",
+          description: "สำหรับพนักงานที่ปฏิบัติงานประจำโรงงานต่างจังหวัด",
+          value: "ค่าต่างจังหวัด"
+        },
+        {
+          title: "ค่าเดินทาง",
+          description: "สำหรับพนักงานที่มีการเดินทางไปปฏิบัติงานนอกสถานที่",
+          value: "ค่าเดินทาง"
+        }
+      ] : [
+        {
+          title: "Upcountry Allowance",
+          description: "For employees permanently stationed at provincial facilities",
+          value: "Upcountry Allowance"
+        },
+        {
+          title: "Travelling Allowance",
+          description: "For employees with work-related domestic/site travel",
+          value: "Travelling Allowance"
+        }
+      ];
+
+      showFloatingMenu(targetEl, options, (selected) => {
+        targetEl.textContent = selected.value;
+      });
+    }
+
+    // 3. Employment Type Dropdown
+    function openEmploymentTypeDropdown(e) {
+      e.stopPropagation();
+      const targetEl = document.getElementById('employmentType_executive');
+      if (!targetEl) return;
+
+      const isTh = currentLang === 'th';
+      const options = isTh ? [
+        {
+          title: "พนักงานประจำ",
+          description: "สัญญาจ้างงานระยะยาวตามโครงสร้างพนักงานประจำของบริษัท",
+          value: "พนักงานประจำ"
+        },
+        {
+          title: "พนักงานสัญญาจ้าง",
+          description: "สัญญาจ้างงานตามระยะเวลาที่กำหนด (เช่น 1 ปี หรือตามโครงการ)",
+          value: "พนักงานสัญญาจ้าง"
+        }
+      ] : [
+        {
+          title: "Permanent Employee",
+          description: "Permanent full-time employment contract",
+          value: "Permanent Employee"
+        },
+        {
+          title: "Fixed-Term Contract Employee",
+          description: "Employment under a defined term contract (e.g. 1 year or project-based)",
+          value: "Fixed-Term Contract Employee"
+        }
+      ];
+
+      showFloatingMenu(targetEl, options, (selected) => {
+        targetEl.textContent = selected.value;
+      });
+    }
+
+    // Executive BMI Calculator
+    function calculateBMIExecutive() {
+      const height = parseFloat(document.getElementById('height_executive')?.textContent);
+      const weight = parseFloat(document.getElementById('weight_executive')?.textContent);
+      const bmiEl = document.getElementById('bmi_executive');
+      if (!bmiEl) return;
+
+      if (!isNaN(height) && !isNaN(weight) && height > 0 && weight > 0) {
+        const heightM = height / 100;
+        const bmi = (weight / (heightM * heightM)).toFixed(1);
+        bmiEl.textContent = bmi;
+
+        if (bmi < 18.5) {
+          bmiEl.className = "editable-field w-24 text-center font-bold text-sky-700";
+        } else if (bmi <= 22.9) {
+          bmiEl.className = "editable-field w-24 text-center font-bold text-emerald-700";
+        } else if (bmi <= 24.9) {
+          bmiEl.className = "editable-field w-24 text-center font-bold text-amber-700";
+        } else {
+          bmiEl.className = "editable-field w-24 text-center font-bold text-rose-700";
+        }
+      } else {
+        bmiEl.textContent = "-";
+        bmiEl.className = "editable-field w-24 text-center font-bold text-slate-400";
+      }
+    }
+
+
 
     // Dynamic BMI Calculators
     function calculateBMI() {
@@ -1987,87 +3394,152 @@
       allowanceEl.textContent = allowance.toLocaleString('th-TH');
     }
 
-    // Load local photo for crop/change on click
-    function loadLocalPhoto(input) {
+    // Dynamic Cover Cropping to 7:9 ratio (448x576) so html2canvas renders candidate photos without distortion/squishing
+    function cropImageToCover(src, targetWidth = 448, targetHeight = 576) {
+      return new Promise((resolve) => {
+        if (!src) return resolve('');
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            const ctx = canvas.getContext('2d');
+
+            const srcRatio = img.width / img.height;
+            const targetRatio = targetWidth / targetHeight;
+
+            let drawWidth, drawHeight, offsetX, offsetY;
+
+            if (srcRatio > targetRatio) {
+              // Source is wider than target: fit height, crop width evenly from center
+              drawHeight = img.height;
+              drawWidth = img.height * targetRatio;
+              offsetX = (img.width - drawWidth) / 2;
+              offsetY = 0;
+            } else {
+              // Source is taller than target: fit width, crop height with slight top-bias for faces
+              drawWidth = img.width;
+              drawHeight = img.width / targetRatio;
+              offsetX = 0;
+              offsetY = (img.height - drawHeight) * 0.2;
+              if (offsetY < 0) offsetY = 0;
+              if (offsetY + drawHeight > img.height) offsetY = img.height - drawHeight;
+            }
+
+            ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight, 0, 0, targetWidth, targetHeight);
+            resolve(canvas.toDataURL('image/jpeg', 0.95));
+          } catch (err) {
+            console.warn('Canvas crop failed, returning raw src:', err);
+            resolve(src);
+          }
+        };
+        img.onerror = () => {
+          resolve(src);
+        };
+        img.src = src;
+      });
+    }
+
+    function applyCandidatePhoto(src) {
+      if (!src) return;
+      const targets = [
+        { img: 'photo-img', ph: 'photo-placeholder' },
+        { img: 'photo-img_bachelor', ph: 'photo-placeholder_bachelor' },
+        { img: 'photo-img_vocational', ph: 'photo-placeholder_vocational' },
+        { img: 'photo-img_executive', ph: 'photo-placeholder_executive' }
+      ];
+      targets.forEach(t => {
+        const imgEl = document.getElementById(t.img);
+        const phEl = document.getElementById(t.ph);
+        if (imgEl) {
+          imgEl.src = src;
+          imgEl.classList.remove('hidden');
+        }
+        if (phEl) {
+          phEl.classList.add('hidden');
+        }
+      });
+    }
+
+    async function setCandidatePhoto(photoUrl) {
+      if (!photoUrl) return;
+      const proxyUrl = photoUrl.startsWith('http') 
+        ? `/api/proxy-image?url=${encodeURIComponent(photoUrl)}` 
+        : photoUrl;
+      
+      // Apply immediately so user sees photo without delay
+      applyCandidatePhoto(proxyUrl);
+
+      // Asynchronously pre-crop to 7:9 ratio so html2canvas renders perfectly without distortion
+      try {
+        const croppedUrl = await cropImageToCover(proxyUrl, 448, 576);
+        if (croppedUrl) {
+          applyCandidatePhoto(croppedUrl);
+        }
+      } catch (e) {
+        console.warn('Auto photo crop error:', e);
+      }
+    }
+
+    function handlePhotoUpload(input) {
       if (input.files && input.files[0]) {
         const reader = new FileReader();
-        reader.onload = function(e) {
-          const photoImg = document.getElementById('photo-img');
-          photoImg.src = e.target.result;
-          photoImg.classList.remove('hidden');
-          document.getElementById('photo-placeholder').classList.add('hidden');
-          
-          // Sync to other templates
-          const photoImgBach = document.getElementById('photo-img_bachelor');
-          photoImgBach.src = e.target.result;
-          photoImgBach.classList.remove('hidden');
-          document.getElementById('photo-placeholder_bachelor').classList.add('hidden');
-
-          const photoImgVoc = document.getElementById('photo-img_vocational');
-          if (photoImgVoc) {
-            photoImgVoc.src = e.target.result;
-            photoImgVoc.classList.remove('hidden');
-            document.getElementById('photo-placeholder_vocational').classList.add('hidden');
+        reader.onload = async function(e) {
+          const rawSrc = e.target.result;
+          applyCandidatePhoto(rawSrc);
+          try {
+            const cropped = await cropImageToCover(rawSrc, 448, 576);
+            if (cropped) applyCandidatePhoto(cropped);
+          } catch (err) {
+            console.warn('Local photo crop error:', err);
           }
         };
         reader.readAsDataURL(input.files[0]);
       }
     }
 
-    function loadLocalPhotoBachelor(input) {
-      if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const photoImgBach = document.getElementById('photo-img_bachelor');
-          photoImgBach.src = e.target.result;
-          photoImgBach.classList.remove('hidden');
-          document.getElementById('photo-placeholder_bachelor').classList.add('hidden');
-          
-          // Sync to other templates
-          const photoImg = document.getElementById('photo-img');
-          photoImg.src = e.target.result;
-          photoImg.classList.remove('hidden');
-          document.getElementById('photo-placeholder').classList.add('hidden');
-
-          const photoImgVoc = document.getElementById('photo-img_vocational');
-          if (photoImgVoc) {
-            photoImgVoc.src = e.target.result;
-            photoImgVoc.classList.remove('hidden');
-            document.getElementById('photo-placeholder_vocational').classList.add('hidden');
-          }
-        };
-        reader.readAsDataURL(input.files[0]);
-      }
-    }
-
-    function loadLocalPhotoVocational(input) {
-      if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const photoImgVoc = document.getElementById('photo-img_vocational');
-          photoImgVoc.src = e.target.result;
-          photoImgVoc.classList.remove('hidden');
-          document.getElementById('photo-placeholder_vocational').classList.add('hidden');
-          
-          // Sync to other templates
-          const photoImg = document.getElementById('photo-img');
-          photoImg.src = e.target.result;
-          photoImg.classList.remove('hidden');
-          document.getElementById('photo-placeholder').classList.add('hidden');
-
-          const photoImgBach = document.getElementById('photo-img_bachelor');
-          photoImgBach.src = e.target.result;
-          photoImgBach.classList.remove('hidden');
-          document.getElementById('photo-placeholder_bachelor').classList.add('hidden');
-        };
-        reader.readAsDataURL(input.files[0]);
-      }
-    }
+    // Aliases for backwards compatibility with any template click handlers
+    function loadLocalPhoto(input) { handlePhotoUpload(input); }
+    function loadLocalPhotoBachelor(input) { handlePhotoUpload(input); }
+    function loadLocalPhotoVocational(input) { handlePhotoUpload(input); }
+    function loadLocalPhotoExecutive(input) { handlePhotoUpload(input); }
 
     // Download memo as high-res PNG image
-    function downloadAsImage() {
+    async function downloadAsImage() {
       const doc = document.getElementById('memo-document');
       
+      // Pre-flight check: ensure active template's photo has exact 7:9 aspect ratio before canvas capture
+      let activePhotoId = 'photo-img';
+      if (activeTemplate === 'bachelor') activePhotoId = 'photo-img_bachelor';
+      else if (activeTemplate === 'vocational') activePhotoId = 'photo-img_vocational';
+      else if (activeTemplate === 'executive') activePhotoId = 'photo-img_executive';
+
+      const photoEl = document.getElementById(activePhotoId);
+      if (photoEl && photoEl.src && !photoEl.classList.contains('hidden')) {
+        const nw = photoEl.naturalWidth;
+        const nh = photoEl.naturalHeight;
+        if (nw > 0 && nh > 0) {
+          const currentRatio = nw / nh;
+          const targetRatio = 112 / 144; // 0.7777777777777778
+          if (Math.abs(currentRatio - targetRatio) > 0.02) {
+            try {
+              const cropped = await cropImageToCover(photoEl.src, 448, 576);
+              if (cropped) {
+                applyCandidatePhoto(cropped);
+                await new Promise(resolve => {
+                  if (photoEl.complete) setTimeout(resolve, 60);
+                  else photoEl.onload = () => setTimeout(resolve, 60);
+                });
+              }
+            } catch (e) {
+              console.warn("Pre-export photo cropping error:", e);
+            }
+          }
+        }
+      }
+
       // Add exporting class to hide placeholders and hover/focus styling
       document.body.classList.add('exporting-image');
 
@@ -2090,6 +3562,9 @@
           } else if (activeTemplate === 'vocational') {
             nameId = 'fullName_vocational';
             prefixName = 'Memo_Vocational';
+          } else if (activeTemplate === 'executive') {
+            nameId = 'fullName_executive';
+            prefixName = 'Memo_Executive';
           }
           const fullName = document.getElementById(nameId).textContent.trim().replace(/\s+/g, '_') || 'Candidate';
           
@@ -2116,10 +3591,84 @@
     };
     window.addEventListener('keydown', handleGlobalKeyDown);
 
+    // Default work locations matching database table 'work_locations'
+    const DEFAULT_WORK_LOCATIONS = [
+      {
+        id: 1,
+        code: 'dap',
+        name_th: 'ฉะเชิงเทรา : บางนา-ตราด กม.42 (DAP)',
+        name_en: 'Chachoengsao : Bangna Trat km.42 (DAP)',
+        province: 'ฉะเชิงเทรา'
+      },
+      {
+        id: 2,
+        code: 'ip1',
+        name_th: 'ปราจีนบุรี : 304 ดั๊บเบิ้ล เอ (IP1)',
+        name_en: 'Prachin Buri : 304 Double A (IP1)',
+        province: 'ปราจีนบุรี'
+      },
+      {
+        id: 3,
+        code: 'ip2',
+        name_th: 'ฉะเชิงเทรา : พนมสารคาม (IP2)',
+        name_en: 'Chachoengsao : Phanom Sarakham (IP2)',
+        province: 'ฉะเชิงเทรา'
+      },
+      {
+        id: 4,
+        code: 'ip5',
+        name_th: 'ฉะเชิงเทรา : บางปะกง (IP5)',
+        name_en: 'Chachoengsao : Bangprakong (IP5)',
+        province: 'ฉะเชิงเทรา'
+      },
+      {
+        id: 5,
+        code: 'sriracha',
+        name_th: 'ชลบุรี : ศรีราชา',
+        name_en: 'Chonburi : Si Racha',
+        province: 'ชลบุรี'
+      },
+      {
+        id: 6,
+        code: 'onebkk',
+        name_th: 'กรุงเทพฯ : One Bangkok',
+        name_en: 'Bangkok : One Bangkok',
+        province: 'กรุงเทพฯ'
+      }
+    ];
+
+    function resolveLocationName(val, locations = DEFAULT_WORK_LOCATIONS, lang = 'th') {
+      if (!val) return '';
+      const s = String(val).trim().toLowerCase();
+      const locList = locations && locations.length > 0 ? locations : DEFAULT_WORK_LOCATIONS;
+      const found = locList.find(loc => 
+        loc.code.toLowerCase() === s ||
+        loc.name_th.toLowerCase() === s ||
+        loc.name_en.toLowerCase() === s ||
+        (s.includes('ip1') && loc.code === 'ip1') ||
+        (s.includes('ip2') && loc.code === 'ip2') ||
+        (s.includes('ip5') && loc.code === 'ip5') ||
+        (s.includes('dap') && loc.code === 'dap') ||
+        (s.includes('one') && loc.code === 'onebkk') ||
+        (s.includes('ศรีราชา') && loc.code === 'sriracha') ||
+        (s.includes('sriracha') && loc.code === 'sriracha') ||
+        (s.includes('บางนา') && loc.code === 'dap') ||
+        (s.includes('พนม') && loc.code === 'ip2') ||
+        (s.includes('บางปะกง') && loc.code === 'ip5')
+      );
+      if (found) {
+        return lang === 'en' ? found.name_en : found.name_th;
+      }
+      return val;
+    }
+
     // Dynamic Master Data Dropdowns Setup
     function setupMasterDataDropdowns(data) {
       const masterConditions = data.masterConditions || [];
       const masterCalendars = data.masterCalendars || [];
+      const masterLocations = (data.masterWorkLocations && data.masterWorkLocations.length > 0)
+        ? data.masterWorkLocations
+        : DEFAULT_WORK_LOCATIONS;
 
       // 1. Setup Calendars Selectors
       const setupCalendarSelect = (containerId, targetId) => {
@@ -2138,8 +3687,8 @@
             if (c.is_active === false) return false;
             if (activeTemplate === 'vocational') {
               return c.education_level === 'vocational';
-            } else if (activeTemplate === 'bachelor') {
-              return c.education_level === 'bachelor' || !c.education_level;
+            } else if (activeTemplate === 'bachelor' || activeTemplate === 'executive') {
+              return c.education_level === 'bachelor' || c.education_level === 'executive' || !c.education_level;
             } else {
               // workskill
               return c.education_level === 'workskill' || !c.education_level;
@@ -2167,6 +3716,7 @@
       setupCalendarSelect('calendar-selector-container-ws', 'calendar');
       setupCalendarSelect('calendar-selector-container-bach', 'calendar_bachelor');
       setupCalendarSelect('calendar-selector-container-voc', 'calendar_vocational');
+      setupCalendarSelect('calendar-selector-container-exec', 'calendar_executive');
 
       // 2. Setup Allowance Conditions Selectors
       const setupAllowanceSelect = (containerId, category, labelId, descId, amountId) => {
@@ -2234,6 +3784,48 @@
 
       // Work Skill Allowances
       setupAllowanceSelect('jobvalue-selector-container-ws', 'bonus', null, 'jobValueCondition', 'jobValueAllowance');
+
+      // 3. Setup Work Location Selectors (DDL from Database)
+      const setupWorkLocationSelect = (targetId, syncTargetId = null) => {
+        const targetEl = document.getElementById(targetId);
+        if (!targetEl) return;
+
+        targetEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+
+          const activeLocations = masterLocations.filter(loc => loc.is_active !== false);
+          if (activeLocations.length === 0) return;
+
+          const options = activeLocations.map(loc => {
+            const isEn = currentLang === 'en';
+            return {
+              title: isEn ? loc.name_en : loc.name_th,
+              description: isEn ? loc.name_th : loc.name_en,
+              value: isEn ? loc.name_en : loc.name_th
+            };
+          });
+
+          const clearTitle = currentLang === 'en' ? '❌ Clear / None' : '❌ ล้างข้อมูล (เว้นว่าง)';
+          const finalOptions = [
+            ...options,
+            { title: clearTitle, description: '', value: '' }
+          ];
+
+          showFloatingMenu(targetEl, finalOptions, (selected) => {
+            targetEl.textContent = selected.value;
+            if (syncTargetId) {
+              const syncEl = document.getElementById(syncTargetId);
+              if (syncEl) syncEl.textContent = selected.value;
+            }
+          });
+        });
+      };
+
+      setupWorkLocationSelect('workLocationOffer_executive', 'workLocation_executive');
+      setupWorkLocationSelect('workLocation_executive', 'workLocationOffer_executive');
+      setupWorkLocationSelect('workLocation');
+      setupWorkLocationSelect('workLocation_bachelor');
+      setupWorkLocationSelect('workLocation_vocational');
     }
 
     // Floating Menu Renderer
@@ -2241,12 +3833,16 @@
       closeActiveDropdown();
 
       const menu = document.createElement('div');
-      menu.className = 'no-print absolute bg-white border border-slate-200 rounded-xl shadow-2xl z-[100] max-h-60 overflow-y-auto py-1.5 flex flex-col gap-0.5 transition-all w-80 text-left';
+      menu.className = 'no-print absolute bg-white border border-slate-200 rounded-xl shadow-2xl z-[100] max-h-60 overflow-y-auto py-1.5 flex flex-col gap-0.5 transition-all w-96 text-left';
       
       // Calculate coordinates relative to viewport
       const rect = anchorEl.getBoundingClientRect();
       menu.style.top = `${rect.bottom + window.scrollY + 4}px`;
-      menu.style.left = `${rect.left + window.scrollX}px`;
+      let left = rect.left + window.scrollX;
+      if (left + 384 > window.innerWidth) {
+        left = Math.max(10, window.innerWidth - 400 + window.scrollX);
+      }
+      menu.style.left = `${left}px`;
 
       options.forEach(opt => {
         const btn = document.createElement('button');
