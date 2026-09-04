@@ -19,6 +19,8 @@ import { ApplicationActionModals } from './dashboard/ApplicationActionModals';
 import { OverviewTab } from './dashboard/OverviewTab';
 import { findDuplicates, type DuplicateInfo } from './dashboard/duplicateUtils';
 import { DuplicateCompareModal } from './dashboard/DuplicateCompareModal';
+import { WhatsNewModal } from './dashboard/WhatsNewModal';
+import { hasUnreadChangelog } from '../constants/changelogData';
 import { HardDrive } from 'lucide-react';
 
 const ApplicationDetailModal = React.lazy(() => import('./dashboard/ApplicationDetailModal').then(m => ({ default: m.ApplicationDetailModal })));
@@ -58,9 +60,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  // Feature Release Announcement State
-  const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const [dontShowReleaseAgain, setDontShowReleaseAgain] = useState(false);
+  // What's New & Release Notes State (Zero-Annoyance, click-to-view with unread badge)
+  const [isWhatsNewOpen, setIsWhatsNewOpen] = useState(false);
+  const [hasUnreadUpdates, setHasUnreadUpdates] = useState(() => hasUnreadChangelog());
 
   // 30-Day Security Governance Re-Auth State
   const [isReAuthModalOpen, setIsReAuthModalOpen] = useState(false);
@@ -68,17 +70,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
   const [reAuthLoading, setReAuthLoading] = useState(false);
   const [reAuthError, setReAuthError] = useState('');
   const [reAuthReason, setReAuthReason] = useState<string>('เพื่อความปลอดภัยของข้อมูลผู้สมัครตามนโยบาย PDPA กรุณายืนยันรหัสผ่าน HRMS ประจำ 30 วัน');
-
-  const handleCloseReleaseModal = React.useCallback((shouldRedirect: boolean = false) => {
-    const currentVersion = "v1.1.2-talent-analytics";
-    if (dontShowReleaseAgain || shouldRedirect) {
-      localStorage.setItem("last_seen_release_version", currentVersion);
-    }
-    setShowReleaseModal(false);
-    if (shouldRedirect) {
-      setActiveTab("reports");
-    }
-  }, [dontShowReleaseAgain]);
 
   // Current User Info
   const [currentUser, setCurrentUser] = useState<AuthUser>(initialUser);
@@ -735,16 +726,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
       fetchPendingUsers();
       fetchActiveUsers();
     }
-
-    // Check if user has seen new release feature announcement
-    const currentVersion = "v1.1.2-talent-analytics";
-    const lastSeen = localStorage.getItem("last_seen_release_version");
-    if (lastSeen !== currentVersion) {
-      const timer = setTimeout(() => {
-        setShowReleaseModal(true);
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -815,9 +796,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
           <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold">N</div>
           <span className="font-bold text-lg tracking-tight">NovaAdmin</span>
         </div>
-        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 rounded-lg hover:bg-slate-800 transition-colors">
-          {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsWhatsNewOpen(true)}
+            className="p-2 rounded-lg hover:bg-slate-800 text-amber-400 relative transition-colors"
+            title="มีอะไรใหม่ในระบบ (What's New)"
+          >
+            <Sparkles className="w-5 h-5" />
+            {hasUnreadUpdates && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-500 rounded-full ring-2 ring-slate-900 animate-pulse" />
+            )}
+          </button>
+          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 rounded-lg hover:bg-slate-800 transition-colors">
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
       </div>
 
       {/* Sidebar Overlay for Mobile */}
@@ -948,6 +941,31 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
           >
             <User className="w-5 h-5 shrink-0" />
             {!sidebarCollapsed && <span className="font-medium">Profile</span>}
+          </button>
+
+          {/* What's New / System Updates (Zero-Annoyance) */}
+          <button
+            onClick={() => {
+              setIsWhatsNewOpen(true);
+              setIsMobileMenuOpen(false);
+            }}
+            className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-2' : 'gap-3 px-3'} py-3 rounded-xl transition-all relative text-slate-300 hover:bg-slate-800 hover:text-white group`}
+            title="มีอะไรใหม่ในระบบ (What's New)"
+          >
+            <Sparkles className="w-5 h-5 shrink-0 text-amber-400 group-hover:rotate-12 transition-transform" />
+            {!sidebarCollapsed && (
+              <div className="flex items-center justify-between flex-1">
+                <span className="font-medium">มีอะไรใหม่?</span>
+                {hasUnreadUpdates && (
+                  <span className="px-2 py-0.5 text-[10px] font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full shadow-xs animate-pulse">
+                    NEW
+                  </span>
+                )}
+              </div>
+            )}
+            {sidebarCollapsed && hasUnreadUpdates && (
+              <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-amber-500 rounded-full ring-2 ring-slate-900 animate-pulse" />
+            )}
           </button>
         </nav>
 
@@ -1859,73 +1877,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ role, onLogout, currentUse
         </div>
       </Modal>
 
-      {/* Feature Release Announcement Modal */}
-      <Modal
-        isOpen={showReleaseModal}
-        onClose={() => handleCloseReleaseModal(false)}
-        title="✨ อัปเดตระบบวิเคราะห์ผู้สมัคร"
-        footer={null}
-      >
-        <div className="relative overflow-hidden text-slate-700">
-          {/* Header & Icon */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2.5 bg-indigo-50 rounded-xl text-indigo-600">
-              <Sparkles className="w-6 h-6 animate-pulse" />
-            </div>
-            <div>
-              <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                Release v1.1.2
-              </span>
-              <h4 className="text-sm font-bold text-slate-800 mt-0.5">
-                เปิดตัวแท็บวิเคราะห์ประวัติและรายงานใหม่!
-              </h4>
-            </div>
-          </div>
-
-          {/* Description */}
-          <div className="text-xs text-slate-600 space-y-3 mb-6 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
-            <p className="font-semibold text-slate-700">ฟังก์ชันใหม่ที่เปิดใช้งานให้คุณแล้ว:</p>
-            <ul className="list-disc list-inside space-y-1.5 pl-1 text-[11px] text-slate-500">
-              <li>วิเคราะห์ระดับการศึกษา เกรดเฉลี่ยสะสม และทักษะภาษาแบบไดนามิก</li>
-              <li>เจาะลึก (Drill-down) จากกราฟสถิติเพื่อคัดกรองข้อมูลผู้สมัครได้ทันที</li>
-              <li>ฟิลเตอร์ค้นหาชื่อแผนก ตำแหน่ง และสถาบันแบบ Searchable รวดเร็ว</li>
-              <li>คัดกรองประวัติพร้อมเริ่มงานทันทีและตรวจสอบผู้รับเคส</li>
-            </ul>
-          </div>
-
-          {/* Controls & Footer */}
-          <div className="space-y-4 pt-2">
-            <div className="flex items-center gap-2 select-none">
-              <input
-                type="checkbox"
-                id="dontShowAgain"
-                checked={dontShowReleaseAgain}
-                onChange={(e) => setDontShowReleaseAgain(e.target.checked)}
-                className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
-              />
-              <label htmlFor="dontShowAgain" className="text-xs text-slate-500 cursor-pointer">
-                ฉันเข้าใจแล้ว ไม่ต้องแสดงหน้าจอนี้อีกในครั้งถัดไป
-              </label>
-            </div>
-
-            <div className="flex gap-2.5">
-              <button
-                onClick={() => handleCloseReleaseModal(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all cursor-pointer border border-slate-200"
-              >
-                ปิดหน้าต่าง
-              </button>
-              <button
-                onClick={() => handleCloseReleaseModal(true)}
-                className="flex-1 px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 active:scale-95 transition-all shadow-md shadow-indigo-200 cursor-pointer flex items-center justify-center gap-1"
-              >
-                เปิดใช้งานทันที
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </Modal>
+      {/* What's New Release Notes Modal */}
+      <WhatsNewModal
+        isOpen={isWhatsNewOpen}
+        onClose={() => setIsWhatsNewOpen(false)}
+        onMarkRead={() => setHasUnreadUpdates(false)}
+      />
 
       {/* 30-Day Security Governance Re-Auth Modal */}
       <Modal
