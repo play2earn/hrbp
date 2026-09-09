@@ -593,16 +593,16 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
 
                 <h4 className="font-bold border-b border-black mb-2 pb-1 text-sm uppercase mt-6 text-black">{t.labels.driving}</h4>
                 <div className="space-y-1 text-sm text-black">
-                  <div className="flex justify-between"><span className="text-gray-600">{t.labels.motorcycle}:</span> <span className="font-semibold">{data.driving.motorcycle ? t.options.yes : t.options.no} ({t.options.license}: {data.driving.motorcycleLicense ? t.options.yes : t.options.no})</span></div>
-                  <div className="flex justify-between"><span className="text-gray-600">{t.labels.car}:</span> <span className="font-semibold">{data.driving.car ? t.options.yes : t.options.no} ({t.options.license}: {data.driving.carLicense ? t.options.yes : t.options.no})</span></div>
-                  <div className="text-xs mt-1 text-gray-500">{t.options.types}: {data.driving.licenseClasses.join(', ') || '-'}</div>
+                  <div className="flex justify-between"><span className="text-gray-600">{t.labels.motorcycle}:</span> <span className="font-semibold">{data.driving?.motorcycle ? t.options.yes : t.options.no} ({t.options.license}: {data.driving?.motorcycleLicense ? t.options.yes : t.options.no})</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">{t.labels.car}:</span> <span className="font-semibold">{data.driving?.car ? t.options.yes : t.options.no} ({t.options.license}: {data.driving?.carLicense ? t.options.yes : t.options.no})</span></div>
+                  <div className="text-xs mt-1 text-gray-500">{t.options.types}: {(data.driving?.licenseClasses || []).join(', ') || '-'}</div>
                 </div>
               </div>
 
               <div>
                 <h4 className="font-bold border-b border-black mb-2 pb-1 text-sm uppercase text-black">{t.labels.computer}</h4>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-black">
-                  {Object.entries(data.computerSkills).map(([k, v]) => {
+                  {Object.entries(data.computerSkills || {}).map(([k, v]) => {
                     const formattedLabel = {
                       word: 'MS Word',
                       excel: 'MS Excel',
@@ -623,8 +623,8 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
 
                 <h4 className="font-bold border-b border-black mb-2 pb-1 text-sm uppercase mt-6 text-black">{t.labels.graphics}</h4>
                  <div className="space-y-1 text-sm text-black">
-                  <div className="flex justify-between"><span className="text-gray-600">{t.options.canva}:</span> <span className="font-semibold">{getSkillLabel(data.graphicsSkills.canva)}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-600">{t.options.videoEditor}:</span> <span className="font-semibold">{getSkillLabel(data.graphicsSkills.videoEditor)}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">{t.options.canva}:</span> <span className="font-semibold">{getSkillLabel(data.graphicsSkills?.canva || 'No Skill')}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">{t.options.videoEditor}:</span> <span className="font-semibold">{getSkillLabel(data.graphicsSkills?.videoEditor || 'No Skill')}</span></div>
                 </div>
               </div>
             </div>
@@ -648,7 +648,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ data, onEdit, lang, onSu
           <div className="border-2 border-t-0 border-black p-4 space-y-3 text-black">
             <div className="grid grid-cols-1 gap-2 border-b border-dashed border-gray-300 pb-3">
               <div className="text-xs font-bold text-gray-500 uppercase">{t.labels.upcountry}</div>
-              <div className="text-sm font-semibold">{data.upcountryLocations.length > 0 ? data.upcountryLocations.join(', ') : '-'}</div>
+              <div className="text-sm font-semibold">{(data.upcountryLocations || []).length > 0 ? (data.upcountryLocations || []).join(', ') : '-'}</div>
             </div>
 
             <div className="grid grid-cols-2 gap-4 border-b border-dashed border-gray-300 pb-3">

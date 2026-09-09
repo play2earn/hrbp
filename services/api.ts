@@ -188,20 +188,23 @@ export const api = {
 
       let fileToUpload = file;
 
-      // Compress image files
+      // Compress image files only when larger than 800KB to protect mobile device memory
       if (file.type.startsWith('image/')) {
         const originalSize = file.size;
-        const options = {
-          maxSizeMB: 0.8, // Compress to max 800KB (tighter for faster loads)
-          maxWidthOrHeight: 1600, // Max dimension 1600px (sufficient for viewing)
-          useWebWorker: true,
-          fileType: 'image/jpeg' as const, // Convert all images to JPEG for smaller size
-        };
-        try {
-          fileToUpload = await imageCompression(file, options);
-          console.log(`📷 Image compressed: ${(originalSize / 1024).toFixed(0)}KB → ${(fileToUpload.size / 1024).toFixed(0)}KB (${Math.round((1 - fileToUpload.size / originalSize) * 100)}% reduction)`);
-        } catch (error) {
-          console.error('Image compression failed. Proceeding with original file.', error);
+        if (originalSize > 800 * 1024) {
+          const options = {
+            maxSizeMB: 0.8, // Compress to max 800KB (tighter for faster loads)
+            maxWidthOrHeight: 1600, // Max dimension 1600px (sufficient for viewing)
+            useWebWorker: true,
+            fileType: 'image/jpeg' as const, // Convert all images to JPEG for smaller size
+          };
+          try {
+            fileToUpload = await imageCompression(file, options);
+            console.log(`📷 Image compressed: ${(originalSize / 1024).toFixed(0)}KB → ${(fileToUpload.size / 1024).toFixed(0)}KB (${Math.round((1 - fileToUpload.size / originalSize) * 100)}% reduction)`);
+          } catch (error) {
+            console.warn('Image compression failed. Proceeding with original file.', error);
+            fileToUpload = file;
+          }
         }
       }
 

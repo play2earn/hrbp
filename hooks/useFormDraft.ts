@@ -21,6 +21,7 @@ const DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 วัน
 interface DraftPayload {
   formData: ApplicationForm;
   currentStep: number;
+  draftId?: string;
   savedAt: number;
   draftKey: string;
 }
@@ -28,13 +29,15 @@ interface DraftPayload {
 interface UseFormDraftOptions {
   scopeKey?: string;
   lang?: 'th' | 'en';
+  autoRestore?: boolean;
+  onAutoRestored?: (draft: { formData: ApplicationForm; currentStep: number; draftId?: string }) => void;
 }
 
 interface UseFormDraftReturn {
   showRestoreBanner: boolean;
-  restoreDraft: () => { formData: ApplicationForm; currentStep: number } | null;
+  restoreDraft: () => { formData: ApplicationForm; currentStep: number; draftId?: string } | null;
   dismissDraft: () => void;
-  saveDraft: (formData: ApplicationForm, currentStep: number) => void;
+  saveDraft: (formData: ApplicationForm, currentStep: number, draftId?: string) => void;
   clearDraft: () => void;
   lastSavedText: string;
 }
@@ -64,7 +67,7 @@ function timeAgo(ts: number, lang: 'th' | 'en' = 'th'): string {
 }
 
 export function useFormDraft(options: UseFormDraftOptions = {}): UseFormDraftReturn {
-  const { scopeKey, lang = 'th' } = options;
+  const { scopeKey, lang = 'th', autoRestore = true, onAutoRestored } = options;
   const draftKey = getDraftKey(scopeKey);
 
   const [showRestoreBanner, setShowRestoreBanner] = useState(false);
@@ -73,21 +76,31 @@ export function useFormDraft(options: UseFormDraftOptions = {}): UseFormDraftRet
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isDirtyRef = useRef(false);
 
-  /**
-   * KEY FIX: isReadyToSaveRef
-   * - เริ่มต้นเป็น false เสมอ
-   * - เป็น true หลังจาก:
-   *   (a) ไม่พบ draft ตอน mount → เริ่ม save ได้ทันที
-   *   (b) ผู้ใช้กด Restore → restore แล้วค่อย save ต่อ
-   *   (c) ผู้ใช้กด Start fresh / Dismiss → ลบ draft แล้วค่อย save ต่อ
-   * ป้องกัน auto-save เขียนทับ draft เก่าก่อนที่ผู้ใช้จะตัดสินใจ
-   */
   const isReadyToSaveRef = useRef(false);
 
   // ---- Check draft on mount ----
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(draftKey);
+      let raw = localStorage.getItem(draftKey);
+
+      // Fallback: If not found under specific scopeKey, find any recent valid draft
+      if (!raw) {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith(DRAFT_KEY_PREFIX)) {
+            const candidate = localStorage.getItem(k);
+            if (candidate) {
+              try {
+                const parsed = JSON.parse(candidate);
+                if (Date.now() - parsed.savedAt <= DRAFT_TTL_MS) {
+                  raw = candidate;
+                  break;
+                }
+              } catch {}
+            }
+          }
+        }
+      }
 
       if (!raw) {
         // ไม่มี draft → เริ่ม save ได้ทันที
@@ -105,25 +118,42 @@ export function useFormDraft(options: UseFormDraftOptions = {}): UseFormDraftRet
       }
 
       // มีข้อมูลจริง (ไม่ใช่แค่ initial state ว่าง)
-      const hasData = payload.formData?.firstName ||
+      const hasData = Boolean(
+        payload.formData?.firstName ||
         payload.formData?.department ||
-        payload.currentStep > 1;
+        payload.formData?.position ||
+        payload.currentStep > 1
+      );
 
       if (hasData) {
-        // มี draft → แสดง banner, ยัง BLOCK การ save จนกว่าผู้ใช้จะตัดสินใจ
-        isReadyToSaveRef.current = false;
-        setShowRestoreBanner(true);
         setLastSavedAt(payload.savedAt);
         setLastSavedText(timeAgo(payload.savedAt, lang));
+
+        if (autoRestore) {
+          // Auto-restore immediately so the user never encounters a blank form or data loss
+          isReadyToSaveRef.current = true;
+          isDirtyRef.current = true;
+          setShowRestoreBanner(true);
+          onAutoRestored?.({
+            formData: payload.formData,
+            currentStep: payload.currentStep,
+            draftId: payload.draftId
+          });
+        } else {
+          // Manual restore mode
+          isReadyToSaveRef.current = false;
+          setShowRestoreBanner(true);
+        }
       } else {
-        // draft ว่างเปล่า → เริ่ม save ได้เลย
         isReadyToSaveRef.current = true;
       }
     } catch {
-      localStorage.removeItem(draftKey);
+      try {
+        localStorage.removeItem(draftKey);
+      } catch {}
       isReadyToSaveRef.current = true;
     }
-  }, [draftKey, lang]);
+  }, [draftKey, lang, autoRestore]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- Update lastSavedText ทุก 30 วินาที ----
   useEffect(() => {
@@ -146,8 +176,8 @@ export function useFormDraft(options: UseFormDraftOptions = {}): UseFormDraftRet
   }, []);
 
   // ---- saveDraft (debounced 800ms) ----
-  const saveDraft = useCallback((formData: ApplicationForm, currentStep: number) => {
-    // ยังไม่พร้อม save (รอผู้ใช้ตัดสินใจ Restore/Dismiss)
+  const saveDraft = useCallback((formData: ApplicationForm, currentStep: number, draftId?: string) => {
+    // ยังไม่พร้อม save (กรณีรอผู้ใช้ตัดสินใจใน manual mode)
     if (!isReadyToSaveRef.current) return;
 
     isDirtyRef.current = true;
@@ -158,6 +188,7 @@ export function useFormDraft(options: UseFormDraftOptions = {}): UseFormDraftRet
         const payload: DraftPayload = {
           formData,
           currentStep,
+          draftId: draftId || '',
           savedAt: Date.now(),
           draftKey,
         };
@@ -171,16 +202,15 @@ export function useFormDraft(options: UseFormDraftOptions = {}): UseFormDraftRet
   }, [draftKey, lang]);
 
   // ---- restoreDraft ----
-  const restoreDraft = useCallback((): { formData: ApplicationForm; currentStep: number } | null => {
+  const restoreDraft = useCallback((): { formData: ApplicationForm; currentStep: number; draftId?: string } | null => {
     try {
       const raw = localStorage.getItem(draftKey);
       if (!raw) return null;
       const payload: DraftPayload = JSON.parse(raw);
       setShowRestoreBanner(false);
       isDirtyRef.current = true;
-      // Restore เสร็จแล้ว → เปิด save ได้ต่อ
       isReadyToSaveRef.current = true;
-      return { formData: payload.formData, currentStep: payload.currentStep };
+      return { formData: payload.formData, currentStep: payload.currentStep, draftId: payload.draftId };
     } catch {
       isReadyToSaveRef.current = true;
       return null;
@@ -189,16 +219,31 @@ export function useFormDraft(options: UseFormDraftOptions = {}): UseFormDraftRet
 
   // ---- dismissDraft (Start fresh) ----
   const dismissDraft = useCallback(() => {
-    localStorage.removeItem(draftKey);
+    try {
+      localStorage.removeItem(draftKey);
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(DRAFT_KEY_PREFIX)) {
+          localStorage.removeItem(k);
+        }
+      }
+    } catch {}
     setShowRestoreBanner(false);
-    // Dismiss เสร็จแล้ว → เปิด save ได้ต่อ
     isReadyToSaveRef.current = true;
   }, [draftKey]);
 
   // ---- clearDraft (หลัง submit) ----
   const clearDraft = useCallback(() => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    localStorage.removeItem(draftKey);
+    try {
+      localStorage.removeItem(draftKey);
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(DRAFT_KEY_PREFIX)) {
+          localStorage.removeItem(k);
+        }
+      }
+    } catch {}
     isDirtyRef.current = false;
     isReadyToSaveRef.current = false;
     setShowRestoreBanner(false);

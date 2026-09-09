@@ -130,21 +130,43 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
 
   // --- Draft Auto-Save (localStorage) ---
   const draftScopeKey = [urlParams.bu, urlParams.ch, urlParams.tag].filter(Boolean).join('_') || 'default';
-  const { showRestoreBanner, restoreDraft, dismissDraft, saveDraft, clearDraft, lastSavedText } = useFormDraft({
+  const { showRestoreBanner, dismissDraft, saveDraft, clearDraft, lastSavedText } = useFormDraft({
     scopeKey: draftScopeKey,
     lang,
+    autoRestore: true,
+    onAutoRestored: (saved) => {
+      setFormData(prev => ({
+        ...saved.formData,
+        position: initialValues?.position || saved.formData.position,
+        positionEn: initialValues?.positionEn || saved.formData.positionEn,
+        department: initialValues?.department || saved.formData.department,
+        departmentEn: initialValues?.departmentEn || saved.formData.departmentEn,
+        businessUnit: urlParams.bu || initialValues?.businessUnit || saved.formData.businessUnit || '',
+        sourceChannel: urlParams.ch || saved.formData.sourceChannel || 'Direct',
+        campaignTag: urlParams.tag || saved.formData.campaignTag || 'General',
+      }));
+      if (saved.currentStep && saved.currentStep > 1) {
+        setCurrentStep(saved.currentStep);
+      }
+      if (saved.draftId) {
+        setDraftId(saved.draftId);
+      }
+    },
   });
 
-  // Auto-save ทุกครั้งที่ formData หรือ currentStep เปลี่ยน
+  // Auto-save ทุกครั้งที่ formData หรือ currentStep หรือ draftId เปลี่ยน
   useEffect(() => {
-    saveDraft(formData, currentStep);
-  }, [formData, currentStep]); // eslint-disable-line react-hooks/exhaustive-deps
+    saveDraft(formData, currentStep, draftId);
+  }, [formData, currentStep, draftId, saveDraft]);
 
   useEffect(() => {
     const generateDraftId = () => {
-      return `draft-${crypto.randomUUID()}`;
+      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return `draft-${crypto.randomUUID()}`;
+      }
+      return `draft-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
     };
-    setDraftId(generateDraftId());
+    setDraftId(prev => prev || generateDraftId());
   }, []);
 
 
@@ -517,6 +539,10 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
         }
       }
       clearDraft(); // ลบ draft หลัง submit สำเร็จ
+      try {
+        sessionStorage.removeItem('applicant_session_active');
+        sessionStorage.removeItem('applicant_selected_job');
+      } catch {}
       setSubmitSuccess(true);
     } else {
       // Show actual error message if possible, or fallback
@@ -785,42 +811,40 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
 
       {/* ── Draft Restore Banner ── */}
       {showRestoreBanner && (
-        <div className="mb-6 flex items-center justify-between gap-3 bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="mb-6 flex items-center justify-between gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="flex-shrink-0 w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center">
-              <RotateCcw className="w-4 h-4 text-indigo-600" />
+            <div className="flex-shrink-0 w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center">
+              <RotateCcw className="w-4 h-4 text-emerald-600" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-indigo-900 leading-tight">
-                {lang === 'th' ? 'พบข้อมูลที่กรอกค้างไว้' : 'Draft found'}
+              <p className="text-sm font-semibold text-emerald-900 leading-tight">
+                {lang === 'th' ? 'กู้คืนข้อมูลที่คุณกรอกค้างไว้ให้เรียบร้อยแล้ว' : 'Draft restored successfully'}
               </p>
-              <p className="text-xs text-indigo-500 mt-0.5">
-                {lang === 'th' ? `บันทึกเมื่อ ${lastSavedText}` : `Saved ${lastSavedText}`}
+              <p className="text-xs text-emerald-600 mt-0.5">
+                {lang === 'th' ? `บันทึกไว้เมื่อ ${lastSavedText}` : `Saved ${lastSavedText}`}
               </p>
             </div>
           </div>
           <div className="flex gap-2 flex-shrink-0">
             <button
               onClick={() => {
-                const saved = restoreDraft();
-                if (saved) {
-                  setFormData(saved.formData);
-                  setCurrentStep(saved.currentStep);
-                }
+                dismissDraft();
+                setFormData({
+                  ...INITIAL_FORM_STATE,
+                  ...initialValues,
+                  businessUnit: urlParams.bu || initialValues?.businessUnit || '',
+                  sourceChannel: urlParams.ch || 'Direct',
+                  campaignTag: urlParams.tag || 'General',
+                });
+                setCurrentStep(1);
               }}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+              className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-100 transition-colors"
             >
-              {lang === 'th' ? 'โหลดคืน' : 'Restore'}
+              {lang === 'th' ? 'ล้างข้อมูลเพื่อเริ่มใหม่' : 'Start fresh'}
             </button>
             <button
               onClick={dismissDraft}
-              className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition-colors"
-            >
-              {lang === 'th' ? 'เริ่มใหม่' : 'Start fresh'}
-            </button>
-            <button
-              onClick={dismissDraft}
-              className="p-1.5 rounded-lg text-indigo-400 hover:text-indigo-600 hover:bg-indigo-100 transition-colors"
+              className="p-1.5 rounded-lg text-emerald-500 hover:text-emerald-700 hover:bg-emerald-100 transition-colors"
               aria-label="dismiss"
             >
               <X className="w-4 h-4" />

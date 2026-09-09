@@ -9,6 +9,7 @@ const PDFPreview = React.lazy(() => import('./components/PDFPreview').then(m => 
 const SharedProfileView = React.lazy(() => import('./components/SharedProfileView').then(m => ({ default: m.SharedProfileView })));
 const ResubmitView = React.lazy(() => import('./components/ResubmitView'));
 import { Button, Card, Modal } from './components/UIComponents';
+import { ErrorBoundary } from './components/ErrorHandling';
 import { 
   Users, 
   Search, 
@@ -49,6 +50,49 @@ const FullPageLoader = () => (
     </div>
   </div>
 );
+
+const APPLICANT_SESSION_KEY = 'applicant_session_active';
+const APPLICANT_SELECTED_JOB_KEY = 'applicant_selected_job';
+
+function isApplicantSessionPersisted(): boolean {
+  try {
+    return typeof sessionStorage !== 'undefined' && sessionStorage.getItem(APPLICANT_SESSION_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function persistApplicantSession(job?: Partial<ApplicationForm>): void {
+  try {
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem(APPLICANT_SESSION_KEY, 'true');
+      if (job) {
+        sessionStorage.setItem(APPLICANT_SELECTED_JOB_KEY, JSON.stringify(job));
+      } else {
+        sessionStorage.removeItem(APPLICANT_SELECTED_JOB_KEY);
+      }
+    }
+  } catch {}
+}
+
+export function clearApplicantSession(): void {
+  try {
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem(APPLICANT_SESSION_KEY);
+      sessionStorage.removeItem(APPLICANT_SELECTED_JOB_KEY);
+    }
+  } catch {}
+}
+
+function getPersistedSelectedJob(): Partial<ApplicationForm> | undefined {
+  try {
+    if (typeof sessionStorage !== 'undefined') {
+      const raw = sessionStorage.getItem(APPLICANT_SELECTED_JOB_KEY);
+      return raw ? JSON.parse(raw) : undefined;
+    }
+  } catch {}
+  return undefined;
+}
 
 export default function App() {
   // Helper to extract share token from search params or pathname (supports subpaths and ?t= / ?token= / ?shareToken=)
@@ -116,7 +160,7 @@ export default function App() {
   }
 
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
-  const [role, setRole] = useState<Role>('guest');
+  const [role, setRole] = useState<Role>(() => (isApplicantSessionPersisted() ? 'applicant' : 'guest'));
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   
   useEffect(() => {
@@ -130,15 +174,26 @@ export default function App() {
         if (result.success && result.data) {
           setRole(result.data.role);
           setCurrentUser(result.data);
+          clearApplicantSession();
         } else {
-          setRole('guest');
+          // No staff session
           setCurrentUser(null);
+          setRole(prevRole => {
+            // CRITICAL INVARIANT: Never demote an active applicant to guest!
+            if (prevRole === 'applicant') {
+              return 'applicant';
+            }
+            if (isInitialCheck && isApplicantSessionPersisted()) {
+              return 'applicant';
+            }
+            return 'guest';
+          });
         }
       } catch {
         if (!isMounted) return;
 
-        setRole('guest');
         setCurrentUser(null);
+        setRole(prevRole => (prevRole === 'applicant' ? 'applicant' : 'guest'));
       } finally {
         if (isInitialCheck && isMounted) {
           setIsCheckingSession(false);
@@ -148,9 +203,15 @@ export default function App() {
 
     void checkSession(true);
 
-    // Re-verify periodically (every 15 minutes)
+    // Periodic session re-verification for staff (Admin / Mod) ONLY.
+    // Applicants and guests do not have IDMS sessions to refresh and must NEVER be polled/demoted.
     const interval = setInterval(() => {
-      void checkSession();
+      setRole(currentRole => {
+        if (currentRole === 'admin' || currentRole === 'mod') {
+          void checkSession(false);
+        }
+        return currentRole;
+      });
     }, 15 * 60 * 1000);
 
     return () => {
@@ -187,12 +248,12 @@ export default function App() {
     // 4. Default to Thai for applicant system in Thailand
     return 'th';
   });
-  const [pdpaAccepted, setPdpaAccepted] = useState(false);
+  const [pdpaAccepted, setPdpaAccepted] = useState<boolean>(() => isApplicantSessionPersisted());
   const [isPdpaModalOpen, setIsPdpaModalOpen] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [isTrackingOpen, setIsTrackingOpen] = useState(false);
   const [urlParams, setUrlParams] = useState<{ bu?: string; ch?: string; tag?: string }>({});
-  const [selectedJob, setSelectedJob] = useState<Partial<ApplicationForm> | undefined>(undefined);
+  const [selectedJob, setSelectedJob] = useState<Partial<ApplicationForm> | undefined>(() => getPersistedSelectedJob());
 
   // Parse URL parameters on mount
   useEffect(() => {
@@ -215,6 +276,7 @@ export default function App() {
 
   const handleLogout = () => {
     void api.auth.signOut();
+    clearApplicantSession();
     setRole('guest');
     setCurrentUser(null);
     setPdpaAccepted(false);
@@ -263,6 +325,7 @@ export default function App() {
     setPdpaAccepted(true);
     setIsPdpaModalOpen(false);
     setRole('applicant');
+    persistApplicantSession(selectedJob);
   };
 
   // --- RENDER VIEWS ---
@@ -328,11 +391,34 @@ export default function App() {
           </div>
         </header>
         <main className="flex-grow w-full">
-          <ApplicantFormComp
-            lang={lang}
-            urlParams={urlParams}
-            initialValues={selectedJob}
-          />
+          <ErrorBoundary
+            fallback={
+              <div className="max-w-xl mx-auto py-16 px-4 text-center">
+                <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 font-bold text-xl">
+                  ⚠️
+                </div>
+                <h2 className="text-xl font-bold text-slate-800 mb-2">
+                  {lang === 'th' ? 'เกิดข้อผิดพลาดในการแสดงผลฟอร์ม' : 'Form rendering issue encountered'}
+                </h2>
+                <p className="text-sm text-slate-600 mb-6">
+                  {lang === 'th'
+                    ? 'ระบบได้บันทึกข้อมูลร่าง (Draft) ล่าสุดไว้แล้ว คุณสามารถกดโหลดหน้าใหม่เพื่อกรอกต่อได้ทันที'
+                    : 'Your draft has been auto-saved. You can refresh to safely continue where you left off.'}
+                </p>
+                <div className="flex justify-center gap-3">
+                  <Button onClick={() => window.location.reload()} className="bg-indigo-600 text-white">
+                    {lang === 'th' ? 'โหลดหน้าใหม่และทำต่อ' : 'Refresh and Continue'}
+                  </Button>
+                </div>
+              </div>
+            }
+          >
+            <ApplicantFormComp
+              lang={lang}
+              urlParams={urlParams}
+              initialValues={selectedJob}
+            />
+          </ErrorBoundary>
         </main>
         <footer className="bg-white border-t border-slate-200 py-8 mt-12 text-center text-sm text-slate-500">
           <div className="flex flex-col items-center gap-3">
