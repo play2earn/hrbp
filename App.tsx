@@ -375,13 +375,11 @@ export default function App() {
             <div className="flex items-center gap-2 sm:gap-4">
               <button 
                 onClick={toggleLang} 
-                className="flex items-center gap-1.5 text-slate-700 hover:text-indigo-600 transition-all px-2.5 py-1.5 rounded-lg border border-slate-200 hover:border-indigo-300 bg-slate-50/80 hover:bg-white text-xs font-semibold shadow-2xs"
+                className="flex items-center gap-1.5 text-slate-700 hover:text-indigo-600 transition-all px-2.5 py-1.5 rounded-lg border border-slate-200 hover:border-indigo-300 bg-slate-50/80 hover:bg-white text-xs font-bold shadow-2xs shrink-0"
                 title={lang === 'th' ? 'Switch to English' : 'เปลี่ยนเป็นภาษาไทย'}
               >
                 <Globe className="w-3.5 h-3.5 text-indigo-500" />
-                <span className={lang === 'th' ? 'text-indigo-600 font-bold' : 'text-slate-400 font-medium'}>TH</span>
-                <span className="text-slate-300">|</span>
-                <span className={lang === 'en' ? 'text-indigo-600 font-bold' : 'text-slate-400 font-medium'}>EN</span>
+                <span>{lang.toUpperCase()}</span>
               </button>
               <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
               <Button variant="ghost" size="sm" onClick={handleLogout} className="text-slate-600">
@@ -469,27 +467,25 @@ export default function App() {
                 <span className="text-blue-700 italic">Double A</span> Alliance
               </span>
             </div>
-            <div className="flex items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
               <button 
                 onClick={toggleLang} 
-                className="flex items-center gap-1.5 text-slate-700 hover:text-indigo-600 transition-all px-2.5 py-1.5 rounded-lg border border-slate-200 hover:border-indigo-300 bg-white/70 hover:bg-white text-xs font-semibold shadow-2xs"
+                className="flex items-center gap-1 text-slate-700 hover:text-indigo-600 transition-all px-2 sm:px-2.5 py-1.5 rounded-lg border border-slate-200 hover:border-indigo-300 bg-white/80 hover:bg-white text-xs font-bold shadow-2xs shrink-0"
                 title={lang === 'th' ? 'Switch to English' : 'เปลี่ยนเป็นภาษาไทย'}
               >
                 <Globe className="w-3.5 h-3.5 text-indigo-500" />
-                <span className={lang === 'th' ? 'text-indigo-600 font-bold' : 'text-slate-400 font-medium'}>TH</span>
-                <span className="text-slate-300">|</span>
-                <span className={lang === 'en' ? 'text-indigo-600 font-bold' : 'text-slate-400 font-medium'}>EN</span>
+                <span>{lang.toUpperCase()}</span>
               </button>
               <button onClick={() => setIsTrackingOpen(true)} className="hidden sm:flex text-sm font-medium text-gray-600 hover:text-indigo-600 transition-all items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-indigo-50">
                 <Search className="w-4 h-4" /> {lang === 'th' ? 'ตรวจสอบสถานะ' : 'Check Status'}
               </button>
-              <button onClick={() => setShowLogin(true)} className="text-sm font-medium text-gray-600 hover:text-indigo-600 transition-all px-3 py-2 rounded-lg hover:bg-indigo-50">
+              <button onClick={() => setShowLogin(true)} className="text-xs sm:text-sm font-medium text-gray-600 hover:text-indigo-600 transition-all px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg hover:bg-indigo-50 shrink-0">
                 {lang === 'th' ? 'เข้าสู่ระบบ' : 'Login'}
               </button>
               <Button 
                 onClick={() => handleApplyClick()} 
                 size="sm" 
-                className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md rounded-full btn-shine pulse-glow"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md rounded-full btn-shine pulse-glow shrink-0 text-xs sm:text-sm px-3 sm:px-4"
               >
                 <span className="hidden sm:inline">{landingText.apply}</span>
                 <span className="sm:hidden">Apply</span>
