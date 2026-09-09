@@ -1049,7 +1049,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
               </div>
               <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
                 <div className="flex-1 w-full">
-                  <DatePicker label={t.labels.startDate} value={formData.availability} onChange={(val) => updateField('availability', val)} disabled={formData.isAvailableImmediately} />
+                  <DatePicker label={t.labels.startDate} value={formData.availability} onChange={(val) => updateField('availability', val)} disabled={formData.isAvailableImmediately} lang={lang} />
                 </div>
                 <div className="mb-3">
                   <CheckboxOption
@@ -1133,7 +1133,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
               <div className="flex flex-col gap-1">
                 <div className="flex gap-4">
                   <div className="flex-1">
-                    <DatePicker label={t.labels.dob} value={formData.dateOfBirth} onChange={handleDateOfBirthChange} />
+                    <DatePicker label={t.labels.dob} value={formData.dateOfBirth} onChange={handleDateOfBirthChange} lang={lang} isBirthDate={true} />
                     {validationErrors.dateOfBirth && <p className="text-red-500 text-xs mt-1">{validationErrors.dateOfBirth}</p>}
                   </div>
                   <div className="w-24"><Input label={t.labels.age} type="number" value={formData.age} readOnly className="bg-gray-50 text-gray-500" /></div>
@@ -1778,8 +1778,8 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                 <div key={idx} className="bg-gray-50 p-4 rounded-lg border border-gray-200 relative animate-in fade-in slide-in-from-bottom-2">
                   <button onClick={() => removeExperience(idx)} className="absolute top-2 right-2 text-red-500 text-xs hover:underline">{t.options.removeExperience}</button>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <DatePicker label={t.labels.from} value={exp.from} onChange={(val) => updateExperience(idx, 'from', val)} />
-                    <DatePicker label={t.labels.to} value={exp.to} onChange={(val) => updateExperience(idx, 'to', val)} />
+                    <DatePicker label={t.labels.from} value={exp.from} onChange={(val) => updateExperience(idx, 'from', val)} lang={lang} />
+                    <DatePicker label={t.labels.to} value={exp.to} onChange={(val) => updateExperience(idx, 'to', val)} lang={lang} />
                     <Input label={t.labels.company} value={exp.company} onChange={(e) => updateExperience(idx, 'company', e.target.value)} />
                     <Input label={t.labels.position} value={exp.position} onChange={(e) => updateExperience(idx, 'position', e.target.value)} />
                     <Input label={t.labels.lastSalary} value={exp.salary} onChange={(e) => updateExperience(idx, 'salary', e.target.value)} />

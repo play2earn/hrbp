@@ -67,6 +67,26 @@ export const Input: React.FC<InputProps> = ({ label, error, className = '', ...p
 );
 
 // --- DatePicker ---
+const THAI_MONTHS_FULL = [
+  'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+];
+
+const THAI_MONTHS_SHORT = [
+  'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+  'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+];
+
+const ENG_MONTHS_FULL = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+const ENG_MONTHS_SHORT = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+];
+
 interface DatePickerProps {
   label?: string;
   value: string; // YYYY-MM-DD
@@ -76,15 +96,67 @@ interface DatePickerProps {
   min?: string;
   max?: string;
   disabled?: boolean;
+  lang?: 'th' | 'en';
+  isBirthDate?: boolean;
 }
 
-export const DatePicker: React.FC<DatePickerProps> = ({ label, value, onChange, error, className = '', disabled = false }) => {
+export const DatePicker: React.FC<DatePickerProps> = ({ 
+  label, 
+  value, 
+  onChange, 
+  error, 
+  className = '', 
+  disabled = false,
+  lang = 'th',
+  isBirthDate = false,
+  min,
+  max
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Parse value or default to today
-  const dateValue = value ? new Date(value) : null;
-  const [viewDate, setViewDate] = useState(dateValue || new Date());
+  // Format date display for input box
+  const formatDisplay = (val: string) => {
+    if (!val) return '';
+    const parts = val.split('-');
+    if (parts.length !== 3) return val;
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const d = parseInt(parts[2], 10);
+    if (isNaN(y) || isNaN(m) || isNaN(d)) return val;
+
+    if (lang === 'th') {
+      const bYear = y + 543;
+      const mName = THAI_MONTHS_SHORT[m - 1] || '';
+      return `${d} ${mName} ${bYear}`;
+    } else {
+      const mName = ENG_MONTHS_SHORT[m - 1] || '';
+      return `${d} ${mName} ${y}`;
+    }
+  };
+
+  // Determine initial view date
+  const getInitialViewDate = () => {
+    if (value) {
+      const [y, m, d] = value.split('-').map(Number);
+      if (y && m) return new Date(y, m - 1, d || 1);
+    }
+    const today = new Date();
+    // For fresh grad birthdate default to ~22 years ago
+    if (isBirthDate) {
+      return new Date(today.getFullYear() - 22, 0, 1);
+    }
+    return today;
+  };
+
+  const [viewDate, setViewDate] = useState(getInitialViewDate);
+
+  // Update viewDate when value or isOpen changes
+  useEffect(() => {
+    if (isOpen) {
+      setViewDate(getInitialViewDate());
+    }
+  }, [isOpen, value]);
 
   // Close on click outside
   useEffect(() => {
@@ -97,17 +169,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({ label, value, onChange, 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    if (isOpen && dateValue) {
-      setViewDate(dateValue);
-    }
-  }, [isOpen]);
-
   const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).getDay(); // 0 = Sunday
 
   const handleDateClick = (day: number) => {
-    // Construct local date string to avoid timezone issues
     const year = viewDate.getFullYear();
     const month = String(viewDate.getMonth() + 1).padStart(2, '0');
     const dayStr = String(day).padStart(2, '0');
@@ -121,57 +186,136 @@ export const DatePicker: React.FC<DatePickerProps> = ({ label, value, onChange, 
     setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + offset, 1));
   };
 
-  const changeYear = (year: number) => {
+  const handleMonthSelect = (monthIndex: number) => {
+    setViewDate(new Date(viewDate.getFullYear(), monthIndex, 1));
+  };
+
+  const handleYearSelect = (year: number) => {
     setViewDate(new Date(year, viewDate.getMonth(), 1));
   };
 
-  // Generate Year Options (1950 - 2040)
-  const years = Array.from({ length: 91 }, (_, i) => 1950 + i);
+  // Generate Year Options:
+  // For birthdate: 1950 up to current year, descending so younger candidates find their year fast
+  // For standard: 1950 to 2040
+  const currentYear = new Date().getFullYear();
+  const years = isBirthDate
+    ? Array.from({ length: currentYear - 1950 + 1 }, (_, i) => currentYear - i)
+    : Array.from({ length: 91 }, (_, i) => 1950 + i);
+
+  const months = lang === 'th' ? THAI_MONTHS_FULL : ENG_MONTHS_FULL;
+  const weekdays = lang === 'th' 
+    ? ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
+    : ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
   return (
     <div className={`w-full relative ${className}`} ref={containerRef}>
       {label && <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>}
-      <div
-        className={`relative cursor-pointer group`}
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-      >
-        <div className={`block w-full rounded-lg border bg-white text-gray-900 shadow-sm sm:text-sm py-3 px-3 pl-10 transition-colors ${error ? 'border-red-500' : 'border-gray-300 group-hover:border-gray-400'} focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 ${disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}>
-          {value ? new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : <span className="text-gray-400">Select date...</span>}
+      <div className="relative group">
+        {/* Native Mobile Date Picker (Transparent overlay on mobile/tablet for smooth wheel scroll) */}
+        {!disabled && (
+          <input
+            type="date"
+            className="sm:hidden absolute inset-0 w-full h-full opacity-0 z-10 cursor-pointer"
+            value={value || ''}
+            min={min}
+            max={max}
+            onChange={(e) => {
+              if (e.target.value) {
+                onChange(e.target.value);
+              }
+            }}
+          />
+        )}
+
+        {/* Display Input Box */}
+        <div
+          onClick={() => !disabled && setIsOpen(!isOpen)}
+          className={`block w-full rounded-lg border bg-white text-gray-900 shadow-sm sm:text-sm py-3 px-3 pl-10 pr-10 cursor-pointer transition-colors ${
+            error ? 'border-red-500' : 'border-gray-300 group-hover:border-indigo-400'
+          } ${isOpen ? 'ring-2 ring-indigo-500 border-indigo-500' : ''} ${
+            disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+          }`}
+        >
+          {value ? (
+            <span className="font-medium text-gray-900">{formatDisplay(value)}</span>
+          ) : (
+            <span className="text-gray-400">
+              {lang === 'th' ? 'เลือกวันที่...' : 'Select date...'}
+            </span>
+          )}
         </div>
-        <CalendarIcon className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
+        <CalendarIcon className="absolute left-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
+        <ChevronDown className="absolute right-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none transition-transform duration-200" />
       </div>
 
+      {/* Desktop & Fallback Popover Calendar */}
       {isOpen && (
-        <div className="absolute z-50 mt-1 p-4 bg-white rounded-xl shadow-xl border border-gray-100 w-72 left-0 sm:left-auto animate-in fade-in slide-in-from-top-2 duration-200">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-4">
-            <button type="button" onClick={(e) => { e.stopPropagation(); changeMonth(-1); }} className="p-1 hover:bg-gray-100 rounded-full transition-colors"><ChevronLeft className="w-5 h-5 text-gray-600" /></button>
-            <div className="flex items-center gap-1 font-semibold text-gray-800">
-              <span>{viewDate.toLocaleString('default', { month: 'long' })}</span>
+        <div className="hidden sm:block absolute z-50 mt-1.5 p-4 bg-white rounded-2xl shadow-2xl border border-gray-100 w-80 left-0 animate-in fade-in slide-in-from-top-2 duration-200">
+          {/* Header with explicit Month & Year Selectors */}
+          <div className="flex items-center justify-between gap-1 mb-3 pb-2 border-b border-gray-100">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); changeMonth(-1); }}
+              className="p-1.5 hover:bg-gray-100 active:bg-gray-200 rounded-lg text-gray-600 transition-colors"
+              title={lang === 'th' ? 'เดือนก่อนหน้า' : 'Previous Month'}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
 
-              {/* Year Dropdown */}
-              <div className="relative ml-1 group">
-                <span className="cursor-pointer hover:text-indigo-600 border-b border-dashed border-gray-300 transition-colors">{viewDate.getFullYear()}</span>
+            <div className="flex items-center gap-1.5 flex-1 justify-center">
+              {/* Explicit Month Select */}
+              <div className="relative">
                 <select
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                  value={viewDate.getFullYear()}
-                  onChange={(e) => changeYear(parseInt(e.target.value))}
+                  value={viewDate.getMonth()}
+                  onChange={(e) => handleMonthSelect(parseInt(e.target.value, 10))}
+                  onClick={(e) => e.stopPropagation()}
+                  className="appearance-none bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-800 text-xs font-semibold rounded-lg py-1.5 pl-2.5 pr-6 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
                 >
-                  {years.map(y => <option key={y} value={y}>{y}</option>)}
+                  {months.map((m, idx) => (
+                    <option key={m} value={idx}>{m}</option>
+                  ))}
                 </select>
+                <ChevronDown className="w-3 h-3 text-gray-500 absolute right-2 top-2.5 pointer-events-none" />
+              </div>
+
+              {/* Explicit Year Select */}
+              <div className="relative">
+                <select
+                  value={viewDate.getFullYear()}
+                  onChange={(e) => handleYearSelect(parseInt(e.target.value, 10))}
+                  onClick={(e) => e.stopPropagation()}
+                  className="appearance-none bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-800 text-xs font-semibold rounded-lg py-1.5 pl-2.5 pr-6 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                >
+                  {years.map((y) => (
+                    <option key={y} value={y}>
+                      {lang === 'th' ? `${y + 543} (${y})` : y}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-3 h-3 text-gray-500 absolute right-2 top-2.5 pointer-events-none" />
               </div>
             </div>
-            <button type="button" onClick={(e) => { e.stopPropagation(); changeMonth(1); }} className="p-1 hover:bg-gray-100 rounded-full transition-colors"><ChevronRight className="w-5 h-5 text-gray-600" /></button>
+
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); changeMonth(1); }}
+              className="p-1.5 hover:bg-gray-100 active:bg-gray-200 rounded-lg text-gray-600 transition-colors"
+              title={lang === 'th' ? 'เดือนถัดไป' : 'Next Month'}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
 
-          {/* Weekdays */}
-          <div className="grid grid-cols-7 mb-2">
-            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
-              <div key={d} className="text-xs text-center text-gray-400 font-medium">{d}</div>
+          {/* Weekdays Header */}
+          <div className="grid grid-cols-7 mb-1.5">
+            {weekdays.map((d) => (
+              <div key={d} className="text-xs text-center text-gray-400 font-semibold py-1">
+                {d}
+              </div>
             ))}
           </div>
 
-          {/* Days */}
+          {/* Days Grid */}
           <div className="grid grid-cols-7 gap-1">
             {Array.from({ length: firstDayOfMonth }).map((_, i) => (
               <div key={`empty-${i}`} />
@@ -179,27 +323,63 @@ export const DatePicker: React.FC<DatePickerProps> = ({ label, value, onChange, 
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1;
               const checkDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
-              // Reconstruct local ISO for comparison
               const currentIso = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
               const isSelected = value === currentIso;
 
               const today = new Date();
-              const isToday = day === today.getDate() && viewDate.getMonth() === today.getMonth() && viewDate.getFullYear() === today.getFullYear();
+              const isToday =
+                day === today.getDate() &&
+                viewDate.getMonth() === today.getMonth() &&
+                viewDate.getFullYear() === today.getFullYear();
 
               return (
                 <button
                   key={day}
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); handleDateClick(day); }}
-                  className={`w-8 h-8 flex items-center justify-center rounded-full text-sm transition-all duration-200
-                                ${isSelected ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-200' : 'hover:bg-indigo-50 text-gray-700'}
-                                ${isToday && !isSelected ? 'text-indigo-600 font-bold border border-indigo-200' : ''}
-                            `}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDateClick(day);
+                  }}
+                  className={`w-9 h-9 flex items-center justify-center rounded-xl text-sm font-medium transition-all duration-150 ${
+                    isSelected
+                      ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-200 scale-105'
+                      : 'hover:bg-indigo-50 text-gray-700'
+                  } ${isToday && !isSelected ? 'text-indigo-600 font-bold border border-indigo-200' : ''}`}
                 >
                   {day}
                 </button>
               );
             })}
+          </div>
+
+          {/* Today / Quick Action Footer */}
+          <div className="mt-3 pt-2.5 border-t border-gray-100 flex justify-between items-center text-xs">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                const now = new Date();
+                const iso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                onChange(iso);
+                setIsOpen(false);
+              }}
+              className="text-indigo-600 hover:text-indigo-700 font-medium hover:underline"
+            >
+              {lang === 'th' ? 'วันนี้' : 'Today'}
+            </button>
+            {value && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChange('');
+                  setIsOpen(false);
+                }}
+                className="text-gray-400 hover:text-red-500 transition-colors"
+              >
+                {lang === 'th' ? 'ล้างค่า' : 'Clear'}
+              </button>
+            )}
           </div>
         </div>
       )}
