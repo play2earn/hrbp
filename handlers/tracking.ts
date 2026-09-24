@@ -29,10 +29,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
         return res.status(400).json({ error: 'Invalid tracking ID format.' });
       }
-      const { data, error } = await supabase.rpc('get_application_status', { app_id: value });
-      if (error) throw error;
-      if (!data?.id) return res.status(404).json({ error: 'Application not found.' });
-      return res.status(200).json({ success: true, data: await attachResubmitToken(supabase, data) });
+
+      let appData: any = null;
+
+      // 1. Try RPC get_application_status first
+      try {
+        const { data, error } = await supabase.rpc('get_application_status', { app_id: value });
+        if (!error && data && !data.error && data.status) {
+          appData = { id: value, ...data };
+        }
+      } catch (rpcErr) {
+        console.warn('[tracking] RPC error, falling back to direct table select:', rpcErr);
+      }
+
+      // 2. Direct query fallback if RPC didn't return valid data
+      if (!appData) {
+        const { data: directApp, error: directErr } = await supabase
+          .from('applications')
+          .select('id, full_name, position, department, status, created_at, updated_at')
+          .eq('id', value)
+          .maybeSingle();
+
+        if (directErr) {
+          console.error('[tracking] direct query error:', directErr);
+        }
+        if (directApp) {
+          appData = directApp;
+        }
+      }
+
+      if (!appData) {
+        return res.status(404).json({ error: 'Application not found.' });
+      }
+
+      return res.status(200).json({ success: true, data: await attachResubmitToken(supabase, appData) });
     }
 
     if (mode === 'identity') {
