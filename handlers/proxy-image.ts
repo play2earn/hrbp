@@ -15,21 +15,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!isAllowedStorageUrl(url)) return res.status(403).json({ error: 'Forbidden: URL domain is not allowed' });
     if (!await authorizeFileAccess(req, res, { url })) return;
 
-    const response = await fetch(url);
-    if (!response.ok) {
-      return res.status(response.status).json({ error: `Failed to fetch image: ${response.statusText}` });
-    }
-
-    const contentType = response.headers.get('content-type') || 'image/jpeg';
-    const arrayBuffer = await response.arrayBuffer();
-    if (arrayBuffer.byteLength > 20 * 1024 * 1024) return res.status(413).json({ error: 'Image exceeds proxy size limit' });
-    const buffer = Buffer.from(arrayBuffer);
-
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Cache-Control', 'private, max-age=300');
-    return res.send(buffer);
+    // Direct 302 Redirect to target storage URL (0 bytes Vercel bandwidth)
+    res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+    return res.redirect(302, url);
   } catch (error: any) {
     console.error('[Proxy Image Error]:', error);
     return res.status(500).json({ error: error.message || 'Internal server error' });
   }
+
 }

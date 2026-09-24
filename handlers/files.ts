@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
-import { Readable } from 'stream';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { authorizeFileAccess, isAllowedStorageUrl } from '../server/file-access.js';
 import { configureSameOrigin } from '../server/security.js';
 
@@ -62,59 +62,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // Mode A: Direct S3 Key Fetch (Highly Recommended)
+    // Mode A: Direct S3 Key with Presigned URL (0 bytes Vercel Origin Bandwidth)
     if (key && typeof key === 'string') {
       if (!await authorizeFileAccess(req, res, { key })) return;
       const s3 = getS3Client();
       const bucketName = process.env.AWS_S3_BUCKET || 'hr-recruitment-01';
 
+      const fileName = key.split('/').pop() || 'file';
+      const dispositionType = download === 'true' ? 'attachment' : 'inline';
+      const contentType = getContentType(key);
+
       const command = new GetObjectCommand({
         Bucket: bucketName,
         Key: key,
+        ResponseContentType: contentType,
+        ResponseContentDisposition: `${dispositionType}; filename="${encodeURIComponent(fileName)}"`,
       });
 
-      const response = await s3.send(command);
+      // Generate Presigned URL valid for 15 minutes
+      const presignedUrl = await getSignedUrl(s3, command, { expiresIn: 900 });
 
-      if (!response.Body) {
-        return res.status(404).json({ error: 'File body is empty' });
-      }
-
-      const contentType = response.ContentType || getContentType(key);
-      const fileName = key.split('/').pop() || 'file';
-      const dispositionType = download === 'true' ? 'attachment' : 'inline';
-
-      res.setHeader('Content-Type', contentType);
-      res.setHeader('Content-Disposition', `${dispositionType}; filename="${encodeURIComponent(fileName)}"`);
-      res.setHeader('Cache-Control', 'private, max-age=3600'); // Private browser cache for 1 hour
-
-      return (response.Body as Readable).pipe(res);
+      // Direct 302 Redirect: Browser downloads straight from AWS S3 CDN
+      res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+      return res.redirect(302, presignedUrl);
     }
 
-    // Mode B: External URL Proxy Fallback (Cloudflare R2 or Supabase URL)
+    // Mode B: External URL Direct Redirect (Cloudflare R2 or Supabase URL)
     if (url && typeof url === 'string') {
       const targetUrl = decodeURIComponent(url);
       if (!isAllowedStorageUrl(targetUrl)) return res.status(403).json({ error: 'Storage URL is not allowed' });
       if (!await authorizeFileAccess(req, res, { url: targetUrl })) return;
 
-      const response = await fetch(targetUrl);
-      if (!response.ok) {
-        return res.status(response.status).json({ error: `Failed to fetch target file: ${response.statusText}` });
-      }
-
-      const contentType = response.headers.get('content-type') || getContentType(targetUrl);
-      const arrayBuffer = await response.arrayBuffer();
-      if (arrayBuffer.byteLength > 20 * 1024 * 1024) return res.status(413).json({ error: 'File exceeds proxy size limit' });
-      const buffer = Buffer.from(arrayBuffer);
-
-      const fileName = targetUrl.split('/').pop()?.split('?')[0] || 'file';
-      const dispositionType = download === 'true' ? 'attachment' : 'inline';
-
-      res.setHeader('Content-Type', contentType);
-      res.setHeader('Content-Disposition', `${dispositionType}; filename="${encodeURIComponent(fileName)}"`);
-      res.setHeader('Cache-Control', 'private, max-age=3600');
-
-      return res.send(buffer);
+      // Direct 302 Redirect: Browser downloads straight from Cloudflare R2 / Storage Provider
+      res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+      return res.redirect(302, targetUrl);
     }
+
   } catch (error: any) {
     console.error('[File Proxy Error]:', error);
     return res.status(500).json({ error: error.message || 'Failed to serve file' });
