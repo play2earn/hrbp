@@ -244,7 +244,7 @@ export function buildHrNotificationEmailHtml(params: {
   dashboardUrl?: string;
 }): string {
   const { candidateName, position, applicationId, submissionDate, candidateEmail, phone, dashboardUrl } = params;
-  const link = dashboardUrl || cleanEnv(process.env.APP_ORIGIN) || 'https://hrbp-ten.vercel.app';
+  const link = dashboardUrl || cleanEnv(process.env.APP_ORIGIN) || 'https://hrbp-three.vercel.app';
 
   return `<!DOCTYPE html>
 <html>
@@ -340,7 +340,7 @@ export function buildHrNotificationEmailPlainText(params: {
   phone?: string;
   dashboardUrl?: string;
 }): string {
-  const link = params.dashboardUrl || cleanEnv(process.env.APP_ORIGIN) || 'https://hrbp-ten.vercel.app';
+  const link = params.dashboardUrl || cleanEnv(process.env.APP_ORIGIN) || 'https://hrbp-three.vercel.app';
   return `แจ้งเตือนผู้สมัครงานใหม่ - Double A Alliance
 
 ข้อมูลผู้สมัคร:
@@ -470,8 +470,8 @@ export async function sendApplicationConfirmationEmail(
       minute: '2-digit',
     });
 
-  const origin = cleanEnv(process.env.APP_ORIGIN) || '';
-  const trackingUrl = params.trackingUrl || (origin ? `${origin}/?track=${applicationId}` : undefined);
+  const origin = cleanEnv(process.env.APP_ORIGIN) || 'https://hrbp-three.vercel.app';
+  const trackingUrl = params.trackingUrl || `${origin}/?track=${applicationId}`;
 
   const subject = `ยืนยันการรับใบสมัครงานตำแหน่ง ${position} - Double A Alliance`;
 
