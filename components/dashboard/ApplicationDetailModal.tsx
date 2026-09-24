@@ -885,43 +885,56 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
   };
 
   const [isResendingEmail, setIsResendingEmail] = useState(false);
+  const [showEmailConfirmModal, setShowEmailConfirmModal] = useState(false);
+  const [emailToast, setEmailToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  const handleResendConfirmationEmail = async () => {
-    if (!viewingApp?.id) return;
-    const targetEmail = viewingApp.email || fd.email;
+  const handleOpenEmailConfirm = () => {
+    const targetEmail = viewingApp?.email || fd.email;
     if (!targetEmail) {
-      alert(lang === 'en' ? 'Candidate email address not found.' : 'ไม่พบอีเมลของผู้สมัครรายนี้ในระบบ');
+      setEmailToast({
+        type: 'error',
+        message: lang === 'en' ? 'Candidate email address not found.' : 'ไม่พบอีเมลของผู้สมัครรายนี้ในระบบ',
+      });
+      setTimeout(() => setEmailToast(null), 5000);
       return;
     }
+    setShowEmailConfirmModal(true);
+  };
 
-    const confirmMsg = lang === 'en'
-      ? `Send confirmation email to ${targetEmail} again?`
-      : `ต้องการส่งอีเมลยืนยันการรับสมัครงานไปยัง ${targetEmail} อีกครั้งหรือไม่?`;
-    
-    if (!window.confirm(confirmMsg)) return;
+  const executeSendEmail = async () => {
+    if (!viewingApp?.id) return;
+    const targetEmail = viewingApp.email || fd.email;
 
     setIsResendingEmail(true);
     try {
       const res = await api.sendApplicationEmailNotification(viewingApp.id, true);
       if (res.success) {
-        alert(
-          lang === 'en'
+        setShowEmailConfirmModal(false);
+        setEmailToast({
+          type: 'success',
+          message: lang === 'en'
             ? `Confirmation email dispatched to ${targetEmail} successfully!`
-            : `ส่งอีเมลยืนยันการรับสมัครไปยัง ${targetEmail} เรียบร้อยแล้ว!`
-        );
+            : `ส่งอีเมลยืนยันไปยัง ${targetEmail} เรียบร้อยแล้ว!`,
+        });
       } else {
-        alert(
-          lang === 'en'
+        setEmailToast({
+          type: 'error',
+          message: lang === 'en'
             ? `Failed to send email: ${res.error || 'Unknown error'}`
-            : `ไม่สามารถส่งอีเมลได้: ${res.error || 'เกิดข้อผิดพลาด'}`
-        );
+            : `ไม่สามารถส่งอีเมลได้: ${res.error || 'เกิดข้อผิดพลาด'}`,
+        });
       }
     } catch (err: any) {
-      alert(`Error: ${err?.message || 'Failed to dispatch email'}`);
+      setEmailToast({
+        type: 'error',
+        message: `Error: ${err?.message || 'Failed to dispatch email'}`,
+      });
     } finally {
       setIsResendingEmail(false);
+      setTimeout(() => setEmailToast(null), 6000);
     }
   };
+
 
   const checkIsBlacklisted = () => {
     if (!blacklistEntries || blacklistEntries.length === 0 || !viewingApp) return null;
@@ -1230,8 +1243,9 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        handleResendConfirmationEmail();
+                        handleOpenEmailConfirm();
                       }}
+
                       className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 text-blue-700 font-bold rounded-full border border-blue-200 transition-all text-xs shadow-xs cursor-pointer pointer-events-auto relative z-20 hover:scale-105 active:scale-95 select-none disabled:opacity-50"
                       title={lang === 'en' ? 'Resend application confirmation email' : 'ส่งอีเมลยืนยันการรับสมัครงานอีกครั้ง'}
                     >
@@ -2965,6 +2979,97 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
           </div>
         </div>
       </Modal>
+
+      {/* Modern Resend Email Confirmation Modal */}
+      <Modal
+        isOpen={showEmailConfirmModal}
+        onClose={() => !isResendingEmail && setShowEmailConfirmModal(false)}
+        title={lang === 'en' ? 'Resend Confirmation Email' : 'ส่งอีเมลยืนยันการรับสมัครงาน'}
+        footer={null}
+      >
+        <div className="space-y-4">
+          <div className="text-center py-2">
+            <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+              <Mail className="w-7 h-7 text-blue-600" />
+            </div>
+            <h3 className="text-base font-bold text-gray-900 mb-1">
+              {lang === 'en' ? 'Send Confirmation Email' : 'ส่งอีเมลยืนยันการรับสมัครงาน'}
+            </h3>
+            <p className="text-sm text-gray-600">
+              {lang === 'en' ? 'Confirmation email will be dispatched to:' : 'ระบบจะส่งอีเมลยืนยันพร้อมลิงก์ติดตามสถานะไปยัง:'}
+            </p>
+            <p className="text-base font-mono font-bold text-blue-700 bg-blue-50 py-1.5 px-3 rounded-lg border border-blue-200 inline-block mt-2">
+              {viewingApp?.email || fd.email || '-'}
+            </p>
+          </div>
+
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs text-slate-600 space-y-2">
+            <div className="flex items-center justify-between pb-1.5 border-b border-slate-200">
+              <span className="text-slate-500">ผู้สมัคร:</span>
+              <span className="font-semibold text-slate-800">{fullName}</span>
+            </div>
+            <div className="flex items-center justify-between pb-1.5 border-b border-slate-200">
+              <span className="text-slate-500">ตำแหน่ง:</span>
+              <span className="font-semibold text-slate-800">{fd.position || viewingApp?.position || '-'}</span>
+            </div>
+            <div className="flex items-start gap-1.5 text-slate-500 pt-1">
+              <span className="text-blue-500 font-bold">•</span>
+              <span>พร้อมส่งสำเนาลับ (BCC) แจ้งเตือนทีม HR โดยอัตโนมัติ</span>
+            </div>
+          </div>
+
+          <div className="flex gap-3 justify-end pt-3 border-t">
+            <Button
+              variant="outline"
+              disabled={isResendingEmail}
+              onClick={() => setShowEmailConfirmModal(false)}
+            >
+              {lang === 'en' ? 'Cancel' : 'ยกเลิก'}
+            </Button>
+            <Button
+              disabled={isResendingEmail}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={executeSendEmail}
+            >
+              {isResendingEmail ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  {lang === 'en' ? 'Sending...' : 'กำลังส่งอีเมล...'}
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  {lang === 'en' ? 'Confirm & Send' : 'ยืนยันการส่งอีเมล'}
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modern Email Toast Notification */}
+      {emailToast && (
+        <div className={`fixed bottom-6 right-6 z-[100002] flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl border animate-in slide-in-from-bottom duration-300 ${
+          emailToast.type === 'success' 
+            ? 'bg-emerald-50 text-emerald-800 border-emerald-300' 
+            : 'bg-rose-50 text-rose-800 border-rose-300'
+        }`}>
+          {emailToast.type === 'success' ? (
+            <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
+          ) : (
+            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+          )}
+          <div className="text-xs font-semibold">{emailToast.message}</div>
+          <button 
+            type="button" 
+            onClick={() => setEmailToast(null)} 
+            className="p-1 hover:bg-black/5 rounded-md ml-2 cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5 text-gray-500" />
+          </button>
+        </div>
+      )}
+
 
       {/* Image Cropper Modal */}
       {fd.photoUrl && (

@@ -27,15 +27,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 1. Fetch application record
     const { data: application, error: appError } = await supabase
       .from('applications')
-      .select('id, name, email, position, form_data, created_at')
+      .select('*')
       .eq('id', applicationId)
       .maybeSingle();
 
     if (appError) {
       console.error('[send-application-email] Database query error:', appError);
-      res.status(500).json({ error: 'Failed to query application record' });
+      res.status(500).json({ error: 'Failed to query application record', details: appError.message });
       return;
     }
+
 
     if (!application) {
       res.status(404).json({ error: 'Application not found' });
@@ -63,24 +64,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 
     // 3. Extract candidate details from record or form_data fallback
-    const formData = (application.form_data as Record<string, any>) || {};
+    const appRecord = application as Record<string, any>;
+    const formData = (appRecord.form_data as Record<string, any>) || {};
     const candidateName =
-      application.name ||
+      appRecord.full_name ||
+      appRecord.name ||
       formData.fullName ||
       formData.name ||
       `${formData.firstName || ''} ${formData.lastName || ''}`.trim() ||
       'ผู้สมัครงาน';
 
     const candidateEmail =
-      application.email ||
+      appRecord.email ||
       formData.email ||
       formData.contactEmail;
 
     const appliedPosition =
-      application.position ||
+      appRecord.position ||
       formData.appliedPosition ||
       formData.position ||
       'ทั่วไป';
+
 
     if (!candidateEmail) {
       res.status(400).json({
