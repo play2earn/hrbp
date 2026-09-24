@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Loader2, CheckCircle2, Clock, XCircle, FileText, X, CreditCard, Hash, Upload } from 'lucide-react';
 import { Button } from './UIComponents';
 import { api } from '../services/api';
@@ -7,15 +7,17 @@ interface TrackingSystemProps {
     isOpen: boolean;
     onClose: () => void;
     lang?: 'en' | 'th';
+    initialTrackingId?: string;
 }
 
-export default function TrackingSystem({ isOpen, onClose, lang = 'en' }: TrackingSystemProps) {
+export default function TrackingSystem({ isOpen, onClose, lang = 'en', initialTrackingId }: TrackingSystemProps) {
     const [searchInput, setSearchInput] = useState('');
     const [searchMode, setSearchMode] = useState<'tracking' | 'id_passport'>('tracking');
     const [results, setResults] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [timelines, setTimelines] = useState<Record<string, any[]>>({});
+
 
     if (!isOpen) return null;
 
@@ -47,7 +49,32 @@ export default function TrackingSystem({ isOpen, onClose, lang = 'en' }: Trackin
         } as Record<string, string>,
     };
 
+    useEffect(() => {
+        const id = initialTrackingId?.trim() || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('track') || new URLSearchParams(window.location.search).get('tracking') : null);
+        if (id && isOpen) {
+            setSearchInput(id);
+            setSearchMode('tracking');
+            setLoading(true);
+            setError('');
+            api.trackApplication(id.trim()).then(({ data, error: apiError }) => {
+                setLoading(false);
+                if (apiError || !data || (data as any).error) {
+                    setError(t.notFound);
+                } else {
+                    setResults([data]);
+                    api.getApplicationTimeline((data as any).id).then((logs) => {
+                        setTimelines(prev => ({ ...prev, [(data as any).id]: logs }));
+                    });
+                }
+            }).catch(() => {
+                setLoading(false);
+                setError(t.systemError);
+            });
+        }
+    }, [isOpen, initialTrackingId]);
+
     const handleTrack = async (e: React.FormEvent) => {
+
         e.preventDefault();
         if (!searchInput.trim()) return;
 

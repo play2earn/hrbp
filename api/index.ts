@@ -22,6 +22,7 @@ const handlers: Record<string, ApiHandlerLoader> = {
   'register-hrms-user': () => import('../handlers/register-hrms-user.js'),
   's3-explorer': () => import('../handlers/s3-explorer.js'),
   session: () => import('../handlers/session.js'),
+  'send-application-email': () => import('../handlers/send-application-email.js'),
   'share-tokens': () => import('../handlers/share-tokens.js'),
   'storage-migration-audit': () => import('../handlers/storage-migration-audit.js'),
   tracking: () => import('../handlers/tracking.js'),

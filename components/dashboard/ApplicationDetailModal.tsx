@@ -9,8 +9,9 @@ import {
   CheckCircle, XCircle, UserPlus, UserCheck, Link, Copy, Check,
   Crop, RotateCcw, Upload, ChevronDown, ChevronUp, AlertTriangle, Paperclip, ShieldAlert,
   Eye, Download, X, Settings, HardDrive, ShieldCheck, ArrowRight,
-  Send, Database, CheckCheck, RefreshCw
+  Send, Database, CheckCheck, RefreshCw, Mail
 } from 'lucide-react';
+
 import {
   LOG_LABELS, getStatusBadgeClass, getStatusLabel,
   getMilitaryStatusLabel, isInterviewScheduledStatus, isClosedStatus
@@ -883,8 +884,48 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
     }
   };
 
+  const [isResendingEmail, setIsResendingEmail] = useState(false);
+
+  const handleResendConfirmationEmail = async () => {
+    if (!viewingApp?.id) return;
+    const targetEmail = viewingApp.email || fd.email;
+    if (!targetEmail) {
+      alert(lang === 'en' ? 'Candidate email address not found.' : 'ไม่พบอีเมลของผู้สมัครรายนี้ในระบบ');
+      return;
+    }
+
+    const confirmMsg = lang === 'en'
+      ? `Send confirmation email to ${targetEmail} again?`
+      : `ต้องการส่งอีเมลยืนยันการรับสมัครงานไปยัง ${targetEmail} อีกครั้งหรือไม่?`;
+    
+    if (!window.confirm(confirmMsg)) return;
+
+    setIsResendingEmail(true);
+    try {
+      const res = await api.sendApplicationEmailNotification(viewingApp.id, true);
+      if (res.success) {
+        alert(
+          lang === 'en'
+            ? `Confirmation email dispatched to ${targetEmail} successfully!`
+            : `ส่งอีเมลยืนยันการรับสมัครไปยัง ${targetEmail} เรียบร้อยแล้ว!`
+        );
+      } else {
+        alert(
+          lang === 'en'
+            ? `Failed to send email: ${res.error || 'Unknown error'}`
+            : `ไม่สามารถส่งอีเมลได้: ${res.error || 'เกิดข้อผิดพลาด'}`
+        );
+      }
+    } catch (err: any) {
+      alert(`Error: ${err?.message || 'Failed to dispatch email'}`);
+    } finally {
+      setIsResendingEmail(false);
+    }
+  };
+
   const checkIsBlacklisted = () => {
     if (!blacklistEntries || blacklistEntries.length === 0 || !viewingApp) return null;
+
     const fd = viewingApp.form_data || {};
     const nationalId = (fd.nationalId || '').trim();
     const passportNo = (fd.passportNo || '').trim().toUpperCase();
@@ -1181,7 +1222,28 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
                       <HardDrive className="w-3.5 h-3.5 text-amber-100 shrink-0" />
                       📁 HR Drive (ไฟล์ผู้สมัครคนนี้)
                     </button>
+
+                    {/* Resend Confirmation Email Button */}
+                    <button
+                      type="button"
+                      disabled={isResendingEmail}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleResendConfirmationEmail();
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 text-blue-700 font-bold rounded-full border border-blue-200 transition-all text-xs shadow-xs cursor-pointer pointer-events-auto relative z-20 hover:scale-105 active:scale-95 select-none disabled:opacity-50"
+                      title={lang === 'en' ? 'Resend application confirmation email' : 'ส่งอีเมลยืนยันการรับสมัครงานอีกครั้ง'}
+                    >
+                      {isResendingEmail ? (
+                        <RefreshCw className="w-3.5 h-3.5 text-blue-600 animate-spin shrink-0" />
+                      ) : (
+                        <Mail className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                      )}
+                      {isResendingEmail ? (lang === 'en' ? 'Sending...' : 'กำลังส่ง...') : (lang === 'en' ? 'Resend Email' : '✉️ ส่งอีเมลยืนยันอีกครั้ง')}
+                    </button>
                   </div>
+
                   {/* Timeline */}
                   <div className="mt-3 flex items-center gap-2 text-xs text-slate-500 overflow-x-auto pb-1">
                     <div className="flex flex-col">

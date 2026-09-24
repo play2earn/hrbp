@@ -330,9 +330,38 @@ export const api = {
         performed_by: fullName || 'ผู้สมัคร',
       });
 
+      // Trigger Resend email confirmation asynchronously (non-blocking for candidate)
+      fetch('/api?route=send-application-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationId: data.id }),
+      }).catch((err) => {
+        console.warn('[Submit] Async email dispatch trigger failed:', err);
+      });
+
       return { success: true, data: { id: data.id } };
     } catch (error) {
       return handleError(error, 'submitApplication');
+    }
+  },
+
+  /**
+   * Manually trigger or resend application confirmation email
+   */
+  sendApplicationEmailNotification: async (applicationId: string, force = false): Promise<ApiResponse<{ messageId?: string; skipped?: boolean }>> => {
+    try {
+      const response = await fetch('/api?route=send-application-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationId, force }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        return { success: false, error: result.error || 'Failed to dispatch email' };
+      }
+      return { success: true, data: result };
+    } catch (error) {
+      return handleError(error, 'sendApplicationEmailNotification');
     }
   },
 

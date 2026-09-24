@@ -252,6 +252,7 @@ export default function App() {
   const [isPdpaModalOpen, setIsPdpaModalOpen] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [isTrackingOpen, setIsTrackingOpen] = useState(false);
+  const [initialTrackingId, setInitialTrackingId] = useState<string | undefined>();
   const [urlParams, setUrlParams] = useState<{ bu?: string; ch?: string; tag?: string }>({});
   const [selectedJob, setSelectedJob] = useState<Partial<ApplicationForm> | undefined>(() => getPersistedSelectedJob());
 
@@ -263,7 +264,13 @@ export default function App() {
       ch: params.get('ch') || undefined,
       tag: params.get('tag') || undefined
     });
+    const trackParam = params.get('track') || params.get('tracking');
+    if (trackParam) {
+      setInitialTrackingId(trackParam);
+      setIsTrackingOpen(true);
+    }
   }, []);
+
 
   const t = TRANSLATIONS[lang];
   const landingText = LANDING_CONTENT[lang];
@@ -1158,8 +1165,9 @@ export default function App() {
       </Modal>
 
       {/* Tracking System Modal */}
-      <TrackingSystem isOpen={isTrackingOpen} onClose={() => setIsTrackingOpen(false)} lang={lang} />
+      <TrackingSystem isOpen={isTrackingOpen} onClose={() => { setIsTrackingOpen(false); setInitialTrackingId(undefined); }} lang={lang} initialTrackingId={initialTrackingId} />
       <CookieConsent lang={lang} />
+
 
       </div>
     </React.Suspense>
