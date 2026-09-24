@@ -141,23 +141,9 @@ export default function App() {
 
   // Check for share token first
   const shareTokenFound = getShareToken();
-  if (shareTokenFound) {
-    return (
-      <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div></div>}>
-        <SharedProfileView token={shareTokenFound} />
-      </React.Suspense>
-    );
-  }
 
   // Check for resubmit token (applicant self-service document resubmission)
   const resubmitTokenFound = getResubmitToken();
-  if (resubmitTokenFound) {
-    return (
-      <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div></div>}>
-        <ResubmitView token={resubmitTokenFound} />
-      </React.Suspense>
-    );
-  }
 
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [role, setRole] = useState<Role>(() => (isApplicantSessionPersisted() ? 'applicant' : 'guest'));
@@ -336,6 +322,22 @@ export default function App() {
   };
 
   // --- RENDER VIEWS ---
+
+  if (shareTokenFound) {
+    return (
+      <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div></div>}>
+        <SharedProfileView token={shareTokenFound} />
+      </React.Suspense>
+    );
+  }
+
+  if (resubmitTokenFound) {
+    return (
+      <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div></div>}>
+        <ResubmitView token={resubmitTokenFound} />
+      </React.Suspense>
+    );
+  }
 
   // Wait for the first session restore before rendering any guest-only page.
   // This prevents a logged-in user from seeing the public landing page flash on refresh.

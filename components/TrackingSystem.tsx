@@ -18,9 +18,6 @@ export default function TrackingSystem({ isOpen, onClose, lang = 'en', initialTr
     const [error, setError] = useState('');
     const [timelines, setTimelines] = useState<Record<string, any[]>>({});
 
-
-    if (!isOpen) return null;
-
     const t = {
         title: lang === 'th' ? 'ตรวจสอบสถานะใบสมัคร' : 'Check Application Status',
         trackingLabel: lang === 'th' ? 'หมายเลขติดตาม' : 'Tracking ID',
@@ -156,6 +153,8 @@ export default function TrackingSystem({ isOpen, onClose, lang = 'en', initialTr
             });
         } catch { return isoStr; }
     };
+
+    if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
