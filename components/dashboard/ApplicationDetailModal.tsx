@@ -3014,7 +3014,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = mem
             </div>
             <div className="flex items-start gap-1.5 text-slate-500 pt-1">
               <span className="text-blue-500 font-bold">•</span>
-              <span>พร้อมส่งสำเนาลับ (BCC) แจ้งเตือนทีม HR โดยอัตโนมัติ</span>
+              <span>พร้อมส่งอีเมลแจ้งเตือนทีม HR โดยอัตโนมัติ</span>
             </div>
           </div>
 
