@@ -86,6 +86,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       'ทั่วไป';
 
 
+    const phone =
+      appRecord.phone ||
+      formData.phone ||
+      formData.mobile ||
+      formData.tel ||
+      formData.telephone ||
+      '';
+
     if (!candidateEmail) {
       res.status(400).json({
         error: 'Application does not have a valid candidate email address',
@@ -93,12 +101,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    // 4. Send email via Resend
+    // 4. Send email via Gmail / Resend
     const result = await sendApplicationConfirmationEmail({
       candidateName,
       candidateEmail,
       position: appliedPosition,
       applicationId: application.id,
+      phone,
       submissionDate: application.created_at
         ? new Date(application.created_at).toLocaleDateString('th-TH', {
             year: 'numeric',
