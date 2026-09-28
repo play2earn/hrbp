@@ -72,6 +72,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const dispositionType = download === 'true' ? 'attachment' : 'inline';
       const contentType = getContentType(key);
 
+      // Support direct base64 export for canvas/memo (bypasses cross-origin canvas tainting)
+      if (req.query.base64 === 'true') {
+        const obj = await s3.send(new GetObjectCommand({
+          Bucket: bucketName,
+          Key: key,
+        }));
+        if (!obj.Body) return res.status(404).json({ error: 'File not found' });
+        const byteArray = await obj.Body.transformToByteArray();
+        const base64 = Buffer.from(byteArray).toString('base64');
+        return res.json({ dataUrl: `data:${contentType};base64,${base64}` });
+      }
+
+      // Support direct streaming if requested
+      if (req.query.stream === 'true') {
+        const obj = await s3.send(new GetObjectCommand({
+          Bucket: bucketName,
+          Key: key,
+        }));
+        if (!obj.Body) return res.status(404).json({ error: 'File not found' });
+        const byteArray = await obj.Body.transformToByteArray();
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Cache-Control', 'private, max-age=300');
+        return res.send(Buffer.from(byteArray));
+      }
+
       const command = new GetObjectCommand({
         Bucket: bucketName,
         Key: key,
@@ -92,6 +117,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const targetUrl = decodeURIComponent(url);
       if (!isAllowedStorageUrl(targetUrl)) return res.status(403).json({ error: 'Storage URL is not allowed' });
       if (!await authorizeFileAccess(req, res, { url: targetUrl })) return;
+
+      if (req.query.base64 === 'true') {
+        const response = await fetch(targetUrl);
+        if (!response.ok) return res.status(response.status).json({ error: 'Failed to fetch storage file' });
+        const contentType = response.headers.get('content-type') || 'image/jpeg';
+        const arrayBuffer = await response.arrayBuffer();
+        const base64 = Buffer.from(arrayBuffer).toString('base64');
+        return res.json({ dataUrl: `data:${contentType};base64,${base64}` });
+      }
+
+      if (req.query.stream === 'true') {
+        const response = await fetch(targetUrl);
+        if (!response.ok) return res.status(response.status).json({ error: 'Failed to fetch storage file' });
+        const contentType = response.headers.get('content-type') || 'image/jpeg';
+        const arrayBuffer = await response.arrayBuffer();
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Cache-Control', 'private, max-age=300');
+        return res.send(Buffer.from(arrayBuffer));
+      }
 
       // Direct 302 Redirect: Browser downloads straight from Cloudflare R2 / Storage Provider
       res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');

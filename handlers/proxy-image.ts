@@ -15,6 +15,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!isAllowedStorageUrl(url)) return res.status(403).json({ error: 'Forbidden: URL domain is not allowed' });
     if (!await authorizeFileAccess(req, res, { url })) return;
 
+    if (req.query.base64 === 'true') {
+      const response = await fetch(url);
+      if (!response.ok) return res.status(response.status).json({ error: `Failed to fetch image: ${response.statusText}` });
+      const contentType = response.headers.get('content-type') || 'image/jpeg';
+      const arrayBuffer = await response.arrayBuffer();
+      if (arrayBuffer.byteLength > 20 * 1024 * 1024) return res.status(413).json({ error: 'Image exceeds proxy size limit' });
+      const base64 = Buffer.from(arrayBuffer).toString('base64');
+      return res.json({ dataUrl: `data:${contentType};base64,${base64}` });
+    }
+
+    if (req.query.stream === 'true') {
+      const response = await fetch(url);
+      if (!response.ok) return res.status(response.status).json({ error: `Failed to fetch image: ${response.statusText}` });
+      const contentType = response.headers.get('content-type') || 'image/jpeg';
+      const arrayBuffer = await response.arrayBuffer();
+      if (arrayBuffer.byteLength > 20 * 1024 * 1024) return res.status(413).json({ error: 'Image exceeds proxy size limit' });
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'private, max-age=300');
+      return res.send(Buffer.from(arrayBuffer));
+    }
+
     // Direct 302 Redirect to target storage URL (0 bytes Vercel bandwidth)
     res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
     return res.redirect(302, url);

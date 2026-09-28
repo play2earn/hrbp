@@ -170,7 +170,7 @@
         <span class="text-xs font-bold text-slate-300" data-translate-key="ui_expat_label">สิทธิประโยชน์ต่างชาติ</span>
       </div>
 
-      <button onclick="downloadAsImage()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-sm flex items-center gap-2 shadow-sm transition-all hover:-translate-y-0.5 active:translate-y-0">
+      <button id="btn-download-image" onclick="downloadAsImage()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-sm flex items-center gap-2 shadow-sm transition-all hover:-translate-y-0.5 active:translate-y-0">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
         </svg>
@@ -252,7 +252,7 @@
           <!-- Photo Box -->
           <div class="w-32 flex flex-col items-center">
             <div id="photo-box" class="w-28 h-36 border border-slate-300 relative bg-slate-50 flex items-center justify-center text-xs text-slate-400 cursor-pointer overflow-hidden group shadow-inner" onclick="document.getElementById('photo-uploader').click()">
-              <img id="photo-img" src="" alt="Candidate Photo" class="hidden w-full h-full object-cover">
+              <img id="photo-img" crossorigin="anonymous" src="" alt="Candidate Photo" class="hidden w-full h-full object-cover">
               <div id="photo-placeholder" class="text-center p-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto text-slate-300 mb-1 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -434,7 +434,7 @@
           <!-- Photo Box -->
           <div class="w-32 flex flex-col items-center">
             <div id="photo-box_bachelor" class="w-28 h-36 border border-slate-300 relative bg-slate-50 flex items-center justify-center text-xs text-slate-400 cursor-pointer overflow-hidden group shadow-inner" onclick="document.getElementById('photo-uploader_bachelor').click()">
-              <img id="photo-img_bachelor" src="" alt="Candidate Photo" class="hidden w-full h-full object-cover">
+              <img id="photo-img_bachelor" crossorigin="anonymous" src="" alt="Candidate Photo" class="hidden w-full h-full object-cover">
               <div id="photo-placeholder_bachelor" class="text-center p-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto text-slate-300 mb-1 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -718,7 +718,7 @@
           <!-- Photo Box -->
           <div class="w-32 flex flex-col items-center">
             <div id="photo-box_vocational" class="w-28 h-36 border border-slate-300 relative bg-slate-50 flex items-center justify-center text-xs text-slate-400 cursor-pointer overflow-hidden group shadow-inner" onclick="document.getElementById('photo-uploader_vocational').click()">
-              <img id="photo-img_vocational" src="" alt="Candidate Photo" class="hidden w-full h-full object-cover">
+              <img id="photo-img_vocational" crossorigin="anonymous" src="" alt="Candidate Photo" class="hidden w-full h-full object-cover">
               <div id="photo-placeholder_vocational" class="text-center p-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto text-slate-300 mb-1 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -943,7 +943,7 @@
           <!-- Photo Box -->
           <div class="w-32 flex flex-col items-center">
             <div id="photo-box_executive" class="w-28 h-36 border border-slate-300 relative bg-slate-50 flex items-center justify-center text-xs text-slate-400 cursor-pointer overflow-hidden group shadow-inner" onclick="document.getElementById('photo-uploader_executive').click()">
-              <img id="photo-img_executive" src="" alt="Candidate Photo" class="hidden w-full h-full object-cover">
+              <img id="photo-img_executive" crossorigin="anonymous" src="" alt="Candidate Photo" class="hidden w-full h-full object-cover">
               <div id="photo-placeholder_executive" class="text-center p-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto text-slate-300 mb-1 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -3463,23 +3463,102 @@
       });
     }
 
+    // Best Practice: Multi-tier resolution of candidate photo into clean, non-tainted Base64 data URL
+    async function resolveImageToBase64(rawUrl) {
+      if (!rawUrl) return '';
+      if (rawUrl.startsWith('data:image/')) return rawUrl;
+
+      // Tier 1: Direct fetch if CORS-enabled (e.g. S3 with CORS headers or same origin)
+      try {
+        const resp = await fetch(rawUrl, { mode: 'cors' });
+        if (resp.ok) {
+          const blob = await resp.blob();
+          if (blob && blob.size > 0) {
+            const dataUrl = await new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result);
+              reader.onerror = () => resolve('');
+              reader.readAsDataURL(blob);
+            });
+            if (dataUrl && typeof dataUrl === 'string' && dataUrl.startsWith('data:image/')) {
+              return dataUrl;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Direct fetch to Base64 failed, attempting server proxy fallback...', err);
+      }
+
+      // Tier 2: Server-side Base64 API conversion fallback (bypasses browser CORS & S3 redirect issues)
+      try {
+        let apiUrl = '';
+        if (rawUrl.startsWith('/api/files')) {
+          const separator = rawUrl.includes('?') ? '&' : '?';
+          apiUrl = `${rawUrl}${separator}base64=true`;
+        } else if (rawUrl.startsWith('http')) {
+          apiUrl = `/api/proxy-image?url=${encodeURIComponent(rawUrl)}&base64=true`;
+        }
+
+        if (apiUrl) {
+          const apiResp = await fetch(apiUrl);
+          if (apiResp.ok) {
+            const json = await apiResp.json();
+            if (json && json.dataUrl) {
+              return json.dataUrl;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Server base64 proxy fallback failed:', err);
+      }
+
+      // Tier 3: Off-screen Image element loader
+      try {
+        const dataUrl = await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              canvas.width = img.naturalWidth || img.width;
+              canvas.height = img.naturalHeight || img.height;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0);
+              resolve(canvas.toDataURL('image/jpeg', 0.95));
+            } catch (e) {
+              reject(e);
+            }
+          };
+          img.onerror = reject;
+          img.src = rawUrl;
+        });
+        if (dataUrl) return dataUrl;
+      } catch (err) {
+        console.warn('Canvas export of raw image failed:', err);
+      }
+
+      return rawUrl;
+    }
+
     async function setCandidatePhoto(photoUrl) {
       if (!photoUrl) return;
-      const proxyUrl = photoUrl.startsWith('http') 
+
+      // 1. Apply immediately so user sees photo without delay
+      const displayUrl = photoUrl.startsWith('http') 
         ? `/api/proxy-image?url=${encodeURIComponent(photoUrl)}` 
         : photoUrl;
-      
-      // Apply immediately so user sees photo without delay
-      applyCandidatePhoto(proxyUrl);
+      applyCandidatePhoto(displayUrl);
 
-      // Asynchronously pre-crop to 7:9 ratio so html2canvas renders perfectly without distortion
+      // 2. Resolve to clean Base64 data URL + crop to 7:9 ratio for perfect canvas export
       try {
-        const croppedUrl = await cropImageToCover(proxyUrl, 448, 576);
-        if (croppedUrl) {
+        const base64Url = await resolveImageToBase64(photoUrl);
+        const sourceForCrop = (base64Url && base64Url.startsWith('data:image/')) ? base64Url : displayUrl;
+        const croppedUrl = await cropImageToCover(sourceForCrop, 448, 576);
+        if (croppedUrl && croppedUrl.startsWith('data:image/')) {
           applyCandidatePhoto(croppedUrl);
         }
       } catch (e) {
-        console.warn('Auto photo crop error:', e);
+        console.warn('Candidate photo preparation error:', e);
       }
     }
 
@@ -3509,75 +3588,135 @@
     // Download memo as high-res PNG image
     async function downloadAsImage() {
       const doc = document.getElementById('memo-document');
-      
-      // Pre-flight check: ensure active template's photo has exact 7:9 aspect ratio before canvas capture
-      let activePhotoId = 'photo-img';
-      if (activeTemplate === 'bachelor') activePhotoId = 'photo-img_bachelor';
-      else if (activeTemplate === 'vocational') activePhotoId = 'photo-img_vocational';
-      else if (activeTemplate === 'executive') activePhotoId = 'photo-img_executive';
+      const downloadBtn = document.getElementById('btn-download-image');
+      const originalBtnHtml = downloadBtn ? downloadBtn.innerHTML : '';
 
-      const photoEl = document.getElementById(activePhotoId);
-      if (photoEl && photoEl.src && !photoEl.classList.contains('hidden')) {
-        const nw = photoEl.naturalWidth;
-        const nh = photoEl.naturalHeight;
-        if (nw > 0 && nh > 0) {
-          const currentRatio = nw / nh;
-          const targetRatio = 112 / 144; // 0.7777777777777778
-          if (Math.abs(currentRatio - targetRatio) > 0.02) {
+      try {
+        if (downloadBtn) {
+          downloadBtn.disabled = true;
+          downloadBtn.classList.add('opacity-75', 'cursor-wait');
+          downloadBtn.innerHTML = `
+            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+            </svg>
+            <span>กำลังบันทึกภาพ...</span>
+          `;
+        }
+
+        // Pre-flight check: ensure active template's photo is clean Base64 & 7:9 aspect ratio before canvas capture
+        let activePhotoId = 'photo-img';
+        if (activeTemplate === 'bachelor') activePhotoId = 'photo-img_bachelor';
+        else if (activeTemplate === 'vocational') activePhotoId = 'photo-img_vocational';
+        else if (activeTemplate === 'executive') activePhotoId = 'photo-img_executive';
+
+        const photoEl = document.getElementById(activePhotoId);
+        if (photoEl && photoEl.src && !photoEl.classList.contains('hidden')) {
+          // If the photo is still a remote URL, convert it to Base64 now
+          if (!photoEl.src.startsWith('data:image/')) {
             try {
-              const cropped = await cropImageToCover(photoEl.src, 448, 576);
-              if (cropped) {
-                applyCandidatePhoto(cropped);
-                await new Promise(resolve => {
-                  if (photoEl.complete) setTimeout(resolve, 60);
-                  else photoEl.onload = () => setTimeout(resolve, 60);
-                });
+              const b64 = await resolveImageToBase64(photoEl.src);
+              if (b64 && b64.startsWith('data:image/')) {
+                const cropped = await cropImageToCover(b64, 448, 576);
+                applyCandidatePhoto(cropped || b64);
               }
             } catch (e) {
-              console.warn("Pre-export photo cropping error:", e);
+              console.warn("Pre-export photo base64 preparation error:", e);
+            }
+          } else {
+            // Already a data: URL, ensure 7:9 aspect ratio
+            const nw = photoEl.naturalWidth;
+            const nh = photoEl.naturalHeight;
+            if (nw > 0 && nh > 0) {
+              const currentRatio = nw / nh;
+              const targetRatio = 112 / 144; // 0.7777777777777778
+              if (Math.abs(currentRatio - targetRatio) > 0.02) {
+                try {
+                  const cropped = await cropImageToCover(photoEl.src, 448, 576);
+                  if (cropped) applyCandidatePhoto(cropped);
+                } catch (e) {
+                  console.warn("Pre-export photo cropping error:", e);
+                }
+              }
             }
           }
-        }
-      }
 
-      // Add exporting class to hide placeholders and hover/focus styling
-      document.body.classList.add('exporting-image');
-
-      // Wait a fraction of a second to ensure styles apply
-      setTimeout(() => {
-        html2canvas(doc, {
-          useCORS: true,
-          allowTaint: true,
-          scale: 2, // 2x scale for Retina HD crispness
-          backgroundColor: '#ffffff'
-        }).then(canvas => {
-          // Remove exporting class to restore editing style
-          document.body.classList.remove('exporting-image');
-
-          let nameId = 'fullName';
-          let prefixName = 'Memo_WorkSkill';
-          if (activeTemplate === 'bachelor') {
-            nameId = 'fullName_bachelor';
-            prefixName = 'Memo_Bachelor';
-          } else if (activeTemplate === 'vocational') {
-            nameId = 'fullName_vocational';
-            prefixName = 'Memo_Vocational';
-          } else if (activeTemplate === 'executive') {
-            nameId = 'fullName_executive';
-            prefixName = 'Memo_Executive';
+          // Give DOM a tick to guarantee photo is rendered
+          if (!photoEl.complete) {
+            await new Promise(resolve => {
+              photoEl.onload = resolve;
+              photoEl.onerror = resolve;
+              setTimeout(resolve, 300);
+            });
           }
-          const fullName = document.getElementById(nameId).textContent.trim().replace(/\s+/g, '_') || 'Candidate';
-          
+        }
+
+        // Add exporting class to hide placeholders and hover/focus styling
+        document.body.classList.add('exporting-image');
+
+        // Allow DOM styles and layout to settle
+        await new Promise(r => setTimeout(r, 150));
+
+        const canvas = await html2canvas(doc, {
+          useCORS: true,
+          allowTaint: false, // Invariant: Never allow tainted canvas which prevents toDataURL/toBlob export!
+          scale: 2, // 2x scale for Retina HD crispness
+          backgroundColor: '#ffffff',
+          logging: false
+        });
+
+        document.body.classList.remove('exporting-image');
+
+        let nameId = 'fullName';
+        let prefixName = 'Memo_WorkSkill';
+        if (activeTemplate === 'bachelor') {
+          nameId = 'fullName_bachelor';
+          prefixName = 'Memo_Bachelor';
+        } else if (activeTemplate === 'vocational') {
+          nameId = 'fullName_vocational';
+          prefixName = 'Memo_Vocational';
+        } else if (activeTemplate === 'executive') {
+          nameId = 'fullName_executive';
+          prefixName = 'Memo_Executive';
+        }
+        const nameEl = document.getElementById(nameId);
+        const fullName = (nameEl ? nameEl.textContent.trim().replace(/\s+/g, '_') : '') || 'Candidate';
+
+        // Best Practice: Export using toBlob for memory safety with fallback to toDataURL
+        if (canvas.toBlob) {
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const blobUrl = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.download = `${prefixName}_${fullName}.png`;
+              link.href = blobUrl;
+              link.click();
+              setTimeout(() => URL.revokeObjectURL(blobUrl), 1500);
+            } else {
+              const link = document.createElement('a');
+              link.download = `${prefixName}_${fullName}.png`;
+              link.href = canvas.toDataURL('image/png');
+              link.click();
+            }
+          }, 'image/png');
+        } else {
           const link = document.createElement('a');
           link.download = `${prefixName}_${fullName}.png`;
           link.href = canvas.toDataURL('image/png');
           link.click();
-        }).catch(err => {
-          console.error("Canvas export failed:", err);
-          document.body.classList.remove('exporting-image');
-          alert("เกิดข้อผิดพลาดในการบันทึกรูปภาพ กรุณาลองใหม่อีกครั้ง");
-        });
-      }, 100);
+        }
+
+      } catch (err) {
+        console.error("Canvas export failed:", err);
+        document.body.classList.remove('exporting-image');
+        alert("เกิดข้อผิดพลาดในการบันทึกรูปภาพ กรุณาลองใหม่อีกครั้ง (" + (err && err.message ? err.message : 'Export failed') + ")");
+      } finally {
+        if (downloadBtn) {
+          downloadBtn.disabled = false;
+          downloadBtn.classList.remove('opacity-75', 'cursor-wait');
+          downloadBtn.innerHTML = originalBtnHtml;
+        }
+      }
     }
 
     // Global active dropdown reference
