@@ -119,12 +119,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'File size exceeds 15MB limit' });
     }
 
+    // Inspect magic bytes to verify true file type against mislabeled filenames/MIMEs
+    const sniffMimeType = (buf: Buffer, fallback: string): string => {
+      if (buf.length >= 4) {
+        if (buf[0] === 0x25 && buf[1] === 0x50 && buf[2] === 0x44 && buf[3] === 0x46) return 'application/pdf';
+        if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'image/jpeg';
+        if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return 'image/png';
+        if (buf.length >= 12 && buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') return 'image/webp';
+        if (buf.length >= 6 && buf.toString('ascii', 0, 3) === 'GIF') return 'image/gif';
+      }
+      return fallback;
+    };
+
+    const actualFileType = sniffMimeType(fileBuffer, fileType);
+
     const extensionByType: Record<string, string> = {
       'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif',
       'application/pdf': 'pdf', 'application/msword': 'doc',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
     };
-    const safeExt = extensionByType[fileType] || 'bin';
+    const safeExt = extensionByType[actualFileType] || extensionByType[fileType] || 'bin';
 
     // If draftId is present, handle via the active draft storage.
     // s3-primary stores draft uploads in AWS S3 from the first applicant upload.
@@ -142,7 +156,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           Bucket: bucketName,
           Key: draftKey,
           Body: fileBuffer,
-          ContentType: fileType,
+          ContentType: actualFileType,
         })
       );
 
@@ -215,7 +229,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         Bucket: bucketName,
         Key: s3Key,
         Body: fileBuffer,
-        ContentType: fileType,
+        ContentType: actualFileType,
       })
     );
 
