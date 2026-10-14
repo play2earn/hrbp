@@ -506,7 +506,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
     }
   }, [isOpen]);
 
-  const selectedOption = options.find(opt => opt.value === value);
+  const selectedOption = value ? options.find(opt => opt.value === value) : undefined;
 
   const filteredOptions = React.useMemo(() => {
     if (!search.trim()) return options;

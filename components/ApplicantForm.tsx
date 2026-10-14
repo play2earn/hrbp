@@ -243,7 +243,7 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
   // Fetch Positions when Department changes
   useEffect(() => {
     if (formData.department) {
-      const dept = departments.find(d => d.name_en === formData.department || d.name_th === formData.department);
+      const dept = departments.find(d => (d.name_en && d.name_en === formData.department) || (d.name_th && d.name_th === formData.department));
       if (dept) {
         const deptPositions = allPositions.filter(p => p.department_id === dept.id);
         if (deptPositions.length > 0) {
@@ -955,11 +955,13 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                   placeholder={lang === 'en' ? 'Type or select position...' : 'พิมพ์ค้นหาหรือเลือกตำแหน่งงาน...'}
                   searchPlaceholder={lang === 'en' ? 'Type job title to search...' : 'พิมพ์ชื่อตำแหน่งเพื่อค้นหา...'}
                   value={
-                    formData.position === 'ตำแหน่งทั่วไป (General Application)'
-                      ? '__general_application__'
-                      : (allPositions.find(p => p.name_th === formData.position || p.name_en === formData.position)?.id
-                          ? String(allPositions.find(p => p.name_th === formData.position || p.name_en === formData.position)?.id)
-                          : (formData.position || ''))
+                    !formData.position
+                      ? ''
+                      : formData.position === 'ตำแหน่งทั่วไป (General Application)'
+                        ? '__general_application__'
+                        : (allPositions.find(p => (p.name_th && p.name_th === formData.position) || (p.name_en && p.name_en === formData.position))?.id
+                            ? String(allPositions.find(p => (p.name_th && p.name_th === formData.position) || (p.name_en && p.name_en === formData.position))?.id)
+                            : formData.position)
                   }
                   onChange={(selectedVal) => {
                     if (!selectedVal) {
@@ -974,7 +976,10 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                       return;
                     }
 
-                    const matchedPos = allPositions.find(p => String(p.id) === selectedVal || p.name_th === selectedVal || p.name_en === selectedVal);
+                    const matchedPos = allPositions.find(
+                      p => String(p.id) === selectedVal ||
+                        (selectedVal && ((p.name_th && p.name_th === selectedVal) || (p.name_en && p.name_en === selectedVal)))
+                    );
                     if (matchedPos) {
                       updateField('position', matchedPos.name_th || selectedVal);
                       updateField('positionEn', matchedPos.name_en || selectedVal);
@@ -1013,13 +1018,15 @@ export const ApplicantFormComp: React.FC<ApplicantFormProps> = ({ lang, urlParam
                   value={formData.department || ''}
                   onChange={(selectedValue) => {
                     updateField('department', selectedValue);
-                    const matchedDept = departments.find(d => d.name_th === selectedValue || d.name_en === selectedValue);
+                    const matchedDept = selectedValue
+                      ? departments.find(d => (d.name_th && d.name_th === selectedValue) || (d.name_en && d.name_en === selectedValue))
+                      : undefined;
                     updateField('departmentEn', matchedDept?.name_en || selectedValue);
 
                     // If not general application and position doesn't belong to this department, clear position
                     if (formData.position && formData.position !== 'ตำแหน่งทั่วไป (General Application)' && matchedDept) {
                       const isValidInDept = allPositions.some(
-                        p => p.department_id === matchedDept.id && (p.name_th === formData.position || p.name_en === formData.position)
+                        p => p.department_id === matchedDept.id && ((p.name_th && p.name_th === formData.position) || (p.name_en && p.name_en === formData.position))
                       );
                       if (!isValidInDept) {
                         updateField('position', '');
